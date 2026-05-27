@@ -89,6 +89,7 @@
   const GROUPS_KEY = "hubAstorya.access.groups.v1";
   const ACTIVE_KEY = "hubAstorya.access.activeGroup.v1";
   const SESSION_KEY = "hubAstorya.access.session.v1";
+  const TRANSCRIPTS_KEY = "hubAstorya.hotline.transcripts.v1";
   const DEFAULT_ACTIVE = "admin";
 
   const listeners = new Set();
@@ -99,8 +100,9 @@
   let _activeId = undefined;
   let _activeGroupKey = null, _activeGroupCache = null;
   let _sessionRaw = undefined, _sessionCache = null;
+  let _transcriptsRaw = undefined, _transcriptsCache = null;
   const invalidate = () => {
-    _groupsRaw = _sessionRaw = undefined;
+    _groupsRaw = _sessionRaw = _transcriptsRaw = undefined;
     _activeId = undefined;
     _activeGroupKey = null;
   };
@@ -144,9 +146,38 @@
   }
   function subscribe(fn) {
     listeners.add(fn);
-    const onStorage = (e) => { if (e.key === GROUPS_KEY || e.key === ACTIVE_KEY || e.key === SESSION_KEY) fn(); };
+    const onStorage = (e) => {
+      if (e.key === GROUPS_KEY || e.key === ACTIVE_KEY || e.key === SESSION_KEY || e.key === TRANSCRIPTS_KEY) fn();
+    };
     window.addEventListener("storage", onStorage);
     return () => { listeners.delete(fn); window.removeEventListener("storage", onStorage); };
+  }
+
+  // ───── Retranscriptions d'appel 3CX rattachées à un ticket
+  function loadTranscripts() {
+    const raw = localStorage.getItem(TRANSCRIPTS_KEY);
+    if (raw === _transcriptsRaw) return _transcriptsCache;
+    _transcriptsRaw = raw;
+    try {
+      _transcriptsCache = raw ? JSON.parse(raw) : {};
+      if (!_transcriptsCache || typeof _transcriptsCache !== "object") _transcriptsCache = {};
+    } catch (e) { _transcriptsCache = {}; }
+    return _transcriptsCache;
+  }
+  const EMPTY = [];
+  function getTranscriptsForTicket(ticketId) {
+    const all = loadTranscripts();
+    return all[ticketId] || EMPTY;
+  }
+  function addTranscript(ticketId, entry) {
+    const all = { ...loadTranscripts() };
+    all[ticketId] = [...(all[ticketId] || []), entry];
+    try { localStorage.setItem(TRANSCRIPTS_KEY, JSON.stringify(all)); } catch (e) {}
+    emit();
+  }
+  function clearTranscripts() {
+    try { localStorage.removeItem(TRANSCRIPTS_KEY); } catch (e) {}
+    emit();
   }
 
   // ───── Session (login factice — démo uniquement)
@@ -187,6 +218,7 @@
       localStorage.removeItem(GROUPS_KEY);
       localStorage.removeItem(ACTIVE_KEY);
       localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(TRANSCRIPTS_KEY);
     } catch (e) {}
     emit();
   }
@@ -204,6 +236,10 @@
     login,
     logout,
     listUsers,
+    loadTranscripts,
+    getTranscriptsForTicket,
+    addTranscript,
+    clearTranscripts,
     subscribe,
     resetAll,
   };

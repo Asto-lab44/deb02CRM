@@ -1,6 +1,25 @@
 // Écran 2 — Détail ticket + conversation (vue utilisateur final)
 
+const TICKET_ID = "INC-2837";
+
 const TicketDetail = () => {
+  // Retranscriptions d'appel 3CX rattachées à ce ticket (alimentées par la
+  // popup hotline). Affichées dans le fil de conversation, sous le dernier
+  // message bot.
+  const subscribe = React.useCallback((fn) => (window.HubAccess && window.HubAccess.subscribe) ? window.HubAccess.subscribe(fn) : () => {}, []);
+  const callNotes = React.useSyncExternalStore(
+    subscribe,
+    () => (window.HubAccess && window.HubAccess.getTranscriptsForTicket) ? window.HubAccess.getTranscriptsForTicket(TICKET_ID) : []
+  );
+
+  const fmtDur = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const fmtWhen = (iso) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    } catch (e) { return ""; }
+  };
+
   const Avatar = ({ name, size = 28, color, role }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -220,6 +239,44 @@ const TicketDetail = () => {
                   </div>
                 );
               })}
+
+              {/* Retranscriptions d'appel 3CX */}
+              {callNotes.map((n, i) => (
+                <div key={"call-" + i} style={callStyles.row}>
+                  <div style={callStyles.iconCol}>
+                    <div style={callStyles.phoneIcon}>📞</div>
+                  </div>
+                  <div style={callStyles.card}>
+                    <div style={callStyles.cardHead}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={callStyles.badge3cx}>3CX · Speech-to-text</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>Appel entrant de {n.from}</span>
+                      </div>
+                      <span style={{ fontSize: 11.5, color: "#94a3b8" }}>{fmtWhen(n.at)}</span>
+                    </div>
+
+                    <div style={callStyles.meta}>
+                      <span>{n.phone}</span>
+                      <span style={{ color: "#cbd5e1", margin: "0 6px" }}>·</span>
+                      <span>Durée {fmtDur(n.durationSec || 0)}</span>
+                      <span style={{ color: "#cbd5e1", margin: "0 6px" }}>·</span>
+                      <span>Enregistrement archivé sur PBX 3CX</span>
+                    </div>
+
+                    <div style={callStyles.audioBar}>
+                      <button style={callStyles.playBtn}>▶</button>
+                      <div style={{ flex: 1, height: 4, background: "#e2e8f0", borderRadius: 999 }}>
+                        <div style={{ width: "0%", height: "100%", background: "#10b981", borderRadius: 999 }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>00:00 / {fmtDur(n.durationSec || 0)}</span>
+                      <button style={callStyles.dlBtn} title="Télécharger l'enregistrement">⬇</button>
+                    </div>
+
+                    <div style={callStyles.transcriptLabel}>Retranscription</div>
+                    <div style={callStyles.transcriptBox}>{n.text}</div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Composer */}
@@ -470,6 +527,21 @@ const tdStyles = {
   metricGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
   metricK: { fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 },
   metricV: { fontSize: 16, fontWeight: 600, color: "#0f172a", marginTop: 2, letterSpacing: -0.3 },
+};
+
+const callStyles = {
+  row: { display: "flex", gap: 12, alignItems: "flex-start", margin: "14px 0" },
+  iconCol: { width: 32, display: "flex", justifyContent: "center", flexShrink: 0 },
+  phoneIcon: { width: 32, height: 32, borderRadius: 999, background: "#dcfce7", color: "#10b981", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, border: "2px solid #fff", boxShadow: "0 0 0 1px #bbf7d0" },
+  card: { flex: 1, background: "#fff", border: "1px solid #bbf7d0", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 },
+  cardHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 },
+  badge3cx: { fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", padding: "2px 7px", borderRadius: 999, background: "#10b981", color: "#fff" },
+  meta: { fontSize: 11.5, color: "#64748b" },
+  audioBar: { display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8 },
+  playBtn: { width: 28, height: 28, borderRadius: 999, background: "#10b981", color: "#fff", border: 0, fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", paddingLeft: 2 },
+  dlBtn: { width: 26, height: 26, borderRadius: 6, background: "transparent", color: "#64748b", border: "1px solid #e2e8f0", fontSize: 12, cursor: "pointer" },
+  transcriptLabel: { fontSize: 10.5, fontWeight: 700, color: "#0f172a", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 },
+  transcriptBox: { fontSize: 12.5, lineHeight: 1.6, color: "#334155", padding: "10px 12px", background: "#f0fdf4", border: "1px dashed #bbf7d0", borderRadius: 8, fontStyle: "italic" },
 };
 
 window.TicketDetail = TicketDetail;

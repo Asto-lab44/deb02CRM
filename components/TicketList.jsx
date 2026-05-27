@@ -194,8 +194,12 @@ const TicketList = () => {
 
         {lastCreated && (
           <div style={{ margin: "10px 20px 0", padding: "10px 14px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, fontSize: 12.5, color: "#065f46", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontWeight: 700 }}>✓ Ticket {lastCreated.ticketId} créé</span>
-            <span style={{ color: "#475569" }}>pour {lastCreated.client} — {lastCreated.subject}</span>
+            <span style={{ fontWeight: 700 }}>
+              ✓ {lastCreated.attached ? "Retranscription ajoutée au ticket " + lastCreated.ticketId : "Ticket " + lastCreated.ticketId + " créé"}
+            </span>
+            <span style={{ color: "#475569" }}>
+              {lastCreated.attached ? "(appel de " + lastCreated.client + ")" : "pour " + lastCreated.client + " — " + lastCreated.subject}
+            </span>
           </div>
         )}
 

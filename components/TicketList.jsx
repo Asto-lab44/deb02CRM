@@ -18,12 +18,14 @@ const TicketList = () => {
   };
 
   const tickets = [
+    { id: "REQ-1198", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Arrivée Lucas Bernard — création comptes & matériel", status: "open", prio: "haute", cat: "Gestion comptes RH · Onboarding", lifecycle: "onboarding", billable: true, billableNote: "Prestation hors contrat de maintenance — facturée 380 € HT", assignee: { name: "Équipe IT", team: "Pool" }, opened: "il y a 1 h", updated: "il y a 18 min", sla: { left: "2 j 06 h", risk: "ok" }, msgs: 2, unread: 1, hasAttach: false, isNew: true },
+    { id: "REQ-1197", client: { name: "Crédit Agricole Sud",  maintenance: "none",     contract: "Aucun contrat actif — intervention facturable" }, title: "Départ Élise Chevalier — désactivation comptes & restitution", status: "in_progress", prio: "normale", cat: "Gestion comptes RH · Offboarding", lifecycle: "offboarding", billable: true, billableNote: "Prestation facturée 240 € HT (extinction AD + Microsoft 365 + restitution)", assignee: { name: "Sophie Aubry", team: "Sécurité" }, opened: "il y a 4 h", updated: "il y a 1 h", sla: { left: "4 h 12", risk: "warn" }, msgs: 3, unread: 0, hasAttach: true },
     { id: "INC-2841", client: { name: "MAIF Innovation",      maintenance: "active",   contract: "Premium 24/7 · jusqu'au 31 déc. 2026" }, title: "Imprimante 3e étage en erreur PCL", status: "in_progress", prio: "haute", cat: "Matériel · Imprimante", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 h", updated: "il y a 12 min", sla: { left: "3 h 48", risk: "ok" }, msgs: 4, unread: 2, hasAttach: true },
     { id: "INC-2840", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Impossible d'accéder à SharePoint Direction", title2: "Erreur 403 depuis ce matin sur tous les navigateurs", status: "open", prio: "critique", cat: "Accès & Droits", assignee: null, opened: "il y a 28 min", updated: "il y a 9 min", sla: { left: "47 min", risk: "warn" }, msgs: 1, unread: 0, hasAttach: false, isNew: true },
     { id: "REQ-1192", client: { name: "Crédit Agricole Sud",  maintenance: "none",     contract: "Aucun contrat actif — intervention facturable" }, title: "Demande d'installation d'AutoCAD 2025", status: "waiting", prio: "normale", cat: "Logiciel · Installation", assignee: { name: "Léa Marchand", team: "Support N2" }, opened: "il y a 1 j", updated: "il y a 4 h", sla: { left: "1 j 02 h", risk: "ok" }, msgs: 6, unread: 0, hasAttach: true, waiting: "Validation manager" },
     { id: "INC-2837", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "VPN se déconnecte toutes les 10 min", status: "in_progress", prio: "haute", cat: "Réseau · VPN", assignee: { name: "Tom Verdier", team: "Support N2" }, opened: "il y a 1 j", updated: "il y a 35 min", sla: { left: "00 h 22", risk: "danger" }, msgs: 11, unread: 1, hasAttach: true },
     { id: "INC-2833", client: { name: "Allianz France",       maintenance: "expiring", contract: "Standard 9-18h · expire le 12 juil. 2026 (46 j)" }, title: "Outlook : pièces jointes >25 Mo bloquées", status: "in_progress", prio: "normale", cat: "Messagerie", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 j", updated: "hier", sla: { left: "5 h 10", risk: "ok" }, msgs: 3, unread: 0, hasAttach: false },
-    { id: "REQ-1188", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Nouveau poste — onboarding Camille Dufour", status: "open", prio: "normale", cat: "Onboarding", assignee: { name: "Équipe IT", team: "Pool" }, opened: "il y a 2 j", updated: "il y a 1 j", sla: { left: "2 j 04 h", risk: "ok" }, msgs: 2, unread: 0, hasAttach: false },
+    { id: "REQ-1188", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Nouveau poste — onboarding Camille Dufour", status: "open", prio: "normale", cat: "Gestion comptes RH · Onboarding", lifecycle: "onboarding", billable: true, billableNote: "Prestation hors contrat — facturée 380 € HT", assignee: { name: "Équipe IT", team: "Pool" }, opened: "il y a 2 j", updated: "il y a 1 j", sla: { left: "2 j 04 h", risk: "ok" }, msgs: 2, unread: 0, hasAttach: false },
     { id: "INC-2829", client: { name: "BNP Paribas AM",       maintenance: "none",     contract: "Aucun contrat actif — intervention facturable" }, title: "Écran secondaire non détecté sur dock Dell", status: "resolved", prio: "basse", cat: "Matériel · Périphérique", assignee: { name: "Léa Marchand", team: "Support N2" }, opened: "il y a 3 j", updated: "il y a 6 h", sla: { left: "—", risk: "done" }, msgs: 8, unread: 0, hasAttach: true },
     { id: "INC-2826", client: { name: "La Banque Postale",    maintenance: "active",   contract: "Standard 9-18h · jusqu'au 30 sept. 2027" }, title: "Téléphonie Teams — micro saturé en réunion", status: "resolved", prio: "normale", cat: "Téléphonie", assignee: { name: "Tom Verdier", team: "Support N2" }, opened: "il y a 4 j", updated: "il y a 2 j", sla: { left: "—", risk: "done" }, msgs: 5, unread: 0, hasAttach: false },
     { id: "REQ-1180", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Accès lecture base RH pour audit interne", status: "closed", prio: "normale", cat: "Accès & Droits", assignee: { name: "Sophie Aubry", team: "Sécurité" }, opened: "il y a 6 j", updated: "il y a 3 j", sla: { left: "—", risk: "done" }, msgs: 14, unread: 0, hasAttach: true },
@@ -35,6 +37,15 @@ const TicketList = () => {
     expiring: { color: "#f59e0b", soft: "#fef3c7", label: "Contrat expire",     icon: "●" },
     none:     { color: "#dc2626", soft: "#fee2e2", label: "Pas de contrat",     icon: "●" },
   };
+
+  // Cycle de vie collaborateur — création/désactivation de comptes, facturable.
+  const lifecycleMeta = {
+    onboarding:  { icon: "👤+", label: "Arrivée",  color: "#0e7a55", soft: "#dcfce7", border: "#86efac" },
+    offboarding: { icon: "👤−", label: "Départ",   color: "#7c2d12", soft: "#ffedd5", border: "#fdba74" },
+  };
+  const billableCount = tickets.filter((t) => t.billable).length;
+  const onboardingCount = tickets.filter((t) => t.lifecycle === "onboarding").length;
+  const offboardingCount = tickets.filter((t) => t.lifecycle === "offboarding").length;
 
   const statusMeta = {
     open:        { label: "Ouvert",     dot: "#3b82f6", soft: "#eff4ff", text: "#1d4ed8" },
@@ -127,6 +138,25 @@ const TicketList = () => {
               <span style={tlStyles.navCount}>{n.c}</span>
             </div>
           ))}
+        </div>
+
+        <div style={tlStyles.navSection}>
+          <div style={tlStyles.navLabel}>Cycle collaborateur</div>
+          <div style={tlStyles.navItem}>
+            <span style={{ width: 14, color: "#0e7a55", fontSize: 11, fontWeight: 700 }}>👤+</span>
+            <span style={{ flex: 1 }}>Arrivées · onboarding</span>
+            <span style={{ ...tlStyles.navCount, background: "#dcfce7", color: "#065f46" }}>{onboardingCount}</span>
+          </div>
+          <div style={tlStyles.navItem}>
+            <span style={{ width: 14, color: "#7c2d12", fontSize: 11, fontWeight: 700 }}>👤−</span>
+            <span style={{ flex: 1 }}>Départs · offboarding</span>
+            <span style={{ ...tlStyles.navCount, background: "#ffedd5", color: "#7c2d12" }}>{offboardingCount}</span>
+          </div>
+          <div style={tlStyles.navItem}>
+            <span style={{ width: 14, color: "#a16207", fontSize: 11 }}>€</span>
+            <span style={{ flex: 1 }}>Prestations facturables</span>
+            <span style={{ ...tlStyles.navCount, background: "#fef3c7", color: "#78350f" }}>{billableCount}</span>
+          </div>
         </div>
 
         <div style={tlStyles.navSection}>
@@ -305,6 +335,15 @@ const TicketList = () => {
                 <div style={{ ...tlStyles.col, flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                     {t.isNew && <span style={tlStyles.newDot} title="Non lu" />}
+                    {t.lifecycle && (() => {
+                      const lm = lifecycleMeta[t.lifecycle];
+                      return (
+                        <span title={`Cycle collaborateur : ${lm.label} (création/désactivation de comptes)`}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800, color: lm.color, background: lm.soft, border: `1px solid ${lm.border}`, letterSpacing: 0.3, flexShrink: 0 }}>
+                          {lm.icon} {lm.label.toUpperCase()}
+                        </span>
+                      );
+                    })()}
                     <span style={{
                       fontSize: 13,
                       fontWeight: t.unread ? 600 : 500,
@@ -332,11 +371,19 @@ const TicketList = () => {
                   </span>
                 </div>
                 <div style={{ ...tlStyles.col, width: 92 }}>
-                  <span style={{ ...tlStyles.prioPill, background: pm.soft, color: pm.color }}>
-                    {t.prio === "critique" && "▲ "}
-                    {t.prio === "haute" && "▲ "}
-                    {pm.label}
-                  </span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+                    <span style={{ ...tlStyles.prioPill, background: pm.soft, color: pm.color }}>
+                      {t.prio === "critique" && "▲ "}
+                      {t.prio === "haute" && "▲ "}
+                      {pm.label}
+                    </span>
+                    {t.billable && (
+                      <span title={t.billableNote || "Prestation facturable"}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 700, color: "#78350f", background: "#fef3c7", border: "1px solid #fde68a", letterSpacing: 0.3, cursor: "help" }}>
+                        € FACTURABLE
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div style={{ ...tlStyles.col, width: 170 }}>
                   {t.assignee ? (
@@ -364,7 +411,7 @@ const TicketList = () => {
 
         {/* Footer */}
         <div style={tlStyles.foot}>
-          <div style={{ fontSize: 12, color: "#64748b" }}>9 tickets affichés sur 32 — chargement automatique au défilement</div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>{tickets.length} tickets affichés sur 34 — chargement automatique au défilement</div>
           <div style={{ display: "flex", gap: 6 }}>
             <button style={tlStyles.filterPill}>‹</button>
             <button style={{ ...tlStyles.filterPill, ...tlStyles.tabActive }}>1</button>

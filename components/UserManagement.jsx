@@ -159,7 +159,7 @@ const UserManagement = () => {
               <span style={{ width: 7, height: 7, borderRadius: 999, background: activeGroup.color }} />
               <span style={{ fontWeight: 700, color: "#0f172a" }}>{activeGroup.name}</span>
               <span style={{ color: "#cbd5e1" }}>·</span>
-              <a href="accueil-erp.html" style={{ color: "#3730a3", fontWeight: 600, textDecoration: "none" }}>Ouvrir →</a>
+              <a href="./" style={{ color: "#3730a3", fontWeight: 600, textDecoration: "none" }}>Ouvrir →</a>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinitialiser</button>

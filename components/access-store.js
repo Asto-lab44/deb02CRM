@@ -21,6 +21,12 @@
       members: ["Nadia Lefèvre", "Hugo Bertrand"],
     },
     {
+      id: "supervision", name: "Administrateur · Supervision", color: "#7c3aed",
+      description: "Cellule supervision — réception des escalades tickets, monitoring SLA et arbitrage des incidents critiques.",
+      access: ALL_KEYS.slice(),
+      members: ["Hugo Bertrand", "Léa Marchand", "Tom Verdier"],
+    },
+    {
       id: "direction", name: "Direction", color: "#4f46e5",
       description: "Comité exécutif — vue 360 sur tous les modules, lecture étendue.",
       access: ALL_KEYS.slice(),
@@ -84,9 +90,11 @@
     { email: "d.roussel@astorya.fr",   password: "demo", name: "Diane Roussel",      role: "Ingénieure support N2",  groups: ["support", "ops"] },
     { email: "f.belkacem@astorya.fr",  password: "demo", name: "Farid Belkacem",     role: "Technicien N1",          groups: ["support"] },
     { email: "v.chen@astorya.fr",      password: "demo", name: "Valérie Chen",       role: "DAF",                    groups: ["finance", "rh"] },
+    { email: "l.marchand@astorya.fr",  password: "demo", name: "Léa Marchand",       role: "Superviseure Support N2", groups: ["supervision", "support"] },
   ];
 
-  const GROUPS_KEY = "hubAstorya.access.groups.v1";
+  // v2 ajoute le groupe "Administrateur · Supervision".
+  const GROUPS_KEY = "hubAstorya.access.groups.v2";
   const ACTIVE_KEY = "hubAstorya.access.activeGroup.v1";
   const SESSION_KEY = "hubAstorya.access.session.v1";
   const TRANSCRIPTS_KEY = "hubAstorya.hotline.transcripts.v1";

@@ -66,6 +66,11 @@ const TicketDetail = () => {
     },
     { type: "system", at: "hier · 19:03", text: "Déploiement Intune appliqué — driver Wi-Fi v23.50.1 installé.", icon: "✓", actor: "Système" },
     {
+      type: "escalation", at: "il y a 35 min",
+      from: "Tom Verdier", to: "Léa Marchand", group: "Administrateur · Supervision",
+      reason: "Récurrence détectée sur 3 utilisateurs dock Dell étage 4. SLA résolution < 30 min, demande arbitrage Supervision pour déploiement groupé en heures ouvrées.",
+    },
+    {
       type: "msg", from: "Hub Assistant", role: "bot", at: "il y a 35 min", color: "#0f172a",
       body: "Bonjour Camille, j'ai détecté que le correctif a été appliqué hier soir. Le ticket est-il résolu de votre côté ? Vous pouvez répondre par oui / non, ou marquer comme résolu directement.",
       isBot: true,
@@ -134,6 +139,23 @@ const TicketDetail = () => {
         <div style={tdStyles.body}>
           {/* conversation column */}
           <section style={tdStyles.convCol}>
+            {/* Bannière d'escalade (visible quand le ticket a été remonté à la supervision) */}
+            <div style={escStyles.banner}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={escStyles.bannerIcon}>↑</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Ticket escaladé à Léa Marchand · Administrateur · Supervision</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>
+                    Il y a 35 min · SLA résolution &lt; 30 min — escalade manuelle par Tom Verdier
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button style={escStyles.bannerBtnGhost}>Voir l'historique d'escalade</button>
+                <button style={escStyles.bannerBtnPrimary}>Reprendre la main</button>
+              </div>
+            </div>
+
             {/* Title block */}
             <div style={tdStyles.titleBlock}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -141,6 +163,9 @@ const TicketDetail = () => {
                   <span style={{ width: 6, height: 6, borderRadius: 999, background: "#a855f7" }} /> En cours
                 </span>
                 <span style={{ ...tdStyles.prioPill, background: "#fef0e6", color: "#ea580c" }}>▲ Haute</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 999, background: "#ede9fe", color: "#5b21b6", fontSize: 11.5, fontWeight: 700, border: "1px solid #c4b5fd" }}>
+                  ↑ Escaladé · Supervision
+                </span>
                 <span style={tdStyles.metaChip}>Réseau · VPN</span>
                 <span style={tdStyles.dot} />
                 <span style={{ fontSize: 12, color: "#64748b" }}>Ouvert il y a 1 j 22 h</span>
@@ -173,6 +198,30 @@ const TicketDetail = () => {
             {/* Conversation thread */}
             <div style={tdStyles.thread}>
               {events.map((e, i) => {
+                if (e.type === "escalation") {
+                  return (
+                    <div key={i} style={escStyles.timelineRow}>
+                      <div style={escStyles.timelineIcon}>↑</div>
+                      <div style={escStyles.timelineCard}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>
+                              <strong>{e.from}</strong> a escaladé le ticket
+                              <span style={{ color: "#cbd5e1", margin: "0 6px" }}>→</span>
+                              <strong style={{ color: "#5b21b6" }}>{e.to}</strong>
+                              <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: "#5b21b6", background: "#ede9fe", padding: "1px 7px", borderRadius: 999, textTransform: "uppercase", letterSpacing: 0.4, border: "1px solid #c4b5fd" }}>{e.group}</span>
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 11.5, color: "#94a3b8", whiteSpace: "nowrap" }}>{e.at}</span>
+                        </div>
+                        <div style={escStyles.timelineReason}>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: "#5b21b6", textTransform: "uppercase", letterSpacing: 0.5, marginRight: 6 }}>Motif</span>
+                          {e.reason}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
                 if (e.type === "system" || e.type === "status") {
                   return (
                     <div key={i} style={tdStyles.sysRow}>
@@ -308,6 +357,7 @@ const TicketDetail = () => {
                   <button style={tdStyles.composerIcon}>{"</>"}</button>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button style={{ ...tdStyles.ghostBtn, color: "#5b21b6", borderColor: "#c4b5fd", background: "#f5f3ff", fontWeight: 600 }} title="Remonter le ticket au groupe Administrateur · Supervision">↑ Escalader</button>
                   <button style={tdStyles.ghostBtn}>Marquer comme résolu</button>
                   <button style={tdStyles.primaryBtn}>Envoyer ↵</button>
                 </div>
@@ -534,6 +584,18 @@ const tdStyles = {
   metricGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
   metricK: { fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 },
   metricV: { fontSize: 16, fontWeight: 600, color: "#0f172a", marginTop: 2, letterSpacing: -0.3 },
+};
+
+const escStyles = {
+  banner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "12px 18px", background: "linear-gradient(90deg, #7c3aed 0%, #6d28d9 100%)", borderRadius: 12, marginBottom: 14 },
+  bannerIcon: { width: 32, height: 32, borderRadius: 999, background: "rgba(255,255,255,0.18)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800 },
+  bannerBtnGhost: { padding: "6px 12px", background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 7, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  bannerBtnPrimary: { padding: "6px 12px", background: "#fff", border: 0, borderRadius: 7, color: "#5b21b6", fontSize: 12, fontWeight: 700, cursor: "pointer" },
+
+  timelineRow: { display: "flex", gap: 12, alignItems: "flex-start", margin: "10px 0" },
+  timelineIcon: { width: 32, height: 32, borderRadius: 999, background: "#ede9fe", color: "#5b21b6", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, border: "2px solid #fff", boxShadow: "0 0 0 1px #c4b5fd", flexShrink: 0 },
+  timelineCard: { flex: 1, background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8 },
+  timelineReason: { fontSize: 12.5, lineHeight: 1.55, color: "#334155", padding: "9px 12px", background: "#fff", border: "1px dashed #c4b5fd", borderRadius: 8 },
 };
 
 const callStyles = {

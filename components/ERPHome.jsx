@@ -7,6 +7,8 @@ const ERPHome = () => {
   const activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
   const allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
   const allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
+  const currentUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  const [loginOpen, setLoginOpen] = React.useState(false);
 
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
@@ -271,7 +273,7 @@ const ERPHome = () => {
         {/* Identité active — détermine quelles tuiles sont visibles */}
         <div style={{ padding: 10, borderRadius: 8, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 11.5 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Connecté en tant que</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Groupe actif</span>
             <a href="administration-utilisateurs.html" style={{ fontSize: 10.5, color: "#3730a3", fontWeight: 600, textDecoration: "none" }}>Admin →</a>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -292,15 +294,23 @@ const ERPHome = () => {
           </div>
         </div>
 
-        <div style={erpStyles.userRow}>
-          <Avatar name="Claire Renaud" size={26} color="#dc2626" />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Claire Renaud</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>VP Sales · EMEA</div>
+        {currentUser ? (
+          <div style={erpStyles.userRow}>
+            <Avatar name={currentUser.name} size={26} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</div>
+              <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.role}</div>
+            </div>
+            <button onClick={() => window.HubAccess.logout()} title="Se déconnecter" style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 14, cursor: "pointer", padding: 4 }}>⏻</button>
           </div>
-          <span style={{ color: "#94a3b8", fontSize: 14 }}>⋯</span>
-        </div>
+        ) : (
+          <button onClick={() => setLoginOpen(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 12px", borderRadius: 8, background: "#0f172a", border: 0, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            → Se connecter
+          </button>
+        )}
       </aside>
+
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
 
       {/* MAIN */}
       <main style={erpStyles.main}>
@@ -326,7 +336,7 @@ const ERPHome = () => {
           <div style={erpStyles.heroGlow2} />
 
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 6, fontWeight: 500 }}>Bonjour Claire — voici votre tableau de bord</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 6, fontWeight: 500 }}>Bonjour {currentUser ? currentUser.name.split(" ")[0] : "Claire"} — voici votre tableau de bord</div>
             <h1 style={erpStyles.heroH1}>Bonne matinée<span style={{ color: "#a78bfa" }}>.</span></h1>
             <p style={erpStyles.heroSub}>5 notifications en attente · 3 tickets urgents · 1 réunion à venir dans 18 minutes</p>
 

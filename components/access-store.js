@@ -64,28 +64,66 @@
     },
   ];
 
+  // Comptes de démonstration — mot de passe en clair, JAMAIS utiliser en prod.
+  // Le login factice ne sert qu'à pré-positionner l'identité active.
+  const USERS = [
+    { email: "n.lefevre@astorya.fr",   password: "demo", name: "Nadia Lefèvre",      role: "Directrice technique",   groups: ["admin", "direction"] },
+    { email: "h.bertrand@astorya.fr",  password: "demo", name: "Hugo Bertrand",      role: "IT Manager",             groups: ["admin", "finance"] },
+    { email: "c.marchand@astorya.fr",  password: "demo", name: "Catherine Marchand", role: "CEO",                    groups: ["direction"] },
+    { email: "o.vasseur@astorya.fr",   password: "demo", name: "Olivier Vasseur",    role: "COO",                    groups: ["direction", "ops"] },
+    { email: "k.bensalah@astorya.fr",  password: "demo", name: "Karim Ben Salah",    role: "AE Senior Cyber",        groups: ["commercial"] },
+    { email: "s.aubry@astorya.fr",     password: "demo", name: "Sophie Aubry",       role: "AE & DRH",               groups: ["direction", "rh"] },
+    { email: "t.verdier@astorya.fr",   password: "demo", name: "Tom Verdier",        role: "AE Hub",                 groups: ["commercial"] },
+    { email: "e.garnier@astorya.fr",   password: "demo", name: "Émilie Garnier",     role: "AE BENELUX",             groups: ["commercial", "marketing"] },
+    { email: "a.mercier@astorya.fr",   password: "demo", name: "Antoine Mercier",    role: "AE DACH",                groups: ["commercial"] },
+    { email: "j.pasquier@astorya.fr",  password: "demo", name: "Julien Pasquier",    role: "AE Suite",               groups: ["commercial"] },
+    { email: "m.lopez@astorya.fr",     password: "demo", name: "Marie Lopez",        role: "AE UK & Marketing Ops",  groups: ["commercial", "marketing"] },
+    { email: "p.dubois@astorya.fr",    password: "demo", name: "Pierre Dubois",      role: "Comptable senior",       groups: ["finance"] },
+    { email: "r.faure@astorya.fr",     password: "demo", name: "Romain Faure",       role: "AE Junior · Support",    groups: ["commercial", "support"] },
+    { email: "l.tanaka@astorya.fr",    password: "demo", name: "Léo Tanaka",         role: "Tech Lead Support",      groups: ["support", "ops"] },
+    { email: "d.roussel@astorya.fr",   password: "demo", name: "Diane Roussel",      role: "Ingénieure support N2",  groups: ["support", "ops"] },
+    { email: "f.belkacem@astorya.fr",  password: "demo", name: "Farid Belkacem",     role: "Technicien N1",          groups: ["support"] },
+    { email: "v.chen@astorya.fr",      password: "demo", name: "Valérie Chen",       role: "DAF",                    groups: ["finance", "rh"] },
+  ];
+
   const GROUPS_KEY = "hubAstorya.access.groups.v1";
   const ACTIVE_KEY = "hubAstorya.access.activeGroup.v1";
+  const SESSION_KEY = "hubAstorya.access.session.v1";
   const DEFAULT_ACTIVE = "admin";
 
   const listeners = new Set();
-  const emit = () => listeners.forEach((fn) => { try { fn(); } catch (e) {} });
+  // Caches : useSyncExternalStore exige une référence stable entre rendus tant
+  // que rien n'a changé. On mémorise la chaîne brute de localStorage et on
+  // ne recalcule l'objet que si elle bouge.
+  let _groupsRaw = undefined, _groupsCache = null;
+  let _activeId = undefined;
+  let _activeGroupKey = null, _activeGroupCache = null;
+  let _sessionRaw = undefined, _sessionCache = null;
+  const invalidate = () => {
+    _groupsRaw = _sessionRaw = undefined;
+    _activeId = undefined;
+    _activeGroupKey = null;
+  };
+  const emit = () => { invalidate(); listeners.forEach((fn) => { try { fn(); } catch (e) {} }); };
 
   function loadGroups() {
+    const raw = localStorage.getItem(GROUPS_KEY);
+    if (raw === _groupsRaw) return _groupsCache;
+    _groupsRaw = raw;
     try {
-      const raw = localStorage.getItem(GROUPS_KEY);
-      if (!raw) return DEFAULT_GROUPS;
+      if (!raw) { _groupsCache = DEFAULT_GROUPS; return _groupsCache; }
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_GROUPS;
-      return parsed;
-    } catch (e) { return DEFAULT_GROUPS; }
+      _groupsCache = (Array.isArray(parsed) && parsed.length > 0) ? parsed : DEFAULT_GROUPS;
+    } catch (e) { _groupsCache = DEFAULT_GROUPS; }
+    return _groupsCache;
   }
   function saveGroups(groups) {
     try { localStorage.setItem(GROUPS_KEY, JSON.stringify(groups)); } catch (e) {}
     emit();
   }
   function getActiveGroupId() {
-    return localStorage.getItem(ACTIVE_KEY) || DEFAULT_ACTIVE;
+    if (_activeId === undefined) _activeId = localStorage.getItem(ACTIVE_KEY) || DEFAULT_ACTIVE;
+    return _activeId;
   }
   function setActiveGroupId(id) {
     try { localStorage.setItem(ACTIVE_KEY, id); } catch (e) {}
@@ -93,22 +131,62 @@
   }
   function getActiveGroup() {
     const groups = loadGroups();
-    return groups.find((g) => g.id === getActiveGroupId()) || groups[0];
+    const id = getActiveGroupId();
+    const key = (_groupsRaw || "") + "|" + id;
+    if (key !== _activeGroupKey) {
+      _activeGroupKey = key;
+      _activeGroupCache = groups.find((g) => g.id === id) || groups[0];
+    }
+    return _activeGroupCache;
   }
   function getAllowedKeys() {
     return new Set(getActiveGroup().access);
   }
   function subscribe(fn) {
     listeners.add(fn);
-    // also react to changes from other tabs
-    const onStorage = (e) => { if (e.key === GROUPS_KEY || e.key === ACTIVE_KEY) fn(); };
+    const onStorage = (e) => { if (e.key === GROUPS_KEY || e.key === ACTIVE_KEY || e.key === SESSION_KEY) fn(); };
     window.addEventListener("storage", onStorage);
     return () => { listeners.delete(fn); window.removeEventListener("storage", onStorage); };
   }
+
+  // ───── Session (login factice — démo uniquement)
+  function getCurrentUser() {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw === _sessionRaw) return _sessionCache;
+    _sessionRaw = raw;
+    try {
+      if (!raw) { _sessionCache = null; return null; }
+      const session = JSON.parse(raw);
+      const user = USERS.find((u) => u.email === session.email);
+      _sessionCache = user ? { email: user.email, name: user.name, role: user.role, groups: user.groups } : null;
+    } catch (e) { _sessionCache = null; }
+    return _sessionCache;
+  }
+  function login(email, password) {
+    const user = USERS.find((u) => u.email.toLowerCase() === String(email || "").toLowerCase() && u.password === password);
+    if (!user) return { ok: false, error: "Email ou mot de passe incorrect." };
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ email: user.email, at: Date.now() }));
+      // Pré-positionne l'identité active sur le premier groupe de l'utilisateur
+      if (user.groups[0]) localStorage.setItem(ACTIVE_KEY, user.groups[0]);
+    } catch (e) {}
+    emit();
+    return { ok: true, user: { email: user.email, name: user.name, role: user.role, groups: user.groups } };
+  }
+  function logout() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    emit();
+  }
+  function listUsers() {
+    // Renvoie une copie sans les mots de passe (pour l'UI quick-login)
+    return USERS.map(({ password, ...u }) => u);
+  }
+
   function resetAll() {
     try {
       localStorage.removeItem(GROUPS_KEY);
       localStorage.removeItem(ACTIVE_KEY);
+      localStorage.removeItem(SESSION_KEY);
     } catch (e) {}
     emit();
   }
@@ -122,6 +200,10 @@
     setActiveGroupId,
     getActiveGroup,
     getAllowedKeys,
+    getCurrentUser,
+    login,
+    logout,
+    listUsers,
     subscribe,
     resetAll,
   };

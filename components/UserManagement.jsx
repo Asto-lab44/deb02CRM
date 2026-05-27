@@ -6,8 +6,10 @@ const UserManagement = () => {
   const subscribeStore = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
   const persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
   const activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
+  const currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
 
   const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
+  const [loginOpen, setLoginOpen] = React.useState(false);
   const [savedFlash, setSavedFlash] = React.useState(null);
   const flashTimer = React.useRef(null);
 
@@ -142,7 +144,24 @@ const UserManagement = () => {
           <div style={{ fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>17 utilisateurs actifs</div>
           14 en ligne · 3 invitations en attente
         </div>
+
+        {currentUser ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#fff", border: "1px solid #e2e8f0" }}>
+            <Avatar name={currentUser.name} size={26} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</div>
+              <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.role}</div>
+            </div>
+            <button onClick={() => window.HubAccess.logout()} title="Se déconnecter" style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 14, cursor: "pointer", padding: 4 }}>⏻</button>
+          </div>
+        ) : (
+          <button onClick={() => setLoginOpen(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 12px", borderRadius: 8, background: "#0f172a", border: 0, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            → Se connecter
+          </button>
+        )}
       </aside>
+
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
 
       {/* ───── MAIN ───── */}
       <main style={S.main}>
@@ -458,3 +477,5 @@ const S = {
   pageBtn: { padding: "4px 10px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" },
   pageBtnActive: { background: "#3730a3", borderColor: "#3730a3", color: "#fff", fontWeight: 700 },
 };
+
+window.UserManagement = UserManagement;

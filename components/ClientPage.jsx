@@ -1,6 +1,8 @@
 // Fiche client 360 — pipe multi-contrats + actions menées / à mener
 
 const ClientPage = () => {
+  const [statsOpen, setStatsOpen] = React.useState(false);
+
   const Avatar = ({ name, size = 24, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -224,6 +226,13 @@ const ClientPage = () => {
               <button style={cliStyles.ghostBtn}>📞 Appel</button>
               <button style={cliStyles.ghostBtn}>✓ Tâche</button>
               <button style={cliStyles.ghostBtn}>✎ Note</button>
+              <button
+                onClick={() => setStatsOpen(true)}
+                style={{ ...cliStyles.ghostBtn, background: "#eef2ff", borderColor: "#c7d2fe", color: "#3730a3", fontWeight: 600 }}
+                title="Statistiques d'appels hotline sur 12 mois"
+              >
+                📊 Stats appels
+              </button>
               <span style={{ flex: 1 }} />
               <button style={cliStyles.ghostBtn}>Exporter compte ↓</button>
             </div>
@@ -507,6 +516,12 @@ const ClientPage = () => {
           <div style={{ height: 24 }} />
         </div>
       </main>
+
+      <CallStatsModal
+        open={statsOpen}
+        client={{ name: "AXA Wealth France" }}
+        onClose={() => setStatsOpen(false)}
+      />
     </div>
   );
 };

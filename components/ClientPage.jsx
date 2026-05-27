@@ -2,6 +2,7 @@
 
 const ClientPage = () => {
   const [statsOpen, setStatsOpen] = React.useState(false);
+  const [assetsOpen, setAssetsOpen] = React.useState(false);
 
   const Avatar = ({ name, size = 24, color }) => {
     if (!name) return null;
@@ -232,6 +233,13 @@ const ClientPage = () => {
                 title="Statistiques d'appels hotline sur 12 mois"
               >
                 📊 Stats appels
+              </button>
+              <button
+                onClick={() => setAssetsOpen(true)}
+                style={{ ...cliStyles.ghostBtn, background: "#ecfdf5", borderColor: "#a7f3d0", color: "#065f46", fontWeight: 600 }}
+                title="Extraction du parc informatique du client (CMDB)"
+              >
+                💻 Parc IT
               </button>
               <span style={{ flex: 1 }} />
               <button style={cliStyles.ghostBtn}>Exporter compte ↓</button>
@@ -521,6 +529,11 @@ const ClientPage = () => {
         open={statsOpen}
         client={{ name: "AXA Wealth France" }}
         onClose={() => setStatsOpen(false)}
+      />
+      <AssetInventoryModal
+        open={assetsOpen}
+        client={{ name: "AXA Wealth France" }}
+        onClose={() => setAssetsOpen(false)}
       />
     </div>
   );

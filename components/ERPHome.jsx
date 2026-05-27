@@ -1,6 +1,13 @@
-// Page d'accueil ERP — tuiles des modules
+// Page d'accueil ERP — tuiles des modules (filtrées par le groupe actif)
 
 const ERPHome = () => {
+  // Identité active + accès aux tuiles, partagés avec la page Administration.
+  // useSyncExternalStore re-render dès qu'un toggle d'accès change l'état.
+  const subscribe = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
+  const activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
+  const allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
+  const allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
+
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -213,7 +220,8 @@ const ERPHome = () => {
     },
   ];
 
-  const categories = [...new Set(modules.map(m => m.cat))];
+  const visibleModules = modules.filter(m => allowedKeys.has(m.key));
+  const categories = [...new Set(visibleModules.map(m => m.cat))];
   const badgeTones = {
     new: { bg: "#4f46e5", color: "#fff" },
     danger: { bg: "#fdecec", color: "#dc2626", border: "#fecaca" },
@@ -248,7 +256,7 @@ const ERPHome = () => {
 
         <div style={erpStyles.navSection}>
           <div style={erpStyles.navLabel}>Modules</div>
-          {modules.map((m) => (
+          {visibleModules.map((m) => (
             <div key={m.key} style={erpStyles.navItem}>
               <span style={{ width: 14, color: m.color, display: "flex", alignItems: "center" }}>
                 <span style={{ width: 7, height: 7, borderRadius: 2, background: m.color, display: "inline-block" }} />
@@ -259,6 +267,30 @@ const ERPHome = () => {
         </div>
 
         <div style={{ flex: 1 }} />
+
+        {/* Identité active — détermine quelles tuiles sont visibles */}
+        <div style={{ padding: 10, borderRadius: 8, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 11.5 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Connecté en tant que</span>
+            <a href="administration-utilisateurs.html" style={{ fontSize: 10.5, color: "#3730a3", fontWeight: 600, textDecoration: "none" }}>Admin →</a>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: activeGroup.color }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{activeGroup.name}</span>
+          </div>
+          <select
+            value={activeGroup.id}
+            onChange={(e) => window.HubAccess.setActiveGroupId(e.target.value)}
+            style={{ width: "100%", padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11.5, color: "#475569", background: "#fff", cursor: "pointer" }}
+          >
+            {allGroups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name} ({g.access.length}/{window.HubAccess.ALL_KEYS.length})</option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 11, color: "#64748b" }}>
+            {allowedKeys.size} tuile{allowedKeys.size > 1 ? "s" : ""} sur {window.HubAccess.ALL_KEYS.length} visible{allowedKeys.size > 1 ? "s" : ""}
+          </div>
+        </div>
 
         <div style={erpStyles.userRow}>
           <Avatar name="Claire Renaud" size={26} color="#dc2626" />
@@ -353,11 +385,11 @@ const ERPHome = () => {
               <div style={erpStyles.catHead}>
                 <span style={erpStyles.catLabel}>{cat}</span>
                 <span style={erpStyles.catLine} />
-                <span style={erpStyles.catCount}>{modules.filter(m => m.cat === cat).length} modules</span>
+                <span style={erpStyles.catCount}>{visibleModules.filter(m => m.cat === cat).length} modules</span>
               </div>
 
               <div style={erpStyles.tiles}>
-                {modules.filter(m => m.cat === cat).map((m) => (
+                {visibleModules.filter(m => m.cat === cat).map((m) => (
                   <div key={m.key} style={erpStyles.tile}>
                     {/* Hover indicator */}
                     <div style={{ ...erpStyles.tileGlow, background: m.bg }} />

@@ -1,6 +1,40 @@
 // Module Administration — Gestion utilisateurs, groupes et accès aux tuiles
+// Les groupes et l'identité active sont persistés via window.HubAccess (localStorage).
 
 const UserManagement = () => {
+  // Données partagées avec l'Accueil ERP
+  const subscribeStore = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
+  const persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
+  const activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
+
+  const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
+  const [savedFlash, setSavedFlash] = React.useState(null);
+  const flashTimer = React.useRef(null);
+
+  const flash = (text) => {
+    setSavedFlash(text);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setSavedFlash(null), 1800);
+  };
+
+  const updateGroupAccess = (groupId, mutator) => {
+    const next = persistedGroups.map((g) => {
+      if (g.id !== groupId) return g;
+      const access = mutator(g.access);
+      return { ...g, access };
+    });
+    window.HubAccess.saveGroups(next);
+  };
+
+  const toggleTile = (groupId, key) => {
+    updateGroupAccess(groupId, (access) => {
+      const set = new Set(access);
+      if (set.has(key)) set.delete(key); else set.add(key);
+      return Array.from(set);
+    });
+    flash("Accès mis à jour");
+  };
+
   const Avatar = ({ name, size = 24, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -31,60 +65,8 @@ const UserManagement = () => {
     { key: "reports",    cat: "Pilotage",    title: "Rapports & BI",                 color: "#3730a3", bg: "#e0e7ff" },
     { key: "settings",   cat: "Pilotage",    title: "Administration",                color: "#64748b", bg: "#f1f3f6" },
   ];
-  const moduleByKey = Object.fromEntries(modules.map(m => [m.key, m]));
   const ALL = modules.map(m => m.key);
-
-  // ───── groupes (avec leurs accès tuiles + membres)
-  const groups = [
-    {
-      id: "admin", name: "Administrateurs", color: "#dc2626",
-      description: "Accès complet à l'ERP, gestion des utilisateurs et de la sécurité.",
-      access: ALL,
-      members: ["Nadia Lefèvre", "Hugo Bertrand"],
-    },
-    {
-      id: "direction", name: "Direction", color: "#4f46e5",
-      description: "Comité exécutif — vue 360 sur tous les modules, lecture étendue.",
-      access: ALL,
-      members: ["Catherine Marchand", "Olivier Vasseur", "Sophie Aubry"],
-    },
-    {
-      id: "commercial", name: "Commercial", color: "#0ea5e9",
-      description: "Équipes vente et avant-vente — pipeline, comptes, opportunités.",
-      access: ["crm", "intel", "marketing", "billing", "reports"],
-      members: ["Karim Ben Salah", "Tom Verdier", "Émilie Garnier", "Antoine Mercier", "Julien Pasquier", "Marie Lopez", "Pierre Dubois", "Romain Faure"],
-    },
-    {
-      id: "support", name: "Support technique", color: "#0891b2",
-      description: "Hotline N1/N2 — tickets, SLA, base de connaissances.",
-      access: ["tech", "projects", "crm", "reports"],
-      members: ["Léo Tanaka", "Diane Roussel", "Farid Belkacem", "Romain Faure"],
-    },
-    {
-      id: "finance", name: "Finance & Compta", color: "#10b981",
-      description: "Comptabilité, facturation, trésorerie et reporting financier.",
-      access: ["accounting", "billing", "treasury", "reports", "hr"],
-      members: ["Valérie Chen", "Pierre Dubois", "Hugo Bertrand"],
-    },
-    {
-      id: "marketing", name: "Marketing", color: "#ec4899",
-      description: "Campagnes, contenu, génération de leads et analytics.",
-      access: ["marketing", "crm", "reports", "intel"],
-      members: ["Émilie Garnier", "Marie Lopez"],
-    },
-    {
-      id: "rh", name: "Ressources humaines", color: "#8b5cf6",
-      description: "Paie, contrats, recrutement et gestion des temps.",
-      access: ["hr", "time", "reports"],
-      members: ["Sophie Aubry", "Valérie Chen"],
-    },
-    {
-      id: "ops", name: "Opérations & Produit", color: "#a855f7",
-      description: "Roadmap produit, livrables clients, gestion du stock.",
-      access: ["projects", "inventory", "tech", "reports"],
-      members: ["Olivier Vasseur", "Léo Tanaka", "Diane Roussel"],
-    },
-  ];
+  const groups = persistedGroups;
 
   // ───── utilisateurs (avec leurs groupes)
   const users = [
@@ -107,7 +89,8 @@ const UserManagement = () => {
     { name: "Valérie Chen",       email: "v.chen@astorya.fr",         role: "DAF",                    groups: ["finance", "rh"],          status: "online",  last: "il y a 32 min" },
   ];
 
-  const selectedGroup = groups[2]; // "Commercial" mis en avant pour la maquette
+  const selectedGroup = groups.find((g) => g.id === selectedGroupId) || groups[0];
+  const activeGroup = groups.find((g) => g.id === activeGroupId) || groups[0];
 
   const statusColor = { online: "#10b981", away: "#f59e0b", offline: "#cbd5e1" };
   const groupChip = (g) => (
@@ -170,10 +153,19 @@ const UserManagement = () => {
             <div style={S.title}>Gestion des groupes</div>
             <div style={S.subtitle}>Définissez les modules ERP accessibles à chaque groupe. {users.length} utilisateurs répartis dans {groups.length} groupes.</div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={S.btnGhost}>↗ Exporter</button>
-            <button style={S.btnGhost}>⟳ Synchroniser SSO</button>
-            <button style={S.btnPrimary}>+ Nouveau groupe</button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 999, fontSize: 11.5 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4 }}>Vue Accueil ERP comme</span>
+              <span style={{ width: 7, height: 7, borderRadius: 999, background: activeGroup.color }} />
+              <span style={{ fontWeight: 700, color: "#0f172a" }}>{activeGroup.name}</span>
+              <span style={{ color: "#cbd5e1" }}>·</span>
+              <a href="accueil-erp.html" style={{ color: "#3730a3", fontWeight: 600, textDecoration: "none" }}>Ouvrir →</a>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinitialiser</button>
+              <button style={S.btnGhost}>⟳ Synchroniser SSO</button>
+              <button style={S.btnPrimary}>+ Nouveau groupe</button>
+            </div>
           </div>
         </header>
 
@@ -196,11 +188,15 @@ const UserManagement = () => {
             <div style={{ display: "flex", flexDirection: "column" }}>
               {groups.map((g) => {
                 const active = g.id === selectedGroup.id;
+                const isViewer = g.id === activeGroup.id;
                 return (
-                  <div key={g.id} style={{ ...S.groupItem, ...(active ? S.groupItemActive : {}) }}>
+                  <div key={g.id} onClick={() => setSelectedGroupId(g.id)} style={{ ...S.groupItem, ...(active ? S.groupItemActive : {}) }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: g.color + "18", color: g.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{g.name[0]}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: active ? 700 : 600, color: "#0f172a" }}>{g.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: active ? 700 : 600, color: "#0f172a" }}>{g.name}</div>
+                        {isViewer && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#10b981", background: "#dcfce7", padding: "1px 6px", borderRadius: 999, textTransform: "uppercase", letterSpacing: 0.3 }}>Vue actuelle</span>}
+                      </div>
                       <div style={{ fontSize: 11.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {g.members.length} membre{g.members.length > 1 ? "s" : ""} · {g.access.length}/{ALL.length} modules
                       </div>
@@ -234,10 +230,15 @@ const UserManagement = () => {
                   <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2, maxWidth: 560 }}>{selectedGroup.description}</div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {savedFlash && <span style={{ fontSize: 11.5, fontWeight: 600, color: "#10b981" }}>✓ {savedFlash}</span>}
                 <button style={S.btnGhost}>Renommer</button>
-                <button style={S.btnGhost}>Dupliquer</button>
-                <button style={S.btnPrimary}>Enregistrer</button>
+                <button
+                  onClick={() => window.HubAccess.setActiveGroupId(selectedGroup.id)}
+                  style={selectedGroup.id === activeGroup.id ? { ...S.btnGhost, color: "#10b981", borderColor: "#bbf7d0", background: "#f0fdf4" } : S.btnPrimary}
+                >
+                  {selectedGroup.id === activeGroup.id ? "✓ Connecté à l'Accueil ERP" : "↗ Voir l'Accueil comme ce groupe"}
+                </button>
               </div>
             </div>
 
@@ -274,9 +275,15 @@ const UserManagement = () => {
                   <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Cochez les tuiles visibles depuis l'Accueil ERP pour ce groupe.</div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button style={S.linkBtn}>Tout cocher</button>
+                  <button
+                    style={S.linkBtn}
+                    onClick={() => { updateGroupAccess(selectedGroup.id, () => ALL.slice()); flash("Tous les modules autorisés"); }}
+                  >Tout cocher</button>
                   <span style={{ color: "#cbd5e1" }}>·</span>
-                  <button style={S.linkBtn}>Tout décocher</button>
+                  <button
+                    style={S.linkBtn}
+                    onClick={() => { updateGroupAccess(selectedGroup.id, () => []); flash("Tous les modules retirés"); }}
+                  >Tout décocher</button>
                 </div>
               </div>
 
@@ -288,7 +295,11 @@ const UserManagement = () => {
                     {modules.filter(m => m.cat === cat).map((m) => {
                       const on = accessSet.has(m.key);
                       return (
-                        <div key={m.key} style={{ ...S.tile, ...(on ? S.tileOn : S.tileOff) }}>
+                        <div
+                          key={m.key}
+                          onClick={() => toggleTile(selectedGroup.id, m.key)}
+                          style={{ ...S.tile, ...(on ? S.tileOn : S.tileOff) }}
+                        >
                           <div style={{ width: 36, height: 36, borderRadius: 8, background: m.bg, color: m.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, flexShrink: 0, opacity: on ? 1 : 0.45 }}>{m.title[0]}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: on ? "#0f172a" : "#94a3b8" }}>{m.title}</div>

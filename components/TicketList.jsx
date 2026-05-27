@@ -1,6 +1,22 @@
 // Écran 1 — Liste des tickets (vue utilisateur final, helpdesk IT interne)
 
 const TicketList = () => {
+  // ───── Hotline CTI : popup déclenchée par un appel entrant (simulé en démo,
+  // brancher sur le webhook 3CX en prod). Cycle séquentiel des 4 scénarios.
+  const [activeCall, setActiveCall] = React.useState(null);
+  const [callIdx, setCallIdx] = React.useState(0);
+  const [lastCreated, setLastCreated] = React.useState(null);
+  const callers = (typeof window !== "undefined" && window.HOTLINE_DEMO_CALLERS) || [];
+  const simulateCall = () => {
+    if (!callers.length) return;
+    setActiveCall(callers[callIdx % callers.length]);
+    setCallIdx((i) => i + 1);
+  };
+  const handleCreateTicket = (ticket) => {
+    setLastCreated(ticket);
+    setTimeout(() => setLastCreated(null), 6000);
+  };
+
   const tickets = [
     { id: "INC-2841", title: "Imprimante 3e étage en erreur PCL", status: "in_progress", prio: "haute", cat: "Matériel · Imprimante", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 h", updated: "il y a 12 min", sla: { left: "3 h 48", risk: "ok" }, msgs: 4, unread: 2, hasAttach: true },
     { id: "INC-2840", title: "Impossible d'accéder à SharePoint Direction", title2: "Erreur 403 depuis ce matin sur tous les navigateurs", status: "open", prio: "critique", cat: "Accès & Droits", assignee: null, opened: "il y a 28 min", updated: "il y a 9 min", sla: { left: "47 min", risk: "warn" }, msgs: 1, unread: 0, hasAttach: false, isNew: true },
@@ -159,6 +175,15 @@ const TicketList = () => {
               <input placeholder="Rechercher par sujet, ID, technicien…" style={tlStyles.searchInput} readOnly />
               <span style={tlStyles.kbdLight}>⌘K</span>
             </div>
+            <button
+              onClick={simulateCall}
+              title="Déclenche la popup hotline (en prod : webhook 3CX)"
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 11px", border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#0e7a55", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+            >
+              <span style={{ fontSize: 12 }}>📞</span>
+              Simuler appel entrant
+              <span style={{ fontSize: 10, color: "#64748b", marginLeft: 4 }}>{(callIdx % (callers.length || 1)) + 1}/{callers.length || 0}</span>
+            </button>
             <button style={tlStyles.iconBtn} title="Notifications">
               <span style={{ fontSize: 13 }}>◔</span>
               <span style={tlStyles.notifDot} />
@@ -166,6 +191,13 @@ const TicketList = () => {
             <button style={tlStyles.iconBtn} title="Aide">?</button>
           </div>
         </header>
+
+        {lastCreated && (
+          <div style={{ margin: "10px 20px 0", padding: "10px 14px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, fontSize: 12.5, color: "#065f46", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 700 }}>✓ Ticket {lastCreated.ticketId} créé</span>
+            <span style={{ color: "#475569" }}>pour {lastCreated.client} — {lastCreated.subject}</span>
+          </div>
+        )}
 
         {/* Title row */}
         <div style={tlStyles.titleRow}>
@@ -318,6 +350,12 @@ const TicketList = () => {
           </div>
         </div>
       </main>
+
+      <HotlinePopup
+        call={activeCall}
+        onClose={() => setActiveCall(null)}
+        onCreateTicket={handleCreateTicket}
+      />
     </div>
   );
 };

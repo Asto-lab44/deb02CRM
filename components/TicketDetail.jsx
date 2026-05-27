@@ -114,6 +114,13 @@ const TicketDetail = () => {
             <span style={{ color: "#cbd5e1" }}>/</span>
             <span style={{ color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>INC-2837</span>
             <button style={tdStyles.copyBtn} title="Copier la référence">⧉</button>
+
+            {/* Indicateur contrat de maintenance parc IT du client */}
+            <span title="AXA Wealth France — Contrat actif Premium 24/7 (jusqu'au 28 fév. 2027)"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 999, background: "#dcfce7", border: "1px solid #86efac", marginLeft: 8, cursor: "help" }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: "#10b981", boxShadow: "0 0 0 2px #f0fdf4" }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#065f46", textTransform: "uppercase", letterSpacing: 0.4 }}>Contrat parc actif</span>
+            </span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={tdStyles.iconBtn}>‹</button>

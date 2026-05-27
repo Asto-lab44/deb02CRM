@@ -18,16 +18,23 @@ const TicketList = () => {
   };
 
   const tickets = [
-    { id: "INC-2841", title: "Imprimante 3e étage en erreur PCL", status: "in_progress", prio: "haute", cat: "Matériel · Imprimante", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 h", updated: "il y a 12 min", sla: { left: "3 h 48", risk: "ok" }, msgs: 4, unread: 2, hasAttach: true },
-    { id: "INC-2840", title: "Impossible d'accéder à SharePoint Direction", title2: "Erreur 403 depuis ce matin sur tous les navigateurs", status: "open", prio: "critique", cat: "Accès & Droits", assignee: null, opened: "il y a 28 min", updated: "il y a 9 min", sla: { left: "47 min", risk: "warn" }, msgs: 1, unread: 0, hasAttach: false, isNew: true },
-    { id: "REQ-1192", title: "Demande d'installation d'AutoCAD 2025", status: "waiting", prio: "normale", cat: "Logiciel · Installation", assignee: { name: "Léa Marchand", team: "Support N2" }, opened: "il y a 1 j", updated: "il y a 4 h", sla: { left: "1 j 02 h", risk: "ok" }, msgs: 6, unread: 0, hasAttach: true, waiting: "Validation manager" },
-    { id: "INC-2837", title: "VPN se déconnecte toutes les 10 min", status: "in_progress", prio: "haute", cat: "Réseau · VPN", assignee: { name: "Tom Verdier", team: "Support N2" }, opened: "il y a 1 j", updated: "il y a 35 min", sla: { left: "00 h 22", risk: "danger" }, msgs: 11, unread: 1, hasAttach: true },
-    { id: "INC-2833", title: "Outlook : pièces jointes >25 Mo bloquées", status: "in_progress", prio: "normale", cat: "Messagerie", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 j", updated: "hier", sla: { left: "5 h 10", risk: "ok" }, msgs: 3, unread: 0, hasAttach: false },
-    { id: "REQ-1188", title: "Nouveau poste — onboarding Camille Dufour", status: "open", prio: "normale", cat: "Onboarding", assignee: { name: "Équipe IT", team: "Pool" }, opened: "il y a 2 j", updated: "il y a 1 j", sla: { left: "2 j 04 h", risk: "ok" }, msgs: 2, unread: 0, hasAttach: false },
-    { id: "INC-2829", title: "Écran secondaire non détecté sur dock Dell", status: "resolved", prio: "basse", cat: "Matériel · Périphérique", assignee: { name: "Léa Marchand", team: "Support N2" }, opened: "il y a 3 j", updated: "il y a 6 h", sla: { left: "—", risk: "done" }, msgs: 8, unread: 0, hasAttach: true },
-    { id: "INC-2826", title: "Téléphonie Teams — micro saturé en réunion", status: "resolved", prio: "normale", cat: "Téléphonie", assignee: { name: "Tom Verdier", team: "Support N2" }, opened: "il y a 4 j", updated: "il y a 2 j", sla: { left: "—", risk: "done" }, msgs: 5, unread: 0, hasAttach: false },
-    { id: "REQ-1180", title: "Accès lecture base RH pour audit interne", status: "closed", prio: "normale", cat: "Accès & Droits", assignee: { name: "Sophie Aubry", team: "Sécurité" }, opened: "il y a 6 j", updated: "il y a 3 j", sla: { left: "—", risk: "done" }, msgs: 14, unread: 0, hasAttach: true },
+    { id: "INC-2841", client: { name: "MAIF Innovation",      maintenance: "active",   contract: "Premium 24/7 · jusqu'au 31 déc. 2026" }, title: "Imprimante 3e étage en erreur PCL", status: "in_progress", prio: "haute", cat: "Matériel · Imprimante", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 h", updated: "il y a 12 min", sla: { left: "3 h 48", risk: "ok" }, msgs: 4, unread: 2, hasAttach: true },
+    { id: "INC-2840", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Impossible d'accéder à SharePoint Direction", title2: "Erreur 403 depuis ce matin sur tous les navigateurs", status: "open", prio: "critique", cat: "Accès & Droits", assignee: null, opened: "il y a 28 min", updated: "il y a 9 min", sla: { left: "47 min", risk: "warn" }, msgs: 1, unread: 0, hasAttach: false, isNew: true },
+    { id: "REQ-1192", client: { name: "Crédit Agricole Sud",  maintenance: "none",     contract: "Aucun contrat actif — intervention facturable" }, title: "Demande d'installation d'AutoCAD 2025", status: "waiting", prio: "normale", cat: "Logiciel · Installation", assignee: { name: "Léa Marchand", team: "Support N2" }, opened: "il y a 1 j", updated: "il y a 4 h", sla: { left: "1 j 02 h", risk: "ok" }, msgs: 6, unread: 0, hasAttach: true, waiting: "Validation manager" },
+    { id: "INC-2837", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "VPN se déconnecte toutes les 10 min", status: "in_progress", prio: "haute", cat: "Réseau · VPN", assignee: { name: "Tom Verdier", team: "Support N2" }, opened: "il y a 1 j", updated: "il y a 35 min", sla: { left: "00 h 22", risk: "danger" }, msgs: 11, unread: 1, hasAttach: true },
+    { id: "INC-2833", client: { name: "Allianz France",       maintenance: "expiring", contract: "Standard 9-18h · expire le 12 juil. 2026 (46 j)" }, title: "Outlook : pièces jointes >25 Mo bloquées", status: "in_progress", prio: "normale", cat: "Messagerie", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 j", updated: "hier", sla: { left: "5 h 10", risk: "ok" }, msgs: 3, unread: 0, hasAttach: false },
+    { id: "REQ-1188", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Nouveau poste — onboarding Camille Dufour", status: "open", prio: "normale", cat: "Onboarding", assignee: { name: "Équipe IT", team: "Pool" }, opened: "il y a 2 j", updated: "il y a 1 j", sla: { left: "2 j 04 h", risk: "ok" }, msgs: 2, unread: 0, hasAttach: false },
+    { id: "INC-2829", client: { name: "BNP Paribas AM",       maintenance: "none",     contract: "Aucun contrat actif — intervention facturable" }, title: "Écran secondaire non détecté sur dock Dell", status: "resolved", prio: "basse", cat: "Matériel · Périphérique", assignee: { name: "Léa Marchand", team: "Support N2" }, opened: "il y a 3 j", updated: "il y a 6 h", sla: { left: "—", risk: "done" }, msgs: 8, unread: 0, hasAttach: true },
+    { id: "INC-2826", client: { name: "La Banque Postale",    maintenance: "active",   contract: "Standard 9-18h · jusqu'au 30 sept. 2027" }, title: "Téléphonie Teams — micro saturé en réunion", status: "resolved", prio: "normale", cat: "Téléphonie", assignee: { name: "Tom Verdier", team: "Support N2" }, opened: "il y a 4 j", updated: "il y a 2 j", sla: { left: "—", risk: "done" }, msgs: 5, unread: 0, hasAttach: false },
+    { id: "REQ-1180", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Accès lecture base RH pour audit interne", status: "closed", prio: "normale", cat: "Accès & Droits", assignee: { name: "Sophie Aubry", team: "Sécurité" }, opened: "il y a 6 j", updated: "il y a 3 j", sla: { left: "—", risk: "done" }, msgs: 14, unread: 0, hasAttach: true },
   ];
+
+  // Indicateur visuel du contrat de maintenance parc IT — green/amber/red.
+  const maintMeta = {
+    active:   { color: "#10b981", soft: "#dcfce7", label: "Contrat actif",      icon: "●" },
+    expiring: { color: "#f59e0b", soft: "#fef3c7", label: "Contrat expire",     icon: "●" },
+    none:     { color: "#dc2626", soft: "#fee2e2", label: "Pas de contrat",     icon: "●" },
+  };
 
   const statusMeta = {
     open:        { label: "Ouvert",     dot: "#3b82f6", soft: "#eff4ff", text: "#1d4ed8" },
@@ -284,7 +291,16 @@ const TicketList = () => {
               <div key={t.id} style={{ ...tlStyles.row, ...(isHighlight ? tlStyles.rowDanger : {}) }}>
                 <div style={{ ...tlStyles.col, width: 18 }}><input type="checkbox" readOnly /></div>
                 <div style={{ ...tlStyles.col, width: 92 }}>
-                  <span style={tlStyles.refMono}>{t.id}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {t.client && (() => {
+                      const m = maintMeta[t.client.maintenance];
+                      return (
+                        <span title={`${t.client.name} — ${m.label} (${t.client.contract})`}
+                              style={{ width: 8, height: 8, borderRadius: 999, background: m.color, boxShadow: `0 0 0 2px ${m.soft}`, flexShrink: 0, cursor: "help" }} />
+                      );
+                    })()}
+                    <span style={tlStyles.refMono}>{t.id}</span>
+                  </div>
                 </div>
                 <div style={{ ...tlStyles.col, flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -300,8 +316,13 @@ const TicketList = () => {
                     {t.hasAttach && <span style={tlStyles.metaIcon} title="Pièce jointe">📎</span>}
                     {t.unread > 0 && <span style={tlStyles.unread}>{t.unread}</span>}
                   </div>
-                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
-                    {t.cat} · {t.msgs} message{t.msgs > 1 ? "s" : ""} {t.waiting && <>· <span style={{ color: "#a65f00" }}>⏸ {t.waiting}</span></>}
+                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    {t.client && (
+                      <span style={{ fontWeight: 600, color: "#475569" }}>{t.client.name}</span>
+                    )}
+                    {t.client && <span style={{ color: "#cbd5e1" }}>·</span>}
+                    <span>{t.cat} · {t.msgs} message{t.msgs > 1 ? "s" : ""}</span>
+                    {t.waiting && <span style={{ color: "#a65f00" }}>· ⏸ {t.waiting}</span>}
                   </div>
                 </div>
                 <div style={{ ...tlStyles.col, width: 110 }}>

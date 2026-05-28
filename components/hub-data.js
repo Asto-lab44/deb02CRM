@@ -58,7 +58,8 @@
         sla_due_at, opened_at, updated_at,
         client:clients(id, name, contracts(status, name, end_date)),
         assignee:profiles!tickets_assignee_id_fkey(id, name, team),
-        escalated_to_user:profiles!tickets_escalated_to_fkey(id, name)
+        escalated_to_user:profiles!tickets_escalated_to_fkey(id, name),
+        comments(count)
       `)
       .order("opened_at", { ascending: false })
       .limit(limit);

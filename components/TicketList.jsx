@@ -116,6 +116,18 @@ const TicketList = () => {
     { id: "REQ-1180", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Accès lecture base RH pour audit interne", status: "closed", prio: "normale", cat: "Accès & Droits", assignee: { name: "Sophie Aubry", team: "Sécurité" }, opened: "il y a 6 j", updated: "il y a 3 j", sla: { left: "—", risk: "done" }, msgs: 14, unread: 0, hasAttach: true },
   ];
 
+  // Ajoute aux compteurs de messages les commentaires stockés en localStorage
+  // par ticket (mode démo, sans Supabase). Sans effet pour les tickets live
+  // de Supabase qui ont déjà leur compteur via mapSupaTicket.
+  if (!liveTickets) {
+    try {
+      for (const t of tickets) {
+        const extra = JSON.parse(localStorage.getItem("hubAstorya.ticketMsgs.v1." + t.id) || "[]").length;
+        if (extra) t.msgs = (t.msgs || 0) + extra;
+      }
+    } catch (e) {}
+  }
+
   // Indicateur visuel du contrat de maintenance parc IT — green/amber/red.
   const maintMeta = {
     active:   { color: "#10b981", soft: "#dcfce7", label: "Contrat actif",      icon: "●" },
@@ -841,7 +853,11 @@ function mapSupaTicket(t) {
     opened: fmtRel(t.opened_at),
     updated: fmtRel(t.updated_at),
     sla: slaLeft(t.sla_due_at),
-    msgs: 0,
+    msgs: (() => {
+      // Compte des commentaires : DB d'abord, sinon localStorage en mode démo
+      if (Array.isArray(t.comments) && t.comments[0] && typeof t.comments[0].count === "number") return t.comments[0].count;
+      try { return JSON.parse(localStorage.getItem("hubAstorya.ticketMsgs.v1." + t.id) || "[]").length; } catch (e) { return 0; }
+    })(),
     unread: 0,
     hasAttach: false,
     client: t.client ? {

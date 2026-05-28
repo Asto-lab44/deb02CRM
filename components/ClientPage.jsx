@@ -118,34 +118,53 @@ const ClientPage = () => {
             <div style={{ fontSize: 11, color: "#64748b" }}>CRM commercial</div>
           </div>
         </a>
-        <button style={cliStyles.newBtn}>+ Nouvelle opportunité <span style={cliStyles.kbd}>N</span></button>
+        <a href="/nouvelle-opportunite" style={{ ...cliStyles.newBtn, textDecoration: "none", cursor: "pointer" }}>+ Nouvelle opportunité <span style={cliStyles.kbd}>N</span></a>
 
         <div style={cliStyles.navSection}>
           <div style={cliStyles.navLabel}>Espace</div>
-          <div style={cliStyles.navItem}><span style={cliStyles.bullet}>▦</span><span style={{ flex: 1 }}>Pipeline</span><span style={cliStyles.navCount}>32</span></div>
+          <a href="/crm" style={{ ...cliStyles.navItem, textDecoration: "none", color: "inherit" }}>
+            <span style={cliStyles.bullet}>▦</span><span style={{ flex: 1 }}>Pipeline</span><span style={cliStyles.navCount}>32</span>
+          </a>
           <div style={{ ...cliStyles.navItem, ...cliStyles.navItemActive }}><span style={cliStyles.bullet}>◰</span><span style={{ flex: 1 }}>Comptes</span><span style={cliStyles.navCount}>412</span></div>
-          <div style={cliStyles.navItem}><span style={cliStyles.bullet}>◉</span><span style={{ flex: 1 }}>Contacts</span><span style={cliStyles.navCount}>1 184</span></div>
-          <div style={cliStyles.navItem}><span style={cliStyles.bullet}>✦</span><span style={{ flex: 1 }}>Activités</span><span style={cliStyles.navCount}>27</span></div>
+          <a onClick={() => alert("Carnet contacts — 1 184 fiches\n\n(Sera connecté à la table profiles + clients Supabase.)")}
+             style={{ ...cliStyles.navItem, cursor: "pointer" }}>
+            <span style={cliStyles.bullet}>◉</span><span style={{ flex: 1 }}>Contacts</span><span style={cliStyles.navCount}>1 184</span>
+          </a>
+          <a onClick={() => alert("Timeline activités client — Appels, emails, RDV, notes\n\n(Sera connectée à la table activities.)")}
+             style={{ ...cliStyles.navItem, cursor: "pointer" }}>
+            <span style={cliStyles.bullet}>✦</span><span style={{ flex: 1 }}>Activités</span><span style={cliStyles.navCount}>27</span>
+          </a>
         </div>
 
         <div style={cliStyles.navSection}>
           <div style={cliStyles.navLabel}>Clients récents</div>
-          <div style={{ ...cliStyles.navItem, ...cliStyles.navItemActive }}><span style={{ ...cliStyles.miniLogo, background: "#1e40af" }}>AX</span><span style={{ flex: 1, fontWeight: 600 }}>AXA Wealth France</span></div>
-          <div style={cliStyles.navItem}><span style={{ ...cliStyles.miniLogo, background: "#0f766e" }}>BP</span><span style={{ flex: 1 }}>BNP Asset Mgmt</span></div>
-          <div style={cliStyles.navItem}><span style={{ ...cliStyles.miniLogo, background: "#dc2626" }}>GP</span><span style={{ flex: 1 }}>Generali Patri.</span></div>
-          <div style={cliStyles.navItem}><span style={{ ...cliStyles.miniLogo, background: "#10b981" }}>MI</span><span style={{ flex: 1 }}>MAIF Innovation</span></div>
-          <div style={cliStyles.navItem}><span style={{ ...cliStyles.miniLogo, background: "#ea580c" }}>CE</span><span style={{ flex: 1 }}>Caisse Épargne IDF</span></div>
+          {[
+            { ax: "AX", name: "AXA Wealth France",  color: "#1e40af", active: true },
+            { ax: "BP", name: "BNP Asset Mgmt",     color: "#0f766e" },
+            { ax: "GP", name: "Generali Patri.",    color: "#dc2626" },
+            { ax: "MI", name: "MAIF Innovation",    color: "#10b981" },
+            { ax: "CE", name: "Caisse Épargne IDF", color: "#ea580c" },
+          ].map((c) => (
+            <a key={c.ax}
+               onClick={() => { if (!c.active) alert(`${c.name}\n\nLa navigation entre comptes sera activée quand la table clients sera lue côté DB (chaque ligne ouvrira sa propre fiche).`); }}
+               style={{ ...cliStyles.navItem, ...(c.active ? cliStyles.navItemActive : {}), cursor: "pointer" }}>
+              <span style={{ ...cliStyles.miniLogo, background: c.color }}>{c.ax}</span>
+              <span style={{ flex: 1, fontWeight: c.active ? 600 : 400 }}>{c.name}</span>
+            </a>
+          ))}
         </div>
 
         <div style={{ flex: 1 }} />
 
-        <div style={cliStyles.userRow}>
+        <a href="/administration-utilisateurs"
+           title="Profil & préférences"
+           style={{ ...cliStyles.userRow, textDecoration: "none", color: "inherit", cursor: "pointer" }}>
           <Avatar name="Nadia Lefèvre" size={26} color="#a855f7" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600 }}>Nadia Lefèvre</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>AE · EMEA</div>
           </div>
-        </div>
+        </a>
       </aside>
 
       {/* ───── MAIN ───── */}
@@ -162,7 +181,7 @@ const ClientPage = () => {
           <div style={{ display: "flex", gap: 8 }}>
             <button style={cliStyles.iconBtn}>‹</button>
             <button style={cliStyles.iconBtn}>›</button>
-            <button style={cliStyles.ghostBtn}>★ Suivre</button>
+            <button onClick={() => alert("✓ Vous suivez AXA Wealth France — notifications activées pour ce compte.")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
             <button style={cliStyles.iconBtn}>⋯</button>
           </div>
         </header>
@@ -201,17 +220,20 @@ const ClientPage = () => {
 
               {/* Quick stats */}
               <div style={cliStyles.heroStats}>
-                <div style={cliStyles.heroStat}>
+                <div onClick={() => alert("ARR AXA Wealth France\n\n• 184 k€ actuel\n• +12 % YoY\n• Renouvellement Suite signé 01 mars 2026 — 184 k€\n\n(Détail facturation à connecter à la vue revenue.)")}
+                     style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
                   <div style={cliStyles.heroStatK}>ARR actuel</div>
                   <div style={cliStyles.heroStatV}>184 k€</div>
                   <div style={{ fontSize: 10.5, color: "#0e7a55", marginTop: 2 }}>↑ +12 % YoY</div>
                 </div>
-                <div style={cliStyles.heroStat}>
+                <div onClick={() => alert("Pipe ouvert AXA Wealth France\n\n• OPP-2814 Astorya Suite 750 sièges — 215 k€ (Proposition)\n• OPP-2841 Module Cyber POC — 48 k€ (Discovery)\n• OPP-2867 Extension Belgique — 92 k€ (Qualification)\n\nTotal pondéré : ~ 152 k€")}
+                     style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
                   <div style={cliStyles.heroStatK}>Pipe ouvert</div>
                   <div style={{ ...cliStyles.heroStatV, color: "#4f46e5" }}>355 k€</div>
                   <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>3 opportunités</div>
                 </div>
-                <div style={cliStyles.heroStat}>
+                <div onClick={() => alert("Health score AXA Wealth France : 78/100\n\n+  Renouvellement signé +12 % (+20 pts)\n+  Champion identifié : Émilie Roux (+10 pts)\n+  3 opportunités actives (+15 pts)\n−  Délai paiement moyen 47 j (−5 pts)\n−  Pas de POC technique en cours (−10 pts)\n\nObjectif T2 2026 : 85/100")}
+                     style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
                   <div style={cliStyles.heroStatK}>Health score</div>
                   <div style={{ ...cliStyles.heroStatV, color: "#10b981" }}>78<span style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}> / 100</span></div>
                   <div style={cliStyles.miniBar}><div style={{ width: "78%", height: "100%", background: "linear-gradient(90deg, #4f46e5, #10b981)", borderRadius: 999 }} /></div>
@@ -221,12 +243,12 @@ const ClientPage = () => {
 
             {/* Action bar */}
             <div style={cliStyles.actionBar}>
-              <button style={cliStyles.primaryBtn}>+ Nouvelle opportunité</button>
-              <button style={cliStyles.ghostBtn}>✉ Email</button>
-              <button style={cliStyles.ghostBtn}>📅 RDV</button>
-              <button style={cliStyles.ghostBtn}>📞 Appel</button>
-              <button style={cliStyles.ghostBtn}>✓ Tâche</button>
-              <button style={cliStyles.ghostBtn}>✎ Note</button>
+              <a href="/nouvelle-opportunite" style={{ ...cliStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
+              <button onClick={() => { const to = prompt("Destinataire (email) :", "e.roux@axa-im.fr"); if (!to) return; const subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite"); if (subj) { window.location.href = `mailto:${to}?subject=${encodeURIComponent(subj)}`; } }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✉ Email</button>
+              <button onClick={() => alert("Planifier un RDV avec AXA Wealth France\n\n(Sera connecté à Google Calendar / Outlook via /api/calendar-event)")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📅 RDV</button>
+              <button onClick={() => { const num = prompt("Numéro à appeler :", "+33 1 42 86 74 21"); if (num) window.location.href = `tel:${num}`; }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📞 Appel</button>
+              <button onClick={() => { const txt = prompt("Nouvelle tâche pour AXA Wealth France :"); if (txt) alert("✓ Tâche créée : " + txt + "\n\n(Sera persistée dans la table tasks.)"); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✓ Tâche</button>
+              <button onClick={() => { const txt = prompt("Nouvelle note privée :"); if (txt) alert("✓ Note enregistrée : " + txt + "\n\n(Sera persistée dans la timeline activities.)"); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✎ Note</button>
               <button
                 onClick={() => setStatsOpen(true)}
                 style={{ ...cliStyles.ghostBtn, background: "#eef2ff", borderColor: "#c7d2fe", color: "#3730a3", fontWeight: 600 }}
@@ -242,7 +264,28 @@ const ClientPage = () => {
                 💻 Parc IT
               </button>
               <span style={{ flex: 1 }} />
-              <button style={cliStyles.ghostBtn}>Exporter compte ↓</button>
+              <button onClick={() => {
+                const rows = [["Champ", "Valeur"]];
+                rows.push(["Nom", "AXA Wealth France"]);
+                rows.push(["Référence", "ACC-0184"]);
+                rows.push(["Industrie", "Asset Management"]);
+                rows.push(["Effectif", "12 000 employés"]);
+                rows.push(["Ville", "Paris · La Défense"]);
+                rows.push(["Site web", "axa-im.fr"]);
+                rows.push(["Client depuis", "mars 2024"]);
+                rows.push(["ARR actuel", "184 k€"]);
+                rows.push(["Pipe ouvert", "355 k€"]);
+                rows.push(["Health score", "78 / 100"]);
+                rows.push([]);
+                rows.push(["Opportunités"]);
+                rows.push(["Ref", "Nom", "Étape", "Montant", "Owner", "Clôture"]);
+                opportunities.forEach((o) => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
+                const csv = rows.map((r) => r.map((c) => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }));
+                a.download = `compte-AXA-Wealth-France-${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+              }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>Exporter compte ↓</button>
             </div>
           </section>
 
@@ -254,8 +297,8 @@ const ClientPage = () => {
                 <p style={cliStyles.h2sub}>Vue d'ensemble des opportunités et contrats actifs pour ce client</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button style={cliStyles.filterPill}>Vue Kanban ▦</button>
-                <button style={cliStyles.filterPill}>Vue Liste ☰</button>
+                <a href="/crm" style={{ ...cliStyles.filterPill, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>Vue Kanban ▦</a>
+                <button onClick={() => alert("Vue Liste — affichage tabulaire des opportunités.\n\n(Bascule entre Kanban / Liste sera activée quand les deals seront persistés en DB.)")} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>Vue Liste ☰</button>
               </div>
             </div>
 
@@ -285,9 +328,10 @@ const ClientPage = () => {
             {/* Opp cards */}
             <div style={cliStyles.oppGrid}>
               {opportunities.map((o, i) => {
+                const openOpp = () => alert(`${o.ref} — ${o.name}\n\nÉtape : ${o.stage}\nMontant : ${o.amount}\nProba : ${o.proba} %\nOwner : ${o.owner}\nClôture : ${o.close}\n\n(La fiche détail opportunité s'ouvrira ici quand la table deals sera créée.)`);
                 const stage = pipeStages.find(s => s.k === o.stage);
                 return (
-                  <div key={i} style={{ ...cliStyles.oppCard, ...(o.won ? cliStyles.oppCardWon : {}), ...(o.hot ? cliStyles.oppCardHot : {}) }}>
+                  <div key={i} onClick={openOpp} style={{ ...cliStyles.oppCard, ...(o.won ? cliStyles.oppCardWon : {}), ...(o.hot ? cliStyles.oppCardHot : {}), cursor: "pointer" }}>
                     {o.isNew && <span style={cliStyles.newRibbon}>NOUVEAU</span>}
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>

@@ -298,16 +298,26 @@ const ClientPage = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "CRM commercial"))), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.newBtn
+  }, "CRM commercial"))), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite",
+    style: {
+      ...cliStyles.newBtn,
+      textDecoration: "none",
+      cursor: "pointer"
+    }
   }, "+ Nouvelle opportunit\xE9 ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.kbd
   }, "N")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel
-  }, "Espace"), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.navItem
+  }, "Espace"), /*#__PURE__*/React.createElement("a", {
+    href: "/crm",
+    style: {
+      ...cliStyles.navItem,
+      textDecoration: "none",
+      color: "inherit"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.bullet
   }, "\u25A6"), /*#__PURE__*/React.createElement("span", {
@@ -329,8 +339,12 @@ const ClientPage = () => {
     }
   }, "Comptes"), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.navCount
-  }, "412")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.navItem
+  }, "412")), /*#__PURE__*/React.createElement("a", {
+    onClick: () => alert("Carnet contacts — 1 184 fiches\n\n(Sera connecté à la table profiles + clients Supabase.)"),
+    style: {
+      ...cliStyles.navItem,
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.bullet
   }, "\u25C9"), /*#__PURE__*/React.createElement("span", {
@@ -339,8 +353,12 @@ const ClientPage = () => {
     }
   }, "Contacts"), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.navCount
-  }, "1 184")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.navItem
+  }, "1 184")), /*#__PURE__*/React.createElement("a", {
+    onClick: () => alert("Timeline activités client — Appels, emails, RDV, notes\n\n(Sera connectée à la table activities.)"),
+    style: {
+      ...cliStyles.navItem,
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.bullet
   }, "\u2726"), /*#__PURE__*/React.createElement("span", {
@@ -353,71 +371,60 @@ const ClientPage = () => {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel
-  }, "Clients r\xE9cents"), /*#__PURE__*/React.createElement("div", {
+  }, "Clients r\xE9cents"), [{
+    ax: "AX",
+    name: "AXA Wealth France",
+    color: "#1e40af",
+    active: true
+  }, {
+    ax: "BP",
+    name: "BNP Asset Mgmt",
+    color: "#0f766e"
+  }, {
+    ax: "GP",
+    name: "Generali Patri.",
+    color: "#dc2626"
+  }, {
+    ax: "MI",
+    name: "MAIF Innovation",
+    color: "#10b981"
+  }, {
+    ax: "CE",
+    name: "Caisse Épargne IDF",
+    color: "#ea580c"
+  }].map(c => /*#__PURE__*/React.createElement("a", {
+    key: c.ax,
+    onClick: () => {
+      if (!c.active) alert(`${c.name}\n\nLa navigation entre comptes sera activée quand la table clients sera lue côté DB (chaque ligne ouvrira sa propre fiche).`);
+    },
     style: {
       ...cliStyles.navItem,
-      ...cliStyles.navItemActive
+      ...(c.active ? cliStyles.navItemActive : {}),
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       ...cliStyles.miniLogo,
-      background: "#1e40af"
+      background: c.color
     }
-  }, "AX"), /*#__PURE__*/React.createElement("span", {
+  }, c.ax), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,
-      fontWeight: 600
+      fontWeight: c.active ? 600 : 400
     }
-  }, "AXA Wealth France")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...cliStyles.miniLogo,
-      background: "#0f766e"
-    }
-  }, "BP"), /*#__PURE__*/React.createElement("span", {
+  }, c.name)))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
-  }, "BNP Asset Mgmt")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.navItem
-  }, /*#__PURE__*/React.createElement("span", {
+  }), /*#__PURE__*/React.createElement("a", {
+    href: "/administration-utilisateurs",
+    title: "Profil & pr\xE9f\xE9rences",
     style: {
-      ...cliStyles.miniLogo,
-      background: "#dc2626"
+      ...cliStyles.userRow,
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer"
     }
-  }, "GP"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "Generali Patri.")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...cliStyles.miniLogo,
-      background: "#10b981"
-    }
-  }, "MI"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "MAIF Innovation")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...cliStyles.miniLogo,
-      background: "#ea580c"
-    }
-  }, "CE"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "Caisse \xC9pargne IDF"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.userRow
   }, /*#__PURE__*/React.createElement(Avatar, {
     name: "Nadia Lef\xE8vre",
     size: 26,
@@ -476,7 +483,11 @@ const ClientPage = () => {
   }, "\u2039"), /*#__PURE__*/React.createElement("button", {
     style: cliStyles.iconBtn
   }, "\u203A"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.ghostBtn
+    onClick: () => alert("✓ Vous suivez AXA Wealth France — notifications activées pour ce compte."),
+    style: {
+      ...cliStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "\u2605 Suivre"), /*#__PURE__*/React.createElement("button", {
     style: cliStyles.iconBtn
   }, "\u22EF"))), /*#__PURE__*/React.createElement("div", {
@@ -554,7 +565,11 @@ const ClientPage = () => {
   }, "# DORA"))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.heroStats
   }, /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStat
+    onClick: () => alert("ARR AXA Wealth France\n\n• 184 k€ actuel\n• +12 % YoY\n• Renouvellement Suite signé 01 mars 2026 — 184 k€\n\n(Détail facturation à connecter à la vue revenue.)"),
+    style: {
+      ...cliStyles.heroStat,
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.heroStatK
   }, "ARR actuel"), /*#__PURE__*/React.createElement("div", {
@@ -566,7 +581,11 @@ const ClientPage = () => {
       marginTop: 2
     }
   }, "\u2191 +12 % YoY")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStat
+    onClick: () => alert("Pipe ouvert AXA Wealth France\n\n• OPP-2814 Astorya Suite 750 sièges — 215 k€ (Proposition)\n• OPP-2841 Module Cyber POC — 48 k€ (Discovery)\n• OPP-2867 Extension Belgique — 92 k€ (Qualification)\n\nTotal pondéré : ~ 152 k€"),
+    style: {
+      ...cliStyles.heroStat,
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.heroStatK
   }, "Pipe ouvert"), /*#__PURE__*/React.createElement("div", {
@@ -581,7 +600,11 @@ const ClientPage = () => {
       marginTop: 2
     }
   }, "3 opportunit\xE9s")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStat
+    onClick: () => alert("Health score AXA Wealth France : 78/100\n\n+  Renouvellement signé +12 % (+20 pts)\n+  Champion identifié : Émilie Roux (+10 pts)\n+  3 opportunités actives (+15 pts)\n−  Délai paiement moyen 47 j (−5 pts)\n−  Pas de POC technique en cours (−10 pts)\n\nObjectif T2 2026 : 85/100"),
+    style: {
+      ...cliStyles.heroStat,
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.heroStatK
   }, "Health score"), /*#__PURE__*/React.createElement("div", {
@@ -606,18 +629,60 @@ const ClientPage = () => {
     }
   }))))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionBar
-  }, /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.primaryBtn
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite",
+    style: {
+      ...cliStyles.primaryBtn,
+      textDecoration: "none",
+      display: "inline-block",
+      cursor: "pointer"
+    }
   }, "+ Nouvelle opportunit\xE9"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.ghostBtn
+    onClick: () => {
+      const to = prompt("Destinataire (email) :", "e.roux@axa-im.fr");
+      if (!to) return;
+      const subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite");
+      if (subj) {
+        window.location.href = `mailto:${to}?subject=${encodeURIComponent(subj)}`;
+      }
+    },
+    style: {
+      ...cliStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "\u2709 Email"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.ghostBtn
+    onClick: () => alert("Planifier un RDV avec AXA Wealth France\n\n(Sera connecté à Google Calendar / Outlook via /api/calendar-event)"),
+    style: {
+      ...cliStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "\uD83D\uDCC5 RDV"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.ghostBtn
+    onClick: () => {
+      const num = prompt("Numéro à appeler :", "+33 1 42 86 74 21");
+      if (num) window.location.href = `tel:${num}`;
+    },
+    style: {
+      ...cliStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "\uD83D\uDCDE Appel"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.ghostBtn
+    onClick: () => {
+      const txt = prompt("Nouvelle tâche pour AXA Wealth France :");
+      if (txt) alert("✓ Tâche créée : " + txt + "\n\n(Sera persistée dans la table tasks.)");
+    },
+    style: {
+      ...cliStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "\u2713 T\xE2che"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.ghostBtn
+    onClick: () => {
+      const txt = prompt("Nouvelle note privée :");
+      if (txt) alert("✓ Note enregistrée : " + txt + "\n\n(Sera persistée dans la timeline activities.)");
+    },
+    style: {
+      ...cliStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "\u270E Note"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setStatsOpen(true),
     style: {
@@ -643,7 +708,34 @@ const ClientPage = () => {
       flex: 1
     }
   }), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.ghostBtn
+    onClick: () => {
+      const rows = [["Champ", "Valeur"]];
+      rows.push(["Nom", "AXA Wealth France"]);
+      rows.push(["Référence", "ACC-0184"]);
+      rows.push(["Industrie", "Asset Management"]);
+      rows.push(["Effectif", "12 000 employés"]);
+      rows.push(["Ville", "Paris · La Défense"]);
+      rows.push(["Site web", "axa-im.fr"]);
+      rows.push(["Client depuis", "mars 2024"]);
+      rows.push(["ARR actuel", "184 k€"]);
+      rows.push(["Pipe ouvert", "355 k€"]);
+      rows.push(["Health score", "78 / 100"]);
+      rows.push([]);
+      rows.push(["Opportunités"]);
+      rows.push(["Ref", "Nom", "Étape", "Montant", "Owner", "Clôture"]);
+      opportunities.forEach(o => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
+      const csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob(["﻿" + csv], {
+        type: "text/csv;charset=utf-8;"
+      }));
+      a.download = `compte-AXA-Wealth-France-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    },
+    style: {
+      ...cliStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "Exporter compte \u2193"))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
@@ -659,10 +751,20 @@ const ClientPage = () => {
       display: "flex",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.filterPill
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/crm",
+    style: {
+      ...cliStyles.filterPill,
+      textDecoration: "none",
+      display: "inline-block",
+      cursor: "pointer"
+    }
   }, "Vue Kanban \u25A6"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.filterPill
+    onClick: () => alert("Vue Liste — affichage tabulaire des opportunités.\n\n(Bascule entre Kanban / Liste sera activée quand les deals seront persistés en DB.)"),
+    style: {
+      ...cliStyles.filterPill,
+      cursor: "pointer"
+    }
   }, "Vue Liste \u2630"))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.stagesStrip
   }, pipeStages.map((s, i) => {
@@ -709,13 +811,16 @@ const ClientPage = () => {
   })), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.oppGrid
   }, opportunities.map((o, i) => {
+    const openOpp = () => alert(`${o.ref} — ${o.name}\n\nÉtape : ${o.stage}\nMontant : ${o.amount}\nProba : ${o.proba} %\nOwner : ${o.owner}\nClôture : ${o.close}\n\n(La fiche détail opportunité s'ouvrira ici quand la table deals sera créée.)`);
     const stage = pipeStages.find(s => s.k === o.stage);
     return /*#__PURE__*/React.createElement("div", {
       key: i,
+      onClick: openOpp,
       style: {
         ...cliStyles.oppCard,
         ...(o.won ? cliStyles.oppCardWon : {}),
-        ...(o.hot ? cliStyles.oppCardHot : {})
+        ...(o.hot ? cliStyles.oppCardHot : {}),
+        cursor: "pointer"
       }
     }, o.isNew && /*#__PURE__*/React.createElement("span", {
       style: cliStyles.newRibbon

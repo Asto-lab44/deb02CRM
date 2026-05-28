@@ -1,0 +1,149 @@
+// Couche d'accès aux données Supabase pour le Hub Astorya.
+// Charge groupes, clients, contrats, tickets, parc IT et appels depuis la
+// base si elle est configurée. Sinon retourne null (les composants gardent
+// alors leurs données inline de maquette comme fallback gracieux).
+//
+// Toutes les fonctions sont async et renvoient un objet { data, error } à
+// la mode Supabase pour faciliter le matching.
+
+(function () {
+  const supa = (typeof window !== "undefined" && window.HubSupabase && window.HubSupabase.enabled)
+    ? window.HubSupabase.client : null;
+
+  const listeners = new Set();
+  const notify = () => listeners.forEach((fn) => { try { fn(); } catch (e) {} });
+
+  // Caches simples — invalidés à chaque mutation
+  const cache = { groups: null, clients: null, contracts: null, tickets: null, assets: null };
+  const invalidate = (key) => { if (key) cache[key] = null; else Object.keys(cache).forEach((k) => cache[k] = null); notify(); };
+
+  // ─── Lectures ─────────────────────────────────────────────────────
+  async function fetchGroups() {
+    if (!supa) return { data: null, error: null };
+    if (cache.groups) return { data: cache.groups, error: null };
+    const { data, error } = await supa.from("groups")
+      .select("id, name, color, description, access, profile_groups(profile_id, profiles(name))");
+    if (data) {
+      cache.groups = data.map((g) => ({
+        ...g,
+        members: (g.profile_groups || []).map((pg) => pg.profiles && pg.profiles.name).filter(Boolean),
+      }));
+    }
+    return { data: cache.groups, error };
+  }
+
+  async function fetchClients() {
+    if (!supa) return { data: null, error: null };
+    if (cache.clients) return { data: cache.clients, error: null };
+    const { data, error } = await supa.from("clients")
+      .select("*, contracts(*)");
+    if (data) cache.clients = data;
+    return { data: cache.clients, error };
+  }
+
+  async function fetchClientById(id) {
+    if (!supa) return { data: null, error: null };
+    const { data, error } = await supa.from("clients").select("*, contracts(*), assets(*)").eq("id", id).single();
+    return { data, error };
+  }
+
+  async function fetchTickets({ limit = 50 } = {}) {
+    if (!supa) return { data: null, error: null };
+    if (cache.tickets) return { data: cache.tickets, error: null };
+    const { data, error } = await supa.from("tickets")
+      .select(`
+        id, title, description, category, status, priority,
+        lifecycle, billable, billable_note,
+        assignee_team, escalated_at, escalated_reason, escalated_group,
+        sla_due_at, opened_at, updated_at,
+        client:clients(id, name, contracts(status, name, end_date)),
+        assignee:profiles!tickets_assignee_id_fkey(id, name, team),
+        escalated_to_user:profiles!tickets_escalated_to_fkey(id, name)
+      `)
+      .order("opened_at", { ascending: false })
+      .limit(limit);
+    if (data) cache.tickets = data;
+    return { data: cache.tickets, error };
+  }
+
+  async function fetchAssetsByClient(clientId) {
+    if (!supa) return { data: null, error: null };
+    const { data, error } = await supa.from("assets")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("type, hostname");
+    return { data, error };
+  }
+
+  async function fetchTranscriptsByTicket(ticketId) {
+    if (!supa) return { data: null, error: null };
+    const { data, error } = await supa.from("call_transcripts")
+      .select("*, call:calls(caller_name, caller_phone, duration_sec, started_at)")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: true });
+    return { data, error };
+  }
+
+  // ─── Mutations ────────────────────────────────────────────────────
+  async function createTicket(payload) {
+    if (!supa) return { data: null, error: new Error("Supabase non configuré.") };
+    const { data, error } = await supa.from("tickets").insert(payload).select().single();
+    if (!error) invalidate("tickets");
+    return { data, error };
+  }
+
+  async function updateTicket(id, patch) {
+    if (!supa) return { data: null, error: new Error("Supabase non configuré.") };
+    const { data, error } = await supa.from("tickets").update(patch).eq("id", id).select().single();
+    if (!error) invalidate("tickets");
+    return { data, error };
+  }
+
+  async function escalateTicket(id, { toUserId, groupId, reason }) {
+    return updateTicket(id, {
+      escalated_to: toUserId,
+      escalated_group: groupId,
+      escalated_reason: reason,
+      escalated_at: new Date().toISOString(),
+    });
+  }
+
+  async function recordCall(payload) {
+    if (!supa) return { data: null, error: new Error("Supabase non configuré.") };
+    const { data, error } = await supa.from("calls").insert(payload).select().single();
+    return { data, error };
+  }
+
+  async function saveTranscript(payload) {
+    if (!supa) return { data: null, error: new Error("Supabase non configuré.") };
+    const { data, error } = await supa.from("call_transcripts").insert(payload).select().single();
+    return { data, error };
+  }
+
+  // ─── Realtime (subscribe to changes) ──────────────────────────────
+  function subscribeChanges(fn) {
+    listeners.add(fn);
+    if (!supa) return () => listeners.delete(fn);
+
+    const channel = supa.channel("hub-data")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" },  () => invalidate("tickets"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "groups" },   () => invalidate("groups"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "clients" },  () => invalidate("clients"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "assets" },   () => invalidate("assets"))
+      .subscribe();
+    return () => {
+      listeners.delete(fn);
+      try { supa.removeChannel(channel); } catch (e) {}
+    };
+  }
+
+  function enabled() { return !!supa; }
+
+  window.HubData = {
+    enabled,
+    fetchGroups, fetchClients, fetchClientById, fetchTickets,
+    fetchAssetsByClient, fetchTranscriptsByTicket,
+    createTicket, updateTicket, escalateTicket, recordCall, saveTranscript,
+    invalidate, subscribeChanges,
+  };
+})();

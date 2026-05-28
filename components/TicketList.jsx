@@ -17,7 +17,24 @@ const TicketList = () => {
     setTimeout(() => setLastCreated(null), 6000);
   };
 
-  const tickets = [
+  // ───── Données live depuis Supabase si configuré, sinon fallback inline
+  const dataEnabled = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+  const [liveTickets, setLiveTickets] = React.useState(null);
+  React.useEffect(() => {
+    if (!dataEnabled) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data, error } = await window.HubData.fetchTickets({ limit: 50 });
+      if (cancelled || error) return;
+      // Transforme le shape Supabase → shape attendu par le rendu existant
+      setLiveTickets((data || []).map(mapSupaTicket));
+    };
+    load();
+    const off = window.HubData.subscribeChanges(load);
+    return () => { cancelled = true; off && off(); };
+  }, [dataEnabled]);
+
+  const tickets = liveTickets || [
     { id: "REQ-1198", client: { name: "AXA Wealth France",    maintenance: "active",   contract: "Premium 24/7 · jusqu'au 28 fév. 2027" }, title: "Arrivée Lucas Bernard — création comptes & matériel", status: "open", prio: "haute", cat: "Gestion comptes RH · Onboarding", lifecycle: "onboarding", billable: true, billableNote: "Prestation hors contrat de maintenance — facturée 380 € HT", assignee: { name: "Équipe IT", team: "Pool" }, opened: "il y a 1 h", updated: "il y a 18 min", sla: { left: "2 j 06 h", risk: "ok" }, msgs: 2, unread: 1, hasAttach: false, isNew: true },
     { id: "REQ-1197", client: { name: "Crédit Agricole Sud",  maintenance: "none",     contract: "Aucun contrat actif — intervention facturable" }, title: "Départ Élise Chevalier — désactivation comptes & restitution", status: "in_progress", prio: "normale", cat: "Gestion comptes RH · Offboarding", lifecycle: "offboarding", billable: true, billableNote: "Prestation facturée 240 € HT (extinction AD + Microsoft 365 + restitution)", assignee: { name: "Sophie Aubry", team: "Sécurité" }, opened: "il y a 4 h", updated: "il y a 1 h", sla: { left: "4 h 12", risk: "warn" }, msgs: 3, unread: 0, hasAttach: true },
     { id: "INC-2841", client: { name: "MAIF Innovation",      maintenance: "active",   contract: "Premium 24/7 · jusqu'au 31 déc. 2026" }, title: "Imprimante 3e étage en erreur PCL", status: "in_progress", prio: "haute", cat: "Matériel · Imprimante", assignee: { name: "Karim Ben Salah", team: "Support N1" }, opened: "il y a 2 h", updated: "il y a 12 min", sla: { left: "3 h 48", risk: "ok" }, msgs: 4, unread: 2, hasAttach: true },
@@ -528,5 +545,57 @@ const tlStyles = {
 
   foot: { padding: "10px 24px", borderTop: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
 };
+
+// Convertit un ticket lu depuis Supabase au format attendu par le rendu
+// (lignes inline) pour ne pas avoir à refactorer tout le JSX d'un coup.
+function mapSupaTicket(t) {
+  const contract = (t.client && t.client.contracts && t.client.contracts[0]) || null;
+  const fmtRel = (iso) => {
+    if (!iso) return "—";
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return "à l'instant";
+    if (diff < 3600) return `il y a ${Math.round(diff/60)} min`;
+    if (diff < 86400) return `il y a ${Math.round(diff/3600)} h`;
+    if (diff < 86400*2) return "hier";
+    return `il y a ${Math.round(diff/86400)} j`;
+  };
+  const slaLeft = (iso) => {
+    if (!iso) return { left: "—", risk: "done" };
+    const diff = (new Date(iso).getTime() - Date.now()) / 1000;
+    if (diff < 0) return { left: "Dépassé", risk: "danger" };
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const risk = diff < 3600 ? "danger" : diff < 6 * 3600 ? "warn" : "ok";
+    return { left: h >= 24 ? `${Math.floor(h/24)} j ${h%24} h` : `${String(h).padStart(2,'0')} h ${String(m).padStart(2,'0')}`, risk };
+  };
+  return {
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    prio: t.priority,
+    cat: t.category,
+    lifecycle: t.lifecycle,
+    billable: t.billable,
+    billableNote: t.billable_note,
+    opened: fmtRel(t.opened_at),
+    updated: fmtRel(t.updated_at),
+    sla: slaLeft(t.sla_due_at),
+    msgs: 0,
+    unread: 0,
+    hasAttach: false,
+    client: t.client ? {
+      name: t.client.name,
+      maintenance: contract ? contract.status : "none",
+      contract: contract ? `${contract.name} · jusqu'au ${new Date(contract.end_date).toLocaleDateString('fr-FR')}` : "Aucun contrat actif",
+    } : null,
+    assignee: t.assignee ? { name: t.assignee.name, team: t.assignee.team || t.assignee_team } : null,
+    escalated: t.escalated_at ? {
+      to: (t.escalated_to_user && t.escalated_to_user.name) || "Supervision",
+      group: t.escalated_group || "Supervision",
+      at: fmtRel(t.escalated_at),
+      reason: t.escalated_reason || "",
+    } : undefined,
+  };
+}
 
 window.TicketList = TicketList;

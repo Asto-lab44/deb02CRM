@@ -8,12 +8,33 @@ const AssetInventoryModal = ({ open, client, onClose }) => {
   const [filterWarranty, setFilterWarranty] = React.useState("all");
   const [search, setSearch] = React.useState("");
 
+  // Données live depuis Supabase, fallback inline si non configuré
+  const dataEnabled = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+  const [liveAssets, setLiveAssets] = React.useState(null);
+
   React.useEffect(() => {
     if (!open) { setFilterType("all"); setFilterStatus("all"); setFilterWarranty("all"); setSearch(""); return; }
     const onKey = (e) => { if (e.key === "Escape" && onClose) onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  React.useEffect(() => {
+    if (!open || !dataEnabled) return;
+    let cancelled = false;
+    (async () => {
+      // Pour cette maquette le client AXA est ACC-0184 ; en prod, prendre l'ID du client courant.
+      const { data, error } = await window.HubData.fetchAssetsByClient("ACC-0184");
+      if (!cancelled && !error && data) {
+        setLiveAssets(data.map((a) => ({
+          id: a.id, type: a.type, host: a.hostname, model: a.model, serial: a.serial,
+          os: a.os, assigned: a.assigned_to, bought: a.bought_on, warranty: a.warranty_end,
+          contract: a.contract || "—", site: a.site, status: a.status,
+        })));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, dataEnabled]);
 
   if (!open) return null;
   const portalTarget = typeof document !== "undefined" ? document.body : null;
@@ -38,8 +59,8 @@ const AssetInventoryModal = ({ open, client, onClose }) => {
     return "active";
   };
 
-  // ── Inventaire fictif AXA Wealth France (32 équipements)
-  const assets = [
+  // ── Inventaire : Supabase si configuré, sinon fallback maquette
+  const assets = liveAssets || [
     // SERVEURS
     { id: "AX-SRV-001", type: "server",  host: "axa-dc-prod-01",   model: "Dell PowerEdge R750",     serial: "8K3NM52", os: "Windows Server 2022",      assigned: "Datacenter Paris",  bought: "2023-04-15", warranty: "2027-04-15", contract: "ProSupport Plus", site: "Paris DC", status: "active" },
     { id: "AX-SRV-002", type: "server",  host: "axa-dc-prod-02",   model: "Dell PowerEdge R750",     serial: "8K3NM68", os: "Windows Server 2022",      assigned: "Datacenter Paris",  bought: "2023-04-15", warranty: "2027-04-15", contract: "ProSupport Plus", site: "Paris DC", status: "active" },

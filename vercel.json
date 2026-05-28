@@ -1,4 +1,6 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "buildCommand": "echo 'skip - files already compiled in dist/'",
+  "installCommand": "echo 'skip - no runtime deps needed'"
 }

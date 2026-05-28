@@ -4,6 +4,223 @@ const ClientPage = () => {
   const [statsOpen, setStatsOpen] = React.useState(false);
   const [assetsOpen, setAssetsOpen] = React.useState(false);
 
+  // Actions à mener : completion + ajout / suppression (localStorage)
+  const [doneActions, setDoneActions]   = React.useState({});
+  const [extraActions, setExtraActions] = React.useState([]);
+  // Opportunités : édition inline
+  const [oppDetailIdx, setOppDetailIdx] = React.useState(null);
+  const [oppEdits, setOppEdits]         = React.useState({}); // { ref: { stage, amount, proba, owner, close, notes } }
+
+  React.useEffect(() => {
+    try { setDoneActions(JSON.parse(localStorage.getItem("hubAstorya.actionsDone.v1") || "{}")); } catch (e) {}
+    try { setExtraActions(JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]")); } catch (e) {}
+    try { setOppEdits(JSON.parse(localStorage.getItem("hubAstorya.oppEdits.v1") || "{}")); } catch (e) {}
+  }, []);
+  const toggleAction = (key) => {
+    setDoneActions((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem("hubAstorya.actionsDone.v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+  const addAction = () => {
+    const title = prompt("Nouvelle action à mener :");
+    if (!title) return;
+    const due = prompt("Échéance (texte libre, ex. 'Demain · 10h00') :", "Demain");
+    const next = [{ id: "EX-" + Date.now(), title, due: due || "—", priority: "moyenne", icon: "•", meta: "Ajoutée manuellement", assigned: "Vous", assignedColor: "#3730a3", tag: "Manuel", tagColor: "#475569" }, ...extraActions];
+    setExtraActions(next);
+    try { localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next)); } catch (e) {}
+  };
+  const removeAction = (id) => {
+    const next = extraActions.filter((a) => a.id !== id);
+    setExtraActions(next);
+    try { localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next)); } catch (e) {}
+  };
+  const updateOppField = (ref, field, value) => {
+    setOppEdits((prev) => {
+      const next = { ...prev, [ref]: { ...(prev[ref] || {}), [field]: value } };
+      try { localStorage.setItem("hubAstorya.oppEdits.v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+
+  // ───── Promotion prospect → client quand un projet passe à "won"
+  const promoteToClient = (clientId, oppName) => {
+    try {
+      const local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      const idx = local.findIndex((p) => p.id === clientId);
+      if (idx >= 0) {
+        local[idx] = { ...local[idx], status: "client", client_since: new Date().toISOString(), won_via: oppName || "projet signé" };
+        localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(local));
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  };
+
+  // ───── Clients récents : top 6 (prospects + clients) depuis localStorage + Supabase
+  const [recents, setRecents] = React.useState([]);
+  React.useEffect(() => {
+    const local = (() => { try { return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]"); } catch (e) { return []; } })();
+    const fromLocal = local.map((p) => ({ id: p.id, name: p.raison_sociale || p.name, status: p.status || "prospect", color: "#1e40af" }));
+    if (window.HubData && window.HubData.enabled()) {
+      window.HubData.fetchClients().then(({ data }) => {
+        const fromSupa = (data || []).map((c) => ({ id: c.id, name: c.name, status: "client", color: "#0f766e" }));
+        const seen = new Set();
+        setRecents([...fromLocal, ...fromSupa].filter((c) => seen.has(c.id) ? false : (seen.add(c.id), true)).slice(0, 8));
+      });
+    } else {
+      // Fallback démo si rien
+      const fallback = fromLocal.length > 0 ? fromLocal : [
+        { id: "ACC-0184", name: "AXA Wealth France",  status: "client", color: "#1e40af" },
+        { id: "ACC-0211", name: "MAIF Innovation",    status: "client", color: "#10b981" },
+        { id: "ACC-0156", name: "Crédit Agricole Sud", status: "client", color: "#dc2626" },
+      ];
+      setRecents(fallback.slice(0, 8));
+    }
+  }, []);
+
+  // Modal opp détail : stage editable + autres champs
+  const openOppDetail = (i) => setOppDetailIdx(i);
+  const closeOppDetail = () => setOppDetailIdx(null);
+
+  // ───── Contrats du client : localStorage + démo selon contexte
+  const [contractsList, setContractsList] = React.useState([]);
+  React.useEffect(() => {
+    const key = "hubAstorya.contracts.v1";
+    let all = []; try { all = JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) {}
+    const stored = all.filter((c) => c.client_id === (urlId || "ACC-0184"));
+    if (stored.length > 0) { setContractsList(stored); return; }
+    // Démo AXA si pas d'ID custom
+    if (!urlId) {
+      setContractsList([
+        { id: "CTR-0184-01", client_id: "ACC-0184", name: "Astorya Suite — 750 sièges", product: "Astorya Suite v3 · Licence annuelle", type: "Licence SaaS",       amount: "184 k€ / an",  start: "01 mars 2024", end: "28 fév. 2027",  status: "active" },
+        { id: "CTR-0184-02", client_id: "ACC-0184", name: "Support Premium 24/7",       product: "Maintenance et SLA hotline",            type: "Maintenance",       amount: "48 k€ / an",   start: "01 mars 2024", end: "28 fév. 2027",  status: "active" },
+        { id: "CTR-0184-03", client_id: "ACC-0184", name: "Module Cyber — extension",   product: "Cyber Add-on (POC 50 utilisateurs)",     type: "Licence module",   amount: "12 k€ / an",   start: "15 sept. 2025", end: "14 sept. 2026", status: "expiring" },
+        { id: "CTR-0184-04", client_id: "ACC-0184", name: "Renouvellement Suite 2024",  product: "Avenant renouvellement triennal",        type: "Avenant",           amount: "184 k€",       start: "01 mars 2023", end: "28 fév. 2024",  status: "expired" },
+      ]);
+    } else {
+      setContractsList([]);
+    }
+  }, [urlId]);
+
+  // ───── Contacts clés du client : démo AXA + custom localStorage par client
+  const defaultContacts = [
+    { name: "Émilie Roux",      role: "VP Innovation", email: "e.roux@axa-im.fr",      phone: "+33 1 40 76 00",  color: "#a855f7", champion: true,  last: "il y a 2 h" },
+    { name: "Antoine Mercier",  role: "CISO",          email: "a.mercier@axa-im.fr",   phone: "+33 1 40 76 01",  color: "#dc2626",                  last: "il y a 8 h" },
+    { name: "Julien Pasquier",  role: "CFO",           email: "j.pasquier@axa-im.fr",  phone: "+33 1 40 76 02",  color: "#0ea5e9",                  last: "il y a 4 j" },
+    { name: "Marie Lopez",      role: "Head of Ops",   email: "m.lopez@axa-im.fr",     phone: "+33 1 40 76 03",  color: "#f59e0b",                  last: "il y a 1 sem." },
+    { name: "Sébastien Roy",    role: "Procurement",   email: "s.roy@axa-im.fr",       phone: "+33 1 40 76 04",  color: "#10b981", coldZone: true,  last: "il y a 3 sem." },
+  ];
+  const [customContacts, setCustomContacts] = React.useState([]);
+  React.useEffect(() => {
+    try { setCustomContacts(JSON.parse(localStorage.getItem("hubAstorya.contacts.v1") || "[]")); } catch (e) {}
+  }, []);
+
+  // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
+  const allContacts = (() => {
+    const localForThis = customContacts.filter((c) => c.client_id === (urlId || "ACC-0184")).map((c) => ({ ...c, _custom: true }));
+    if (isCustom) {
+      const principal = display.contactPrincipal ? [{
+        name: ((display.contactPrincipal.prenom || "") + " " + (display.contactPrincipal.nom || "")).trim(),
+        role: display.contactPrincipal.fonction || "—",
+        email: display.contactPrincipal.email || "",
+        phone: display.contactPrincipal.phone || "",
+        color: "#a855f7", champion: true, last: "Contact principal",
+      }] : [];
+      return [...principal, ...localForThis];
+    }
+    return [...defaultContacts, ...localForThis];
+  })();
+
+  const addContact = () => {
+    const fullName = prompt("Nom complet du contact :");
+    if (!fullName) return;
+    const role = prompt("Fonction :", "—");
+    const email = prompt("Email :", "");
+    const phone = prompt("Téléphone :", "");
+    const newContact = {
+      id: "CT-" + Date.now().toString().slice(-7),
+      client_id: urlId || "ACC-0184",
+      name: fullName, role: role || "—",
+      email: email || "", phone: phone || "",
+      color: ["#a855f7", "#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"][Math.floor(Math.random() * 6)],
+      last: "à l'instant",
+    };
+    const next = [newContact, ...customContacts];
+    setCustomContacts(next);
+    try { localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next)); } catch (e) {}
+  };
+  const removeContact = (id) => {
+    const next = customContacts.filter((c) => c.id !== id);
+    setCustomContacts(next);
+    try { localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next)); } catch (e) {}
+  };
+
+  const [pastShowAll, setPastShowAll] = React.useState(false);
+
+  const addContract = () => {
+    const name = prompt("Intitulé du contrat :");
+    if (!name) return;
+    const amount = prompt("Montant (ex. 48 k€ / an) :", "0 €");
+    const type = prompt("Type (Licence SaaS / Maintenance / Avenant / Autre) :", "Licence SaaS");
+    const newCt = {
+      id: "CTR-" + Date.now().toString().slice(-7),
+      client_id: urlId || display.id,
+      name, product: "", type: type || "—",
+      amount: amount || "0 €",
+      start: new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }),
+      end: new Date(Date.now() + 365*24*3600*1000).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }),
+      status: "active",
+    };
+    const next = [newCt, ...contractsList];
+    setContractsList(next);
+    try {
+      const all = JSON.parse(localStorage.getItem("hubAstorya.contracts.v1") || "[]");
+      localStorage.setItem("hubAstorya.contracts.v1", JSON.stringify([newCt, ...all]));
+    } catch (e) {}
+  };
+
+  // ───── Récupère le client à afficher selon l'ID dans l'URL
+  // - localStorage prospects créés via /nouveau-prospect (clé hubAstorya.prospects.v1)
+  // - sinon Supabase clients
+  // - sinon fallback démo AXA Wealth France
+  const urlId = (typeof window !== "undefined") ? new URLSearchParams(window.location.search).get("id") : null;
+  const [loadedClient, setLoadedClient] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!urlId) { setLoadedClient(null); return; }
+    // 1. cherche dans localStorage
+    try {
+      const local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      const hit = local.find((p) => p.id === urlId);
+      if (hit) { setLoadedClient(hit); return; }
+    } catch (e) {}
+    // 2. cherche dans Supabase
+    if (window.HubData && window.HubData.enabled() && window.HubData.fetchClientById) {
+      window.HubData.fetchClientById(urlId).then(({ data }) => { if (data) setLoadedClient({ ...data, _source: "supabase" }); });
+    }
+  }, [urlId]);
+
+  // Mapping unifié vers les champs d'affichage
+  const c = loadedClient || {};
+  const isCustom = !!loadedClient;
+  const display = {
+    id:        c.id || "ACC-0184",
+    name:      c.raison_sociale || c.name || "AXA Wealth France",
+    sector:    c.secteur || c.industry || "Asset Management",
+    size:      c.effectif ? `Effectif ${c.effectif}` : "12 000 employés",
+    city:      c.ville || c.city || "Paris · La Défense",
+    web:       c.site_web || c.website || "axa-im.fr",
+    since:     c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : (c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : "Client depuis mars 2024"),
+    desc:      c.notes || (isCustom ? `Compte ${c.tier ? `tier ${c.tier}` : ""} — créé via le formulaire prospect.` : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
+    logo:      (c.raison_sociale || c.name || "AX").slice(0, 2).toUpperCase(),
+    arr:       isCustom ? "—" : "184 k€",
+    pipe:      isCustom ? "0" : "355 k€",
+    health:    isCustom ? "—" : "78",
+    contactPrincipal: c.contact_principal || null,
+  };
+
   const Avatar = ({ name, size = 24, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -45,6 +262,18 @@ const ClientPage = () => {
     { type: "meeting", icon: "👥", color: "#0ea5e9", title: "RDV — Cadrage besoins métier", who: "3 participants · 45 min", at: "ven. 16 mai", meta: "Priorités confirmées : reporting client, conformité, mobilité" },
     { type: "doc", icon: "📄", color: "#64748b", title: "Document partagé — RFP Astorya", who: "Téléchargé 7 fois par AXA", at: "08 mai", meta: "RFP-Astorya-2026.pdf · 2,4 Mo" },
   ];
+
+  // Historique étendu (39 anciennes actions ajoutées au "Tout voir")
+  const pastExtras = [
+    { type: "doc",     icon: "📄", color: "#64748b", title: "RFP — Présélection 2026",          who: "Échangée avec Émilie Roux",       at: "02 mai",   meta: "Astorya retenue dans la shortlist finale (5 éditeurs)" },
+    { type: "call",    icon: "☎",  color: "#10b981", title: "Appel — Cadrage gouvernance DORA", who: "Karim Ben Salah → Émilie Roux",   at: "28 avr.",  meta: "Confirmation localisation des données UE obligatoire" },
+    { type: "email",   icon: "✉",  color: "#a855f7", title: "Email — Documentation sécurité",   who: "Antoine Mercier → Nadia Lefèvre", at: "25 avr.",  meta: "Demande ISO 27001 + SOC2 type II" },
+    { type: "meeting", icon: "👥", color: "#0ea5e9", title: "RDV — Présentation roadmap 2026",  who: "12 participants AXA",             at: "18 avr.",  meta: "Webinar produit · NPS 9/10" },
+    { type: "stage",   icon: "↗",  color: "#a855f7", title: "OPP-2698 : signé",                 who: "Renouvellement Suite 24-26",      at: "01 mars",  meta: "184 k€ · 3 ans" },
+  ];
+  for (let i = 0; i < 34; i++) pastExtras.push({ type: "stage", icon: "•", color: "#94a3b8", title: `Synchronisation CRM #${i + 1}`, who: "Système", at: "Q1 2026", meta: "Mise à jour automatique" });
+  const pastAll = past.concat(pastExtras);
+  const pastShown = pastShowAll ? pastAll : past;
 
   // ── Actions à mener (futur, à faire)
   const future = [
@@ -118,7 +347,7 @@ const ClientPage = () => {
             <div style={{ fontSize: 11, color: "#64748b" }}>CRM commercial</div>
           </div>
         </a>
-        <a href="/nouvelle-opportunite" style={{ ...cliStyles.newBtn, textDecoration: "none", cursor: "pointer" }}>+ Nouvelle opportunité <span style={cliStyles.kbd}>N</span></a>
+        <a href={"/nouvelle-opportunite?client=" + encodeURIComponent(display.id)} style={{ ...cliStyles.newBtn, textDecoration: "none", cursor: "pointer" }}>+ Nouvelle opportunité <span style={cliStyles.kbd}>N</span></a>
         <a href="/nouveau-prospect" style={{ ...cliStyles.newBtn, textDecoration: "none", cursor: "pointer", background: "#fff", color: "#0f172a", border: "1px solid #e2e8f0", marginTop: -8 }}>+ Nouveau prospect <span style={{ ...cliStyles.kbd, background: "#f1f5f9", color: "#475569" }}>P</span></a>
 
         <div style={cliStyles.navSection}>
@@ -138,21 +367,22 @@ const ClientPage = () => {
         </div>
 
         <div style={cliStyles.navSection}>
-          <div style={cliStyles.navLabel}>Clients récents</div>
-          {[
-            { ax: "AX", name: "AXA Wealth France",  color: "#1e40af", active: true },
-            { ax: "BP", name: "BNP Asset Mgmt",     color: "#0f766e" },
-            { ax: "GP", name: "Generali Patri.",    color: "#dc2626" },
-            { ax: "MI", name: "MAIF Innovation",    color: "#10b981" },
-            { ax: "CE", name: "Caisse Épargne IDF", color: "#ea580c" },
-          ].map((c) => (
-            <a key={c.ax}
-               onClick={() => { if (!c.active) alert(`${c.name}\n\nLa navigation entre comptes sera activée quand la table clients sera lue côté DB (chaque ligne ouvrira sa propre fiche).`); }}
-               style={{ ...cliStyles.navItem, ...(c.active ? cliStyles.navItemActive : {}), cursor: "pointer" }}>
-              <span style={{ ...cliStyles.miniLogo, background: c.color }}>{c.ax}</span>
-              <span style={{ flex: 1, fontWeight: c.active ? 600 : 400 }}>{c.name}</span>
-            </a>
-          ))}
+          <div style={cliStyles.navLabel}>Clients récents · {recents.length}</div>
+          {recents.length === 0 && (
+            <div style={{ fontSize: 11, color: "#94a3b8", padding: "6px 8px" }}>Aucun compte. <a href="/nouveau-prospect" style={{ color: "#3730a3", fontWeight: 600 }}>+ Créer</a></div>
+          )}
+          {recents.map((c) => {
+            const initials = (c.name || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+            const active = c.id === display.id;
+            return (
+              <a key={c.id} href={"/fiche-client?id=" + encodeURIComponent(c.id)}
+                 style={{ ...cliStyles.navItem, ...(active ? cliStyles.navItemActive : {}), textDecoration: "none", color: "inherit", cursor: "pointer" }}>
+                <span style={{ ...cliStyles.miniLogo, background: c.color }}>{initials}</span>
+                <span style={{ flex: 1, fontWeight: active ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: c.status === "client" ? "#dcfce7" : "#fef3c7", color: c.status === "client" ? "#065f46" : "#78350f", textTransform: "uppercase" }}>{c.status === "client" ? "✓" : "P"}</span>
+              </a>
+            );
+          })}
         </div>
 
         <div style={{ flex: 1 }} />
@@ -175,14 +405,14 @@ const ClientPage = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#64748b" }}>
             <span>CRM</span><span style={{ color: "#cbd5e1" }}>/</span>
             <span>Comptes</span><span style={{ color: "#cbd5e1" }}>/</span>
-            <span style={{ color: "#0f172a", fontWeight: 600 }}>AXA Wealth France</span>
-            <span style={cliStyles.refMono}>ACC-0184</span>
+            <span style={{ color: "#0f172a", fontWeight: 600 }}>{display.name}</span>
+            <span style={cliStyles.refMono}>{display.id}</span>
             <span style={cliStyles.healthChip}>● Compte sain</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={cliStyles.iconBtn}>‹</button>
             <button style={cliStyles.iconBtn}>›</button>
-            <button onClick={() => alert("✓ Vous suivez AXA Wealth France — notifications activées pour ce compte.")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
+            <button onClick={() => alert("✓ Vous suivez " + display.name + " — notifications activées pour ce compte.")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
             <button style={cliStyles.iconBtn}>⋯</button>
           </div>
         </header>
@@ -192,20 +422,20 @@ const ClientPage = () => {
           {/* HERO */}
           <section style={cliStyles.hero}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 18 }}>
-              <div style={cliStyles.coLogoBig}>AX</div>
+              <div style={cliStyles.coLogoBig}>{display.logo}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                  <span style={cliStyles.industryChip}>Asset Management</span>
+                  <span style={cliStyles.industryChip}>{display.sector}</span>
                   <span style={cliStyles.metaChip}>Grand compte</span>
-                  <span style={cliStyles.metaChip}>12 000 employés</span>
+                  <span style={cliStyles.metaChip}>{display.size}</span>
                   <span style={cliStyles.dot} />
-                  <span style={{ fontSize: 12, color: "#64748b" }}>📍 Paris · La Défense</span>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>📍 {display.city}</span>
                   <span style={cliStyles.dot} />
-                  <a style={{ fontSize: 12, color: "#4f46e5", cursor: "pointer" }}>axa-im.fr ↗</a>
+                  <a href={display.web && display.web.startsWith("http") ? display.web : "https://" + display.web} target="_blank" style={{ fontSize: 12, color: "#4f46e5", cursor: "pointer", textDecoration: "none" }}>{display.web} ↗</a>
                   <span style={cliStyles.dot} />
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Client depuis mars 2024</span>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>{display.since}</span>
                 </div>
-                <h1 style={cliStyles.h1}>AXA Wealth France</h1>
+                <h1 style={cliStyles.h1}>{display.name}</h1>
                 <p style={cliStyles.subtitle}>
                   Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation).
                 </p>
@@ -224,27 +454,27 @@ const ClientPage = () => {
                 <div onClick={() => alert("ARR AXA Wealth France\n\n• 184 k€ actuel\n• +12 % YoY\n• Renouvellement Suite signé 01 mars 2026 — 184 k€\n\n(Détail facturation à connecter à la vue revenue.)")}
                      style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
                   <div style={cliStyles.heroStatK}>ARR actuel</div>
-                  <div style={cliStyles.heroStatV}>184 k€</div>
+                  <div style={cliStyles.heroStatV}>{display.arr}</div>
                   <div style={{ fontSize: 10.5, color: "#0e7a55", marginTop: 2 }}>↑ +12 % YoY</div>
                 </div>
                 <div onClick={() => alert("Pipe ouvert AXA Wealth France\n\n• OPP-2814 Astorya Suite 750 sièges — 215 k€ (Proposition)\n• OPP-2841 Module Cyber POC — 48 k€ (Discovery)\n• OPP-2867 Extension Belgique — 92 k€ (Qualification)\n\nTotal pondéré : ~ 152 k€")}
                      style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
                   <div style={cliStyles.heroStatK}>Pipe ouvert</div>
-                  <div style={{ ...cliStyles.heroStatV, color: "#4f46e5" }}>355 k€</div>
+                  <div style={{ ...cliStyles.heroStatV, color: "#4f46e5" }}>{display.pipe}</div>
                   <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>3 opportunités</div>
                 </div>
                 <div onClick={() => alert("Health score AXA Wealth France : 78/100\n\n+  Renouvellement signé +12 % (+20 pts)\n+  Champion identifié : Émilie Roux (+10 pts)\n+  3 opportunités actives (+15 pts)\n−  Délai paiement moyen 47 j (−5 pts)\n−  Pas de POC technique en cours (−10 pts)\n\nObjectif T2 2026 : 85/100")}
                      style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
                   <div style={cliStyles.heroStatK}>Health score</div>
-                  <div style={{ ...cliStyles.heroStatV, color: "#10b981" }}>78<span style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}> / 100</span></div>
-                  <div style={cliStyles.miniBar}><div style={{ width: "78%", height: "100%", background: "linear-gradient(90deg, #4f46e5, #10b981)", borderRadius: 999 }} /></div>
+                  <div style={{ ...cliStyles.heroStatV, color: "#10b981" }}>{display.health}<span style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>{display.health !== "—" ? " / 100" : ""}</span></div>
+                  <div style={cliStyles.miniBar}><div style={{ width: (display.health === "—" ? "0%" : display.health + "%"), height: "100%", background: "linear-gradient(90deg, #4f46e5, #10b981)", borderRadius: 999 }} /></div>
                 </div>
               </div>
             </div>
 
             {/* Action bar */}
             <div style={cliStyles.actionBar}>
-              <a href="/nouvelle-opportunite" style={{ ...cliStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
+              <a href={"/nouvelle-opportunite?client=" + encodeURIComponent(display.id)} style={{ ...cliStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
               <button onClick={() => { const to = prompt("Destinataire (email) :", "e.roux@axa-im.fr"); if (!to) return; const subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite"); if (subj) { window.location.href = `mailto:${to}?subject=${encodeURIComponent(subj)}`; } }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✉ Email</button>
               <button onClick={() => alert("Planifier un RDV avec AXA Wealth France\n\n(Sera connecté à Google Calendar / Outlook via /api/calendar-event)")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📅 RDV</button>
               <button onClick={() => { const num = prompt("Numéro à appeler :", "+33 1 42 86 74 21"); if (num) window.location.href = `tel:${num}`; }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📞 Appel</button>
@@ -329,7 +559,23 @@ const ClientPage = () => {
             {/* Opp cards */}
             <div style={cliStyles.oppGrid}>
               {opportunities.map((o, i) => {
-                const openOpp = () => alert(`${o.ref} — ${o.name}\n\nÉtape : ${o.stage}\nMontant : ${o.amount}\nProba : ${o.proba} %\nOwner : ${o.owner}\nClôture : ${o.close}\n\n(La fiche détail opportunité s'ouvrira ici quand la table deals sera créée.)`);
+                const edited = oppEdits[o.ref] || {};
+                const currentStage = edited.stage || o.stage;
+                const stageLabels = { qualif: "Qualification", discovery: "Discovery", propo: "Proposition", nego: "Négociation", won: "Signé / Gagné" };
+                const openOpp = () => {
+                  const choice = prompt(`${o.ref} — ${o.name}\n\nMontant : ${o.amount}\nOwner : ${o.owner}\nClôture : ${o.close}\n\n──────────────────\nChanger l'étape ?\n  1. Qualification\n  2. Discovery\n  3. Proposition\n  4. Négociation\n  5. Signé / Gagné ✓\n  0. Annuler\n\nTapez le numéro :`, "0");
+                  const map = { "1": "qualif", "2": "discovery", "3": "propo", "4": "nego", "5": "won" };
+                  const newStage = map[choice];
+                  if (!newStage) return;
+                  updateOppField(o.ref, "stage", newStage);
+                  if (newStage === "won" && isCustom) {
+                    const promoted = promoteToClient(display.id, o.name);
+                    if (promoted) alert(`✓ ${o.name} signée !\n\n${display.name} passe de prospect à client.\nRechargez la page pour voir la mise à jour.`);
+                    else alert(`✓ Opportunité « ${o.name} » signée — statut mis à jour.`);
+                  } else {
+                    alert(`✓ Étape mise à jour : ${stageLabels[newStage]}`);
+                  }
+                };
                 const stage = pipeStages.find(s => s.k === o.stage);
                 return (
                   <div key={i} onClick={openOpp} style={{ ...cliStyles.oppCard, ...(o.won ? cliStyles.oppCardWon : {}), ...(o.hot ? cliStyles.oppCardHot : {}), cursor: "pointer" }}>
@@ -392,19 +638,23 @@ const ClientPage = () => {
                     </h2>
                     <p style={cliStyles.h2sub}>Tâches, relances et événements planifiés</p>
                   </div>
-                  <button style={cliStyles.primaryBtnSm}>+ Ajouter</button>
+                  <button onClick={addAction} style={{ ...cliStyles.primaryBtnSm, cursor: "pointer" }}>+ Ajouter</button>
                 </div>
 
                 <div style={cliStyles.actionsList}>
-                  {future.map((a, i) => {
-                    const p = prioMeta[a.priority];
+                  {[...extraActions, ...future].map((a, i) => {
+                    const p = prioMeta[a.priority] || prioMeta.basse;
+                    const key = a.id || ("d-" + i);
+                    const done = !!doneActions[key];
                     return (
-                      <div key={i} style={{
+                      <div key={key} style={{
                         ...cliStyles.actionItem,
-                        ...(a.overdue ? cliStyles.actionItemOverdue : {}),
+                        ...(a.overdue && !done ? cliStyles.actionItemOverdue : {}),
                         ...(a.priority === "ai" ? cliStyles.actionItemAI : {}),
+                        opacity: done ? 0.5 : 1,
+                        textDecoration: done ? "line-through" : "none",
                       }}>
-                        <input type="checkbox" style={cliStyles.checkbox} readOnly />
+                        <input type="checkbox" style={{ ...cliStyles.checkbox, cursor: "pointer" }} checked={done} onChange={() => toggleAction(key)} />
                         <div style={{
                           ...cliStyles.actionIcon,
                           background: a.priority === "ai" ? "#0f172a" : "#fff",
@@ -447,7 +697,11 @@ const ClientPage = () => {
                             )}
                           </div>
                         </div>
-                        <button style={cliStyles.actionMenu}>⋯</button>
+                        <button onClick={() => {
+                          const choice = prompt(`Action « ${a.title} »\n\n1. Marquer comme ${done ? "à faire" : "terminée"}\n2. Supprimer (action manuelle uniquement)\n3. Annuler\n\nTapez 1, 2 ou 3 :`, "1");
+                          if (choice === "1") toggleAction(key);
+                          else if (choice === "2" && a.id) removeAction(a.id);
+                        }} style={{ ...cliStyles.actionMenu, cursor: "pointer" }}>⋯</button>
                       </div>
                     );
                   })}
@@ -459,17 +713,19 @@ const ClientPage = () => {
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>
-                      <span style={{ color: "#94a3b8" }}>✓</span> Actions menées <span style={cliStyles.blockCount}>47</span>
+                      <span style={{ color: "#94a3b8" }}>✓</span> Actions menées <span style={cliStyles.blockCount}>{pastShown.length}{pastShown.length < pastAll.length ? ` / ${pastAll.length}` : ""}</span>
                     </h2>
-                    <p style={cliStyles.h2sub}>Historique complet · 8 dernières affichées</p>
+                    <p style={cliStyles.h2sub}>Historique complet · {pastShown.length} action{pastShown.length > 1 ? "s" : ""} affichée{pastShown.length > 1 ? "s" : ""}</p>
                   </div>
-                  <button style={cliStyles.filterPill}>Tout voir</button>
+                  <button onClick={() => setPastShowAll((v) => !v)} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>
+                    {pastShowAll ? "Replier" : "Tout voir"}
+                  </button>
                 </div>
 
                 <div style={cliStyles.pastList}>
                   <div style={cliStyles.pastSpine} />
-                  {past.map((a, i) => (
-                    <div key={i} style={cliStyles.pastItem}>
+                  {pastShown.map((a, i) => (
+                    <div key={i} onClick={() => alert(`${a.title}\n\n${a.who || ""}\n${a.at || ""}\n\n${a.meta || ""}`)} style={{ ...cliStyles.pastItem, cursor: "pointer" }}>
                       <div style={{ ...cliStyles.pastIcon, color: a.color, borderColor: a.color + "30" }}>{a.icon}</div>
                       <div style={cliStyles.pastContent}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
@@ -482,7 +738,9 @@ const ClientPage = () => {
                     </div>
                   ))}
 
-                  <button style={cliStyles.loadMore}>↓ Charger plus (39 actions de plus)</button>
+                  {!pastShowAll && pastAll.length > pastShown.length && (
+                    <button onClick={() => setPastShowAll(true)} style={{ ...cliStyles.loadMore, cursor: "pointer" }}>↓ Charger plus ({pastAll.length - pastShown.length} action{pastAll.length - pastShown.length > 1 ? "s" : ""} de plus)</button>
+                  )}
                 </div>
               </div>
             </div>
@@ -496,19 +754,13 @@ const ClientPage = () => {
               <div style={cliStyles.subBlock}>
                 <div style={cliStyles.actionsHead}>
                   <div>
-                    <h2 style={cliStyles.h2}>Contacts clés <span style={cliStyles.blockCount}>5</span></h2>
+                    <h2 style={cliStyles.h2}>Contacts clés <span style={cliStyles.blockCount}>{allContacts.length}</span></h2>
                     <p style={cliStyles.h2sub}>Décideurs et interlocuteurs identifiés</p>
                   </div>
-                  <button style={cliStyles.filterPill}>+ Ajouter</button>
+                  <button onClick={addContact} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>+ Ajouter</button>
                 </div>
                 <div style={cliStyles.contactsGrid}>
-                  {[
-                    { name: "Émilie Roux", role: "VP Innovation", email: "e.roux@axa-im.fr", phone: "+33 1 40 76 ••", color: "#a855f7", champion: true, last: "il y a 2 h" },
-                    { name: "Antoine Mercier", role: "CISO", email: "a.mercier@axa-im.fr", phone: "+33 1 40 76 ••", color: "#dc2626", last: "il y a 8 h" },
-                    { name: "Julien Pasquier", role: "CFO", email: "j.pasquier@axa-im.fr", phone: "+33 1 40 76 ••", color: "#0ea5e9", last: "il y a 4 j" },
-                    { name: "Marie Lopez", role: "Head of Ops", email: "m.lopez@axa-im.fr", phone: "+33 1 40 76 ••", color: "#f59e0b", last: "il y a 1 sem." },
-                    { name: "Sébastien Roy", role: "Procurement", email: "s.roy@axa-im.fr", phone: "+33 1 40 76 ••", color: "#10b981", coldZone: true, last: "il y a 3 sem." },
-                  ].map((p) => (
+                  {allContacts.map((p) => (
                     <div key={p.name} style={cliStyles.contactCard}>
                       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                         <Avatar name={p.name} size={36} color={p.color} />
@@ -524,8 +776,9 @@ const ClientPage = () => {
                           <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 6 }}>Dernier contact · {p.last}</div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          <button style={cliStyles.iconMini}>✉</button>
-                          <button style={cliStyles.iconMini}>☎</button>
+                          <a href={"mailto:" + p.email} title={"Email à " + p.name} style={{ ...cliStyles.iconMini, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>✉</a>
+                          <a href={"tel:" + (p.phone || "").replace(/[^\d+]/g, "")} title={"Appeler " + p.name} style={{ ...cliStyles.iconMini, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>☎</a>
+                          {p._custom && <button onClick={() => removeContact(p.id)} title="Retirer" style={{ ...cliStyles.iconMini, cursor: "pointer", color: "#dc2626" }}>×</button>}
                         </div>
                       </div>
                     </div>
@@ -566,13 +819,65 @@ const ClientPage = () => {
             </div>
           </section>
 
+          {/* ─── CONTRATS ──────────────────────────────────────────── */}
+          <section style={cliStyles.block}>
+            <div style={cliStyles.blockHead}>
+              <div>
+                <h2 style={cliStyles.h2}>📜 Contrats <span style={cliStyles.blockCount}>{contractsList.length}</span></h2>
+                <p style={cliStyles.h2sub}>Engagements actifs et historiques du compte</p>
+              </div>
+              <button onClick={addContract} style={{ ...cliStyles.primaryBtnSm, cursor: "pointer" }}>+ Ajouter un contrat</button>
+            </div>
+
+            {contractsList.length === 0 ? (
+              <div style={{ padding: "32px 24px", textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 10, border: "1px dashed #e2e8f0" }}>
+                Aucun contrat enregistré pour ce {isCustom ? "prospect" : "client"}.{" "}
+                <a onClick={addContract} style={{ color: "#3730a3", fontWeight: 600, cursor: "pointer" }}>+ Ajouter le premier contrat →</a>
+              </div>
+            ) : (
+              <div style={{ overflow: "hidden", border: "1px solid #e2e8f0", borderRadius: 10 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: "#fafbfc" }}>
+                      <th style={{ textAlign: "left", padding: "9px 12px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #e2e8f0" }}>Référence</th>
+                      <th style={{ textAlign: "left", padding: "9px 12px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #e2e8f0" }}>Intitulé</th>
+                      <th style={{ textAlign: "left", padding: "9px 12px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #e2e8f0" }}>Type</th>
+                      <th style={{ textAlign: "right", padding: "9px 12px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #e2e8f0" }}>Montant</th>
+                      <th style={{ textAlign: "left", padding: "9px 12px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #e2e8f0" }}>Période</th>
+                      <th style={{ textAlign: "left", padding: "9px 12px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #e2e8f0" }}>Statut</th>
+                      <th style={{ padding: "9px 12px", borderBottom: "1px solid #e2e8f0" }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contractsList.map((ct, i) => {
+                      const statusMeta = { active: { label: "● Actif", bg: "#dcfce7", color: "#065f46" }, expiring: { label: "● Expire bientôt", bg: "#fef3c7", color: "#78350f" }, expired: { label: "● Expiré", bg: "#fee2e2", color: "#991b1b" }, draft: { label: "○ Brouillon", bg: "#f1f5f9", color: "#475569" } }[ct.status] || { label: ct.status, bg: "#f1f5f9", color: "#475569" };
+                      return (
+                        <tr key={ct.id} style={{ borderTop: i === 0 ? 0 : "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "10px 12px" }}><span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#475569", fontWeight: 600 }}>{ct.id}</span></td>
+                          <td style={{ padding: "10px 12px" }}><div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{ct.name}</div>{ct.product && <div style={{ fontSize: 11, color: "#94a3b8" }}>{ct.product}</div>}</td>
+                          <td style={{ padding: "10px 12px", fontSize: 12, color: "#475569" }}>{ct.type}</td>
+                          <td style={{ padding: "10px 12px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{ct.amount}</td>
+                          <td style={{ padding: "10px 12px", fontSize: 11.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{ct.start}<br/>→ {ct.end}</td>
+                          <td style={{ padding: "10px 12px" }}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: statusMeta.bg, color: statusMeta.color, fontWeight: 700 }}>{statusMeta.label}</span></td>
+                          <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                            <button onClick={() => alert(`Contrat ${ct.id} — ${ct.name}\n\nIntitulé : ${ct.name}\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}\n\nProduit : ${ct.product || "—"}`)} style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 16, cursor: "pointer", padding: "4px 8px" }}>⋯</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
           <div style={{ height: 24 }} />
         </div>
       </main>
 
       <CallStatsModal
         open={statsOpen}
-        client={{ name: "AXA Wealth France" }}
+        client={{ name: display.name }}
         onClose={() => setStatsOpen(false)}
       />
       <AssetInventoryModal

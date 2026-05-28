@@ -9,13 +9,22 @@ const NewOpportunity = () => {
   React.useEffect(() => {
     const local = (() => { try { return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]"); } catch (e) { return []; } })();
     const fromLocal = local.map((p) => ({ id: p.id, name: p.raison_sociale || p.name, sector: p.secteur, city: p.ville, siren: p.siren, since: "Nouveau prospect", source: "local" }));
+    const finishLoad = (clients) => {
+      setAllClients(clients);
+      // Pré-sélection via ?client=… (depuis fiche client → bouton + Nouvelle opportunité)
+      const urlClientId = new URLSearchParams(window.location.search).get("client");
+      if (urlClientId) {
+        const hit = clients.find((c) => c.id === urlClientId);
+        if (hit) setSelectedClient(hit);
+      }
+    };
     if (window.HubData && window.HubData.enabled()) {
       window.HubData.fetchClients().then(({ data }) => {
         const fromSupa = (data || []).map((c) => ({ id: c.id, name: c.name, sector: c.industry, city: c.city, since: c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : "Client", source: "supabase" }));
         const seen = new Set();
-        setAllClients([...fromLocal, ...fromSupa].filter((c) => seen.has(c.id) ? false : (seen.add(c.id), true)));
+        finishLoad([...fromLocal, ...fromSupa].filter((c) => seen.has(c.id) ? false : (seen.add(c.id), true)));
       });
-    } else { setAllClients(fromLocal); }
+    } else { finishLoad(fromLocal); }
   }, []);
 
   const q = clientSearch.trim().toLowerCase();

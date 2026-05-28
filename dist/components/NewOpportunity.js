@@ -22,6 +22,15 @@ var NewOpportunity = () => {
       since: "Nouveau prospect",
       source: "local"
     }));
+    var finishLoad = clients => {
+      setAllClients(clients);
+      // Pré-sélection via ?client=… (depuis fiche client → bouton + Nouvelle opportunité)
+      var urlClientId = new URLSearchParams(window.location.search).get("client");
+      if (urlClientId) {
+        var hit = clients.find(c => c.id === urlClientId);
+        if (hit) setSelectedClient(hit);
+      }
+    };
     if (window.HubData && window.HubData.enabled()) {
       window.HubData.fetchClients().then(({
         data
@@ -38,10 +47,10 @@ var NewOpportunity = () => {
           source: "supabase"
         }));
         var seen = new Set();
-        setAllClients([...fromLocal, ...fromSupa].filter(c => seen.has(c.id) ? false : (seen.add(c.id), true)));
+        finishLoad([...fromLocal, ...fromSupa].filter(c => seen.has(c.id) ? false : (seen.add(c.id), true)));
       });
     } else {
-      setAllClients(fromLocal);
+      finishLoad(fromLocal);
     }
   }, []);
   var q = clientSearch.trim().toLowerCase();

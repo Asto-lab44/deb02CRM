@@ -3,6 +3,401 @@
 var ClientPage = () => {
   var [statsOpen, setStatsOpen] = React.useState(false);
   var [assetsOpen, setAssetsOpen] = React.useState(false);
+
+  // Actions à mener : completion + ajout / suppression (localStorage)
+  var [doneActions, setDoneActions] = React.useState({});
+  var [extraActions, setExtraActions] = React.useState([]);
+  // Opportunités : édition inline
+  var [oppDetailIdx, setOppDetailIdx] = React.useState(null);
+  var [oppEdits, setOppEdits] = React.useState({}); // { ref: { stage, amount, proba, owner, close, notes } }
+
+  React.useEffect(() => {
+    try {
+      setDoneActions(JSON.parse(localStorage.getItem("hubAstorya.actionsDone.v1") || "{}"));
+    } catch (e) {}
+    try {
+      setExtraActions(JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]"));
+    } catch (e) {}
+    try {
+      setOppEdits(JSON.parse(localStorage.getItem("hubAstorya.oppEdits.v1") || "{}"));
+    } catch (e) {}
+  }, []);
+  var toggleAction = key => {
+    setDoneActions(prev => {
+      var next = {
+        ...prev,
+        [key]: !prev[key]
+      };
+      try {
+        localStorage.setItem("hubAstorya.actionsDone.v1", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+  var addAction = () => {
+    var title = prompt("Nouvelle action à mener :");
+    if (!title) return;
+    var due = prompt("Échéance (texte libre, ex. 'Demain · 10h00') :", "Demain");
+    var next = [{
+      id: "EX-" + Date.now(),
+      title,
+      due: due || "—",
+      priority: "moyenne",
+      icon: "•",
+      meta: "Ajoutée manuellement",
+      assigned: "Vous",
+      assignedColor: "#3730a3",
+      tag: "Manuel",
+      tagColor: "#475569"
+    }, ...extraActions];
+    setExtraActions(next);
+    try {
+      localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
+    } catch (e) {}
+  };
+  var removeAction = id => {
+    var next = extraActions.filter(a => a.id !== id);
+    setExtraActions(next);
+    try {
+      localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
+    } catch (e) {}
+  };
+  var updateOppField = (ref, field, value) => {
+    setOppEdits(prev => {
+      var next = {
+        ...prev,
+        [ref]: {
+          ...(prev[ref] || {}),
+          [field]: value
+        }
+      };
+      try {
+        localStorage.setItem("hubAstorya.oppEdits.v1", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  // ───── Promotion prospect → client quand un projet passe à "won"
+  var promoteToClient = (clientId, oppName) => {
+    try {
+      var local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      var idx = local.findIndex(p => p.id === clientId);
+      if (idx >= 0) {
+        local[idx] = {
+          ...local[idx],
+          status: "client",
+          client_since: new Date().toISOString(),
+          won_via: oppName || "projet signé"
+        };
+        localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(local));
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  };
+
+  // ───── Clients récents : top 6 (prospects + clients) depuis localStorage + Supabase
+  var [recents, setRecents] = React.useState([]);
+  React.useEffect(() => {
+    var local = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      } catch (e) {
+        return [];
+      }
+    })();
+    var fromLocal = local.map(p => ({
+      id: p.id,
+      name: p.raison_sociale || p.name,
+      status: p.status || "prospect",
+      color: "#1e40af"
+    }));
+    if (window.HubData && window.HubData.enabled()) {
+      window.HubData.fetchClients().then(({
+        data
+      }) => {
+        var fromSupa = (data || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          status: "client",
+          color: "#0f766e"
+        }));
+        var seen = new Set();
+        setRecents([...fromLocal, ...fromSupa].filter(c => seen.has(c.id) ? false : (seen.add(c.id), true)).slice(0, 8));
+      });
+    } else {
+      // Fallback démo si rien
+      var fallback = fromLocal.length > 0 ? fromLocal : [{
+        id: "ACC-0184",
+        name: "AXA Wealth France",
+        status: "client",
+        color: "#1e40af"
+      }, {
+        id: "ACC-0211",
+        name: "MAIF Innovation",
+        status: "client",
+        color: "#10b981"
+      }, {
+        id: "ACC-0156",
+        name: "Crédit Agricole Sud",
+        status: "client",
+        color: "#dc2626"
+      }];
+      setRecents(fallback.slice(0, 8));
+    }
+  }, []);
+
+  // Modal opp détail : stage editable + autres champs
+  var openOppDetail = i => setOppDetailIdx(i);
+  var closeOppDetail = () => setOppDetailIdx(null);
+
+  // ───── Contrats du client : localStorage + démo selon contexte
+  var [contractsList, setContractsList] = React.useState([]);
+  React.useEffect(() => {
+    var key = "hubAstorya.contracts.v1";
+    var all = [];
+    try {
+      all = JSON.parse(localStorage.getItem(key) || "[]");
+    } catch (e) {}
+    var stored = all.filter(c => c.client_id === (urlId || "ACC-0184"));
+    if (stored.length > 0) {
+      setContractsList(stored);
+      return;
+    }
+    // Démo AXA si pas d'ID custom
+    if (!urlId) {
+      setContractsList([{
+        id: "CTR-0184-01",
+        client_id: "ACC-0184",
+        name: "Astorya Suite — 750 sièges",
+        product: "Astorya Suite v3 · Licence annuelle",
+        type: "Licence SaaS",
+        amount: "184 k€ / an",
+        start: "01 mars 2024",
+        end: "28 fév. 2027",
+        status: "active"
+      }, {
+        id: "CTR-0184-02",
+        client_id: "ACC-0184",
+        name: "Support Premium 24/7",
+        product: "Maintenance et SLA hotline",
+        type: "Maintenance",
+        amount: "48 k€ / an",
+        start: "01 mars 2024",
+        end: "28 fév. 2027",
+        status: "active"
+      }, {
+        id: "CTR-0184-03",
+        client_id: "ACC-0184",
+        name: "Module Cyber — extension",
+        product: "Cyber Add-on (POC 50 utilisateurs)",
+        type: "Licence module",
+        amount: "12 k€ / an",
+        start: "15 sept. 2025",
+        end: "14 sept. 2026",
+        status: "expiring"
+      }, {
+        id: "CTR-0184-04",
+        client_id: "ACC-0184",
+        name: "Renouvellement Suite 2024",
+        product: "Avenant renouvellement triennal",
+        type: "Avenant",
+        amount: "184 k€",
+        start: "01 mars 2023",
+        end: "28 fév. 2024",
+        status: "expired"
+      }]);
+    } else {
+      setContractsList([]);
+    }
+  }, [urlId]);
+
+  // ───── Contacts clés du client : démo AXA + custom localStorage par client
+  var defaultContacts = [{
+    name: "Émilie Roux",
+    role: "VP Innovation",
+    email: "e.roux@axa-im.fr",
+    phone: "+33 1 40 76 00",
+    color: "#a855f7",
+    champion: true,
+    last: "il y a 2 h"
+  }, {
+    name: "Antoine Mercier",
+    role: "CISO",
+    email: "a.mercier@axa-im.fr",
+    phone: "+33 1 40 76 01",
+    color: "#dc2626",
+    last: "il y a 8 h"
+  }, {
+    name: "Julien Pasquier",
+    role: "CFO",
+    email: "j.pasquier@axa-im.fr",
+    phone: "+33 1 40 76 02",
+    color: "#0ea5e9",
+    last: "il y a 4 j"
+  }, {
+    name: "Marie Lopez",
+    role: "Head of Ops",
+    email: "m.lopez@axa-im.fr",
+    phone: "+33 1 40 76 03",
+    color: "#f59e0b",
+    last: "il y a 1 sem."
+  }, {
+    name: "Sébastien Roy",
+    role: "Procurement",
+    email: "s.roy@axa-im.fr",
+    phone: "+33 1 40 76 04",
+    color: "#10b981",
+    coldZone: true,
+    last: "il y a 3 sem."
+  }];
+  var [customContacts, setCustomContacts] = React.useState([]);
+  React.useEffect(() => {
+    try {
+      setCustomContacts(JSON.parse(localStorage.getItem("hubAstorya.contacts.v1") || "[]"));
+    } catch (e) {}
+  }, []);
+
+  // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
+  var allContacts = (() => {
+    var localForThis = customContacts.filter(c => c.client_id === (urlId || "ACC-0184")).map(c => ({
+      ...c,
+      _custom: true
+    }));
+    if (isCustom) {
+      var principal = display.contactPrincipal ? [{
+        name: ((display.contactPrincipal.prenom || "") + " " + (display.contactPrincipal.nom || "")).trim(),
+        role: display.contactPrincipal.fonction || "—",
+        email: display.contactPrincipal.email || "",
+        phone: display.contactPrincipal.phone || "",
+        color: "#a855f7",
+        champion: true,
+        last: "Contact principal"
+      }] : [];
+      return [...principal, ...localForThis];
+    }
+    return [...defaultContacts, ...localForThis];
+  })();
+  var addContact = () => {
+    var fullName = prompt("Nom complet du contact :");
+    if (!fullName) return;
+    var role = prompt("Fonction :", "—");
+    var email = prompt("Email :", "");
+    var phone = prompt("Téléphone :", "");
+    var newContact = {
+      id: "CT-" + Date.now().toString().slice(-7),
+      client_id: urlId || "ACC-0184",
+      name: fullName,
+      role: role || "—",
+      email: email || "",
+      phone: phone || "",
+      color: ["#a855f7", "#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"][Math.floor(Math.random() * 6)],
+      last: "à l'instant"
+    };
+    var next = [newContact, ...customContacts];
+    setCustomContacts(next);
+    try {
+      localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next));
+    } catch (e) {}
+  };
+  var removeContact = id => {
+    var next = customContacts.filter(c => c.id !== id);
+    setCustomContacts(next);
+    try {
+      localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next));
+    } catch (e) {}
+  };
+  var [pastShowAll, setPastShowAll] = React.useState(false);
+  var addContract = () => {
+    var name = prompt("Intitulé du contrat :");
+    if (!name) return;
+    var amount = prompt("Montant (ex. 48 k€ / an) :", "0 €");
+    var type = prompt("Type (Licence SaaS / Maintenance / Avenant / Autre) :", "Licence SaaS");
+    var newCt = {
+      id: "CTR-" + Date.now().toString().slice(-7),
+      client_id: urlId || display.id,
+      name,
+      product: "",
+      type: type || "—",
+      amount: amount || "0 €",
+      start: new Date().toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }),
+      end: new Date(Date.now() + 365 * 24 * 3600 * 1000).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }),
+      status: "active"
+    };
+    var next = [newCt, ...contractsList];
+    setContractsList(next);
+    try {
+      var all = JSON.parse(localStorage.getItem("hubAstorya.contracts.v1") || "[]");
+      localStorage.setItem("hubAstorya.contracts.v1", JSON.stringify([newCt, ...all]));
+    } catch (e) {}
+  };
+
+  // ───── Récupère le client à afficher selon l'ID dans l'URL
+  // - localStorage prospects créés via /nouveau-prospect (clé hubAstorya.prospects.v1)
+  // - sinon Supabase clients
+  // - sinon fallback démo AXA Wealth France
+  var urlId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") : null;
+  var [loadedClient, setLoadedClient] = React.useState(null);
+  React.useEffect(() => {
+    if (!urlId) {
+      setLoadedClient(null);
+      return;
+    }
+    // 1. cherche dans localStorage
+    try {
+      var local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      var hit = local.find(p => p.id === urlId);
+      if (hit) {
+        setLoadedClient(hit);
+        return;
+      }
+    } catch (e) {}
+    // 2. cherche dans Supabase
+    if (window.HubData && window.HubData.enabled() && window.HubData.fetchClientById) {
+      window.HubData.fetchClientById(urlId).then(({
+        data
+      }) => {
+        if (data) setLoadedClient({
+          ...data,
+          _source: "supabase"
+        });
+      });
+    }
+  }, [urlId]);
+
+  // Mapping unifié vers les champs d'affichage
+  var c = loadedClient || {};
+  var isCustom = !!loadedClient;
+  var display = {
+    id: c.id || "ACC-0184",
+    name: c.raison_sociale || c.name || "AXA Wealth France",
+    sector: c.secteur || c.industry || "Asset Management",
+    size: c.effectif ? `Effectif ${c.effectif}` : "12 000 employés",
+    city: c.ville || c.city || "Paris · La Défense",
+    web: c.site_web || c.website || "axa-im.fr",
+    since: c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", {
+      month: "short",
+      year: "numeric"
+    })}` : c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", {
+      month: "short",
+      year: "numeric"
+    })}` : "Client depuis mars 2024",
+    desc: c.notes || (isCustom ? `Compte ${c.tier ? `tier ${c.tier}` : ""} — créé via le formulaire prospect.` : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
+    logo: (c.raison_sociale || c.name || "AX").slice(0, 2).toUpperCase(),
+    arr: isCustom ? "—" : "184 k€",
+    pipe: isCustom ? "0" : "355 k€",
+    health: isCustom ? "—" : "78",
+    contactPrincipal: c.contact_principal || null
+  };
   var Avatar = ({
     name,
     size = 24,
@@ -176,6 +571,60 @@ var ClientPage = () => {
     meta: "RFP-Astorya-2026.pdf · 2,4 Mo"
   }];
 
+  // Historique étendu (39 anciennes actions ajoutées au "Tout voir")
+  var pastExtras = [{
+    type: "doc",
+    icon: "📄",
+    color: "#64748b",
+    title: "RFP — Présélection 2026",
+    who: "Échangée avec Émilie Roux",
+    at: "02 mai",
+    meta: "Astorya retenue dans la shortlist finale (5 éditeurs)"
+  }, {
+    type: "call",
+    icon: "☎",
+    color: "#10b981",
+    title: "Appel — Cadrage gouvernance DORA",
+    who: "Karim Ben Salah → Émilie Roux",
+    at: "28 avr.",
+    meta: "Confirmation localisation des données UE obligatoire"
+  }, {
+    type: "email",
+    icon: "✉",
+    color: "#a855f7",
+    title: "Email — Documentation sécurité",
+    who: "Antoine Mercier → Nadia Lefèvre",
+    at: "25 avr.",
+    meta: "Demande ISO 27001 + SOC2 type II"
+  }, {
+    type: "meeting",
+    icon: "👥",
+    color: "#0ea5e9",
+    title: "RDV — Présentation roadmap 2026",
+    who: "12 participants AXA",
+    at: "18 avr.",
+    meta: "Webinar produit · NPS 9/10"
+  }, {
+    type: "stage",
+    icon: "↗",
+    color: "#a855f7",
+    title: "OPP-2698 : signé",
+    who: "Renouvellement Suite 24-26",
+    at: "01 mars",
+    meta: "184 k€ · 3 ans"
+  }];
+  for (var i = 0; i < 34; i++) pastExtras.push({
+    type: "stage",
+    icon: "•",
+    color: "#94a3b8",
+    title: `Synchronisation CRM #${i + 1}`,
+    who: "Système",
+    at: "Q1 2026",
+    meta: "Mise à jour automatique"
+  });
+  var pastAll = past.concat(pastExtras);
+  var pastShown = pastShowAll ? pastAll : past;
+
   // ── Actions à mener (futur, à faire)
   var future = [{
     priority: "haute",
@@ -299,7 +748,7 @@ var ClientPage = () => {
       color: "#64748b"
     }
   }, "CRM commercial"))), /*#__PURE__*/React.createElement("a", {
-    href: "/nouvelle-opportunite",
+    href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id),
     style: {
       ...cliStyles.newBtn,
       textDecoration: "none",
@@ -388,48 +837,56 @@ var ClientPage = () => {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel
-  }, "Clients r\xE9cents"), [{
-    ax: "AX",
-    name: "AXA Wealth France",
-    color: "#1e40af",
-    active: true
-  }, {
-    ax: "BP",
-    name: "BNP Asset Mgmt",
-    color: "#0f766e"
-  }, {
-    ax: "GP",
-    name: "Generali Patri.",
-    color: "#dc2626"
-  }, {
-    ax: "MI",
-    name: "MAIF Innovation",
-    color: "#10b981"
-  }, {
-    ax: "CE",
-    name: "Caisse Épargne IDF",
-    color: "#ea580c"
-  }].map(c => /*#__PURE__*/React.createElement("a", {
-    key: c.ax,
-    onClick: () => {
-      if (!c.active) alert(`${c.name}\n\nLa navigation entre comptes sera activée quand la table clients sera lue côté DB (chaque ligne ouvrira sa propre fiche).`);
-    },
+  }, "Clients r\xE9cents \xB7 ", recents.length), recents.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      ...cliStyles.navItem,
-      ...(c.active ? cliStyles.navItemActive : {}),
-      cursor: "pointer"
+      fontSize: 11,
+      color: "#94a3b8",
+      padding: "6px 8px"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, "Aucun compte. ", /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
     style: {
-      ...cliStyles.miniLogo,
-      background: c.color
+      color: "#3730a3",
+      fontWeight: 600
     }
-  }, c.ax), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontWeight: c.active ? 600 : 400
-    }
-  }, c.name)))), /*#__PURE__*/React.createElement("div", {
+  }, "+ Cr\xE9er")), recents.map(c => {
+    var initials = (c.name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    var active = c.id === display.id;
+    return /*#__PURE__*/React.createElement("a", {
+      key: c.id,
+      href: "/fiche-client?id=" + encodeURIComponent(c.id),
+      style: {
+        ...cliStyles.navItem,
+        ...(active ? cliStyles.navItemActive : {}),
+        textDecoration: "none",
+        color: "inherit",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...cliStyles.miniLogo,
+        background: c.color
+      }
+    }, initials), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        fontWeight: active ? 600 : 400,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        padding: "1px 5px",
+        borderRadius: 3,
+        fontWeight: 700,
+        background: c.status === "client" ? "#dcfce7" : "#fef3c7",
+        color: c.status === "client" ? "#065f46" : "#78350f",
+        textTransform: "uppercase"
+      }
+    }, c.status === "client" ? "✓" : "P"));
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
@@ -486,9 +943,9 @@ var ClientPage = () => {
       color: "#0f172a",
       fontWeight: 600
     }
-  }, "AXA Wealth France"), /*#__PURE__*/React.createElement("span", {
+  }, display.name), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.refMono
-  }, "ACC-0184"), /*#__PURE__*/React.createElement("span", {
+  }, display.id), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.healthChip
   }, "\u25CF Compte sain")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -500,7 +957,7 @@ var ClientPage = () => {
   }, "\u2039"), /*#__PURE__*/React.createElement("button", {
     style: cliStyles.iconBtn
   }, "\u203A"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("✓ Vous suivez AXA Wealth France — notifications activées pour ce compte."),
+    onClick: () => alert("✓ Vous suivez " + display.name + " — notifications activées pour ce compte."),
     style: {
       ...cliStyles.ghostBtn,
       cursor: "pointer"
@@ -519,7 +976,7 @@ var ClientPage = () => {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.coLogoBig
-  }, "AX"), /*#__PURE__*/React.createElement("div", {
+  }, display.logo), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -534,35 +991,38 @@ var ClientPage = () => {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.industryChip
-  }, "Asset Management"), /*#__PURE__*/React.createElement("span", {
+  }, display.sector), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.metaChip
   }, "Grand compte"), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.metaChip
-  }, "12 000 employ\xE9s"), /*#__PURE__*/React.createElement("span", {
+  }, display.size), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.dot
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12,
       color: "#64748b"
     }
-  }, "\uD83D\uDCCD Paris \xB7 La D\xE9fense"), /*#__PURE__*/React.createElement("span", {
+  }, "\uD83D\uDCCD ", display.city), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.dot
   }), /*#__PURE__*/React.createElement("a", {
+    href: display.web && display.web.startsWith("http") ? display.web : "https://" + display.web,
+    target: "_blank",
     style: {
       fontSize: 12,
       color: "#4f46e5",
-      cursor: "pointer"
+      cursor: "pointer",
+      textDecoration: "none"
     }
-  }, "axa-im.fr \u2197"), /*#__PURE__*/React.createElement("span", {
+  }, display.web, " \u2197"), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.dot
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12,
       color: "#64748b"
     }
-  }, "Client depuis mars 2024")), /*#__PURE__*/React.createElement("h1", {
+  }, display.since)), /*#__PURE__*/React.createElement("h1", {
     style: cliStyles.h1
-  }, "AXA Wealth France"), /*#__PURE__*/React.createElement("p", {
+  }, display.name), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.subtitle
   }, "Filiale fran\xE7aise gestion de patrimoine du groupe AXA. Direction : \xC9milie Roux (VP Innovation)."), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -591,7 +1051,7 @@ var ClientPage = () => {
     style: cliStyles.heroStatK
   }, "ARR actuel"), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.heroStatV
-  }, "184 k\u20AC"), /*#__PURE__*/React.createElement("div", {
+  }, display.arr), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "#0e7a55",
@@ -610,7 +1070,7 @@ var ClientPage = () => {
       ...cliStyles.heroStatV,
       color: "#4f46e5"
     }
-  }, "355 k\u20AC"), /*#__PURE__*/React.createElement("div", {
+  }, display.pipe), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "#64748b",
@@ -629,17 +1089,17 @@ var ClientPage = () => {
       ...cliStyles.heroStatV,
       color: "#10b981"
     }
-  }, "78", /*#__PURE__*/React.createElement("span", {
+  }, display.health, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
       color: "#64748b",
       fontWeight: 500
     }
-  }, " / 100")), /*#__PURE__*/React.createElement("div", {
+  }, display.health !== "—" ? " / 100" : "")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.miniBar
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: "78%",
+      width: display.health === "—" ? "0%" : display.health + "%",
       height: "100%",
       background: "linear-gradient(90deg, #4f46e5, #10b981)",
       borderRadius: 999
@@ -647,7 +1107,7 @@ var ClientPage = () => {
   }))))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionBar
   }, /*#__PURE__*/React.createElement("a", {
-    href: "/nouvelle-opportunite",
+    href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id),
     style: {
       ...cliStyles.primaryBtn,
       textDecoration: "none",
@@ -828,7 +1288,34 @@ var ClientPage = () => {
   })), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.oppGrid
   }, opportunities.map((o, i) => {
-    var openOpp = () => alert(`${o.ref} — ${o.name}\n\nÉtape : ${o.stage}\nMontant : ${o.amount}\nProba : ${o.proba} %\nOwner : ${o.owner}\nClôture : ${o.close}\n\n(La fiche détail opportunité s'ouvrira ici quand la table deals sera créée.)`);
+    var edited = oppEdits[o.ref] || {};
+    var currentStage = edited.stage || o.stage;
+    var stageLabels = {
+      qualif: "Qualification",
+      discovery: "Discovery",
+      propo: "Proposition",
+      nego: "Négociation",
+      won: "Signé / Gagné"
+    };
+    var openOpp = () => {
+      var choice = prompt(`${o.ref} — ${o.name}\n\nMontant : ${o.amount}\nOwner : ${o.owner}\nClôture : ${o.close}\n\n──────────────────\nChanger l'étape ?\n  1. Qualification\n  2. Discovery\n  3. Proposition\n  4. Négociation\n  5. Signé / Gagné ✓\n  0. Annuler\n\nTapez le numéro :`, "0");
+      var map = {
+        "1": "qualif",
+        "2": "discovery",
+        "3": "propo",
+        "4": "nego",
+        "5": "won"
+      };
+      var newStage = map[choice];
+      if (!newStage) return;
+      updateOppField(o.ref, "stage", newStage);
+      if (newStage === "won" && isCustom) {
+        var promoted = promoteToClient(display.id, o.name);
+        if (promoted) alert(`✓ ${o.name} signée !\n\n${display.name} passe de prospect à client.\nRechargez la page pour voir la mise à jour.`);else alert(`✓ Opportunité « ${o.name} » signée — statut mis à jour.`);
+      } else {
+        alert(`✓ Étape mise à jour : ${stageLabels[newStage]}`);
+      }
+    };
     var stage = pipeStages.find(s => s.k === o.stage);
     return /*#__PURE__*/React.createElement("div", {
       key: i,
@@ -976,22 +1463,34 @@ var ClientPage = () => {
   }, future.length)), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
   }, "T\xE2ches, relances et \xE9v\xE9nements planifi\xE9s")), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.primaryBtnSm
+    onClick: addAction,
+    style: {
+      ...cliStyles.primaryBtnSm,
+      cursor: "pointer"
+    }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsList
-  }, future.map((a, i) => {
-    var p = prioMeta[a.priority];
+  }, [...extraActions, ...future].map((a, i) => {
+    var p = prioMeta[a.priority] || prioMeta.basse;
+    var key = a.id || "d-" + i;
+    var done = !!doneActions[key];
     return /*#__PURE__*/React.createElement("div", {
-      key: i,
+      key: key,
       style: {
         ...cliStyles.actionItem,
-        ...(a.overdue ? cliStyles.actionItemOverdue : {}),
-        ...(a.priority === "ai" ? cliStyles.actionItemAI : {})
+        ...(a.overdue && !done ? cliStyles.actionItemOverdue : {}),
+        ...(a.priority === "ai" ? cliStyles.actionItemAI : {}),
+        opacity: done ? 0.5 : 1,
+        textDecoration: done ? "line-through" : "none"
       }
     }, /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
-      style: cliStyles.checkbox,
-      readOnly: true
+      style: {
+        ...cliStyles.checkbox,
+        cursor: "pointer"
+      },
+      checked: done,
+      onChange: () => toggleAction(key)
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         ...cliStyles.actionIcon,
@@ -1083,7 +1582,14 @@ var ClientPage = () => {
       name: n,
       size: 18
     }))))))), /*#__PURE__*/React.createElement("button", {
-      style: cliStyles.actionMenu
+      onClick: () => {
+        var choice = prompt(`Action « ${a.title} »\n\n1. Marquer comme ${done ? "à faire" : "terminée"}\n2. Supprimer (action manuelle uniquement)\n3. Annuler\n\nTapez 1, 2 ou 3 :`, "1");
+        if (choice === "1") toggleAction(key);else if (choice === "2" && a.id) removeAction(a.id);
+      },
+      style: {
+        ...cliStyles.actionMenu,
+        cursor: "pointer"
+      }
     }, "\u22EF"));
   }))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsCol
@@ -1097,17 +1603,25 @@ var ClientPage = () => {
     }
   }, "\u2713"), " Actions men\xE9es ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.blockCount
-  }, "47")), /*#__PURE__*/React.createElement("p", {
+  }, pastShown.length, pastShown.length < pastAll.length ? ` / ${pastAll.length}` : "")), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
-  }, "Historique complet \xB7 8 derni\xE8res affich\xE9es")), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.filterPill
-  }, "Tout voir")), /*#__PURE__*/React.createElement("div", {
+  }, "Historique complet \xB7 ", pastShown.length, " action", pastShown.length > 1 ? "s" : "", " affich\xE9e", pastShown.length > 1 ? "s" : "")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPastShowAll(v => !v),
+    style: {
+      ...cliStyles.filterPill,
+      cursor: "pointer"
+    }
+  }, pastShowAll ? "Replier" : "Tout voir")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.pastList
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.pastSpine
-  }), past.map((a, i) => /*#__PURE__*/React.createElement("div", {
+  }), pastShown.map((a, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
-    style: cliStyles.pastItem
+    onClick: () => alert(`${a.title}\n\n${a.who || ""}\n${a.at || ""}\n\n${a.meta || ""}`),
+    style: {
+      ...cliStyles.pastItem,
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       ...cliStyles.pastIcon,
@@ -1153,9 +1667,13 @@ var ClientPage = () => {
       borderRadius: 5,
       lineHeight: 1.45
     }
-  }, a.meta)))), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.loadMore
-  }, "\u2193 Charger plus (39 actions de plus)"))))), /*#__PURE__*/React.createElement("section", {
+  }, a.meta)))), !pastShowAll && pastAll.length > pastShown.length && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPastShowAll(true),
+    style: {
+      ...cliStyles.loadMore,
+      cursor: "pointer"
+    }
+  }, "\u2193 Charger plus (", pastAll.length - pastShown.length, " action", pastAll.length - pastShown.length > 1 ? "s" : "", " de plus)"))))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1171,50 +1689,17 @@ var ClientPage = () => {
     style: cliStyles.h2
   }, "Contacts cl\xE9s ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.blockCount
-  }, "5")), /*#__PURE__*/React.createElement("p", {
+  }, allContacts.length)), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
   }, "D\xE9cideurs et interlocuteurs identifi\xE9s")), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.filterPill
+    onClick: addContact,
+    style: {
+      ...cliStyles.filterPill,
+      cursor: "pointer"
+    }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.contactsGrid
-  }, [{
-    name: "Émilie Roux",
-    role: "VP Innovation",
-    email: "e.roux@axa-im.fr",
-    phone: "+33 1 40 76 ••",
-    color: "#a855f7",
-    champion: true,
-    last: "il y a 2 h"
-  }, {
-    name: "Antoine Mercier",
-    role: "CISO",
-    email: "a.mercier@axa-im.fr",
-    phone: "+33 1 40 76 ••",
-    color: "#dc2626",
-    last: "il y a 8 h"
-  }, {
-    name: "Julien Pasquier",
-    role: "CFO",
-    email: "j.pasquier@axa-im.fr",
-    phone: "+33 1 40 76 ••",
-    color: "#0ea5e9",
-    last: "il y a 4 j"
-  }, {
-    name: "Marie Lopez",
-    role: "Head of Ops",
-    email: "m.lopez@axa-im.fr",
-    phone: "+33 1 40 76 ••",
-    color: "#f59e0b",
-    last: "il y a 1 sem."
-  }, {
-    name: "Sébastien Roy",
-    role: "Procurement",
-    email: "s.roy@axa-im.fr",
-    phone: "+33 1 40 76 ••",
-    color: "#10b981",
-    coldZone: true,
-    last: "il y a 3 sem."
-  }].map(p => /*#__PURE__*/React.createElement("div", {
+  }, allContacts.map(p => /*#__PURE__*/React.createElement("div", {
     key: p.name,
     style: cliStyles.contactCard
   }, /*#__PURE__*/React.createElement("div", {
@@ -1280,11 +1765,37 @@ var ClientPage = () => {
       flexDirection: "column",
       gap: 4
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.iconMini
-  }, "\u2709"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.iconMini
-  }, "\u260E"))))))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "mailto:" + p.email,
+    title: "Email à " + p.name,
+    style: {
+      ...cliStyles.iconMini,
+      textDecoration: "none",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer"
+    }
+  }, "\u2709"), /*#__PURE__*/React.createElement("a", {
+    href: "tel:" + (p.phone || "").replace(/[^\d+]/g, ""),
+    title: "Appeler " + p.name,
+    style: {
+      ...cliStyles.iconMini,
+      textDecoration: "none",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer"
+    }
+  }, "\u260E"), p._custom && /*#__PURE__*/React.createElement("button", {
+    onClick: () => removeContact(p.id),
+    title: "Retirer",
+    style: {
+      ...cliStyles.iconMini,
+      cursor: "pointer",
+      color: "#dc2626"
+    }
+  }, "\xD7"))))))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.subBlock
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsHead
@@ -1386,6 +1897,235 @@ var ClientPage = () => {
         lineHeight: 1.4
       }
     }, "Tour Majunga", /*#__PURE__*/React.createElement("br", null), "6 place de la Pyramide", /*#__PURE__*/React.createElement("br", null), "92800 Puteaux")
+  }))))), /*#__PURE__*/React.createElement("section", {
+    style: cliStyles.block
+  }, /*#__PURE__*/React.createElement("div", {
+    style: cliStyles.blockHead
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: cliStyles.h2
+  }, "\uD83D\uDCDC Contrats ", /*#__PURE__*/React.createElement("span", {
+    style: cliStyles.blockCount
+  }, contractsList.length)), /*#__PURE__*/React.createElement("p", {
+    style: cliStyles.h2sub
+  }, "Engagements actifs et historiques du compte")), /*#__PURE__*/React.createElement("button", {
+    onClick: addContract,
+    style: {
+      ...cliStyles.primaryBtnSm,
+      cursor: "pointer"
+    }
+  }, "+ Ajouter un contrat")), contractsList.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "32px 24px",
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 13,
+      background: "#f8fafc",
+      borderRadius: 10,
+      border: "1px dashed #e2e8f0"
+    }
+  }, "Aucun contrat enregistr\xE9 pour ce ", isCustom ? "prospect" : "client", ".", " ", /*#__PURE__*/React.createElement("a", {
+    onClick: addContract,
+    style: {
+      color: "#3730a3",
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "+ Ajouter le premier contrat \u2192")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflow: "hidden",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "9px 12px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      borderBottom: "1px solid #e2e8f0"
+    }
+  }, "R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "9px 12px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      borderBottom: "1px solid #e2e8f0"
+    }
+  }, "Intitul\xE9"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "9px 12px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      borderBottom: "1px solid #e2e8f0"
+    }
+  }, "Type"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right",
+      padding: "9px 12px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      borderBottom: "1px solid #e2e8f0"
+    }
+  }, "Montant"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "9px 12px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      borderBottom: "1px solid #e2e8f0"
+    }
+  }, "P\xE9riode"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "9px 12px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      borderBottom: "1px solid #e2e8f0"
+    }
+  }, "Statut"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "9px 12px",
+      borderBottom: "1px solid #e2e8f0"
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, contractsList.map((ct, i) => {
+    var statusMeta = {
+      active: {
+        label: "● Actif",
+        bg: "#dcfce7",
+        color: "#065f46"
+      },
+      expiring: {
+        label: "● Expire bientôt",
+        bg: "#fef3c7",
+        color: "#78350f"
+      },
+      expired: {
+        label: "● Expiré",
+        bg: "#fee2e2",
+        color: "#991b1b"
+      },
+      draft: {
+        label: "○ Brouillon",
+        bg: "#f1f5f9",
+        color: "#475569"
+      }
+    }[ct.status] || {
+      label: ct.status,
+      bg: "#f1f5f9",
+      color: "#475569"
+    };
+    return /*#__PURE__*/React.createElement("tr", {
+      key: ct.id,
+      style: {
+        borderTop: i === 0 ? 0 : "1px solid #f1f5f9"
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 11.5,
+        color: "#475569",
+        fontWeight: 600
+      }
+    }, ct.id)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, ct.name), ct.product && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#94a3b8"
+      }
+    }, ct.product)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 12px",
+        fontSize: 12,
+        color: "#475569"
+      }
+    }, ct.type), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 12px",
+        textAlign: "right",
+        fontSize: 13,
+        fontWeight: 700,
+        color: "#0f172a",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, ct.amount), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 12px",
+        fontSize: 11.5,
+        color: "#64748b",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, ct.start, /*#__PURE__*/React.createElement("br", null), "\u2192 ", ct.end), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: statusMeta.bg,
+        color: statusMeta.color,
+        fontWeight: 700
+      }
+    }, statusMeta.label)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 12px",
+        textAlign: "right"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => alert(`Contrat ${ct.id} — ${ct.name}\n\nIntitulé : ${ct.name}\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}\n\nProduit : ${ct.product || "—"}`),
+      style: {
+        background: "transparent",
+        border: 0,
+        color: "#94a3b8",
+        fontSize: 16,
+        cursor: "pointer",
+        padding: "4px 8px"
+      }
+    }, "\u22EF")));
   }))))), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 24
@@ -1393,7 +2133,7 @@ var ClientPage = () => {
   }))), /*#__PURE__*/React.createElement(CallStatsModal, {
     open: statsOpen,
     client: {
-      name: "AXA Wealth France"
+      name: display.name
     },
     onClose: () => setStatsOpen(false)
   }), /*#__PURE__*/React.createElement(AssetInventoryModal, {

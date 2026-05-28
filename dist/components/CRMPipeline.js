@@ -14,6 +14,61 @@ var CRMPipeline = () => {
     kind,
     value
   });
+
+  // ───── Recherche globale (topbar) — comptes / contacts / opportunités
+  var [globalSearch, setGlobalSearch] = React.useState("");
+  var [searchClients, setSearchClients] = React.useState([]);
+  var [searchOpen, setSearchOpen] = React.useState(false);
+  React.useEffect(() => {
+    var local = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      } catch (e) {
+        return [];
+      }
+    })();
+    var fromLocal = local.map(p => ({
+      id: p.id,
+      name: p.raison_sociale || p.name,
+      sector: p.secteur,
+      city: p.ville,
+      siren: p.siren,
+      contact: p.contact_principal,
+      source: "local"
+    }));
+    if (window.HubData && window.HubData.enabled()) {
+      window.HubData.fetchClients().then(({
+        data
+      }) => {
+        var fromSupa = (data || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          sector: c.industry,
+          city: c.city,
+          source: "supabase"
+        }));
+        var seen = new Set();
+        setSearchClients([...fromLocal, ...fromSupa].filter(c => seen.has(c.id) ? false : (seen.add(c.id), true)));
+      });
+    } else {
+      setSearchClients(fromLocal);
+    }
+  }, []);
+
+  // Inclut aussi les opportunités locales
+  var [searchOpps, setSearchOpps] = React.useState([]);
+  React.useEffect(() => {
+    try {
+      setSearchOpps(JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]"));
+    } catch (e) {}
+  }, []);
+  var gq = globalSearch.trim().toLowerCase();
+  var globalResults = gq.length >= 2 ? {
+    clients: searchClients.filter(c => [c.name, c.sector, c.city, c.siren].some(v => String(v || "").toLowerCase().includes(gq))).slice(0, 5),
+    contacts: searchClients.filter(c => c.contact && [c.contact.prenom, c.contact.nom, c.contact.email, c.contact.fonction].some(v => String(v || "").toLowerCase().includes(gq))).slice(0, 5),
+    opps: searchOpps.filter(o => [o.name, o.client_name].some(v => String(v || "").toLowerCase().includes(gq))).slice(0, 5)
+  } : null;
+  var noResults = globalResults && globalResults.clients.length + globalResults.contacts.length + globalResults.opps.length === 0;
   var Avatar = ({
     name,
     size = 22,
@@ -559,7 +614,10 @@ var CRMPipeline = () => {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.search
+    style: {
+      ...crmStyles.search,
+      position: "relative"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#94a3b8",
@@ -567,11 +625,209 @@ var CRMPipeline = () => {
     }
   }, "\u2315"), /*#__PURE__*/React.createElement("input", {
     placeholder: "Rechercher un compte, contact, opportunit\xE9\u2026",
-    style: crmStyles.searchInput,
-    readOnly: true
+    value: globalSearch,
+    onChange: e => {
+      setGlobalSearch(e.target.value);
+      setSearchOpen(true);
+    },
+    onFocus: () => setSearchOpen(true),
+    onBlur: () => setTimeout(() => setSearchOpen(false), 200),
+    style: crmStyles.searchInput
   }), /*#__PURE__*/React.createElement("span", {
     style: crmStyles.kbdLight
-  }, "\u2318K")), /*#__PURE__*/React.createElement("button", {
+  }, "\u2318K"), searchOpen && globalResults && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "calc(100% + 4px)",
+      left: 0,
+      right: 0,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 10px 30px rgba(0,0,0,.12)",
+      zIndex: 100,
+      maxHeight: 420,
+      overflowY: "auto"
+    }
+  }, noResults && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      textAlign: "center"
+    }
+  }, "Aucun r\xE9sultat pour \xAB ", globalSearch, " \xBB. ", /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "+ Nouveau prospect")), globalResults.clients.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      background: "#fafbfc",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, "Comptes (", globalResults.clients.length, ")"), globalResults.clients.map(c => /*#__PURE__*/React.createElement("a", {
+    key: c.id,
+    href: "/fiche-client?id=" + encodeURIComponent(c.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 12px",
+      borderBottom: "1px solid #f1f5f9",
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 5,
+      background: c.source === "local" ? "#fef3c7" : "#dcfce7",
+      color: c.source === "local" ? "#78350f" : "#065f46",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 9.5,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, (c.name || "?").slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, c.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, c.sector || "—", c.city && ` · ${c.city}`)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#cbd5e1"
+    }
+  }, "\u203A")))), globalResults.contacts.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      background: "#fafbfc",
+      borderTop: "1px solid #f1f5f9",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, "Contacts (", globalResults.contacts.length, ")"), globalResults.contacts.map(c => /*#__PURE__*/React.createElement("a", {
+    key: "ct-" + c.id,
+    href: "/fiche-client?id=" + encodeURIComponent(c.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 12px",
+      borderBottom: "1px solid #f1f5f9",
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 999,
+      background: "#6366f1",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 10,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, ((c.contact.prenom || "") + (c.contact.nom || "")).slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, c.contact.prenom, " ", c.contact.nom), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, c.contact.fonction || "—", " \xB7 ", c.name)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#cbd5e1"
+    }
+  }, "\u203A")))), globalResults.opps.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      background: "#fafbfc",
+      borderTop: "1px solid #f1f5f9",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, "Opportunit\xE9s (", globalResults.opps.length, ")"), globalResults.opps.map(o => /*#__PURE__*/React.createElement("div", {
+    key: o.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 12px",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      padding: "2px 7px",
+      background: "#eef2ff",
+      color: "#3730a3",
+      borderRadius: 4,
+      fontWeight: 700,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, o.id), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, o.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, o.client_name, " \xB7 ", o.amount && o.amount + " €"))))))), /*#__PURE__*/React.createElement("button", {
     style: crmStyles.iconBtn,
     title: "Notifications"
   }, /*#__PURE__*/React.createElement("span", {

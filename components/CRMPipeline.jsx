@@ -5,6 +5,37 @@ const CRMPipeline = () => {
   const [crmFilter, setCrmFilter] = React.useState({ kind: "all", value: null });
   const isCrmActive = (kind, value) => crmFilter.kind === kind && (value === undefined || crmFilter.value === value);
   const setCrmIfDiff = (kind, value) => setCrmFilter(isCrmActive(kind, value) ? { kind: "all", value: null } : { kind, value });
+
+  // ───── Recherche globale (topbar) — comptes / contacts / opportunités
+  const [globalSearch, setGlobalSearch] = React.useState("");
+  const [searchClients, setSearchClients] = React.useState([]);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const local = (() => { try { return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]"); } catch (e) { return []; } })();
+    const fromLocal = local.map((p) => ({ id: p.id, name: p.raison_sociale || p.name, sector: p.secteur, city: p.ville, siren: p.siren, contact: p.contact_principal, source: "local" }));
+    if (window.HubData && window.HubData.enabled()) {
+      window.HubData.fetchClients().then(({ data }) => {
+        const fromSupa = (data || []).map((c) => ({ id: c.id, name: c.name, sector: c.industry, city: c.city, source: "supabase" }));
+        const seen = new Set();
+        setSearchClients([...fromLocal, ...fromSupa].filter((c) => seen.has(c.id) ? false : (seen.add(c.id), true)));
+      });
+    } else { setSearchClients(fromLocal); }
+  }, []);
+
+  // Inclut aussi les opportunités locales
+  const [searchOpps, setSearchOpps] = React.useState([]);
+  React.useEffect(() => {
+    try { setSearchOpps(JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]")); } catch (e) {}
+  }, []);
+
+  const gq = globalSearch.trim().toLowerCase();
+  const globalResults = gq.length >= 2 ? {
+    clients:  searchClients.filter((c) => [c.name, c.sector, c.city, c.siren].some((v) => String(v || "").toLowerCase().includes(gq))).slice(0, 5),
+    contacts: searchClients.filter((c) => c.contact && [c.contact.prenom, c.contact.nom, c.contact.email, c.contact.fonction].some((v) => String(v || "").toLowerCase().includes(gq))).slice(0, 5),
+    opps:     searchOpps.filter((o) => [o.name, o.client_name].some((v) => String(v || "").toLowerCase().includes(gq))).slice(0, 5),
+  } : null;
+  const noResults = globalResults && globalResults.clients.length + globalResults.contacts.length + globalResults.opps.length === 0;
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -181,10 +212,75 @@ const CRMPipeline = () => {
             <span style={crmStyles.totalChip}>Q2 2026</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={crmStyles.search}>
+            <div style={{ ...crmStyles.search, position: "relative" }}>
               <span style={{ color: "#94a3b8", fontSize: 12 }}>⌕</span>
-              <input placeholder="Rechercher un compte, contact, opportunité…" style={crmStyles.searchInput} readOnly />
+              <input placeholder="Rechercher un compte, contact, opportunité…"
+                     value={globalSearch} onChange={(e) => { setGlobalSearch(e.target.value); setSearchOpen(true); }}
+                     onFocus={() => setSearchOpen(true)}
+                     onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                     style={crmStyles.searchInput} />
               <span style={crmStyles.kbdLight}>⌘K</span>
+
+              {searchOpen && globalResults && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,.12)", zIndex: 100, maxHeight: 420, overflowY: "auto" }}>
+                  {noResults && (
+                    <div style={{ padding: "14px", fontSize: 12.5, color: "#94a3b8", textAlign: "center" }}>
+                      Aucun résultat pour « {globalSearch} ». <a href="/nouveau-prospect" style={{ color: "#3730a3", fontWeight: 600 }}>+ Nouveau prospect</a>
+                    </div>
+                  )}
+
+                  {globalResults.clients.length > 0 && (
+                    <>
+                      <div style={{ padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, background: "#fafbfc", borderBottom: "1px solid #f1f5f9" }}>Comptes ({globalResults.clients.length})</div>
+                      {globalResults.clients.map((c) => (
+                        <a key={c.id} href={"/fiche-client?id=" + encodeURIComponent(c.id)}
+                           style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderBottom: "1px solid #f1f5f9", textDecoration: "none", color: "inherit", cursor: "pointer" }}>
+                          <div style={{ width: 24, height: 24, borderRadius: 5, background: c.source === "local" ? "#fef3c7" : "#dcfce7", color: c.source === "local" ? "#78350f" : "#065f46", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, fontWeight: 700, flexShrink: 0 }}>{(c.name || "?").slice(0, 2).toUpperCase()}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                            <div style={{ fontSize: 11, color: "#64748b" }}>{c.sector || "—"}{c.city && ` · ${c.city}`}</div>
+                          </div>
+                          <span style={{ color: "#cbd5e1" }}>›</span>
+                        </a>
+                      ))}
+                    </>
+                  )}
+
+                  {globalResults.contacts.length > 0 && (
+                    <>
+                      <div style={{ padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, background: "#fafbfc", borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9" }}>Contacts ({globalResults.contacts.length})</div>
+                      {globalResults.contacts.map((c) => (
+                        <a key={"ct-" + c.id} href={"/fiche-client?id=" + encodeURIComponent(c.id)}
+                           style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderBottom: "1px solid #f1f5f9", textDecoration: "none", color: "inherit", cursor: "pointer" }}>
+                          <div style={{ width: 24, height: 24, borderRadius: 999, background: "#6366f1", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                            {((c.contact.prenom || "") + (c.contact.nom || "")).slice(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600 }}>{c.contact.prenom} {c.contact.nom}</div>
+                            <div style={{ fontSize: 11, color: "#64748b" }}>{c.contact.fonction || "—"} · {c.name}</div>
+                          </div>
+                          <span style={{ color: "#cbd5e1" }}>›</span>
+                        </a>
+                      ))}
+                    </>
+                  )}
+
+                  {globalResults.opps.length > 0 && (
+                    <>
+                      <div style={{ padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, background: "#fafbfc", borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9" }}>Opportunités ({globalResults.opps.length})</div>
+                      {globalResults.opps.map((o) => (
+                        <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderBottom: "1px solid #f1f5f9" }}>
+                          <span style={{ fontSize: 10.5, padding: "2px 7px", background: "#eef2ff", color: "#3730a3", borderRadius: 4, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{o.id}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600 }}>{o.name}</div>
+                            <div style={{ fontSize: 11, color: "#64748b" }}>{o.client_name} · {o.amount && o.amount + " €"}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <button style={crmStyles.iconBtn} title="Notifications">
               <span style={{ fontSize: 13 }}>◔</span>

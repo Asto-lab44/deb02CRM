@@ -23,6 +23,21 @@ const TicketList = () => {
 
   // ───── Sélection d'un ticket : ouvre la fiche détail
   const [selectedTicketId, setSelectedTicketId] = React.useState(null);
+
+  // ───── Filtre actif sur la liste : { kind, value }
+  const [filter, setFilter] = React.useState({ kind: "all", value: null });
+  const isFilterActive = (kind, value) => filter.kind === kind && (value === undefined || filter.value === value);
+  const setFilterIfDifferent = (kind, value) => {
+    if (isFilterActive(kind, value)) setFilter({ kind: "all", value: null });
+    else setFilter({ kind, value });
+  };
+
+  // ───── Menu utilisateur (pied de sidebar)
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const handleLogout = () => {
+    if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
+    setUserMenuOpen(false);
+  };
   const handleTicketCreated = (ticket) => {
     setLastCreated({
       ticketId: ticket.id,
@@ -147,8 +162,9 @@ const TicketList = () => {
             <span style={{ width: 14, color: "#94a3b8", fontSize: 11 }}>⌂</span>
             <span style={{ flex: 1 }}>Accueil</span>
           </a>
-          <div style={{ ...tlStyles.navItem, ...tlStyles.navItemActive }}>
-            <span style={{ width: 14, color: "#4f46e5", fontSize: 11 }}>▦</span>
+          <div onClick={() => setFilter({ kind: "all", value: null })}
+               style={{ ...tlStyles.navItem, ...(filter.kind === "all" ? tlStyles.navItemActive : {}), cursor: "pointer" }}>
+            <span style={{ width: 14, color: filter.kind === "all" ? "#4f46e5" : "#94a3b8", fontSize: 11 }}>▦</span>
             <span style={{ flex: 1 }}>Tous mes tickets</span>
             <span style={tlStyles.navCount}>{counts.all}</span>
           </div>
@@ -169,16 +185,23 @@ const TicketList = () => {
             { k: "in_progress", label: "En cours",   c: counts.in_progress },
             { k: "waiting",     label: "En attente", c: counts.waiting },
             { k: "resolved",    label: "Résolus",    c: counts.resolved },
-          ].map((n) => (
-            <div key={n.k} style={tlStyles.navItem}>
-              <span style={{ width: 14, display: "flex", alignItems: "center" }}>
-                <span style={{ width: 7, height: 7, borderRadius: 999, background: statusMeta[n.k].dot }} />
-              </span>
-              <span style={{ flex: 1 }}>{n.label}</span>
-              <span style={tlStyles.navCount}>{n.c}</span>
-            </div>
-          ))}
-          <div style={tlStyles.navItem} title="Tickets escaladés au groupe Administrateur · Supervision">
+          ].map((n) => {
+            const active = isFilterActive("status", n.k);
+            return (
+              <div key={n.k}
+                   onClick={() => setFilterIfDifferent("status", n.k)}
+                   style={{ ...tlStyles.navItem, ...(active ? tlStyles.navItemActive : {}), cursor: "pointer" }}>
+                <span style={{ width: 14, display: "flex", alignItems: "center" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 999, background: statusMeta[n.k].dot }} />
+                </span>
+                <span style={{ flex: 1 }}>{n.label}</span>
+                <span style={tlStyles.navCount}>{n.c}</span>
+              </div>
+            );
+          })}
+          <div onClick={() => setFilterIfDifferent("escalated")}
+               style={{ ...tlStyles.navItem, ...(isFilterActive("escalated") ? tlStyles.navItemActive : {}), cursor: "pointer" }}
+               title="Tickets escaladés au groupe Administrateur · Supervision">
             <span style={{ width: 14, display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 11, color: "#7c3aed", fontWeight: 800 }}>↑</span>
             </span>
@@ -189,17 +212,20 @@ const TicketList = () => {
 
         <div style={tlStyles.navSection}>
           <div style={tlStyles.navLabel}>Cycle collaborateur</div>
-          <div style={tlStyles.navItem}>
+          <div onClick={() => setFilterIfDifferent("lifecycle", "onboarding")}
+               style={{ ...tlStyles.navItem, ...(isFilterActive("lifecycle", "onboarding") ? tlStyles.navItemActive : {}), cursor: "pointer" }}>
             <span style={{ width: 14, color: "#0e7a55", fontSize: 11, fontWeight: 700 }}>👤+</span>
             <span style={{ flex: 1 }}>Arrivées · onboarding</span>
             <span style={{ ...tlStyles.navCount, background: "#dcfce7", color: "#065f46" }}>{onboardingCount}</span>
           </div>
-          <div style={tlStyles.navItem}>
+          <div onClick={() => setFilterIfDifferent("lifecycle", "offboarding")}
+               style={{ ...tlStyles.navItem, ...(isFilterActive("lifecycle", "offboarding") ? tlStyles.navItemActive : {}), cursor: "pointer" }}>
             <span style={{ width: 14, color: "#7c2d12", fontSize: 11, fontWeight: 700 }}>👤−</span>
             <span style={{ flex: 1 }}>Départs · offboarding</span>
             <span style={{ ...tlStyles.navCount, background: "#ffedd5", color: "#7c2d12" }}>{offboardingCount}</span>
           </div>
-          <div style={tlStyles.navItem}>
+          <div onClick={() => setFilterIfDifferent("billable")}
+               style={{ ...tlStyles.navItem, ...(isFilterActive("billable") ? tlStyles.navItemActive : {}), cursor: "pointer" }}>
             <span style={{ width: 14, color: "#a16207", fontSize: 11 }}>€</span>
             <span style={{ flex: 1 }}>Prestations facturables</span>
             <span style={{ ...tlStyles.navCount, background: "#fef3c7", color: "#78350f" }}>{billableCount}</span>
@@ -209,37 +235,53 @@ const TicketList = () => {
         <div style={tlStyles.navSection}>
           <div style={tlStyles.navLabel}>Catégories</div>
           {[
-            { label: "Matériel", c: 12 },
-            { label: "Logiciel", c: 8 },
-            { label: "Réseau & VPN", c: 5 },
-            { label: "Accès & Droits", c: 7 },
-            { label: "Messagerie", c: 3 },
-          ].map((n) => (
-            <div key={n.label} style={tlStyles.navItem}>
-              <span style={{ width: 14, color: "#cbd5e1", fontSize: 12 }}>—</span>
-              <span style={{ flex: 1 }}>{n.label}</span>
-              <span style={tlStyles.navCount}>{n.c}</span>
-            </div>
-          ))}
+            { label: "Matériel", match: "Matériel" },
+            { label: "Logiciel", match: "Logiciel" },
+            { label: "Réseau & VPN", match: "Réseau" },
+            { label: "Accès & Droits", match: "Accès & Droits" },
+            { label: "Messagerie", match: "Messagerie" },
+          ].map((n) => {
+            const count = tickets.filter((t) => (t.cat || "").toLowerCase().includes(n.match.toLowerCase())).length;
+            const active = isFilterActive("category", n.match);
+            return (
+              <div key={n.label}
+                   onClick={() => setFilterIfDifferent("category", n.match)}
+                   style={{ ...tlStyles.navItem, ...(active ? tlStyles.navItemActive : {}), cursor: "pointer" }}>
+                <span style={{ width: 14, color: "#cbd5e1", fontSize: 12 }}>—</span>
+                <span style={{ flex: 1 }}>{n.label}</span>
+                <span style={tlStyles.navCount}>{count}</span>
+              </div>
+            );
+          })}
         </div>
 
         <div style={{ flex: 1 }} />
 
-        <div style={tlStyles.kbHint}>
+        <a onClick={() => alert("Base de connaissances — 12 articles trouvés.\n\n• Diagnostic VPN Wi-Fi (driver Intel AX211)\n• Reset profil Outlook\n• Procédure onboarding poste\n• Réinitialisation MDP Active Directory\n• Configuration MFA Microsoft 365\n• …\n\n(L'index articles complet sera connecté à votre base de connaissances réelle.)")}
+           style={{ ...tlStyles.kbHint, cursor: "pointer", textDecoration: "none", display: "block" }}>
           <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6, fontWeight: 500 }}>Base de connaissances</div>
           <div style={{ fontSize: 11.5, color: "#0f172a", lineHeight: 1.4 }}>
             12 articles correspondent à vos tickets ouverts.
           </div>
-          <a style={tlStyles.kbLink}>Consulter →</a>
-        </div>
+          <span style={tlStyles.kbLink}>Consulter →</span>
+        </a>
 
-        <div style={tlStyles.userRow}>
+        <div onClick={() => setUserMenuOpen((v) => !v)} style={{ ...tlStyles.userRow, cursor: "pointer", position: "relative" }}>
           <Avatar name="Camille Dufour" size={26} color="#6366f1" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Camille Dufour</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Direction Marketing</div>
           </div>
           <span style={{ color: "#94a3b8", fontSize: 14 }}>⋯</span>
+          {userMenuOpen && (
+            <div onClick={(e) => e.stopPropagation()}
+                 style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,.12)", padding: 4, zIndex: 100 }}>
+              <a href="/administration-utilisateurs" style={{ display: "block", padding: "8px 10px", borderRadius: 6, fontSize: 12.5, color: "#0f172a", textDecoration: "none", cursor: "pointer" }}>⚙ Mon profil & préférences</a>
+              <a href="/fiche-client" style={{ display: "block", padding: "8px 10px", borderRadius: 6, fontSize: 12.5, color: "#0f172a", textDecoration: "none", cursor: "pointer" }}>◉ Voir ma fiche client</a>
+              <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
+              <button onClick={handleLogout} style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 6, fontSize: 12.5, color: "#dc2626", background: "transparent", border: 0, cursor: "pointer", fontWeight: 600 }}>⏻ Se déconnecter</button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -336,18 +378,23 @@ const TicketList = () => {
         <div style={tlStyles.filterBar}>
           <div style={tlStyles.tabs}>
             {[
-              { k: "all", label: "Tous", c: counts.all, active: true },
+              { k: "all", label: "Tous", c: counts.all },
               { k: "open", label: "Ouverts", c: counts.open },
               { k: "in_progress", label: "En cours", c: counts.in_progress },
               { k: "waiting", label: "En attente", c: counts.waiting },
               { k: "resolved", label: "Résolus", c: counts.resolved },
-              { k: "closed", label: "Fermés", c: 1 },
-            ].map((t) => (
-              <button key={t.k} style={{ ...tlStyles.tab, ...(t.active ? tlStyles.tabActive : {}) }}>
-                {t.label}
-                <span style={{ ...tlStyles.tabCount, ...(t.active ? tlStyles.tabCountActive : {}) }}>{t.c}</span>
-              </button>
-            ))}
+              { k: "closed", label: "Fermés", c: tickets.filter(t => t.status === "closed").length },
+            ].map((t) => {
+              const active = t.k === "all" ? filter.kind === "all" : isFilterActive("status", t.k);
+              return (
+                <button key={t.k}
+                        onClick={() => t.k === "all" ? setFilter({ kind: "all", value: null }) : setFilterIfDifferent("status", t.k)}
+                        style={{ ...tlStyles.tab, ...(active ? tlStyles.tabActive : {}) }}>
+                  {t.label}
+                  <span style={{ ...tlStyles.tabCount, ...(active ? tlStyles.tabCountActive : {}) }}>{t.c}</span>
+                </button>
+              );
+            })}
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <button style={tlStyles.filterPill}>+ Priorité</button>
@@ -371,9 +418,34 @@ const TicketList = () => {
           <div style={{ ...tlStyles.col, width: 110, textAlign: "right" }}>Mise à jour</div>
         </div>
 
+        {/* Filter banner */}
+        {filter.kind !== "all" && (
+          <div style={{ margin: "10px 20px 0", padding: "8px 12px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 12.5, color: "#3730a3", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 700 }}>Filtre actif :</span>
+            <span>
+              {filter.kind === "status"     && <>statut <strong>{filter.value}</strong></>}
+              {filter.kind === "escalated"  && <>tickets escaladés à la supervision</>}
+              {filter.kind === "lifecycle"  && <>{filter.value === "onboarding" ? "arrivées (onboarding)" : "départs (offboarding)"}</>}
+              {filter.kind === "billable"   && <>prestations facturables</>}
+              {filter.kind === "category"   && <>catégorie <strong>{filter.value}</strong></>}
+            </span>
+            <button onClick={() => setFilter({ kind: "all", value: null })} style={{ marginLeft: "auto", background: "transparent", border: 0, color: "#3730a3", fontWeight: 600, cursor: "pointer", fontSize: 12 }}>✕ Retirer le filtre</button>
+          </div>
+        )}
+
         {/* Rows */}
         <div style={tlStyles.rows}>
-          {tickets.map((t, i) => {
+          {tickets
+            .filter((t) => {
+              if (filter.kind === "all") return true;
+              if (filter.kind === "status")     return t.status === filter.value;
+              if (filter.kind === "escalated")  return !!t.escalated;
+              if (filter.kind === "lifecycle")  return t.lifecycle === filter.value;
+              if (filter.kind === "billable")   return !!t.billable;
+              if (filter.kind === "category")   return (t.cat || "").toLowerCase().includes(String(filter.value).toLowerCase());
+              return true;
+            })
+            .map((t, i) => {
             const sm = statusMeta[t.status];
             const pm = prioMeta[t.prio];
             const isHighlight = i === 3; // VPN row — SLA risk

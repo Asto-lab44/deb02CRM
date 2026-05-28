@@ -20,6 +20,9 @@ const TicketList = () => {
   // ───── Création d'un nouveau ticket : ouvre la modale complète
   const [newTicketOpen, setNewTicketOpen] = React.useState(false);
   const openNewTicket = () => setNewTicketOpen(true);
+
+  // ───── Sélection d'un ticket : ouvre la fiche détail
+  const [selectedTicketId, setSelectedTicketId] = React.useState(null);
   const handleTicketCreated = (ticket) => {
     setLastCreated({
       ticketId: ticket.id,
@@ -375,7 +378,13 @@ const TicketList = () => {
             const pm = prioMeta[t.prio];
             const isHighlight = i === 3; // VPN row — SLA risk
             return (
-              <div key={t.id} style={{ ...tlStyles.row, ...(isHighlight ? tlStyles.rowDanger : {}) }}>
+              <div key={t.id}
+                   onClick={(e) => {
+                     // Ne pas ouvrir si on a cliqué sur une checkbox
+                     if (e.target.tagName === "INPUT") return;
+                     setSelectedTicketId(t.id);
+                   }}
+                   style={{ ...tlStyles.row, ...(isHighlight ? tlStyles.rowDanger : {}), cursor: "pointer" }}>
                 <div style={{ ...tlStyles.col, width: 18 }}><input type="checkbox" readOnly /></div>
                 <div style={{ ...tlStyles.col, width: 92 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -495,7 +504,20 @@ const TicketList = () => {
       <NewTicketModal
         open={newTicketOpen}
         onClose={() => setNewTicketOpen(false)}
-        onCreated={handleTicketCreated}
+        onCreated={(t) => {
+          handleTicketCreated(t);
+          // Ouvre la fiche détail du nouveau ticket immédiatement (si DB)
+          if (!t._localOnly) setSelectedTicketId(t.id);
+        }}
+      />
+
+      <TicketDetailModal
+        ticketId={selectedTicketId}
+        onClose={() => {
+          setSelectedTicketId(null);
+          // Force refresh des tickets après fermeture
+          if (window.HubData && window.HubData.invalidate) window.HubData.invalidate("tickets");
+        }}
       />
     </div>
   );

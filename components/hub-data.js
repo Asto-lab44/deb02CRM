@@ -66,6 +66,31 @@
     return { data: cache.tickets, error };
   }
 
+  async function fetchTicketById(id) {
+    if (!supa) return { data: null, error: null };
+    const { data, error } = await supa.from("tickets")
+      .select(`
+        id, title, description, category, status, priority,
+        lifecycle, billable, billable_note,
+        assignee_id, assignee_team, escalated_at, escalated_reason, escalated_group,
+        sla_due_at, opened_at, updated_at, closed_at,
+        client:clients(id, name, contracts(status, name, end_date, tier)),
+        assignee:profiles!tickets_assignee_id_fkey(id, name, team)
+      `)
+      .eq("id", id)
+      .single();
+    return { data, error };
+  }
+
+  async function fetchProfiles() {
+    if (!supa) return { data: null, error: null };
+    const { data, error } = await supa.from("profiles")
+      .select("id, name, role, team, email")
+      .eq("status", "active")
+      .order("name");
+    return { data, error };
+  }
+
   async function fetchAssetsByClient(clientId) {
     if (!supa) return { data: null, error: null };
     const { data, error } = await supa.from("assets")
@@ -141,7 +166,7 @@
 
   window.HubData = {
     enabled,
-    fetchGroups, fetchClients, fetchClientById, fetchTickets,
+    fetchGroups, fetchClients, fetchClientById, fetchTickets, fetchTicketById, fetchProfiles,
     fetchAssetsByClient, fetchTranscriptsByTicket,
     createTicket, updateTicket, escalateTicket, recordCall, saveTranscript,
     invalidate, subscribeChanges,

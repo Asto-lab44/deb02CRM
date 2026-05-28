@@ -1,17 +1,14 @@
 // ─── Config Supabase ─────────────────────────────────────────────────
-// Collez ici les valeurs publiques de votre projet :
-//   1. https://supabase.com/dashboard/project/_/settings/api
-//   2. Project URL → SUPABASE_URL ci-dessous
-//   3. anon (public) key → SUPABASE_ANON_KEY ci-dessous
+// Valeurs publiques du projet Hub Astorya.
+//   Dashboard : https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp
 //
-// La clé "anon" est conçue pour être publique, elle peut être commit en clair.
-// Ne JAMAIS coller ici la clé service_role.
+// La clé `sb_publishable_*` est le nouveau format Supabase (depuis fin
+// 2024) équivalent à l'ancienne "anon" JWT — conçue pour être exposée
+// côté navigateur, safe à committer.
 //
-// Si les deux champs restent à null, l'application reste en mode "démo" avec
-// le login factice (window.HubAccess.login) — utile pour développer sans
-// dépendre d'un backend.
+// Ne JAMAIS coller ici une clé `sb_secret_*` ni `service_role`.
 
 window.HubSupabaseConfig = {
-  SUPABASE_URL: null,        // ex. "https://abcd1234.supabase.co"
-  SUPABASE_ANON_KEY: null,   // ex. "eyJhbGciOiJIUzI1NiIs..." (JWT public)
+  SUPABASE_URL: "https://cqdgecllzyqimfuovrpp.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_TXCd5JaM6NWtfaThEAsNDw_AH3nsEnq",
 };

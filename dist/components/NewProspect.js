@@ -1,6 +1,76 @@
 // Fiche nouveau prospect — formulaire de qualification
 
 var NewProspect = () => {
+  // ───── État UI interactif (segments, chips, action)
+  var [effectif, setEffectif] = React.useState("1k-5k");
+  var [tier, setTier] = React.useState("A");
+  var [fonction, setFonction] = React.useState("C-level");
+  var [roles, setRoles] = React.useState(["Décideur"]);
+  var [action, setAction] = React.useState("email");
+  var [extraContacts, setExtraContacts] = React.useState(0);
+  var [flash, setFlash] = React.useState(null);
+  var showFlash = (msg, tone = "ok") => {
+    setFlash({
+      msg,
+      tone
+    });
+    setTimeout(() => setFlash(null), 2800);
+  };
+  var toggleRole = r => setRoles(rs => rs.includes(r) ? rs.filter(x => x !== r) : [...rs, r]);
+  var cancel = () => {
+    if (confirm("Abandonner ce prospect ? Toutes les saisies non enregistrées seront perdues.")) {
+      window.location.href = "/crm";
+    }
+  };
+  var saveDraft = () => {
+    var draft = {
+      effectif,
+      tier,
+      fonction,
+      roles,
+      action,
+      at: new Date().toISOString()
+    };
+    try {
+      localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify(draft));
+    } catch (e) {}
+    showFlash("✓ Brouillon enregistré localement");
+  };
+  var createProspect = async () => {
+    var payload = {
+      effectif,
+      tier,
+      fonction,
+      roles,
+      action,
+      at: new Date().toISOString()
+    };
+    if (window.HubData && window.HubData.enabled()) {
+      // Insertion minimale dans clients (le formulaire complet sera connecté champ par champ ensuite)
+      try {
+        var id = "ACC-" + Math.floor(Math.random() * 9000 + 1000);
+        await window.HubSupabase.client.from("clients").insert({
+          id,
+          name: "Nouveau prospect (à compléter)"
+        });
+        showFlash("✓ Prospect créé en base — redirection…");
+        setTimeout(() => {
+          window.location.href = "/fiche-client";
+        }, 900);
+        return;
+      } catch (e) {/* fallback ci-dessous */}
+    }
+    try {
+      localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify({
+        ...payload,
+        _created: true
+      }));
+    } catch (e) {}
+    showFlash("✓ Prospect enregistré (mode démo)");
+    setTimeout(() => {
+      window.location.href = "/fiche-client";
+    }, 900);
+  };
   var Avatar = ({
     name,
     size = 22,
@@ -38,13 +108,15 @@ var NewProspect = () => {
     style: npStyles.frame
   }, /*#__PURE__*/React.createElement("header", {
     style: npStyles.topbar
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/crm",
     style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
       fontSize: 12.5,
-      color: "#64748b"
+      color: "#64748b",
+      textDecoration: "none"
     }
   }, /*#__PURE__*/React.createElement("span", null, "CRM"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -70,14 +142,36 @@ var NewProspect = () => {
   }, "\u25CF Auto-save \xB7 il y a 4 sec")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8
+      gap: 8,
+      alignItems: "center"
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: npStyles.ghostBtn
+  }, flash && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      padding: "4px 10px",
+      borderRadius: 6,
+      background: flash.tone === "err" ? "#fee2e2" : "#dcfce7",
+      color: flash.tone === "err" ? "#991b1b" : "#065f46"
+    }
+  }, flash.msg), /*#__PURE__*/React.createElement("button", {
+    onClick: cancel,
+    style: {
+      ...npStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "Annuler"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.ghostBtn
+    onClick: saveDraft,
+    style: {
+      ...npStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.primaryBtn
+    onClick: createProspect,
+    style: {
+      ...npStyles.primaryBtn,
+      cursor: "pointer"
+    }
   }, "Cr\xE9er le prospect"))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.titleRow
   }, /*#__PURE__*/React.createElement("div", {
@@ -229,20 +323,15 @@ var NewProspect = () => {
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.segCtrl
-  }, /*#__PURE__*/React.createElement("button", {
-    style: npStyles.segBtn
-  }, "1-50"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.segBtn
-  }, "51-250"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.segBtn
-  }, "251-1k"), /*#__PURE__*/React.createElement("button", {
+  }, ["1-50", "51-250", "251-1k", "1k-5k", "5k+"].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setEffectif(v),
     style: {
       ...npStyles.segBtn,
-      ...npStyles.segBtnActive
+      ...(effectif === v ? npStyles.segBtnActive : {}),
+      cursor: "pointer"
     }
-  }, "1k-5k"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.segBtn
-  }, "5k+")), /*#__PURE__*/React.createElement("div", {
+  }, v))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
   }, "Source SIRENE : 1 200 collaborateurs")), /*#__PURE__*/React.createElement(FormRow, {
     label: "CA annuel"
@@ -264,29 +353,28 @@ var NewProspect = () => {
     label: "Tier prospect"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.tierRow
-  }, /*#__PURE__*/React.createElement("button", {
-    style: {
-      ...npStyles.tierBtn,
-      background: "#fef3c7",
-      color: "#a16207",
-      border: "1.5px solid #fde68a",
-      fontWeight: 700
-    }
-  }, "\u2605 A"), /*#__PURE__*/React.createElement("button", {
-    style: {
-      ...npStyles.tierBtn,
-      background: "#fff",
-      color: "#64748b"
-    }
-  }, "B"), /*#__PURE__*/React.createElement("button", {
-    style: {
-      ...npStyles.tierBtn,
-      background: "#fff",
-      color: "#64748b"
-    }
-  }, "C")), /*#__PURE__*/React.createElement("div", {
+  }, ["A", "B", "C"].map(v => {
+    var on = tier === v;
+    return /*#__PURE__*/React.createElement("button", {
+      key: v,
+      onClick: () => setTier(v),
+      style: {
+        ...npStyles.tierBtn,
+        ...(on ? {
+          background: "#fef3c7",
+          color: "#a16207",
+          border: "1.5px solid #fde68a",
+          fontWeight: 700
+        } : {
+          background: "#fff",
+          color: "#64748b"
+        }),
+        cursor: "pointer"
+      }
+    }, on && "★ ", v);
+  })), /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
-  }, "Grand compte strat\xE9gique"))), /*#__PURE__*/React.createElement("div", {
+  }, tier === "A" ? "Grand compte stratégique" : tier === "B" ? "Compte secondaire" : "Compte tactique"))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Site web"
@@ -382,18 +470,15 @@ var NewProspect = () => {
     label: "Niveau hi\xE9rarchique"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.segCtrl
-  }, /*#__PURE__*/React.createElement("button", {
-    style: npStyles.segBtn
-  }, "Op\xE9r."), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.segBtn
-  }, "Mgr"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.segBtn
-  }, "Dir."), /*#__PURE__*/React.createElement("button", {
+  }, ["Opér.", "Mgr", "Dir.", "C-level"].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setFonction(v),
     style: {
       ...npStyles.segBtn,
-      ...npStyles.segBtnActive
+      ...(fonction === v ? npStyles.segBtnActive : {}),
+      cursor: "pointer"
     }
-  }, "C-level")))), /*#__PURE__*/React.createElement("div", {
+  }, v))))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Email pro",
@@ -444,22 +529,18 @@ var NewProspect = () => {
       gap: 6,
       flexWrap: "wrap"
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: {
-      ...npStyles.roleChip,
-      ...npStyles.roleChipOn
-    }
-  }, "\u2605 D\xE9cideur"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.roleChip
-  }, "Champion"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.roleChip
-  }, "Prescripteur"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.roleChip
-  }, "Utilisateur"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.roleChip
-  }, "Acheteur"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.roleChip
-  }, "Bloqueur"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, ["Décideur", "Champion", "Prescripteur", "Utilisateur", "Acheteur", "Bloqueur"].map(r => {
+    var on = roles.includes(r);
+    return /*#__PURE__*/React.createElement("button", {
+      key: r,
+      onClick: () => toggleRole(r),
+      style: {
+        ...npStyles.roleChip,
+        ...(on ? npStyles.roleChipOn : {}),
+        cursor: "pointer"
+      }
+    }, on && "★ ", r);
+  }))), /*#__PURE__*/React.createElement(FormRow, {
     label: "LinkedIn profil"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputWithIcon
@@ -777,85 +858,61 @@ var NewProspect = () => {
       color: "#64748b"
     }
   }, "AE Senior \xB7 Cyber \u2014 r\xE9gion SE")), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.changeBtn
+    onClick: () => alert("Changer l'owner attribué\n\n• Nadia Lefèvre (AE Senior · EMEA)\n• Karim Ben Salah (AE Cyber)\n• Tom Verdier (AE Hub)\n• Émilie Garnier (AE BENELUX)\n\n(La sélection sera connectée à la table profiles.)"),
+    style: {
+      ...npStyles.changeBtn,
+      cursor: "pointer"
+    }
   }, "Changer"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Premi\xE8re action \xE0 mener",
     subtitle: "L'IA proposera un brouillon bas\xE9 sur le contexte"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.actionRadios
-  }, /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...npStyles.actionRadio,
-      ...npStyles.actionRadioOn
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "radio",
-    name: "next",
-    defaultChecked: true
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "#0f172a"
-    }
-  }, "\uD83D\uDCE7 Email d'introduction personnalis\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2
-    }
-  }, "Brouillon IA pr\xEAt : \xAB DORA + fin contrat Pega \xBB"))), /*#__PURE__*/React.createElement("label", {
-    style: npStyles.actionRadio
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "radio",
-    name: "next"
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "#0f172a"
-    }
-  }, "\uD83D\uDCDE Cold call programm\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2
-    }
-  }, "Script g\xE9n\xE9r\xE9 \xB7 slot calendrier sugg\xE9r\xE9"))), /*#__PURE__*/React.createElement("label", {
-    style: npStyles.actionRadio
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "radio",
-    name: "next"
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "#0f172a"
-    }
-  }, "in Demande de connexion LinkedIn"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2
-    }
-  }, "Via Sales Navigator"))), /*#__PURE__*/React.createElement("label", {
-    style: npStyles.actionRadio
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "radio",
-    name: "next"
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "#0f172a"
-    }
-  }, "\uD83D\uDCC5 Inviter \xE0 un \xE9v\xE9nement"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2
-    }
-  }, "Webinar DORA \xB7 12 juin"))))), /*#__PURE__*/React.createElement(FormRow, {
+  }, [{
+    k: "email",
+    title: "📧 Email d'introduction personnalisé",
+    hint: "Brouillon IA prêt : « DORA + fin contrat Pega »"
+  }, {
+    k: "call",
+    title: "📞 Cold call programmé",
+    hint: "Script généré · slot calendrier suggéré"
+  }, {
+    k: "in",
+    title: "in Demande de connexion LinkedIn",
+    hint: "Via Sales Navigator"
+  }, {
+    k: "event",
+    title: "📅 Inviter à un événement",
+    hint: "Webinar DORA · 12 juin"
+  }].map(a => {
+    var on = action === a.k;
+    return /*#__PURE__*/React.createElement("label", {
+      key: a.k,
+      onClick: () => setAction(a.k),
+      style: {
+        ...npStyles.actionRadio,
+        ...(on ? npStyles.actionRadioOn : {}),
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "radio",
+      name: "next",
+      checked: on,
+      onChange: () => setAction(a.k)
+    }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, a.title), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, a.hint)));
+  }))), /*#__PURE__*/React.createElement(FormRow, {
     label: "\xC9tiquettes"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -874,7 +931,14 @@ var NewProspect = () => {
   }, "# DORA"), /*#__PURE__*/React.createElement("span", {
     style: npStyles.tag
   }, "# Sud-EMEA"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.addChip
+    onClick: () => {
+      var t = prompt("Nouvelle étiquette :");
+      if (t) showFlash("✓ Étiquette « " + t + " » ajoutée");
+    },
+    style: {
+      ...npStyles.addChip,
+      cursor: "pointer"
+    }
   }, "+"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Notes internes",
     subtitle: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
@@ -885,18 +949,47 @@ var NewProspect = () => {
   }))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
-    style: npStyles.ghostBtn
+    onClick: cancel,
+    style: {
+      ...npStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "Annuler"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8
+      gap: 8,
+      alignItems: "center"
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: npStyles.ghostBtn
+  }, flash && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      padding: "4px 10px",
+      borderRadius: 6,
+      background: flash.tone === "err" ? "#fee2e2" : "#dcfce7",
+      color: flash.tone === "err" ? "#991b1b" : "#065f46"
+    }
+  }, flash.msg), /*#__PURE__*/React.createElement("button", {
+    onClick: saveDraft,
+    style: {
+      ...npStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.ghostBtn
-  }, "+ Ajouter un autre contact"), /*#__PURE__*/React.createElement("button", {
-    style: npStyles.primaryBtn
+    onClick: () => {
+      setExtraContacts(n => n + 1);
+      showFlash("✓ Contact additionnel ajouté");
+    },
+    style: {
+      ...npStyles.ghostBtn,
+      cursor: "pointer"
+    }
+  }, "+ Ajouter un autre contact", extraContacts > 0 && ` (${extraContacts})`), /*#__PURE__*/React.createElement("button", {
+    onClick: createProspect,
+    style: {
+      ...npStyles.primaryBtn,
+      cursor: "pointer"
+    }
   }, "\u2713 Cr\xE9er le prospect")))), /*#__PURE__*/React.createElement("aside", {
     style: npStyles.previewCol
   }, /*#__PURE__*/React.createElement("div", {

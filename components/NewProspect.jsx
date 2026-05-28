@@ -1,6 +1,51 @@
 // Fiche nouveau prospect — formulaire de qualification
 
 const NewProspect = () => {
+  // ───── État UI interactif (segments, chips, action)
+  const [effectif,   setEffectif]   = React.useState("1k-5k");
+  const [tier,       setTier]       = React.useState("A");
+  const [fonction,   setFonction]   = React.useState("C-level");
+  const [roles,      setRoles]      = React.useState(["Décideur"]);
+  const [action,     setAction]     = React.useState("email");
+  const [extraContacts, setExtraContacts] = React.useState(0);
+  const [flash,      setFlash]      = React.useState(null);
+
+  const showFlash = (msg, tone = "ok") => {
+    setFlash({ msg, tone });
+    setTimeout(() => setFlash(null), 2800);
+  };
+
+  const toggleRole = (r) => setRoles((rs) => rs.includes(r) ? rs.filter((x) => x !== r) : [...rs, r]);
+
+  const cancel = () => {
+    if (confirm("Abandonner ce prospect ? Toutes les saisies non enregistrées seront perdues.")) {
+      window.location.href = "/crm";
+    }
+  };
+
+  const saveDraft = () => {
+    const draft = { effectif, tier, fonction, roles, action, at: new Date().toISOString() };
+    try { localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify(draft)); } catch (e) {}
+    showFlash("✓ Brouillon enregistré localement");
+  };
+
+  const createProspect = async () => {
+    const payload = { effectif, tier, fonction, roles, action, at: new Date().toISOString() };
+    if (window.HubData && window.HubData.enabled()) {
+      // Insertion minimale dans clients (le formulaire complet sera connecté champ par champ ensuite)
+      try {
+        const id = "ACC-" + Math.floor(Math.random() * 9000 + 1000);
+        await window.HubSupabase.client.from("clients").insert({ id, name: "Nouveau prospect (à compléter)" });
+        showFlash("✓ Prospect créé en base — redirection…");
+        setTimeout(() => { window.location.href = "/fiche-client"; }, 900);
+        return;
+      } catch (e) { /* fallback ci-dessous */ }
+    }
+    try { localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify({ ...payload, _created: true })); } catch (e) {}
+    showFlash("✓ Prospect enregistré (mode démo)");
+    setTimeout(() => { window.location.href = "/fiche-client"; }, 900);
+  };
+
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -15,17 +60,20 @@ const NewProspect = () => {
     <div style={npStyles.frame}>
       {/* Topbar */}
       <header style={npStyles.topbar}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#64748b" }}>
+        <a href="/crm" style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#64748b", textDecoration: "none" }}>
           <span>CRM</span><span style={{ color: "#cbd5e1" }}>/</span>
           <span>Comptes & contacts</span><span style={{ color: "#cbd5e1" }}>/</span>
           <span style={{ color: "#0f172a", fontWeight: 600 }}>Nouveau prospect</span>
           <span style={npStyles.refMono}>PRO-DRAFT</span>
           <span style={{ fontSize: 11, color: "#10b981", fontWeight: 500 }}>● Auto-save · il y a 4 sec</span>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button style={npStyles.ghostBtn}>Annuler</button>
-          <button style={npStyles.ghostBtn}>Enregistrer brouillon</button>
-          <button style={npStyles.primaryBtn}>Créer le prospect</button>
+        </a>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {flash && (
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6, background: flash.tone === "err" ? "#fee2e2" : "#dcfce7", color: flash.tone === "err" ? "#991b1b" : "#065f46" }}>{flash.msg}</span>
+          )}
+          <button onClick={cancel} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Annuler</button>
+          <button onClick={saveDraft} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Enregistrer brouillon</button>
+          <button onClick={createProspect} style={{ ...npStyles.primaryBtn, cursor: "pointer" }}>Créer le prospect</button>
         </div>
       </header>
 
@@ -101,11 +149,10 @@ const NewProspect = () => {
             <div style={npStyles.formGrid3}>
               <FormRow label="Effectif" required>
                 <div style={npStyles.segCtrl}>
-                  <button style={npStyles.segBtn}>1-50</button>
-                  <button style={npStyles.segBtn}>51-250</button>
-                  <button style={npStyles.segBtn}>251-1k</button>
-                  <button style={{ ...npStyles.segBtn, ...npStyles.segBtnActive }}>1k-5k</button>
-                  <button style={npStyles.segBtn}>5k+</button>
+                  {["1-50", "51-250", "251-1k", "1k-5k", "5k+"].map((v) => (
+                    <button key={v} onClick={() => setEffectif(v)}
+                            style={{ ...npStyles.segBtn, ...(effectif === v ? npStyles.segBtnActive : {}), cursor: "pointer" }}>{v}</button>
+                  ))}
                 </div>
                 <div style={npStyles.inputHelp}>Source SIRENE : 1 200 collaborateurs</div>
               </FormRow>
@@ -118,11 +165,17 @@ const NewProspect = () => {
               </FormRow>
               <FormRow label="Tier prospect">
                 <div style={npStyles.tierRow}>
-                  <button style={{ ...npStyles.tierBtn, background: "#fef3c7", color: "#a16207", border: "1.5px solid #fde68a", fontWeight: 700 }}>★ A</button>
-                  <button style={{ ...npStyles.tierBtn, background: "#fff", color: "#64748b" }}>B</button>
-                  <button style={{ ...npStyles.tierBtn, background: "#fff", color: "#64748b" }}>C</button>
+                  {["A", "B", "C"].map((v) => {
+                    const on = tier === v;
+                    return (
+                      <button key={v} onClick={() => setTier(v)}
+                              style={{ ...npStyles.tierBtn, ...(on ? { background: "#fef3c7", color: "#a16207", border: "1.5px solid #fde68a", fontWeight: 700 } : { background: "#fff", color: "#64748b" }), cursor: "pointer" }}>
+                        {on && "★ "}{v}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div style={npStyles.inputHelp}>Grand compte stratégique</div>
+                <div style={npStyles.inputHelp}>{tier === "A" ? "Grand compte stratégique" : tier === "B" ? "Compte secondaire" : "Compte tactique"}</div>
               </FormRow>
             </div>
 
@@ -172,10 +225,10 @@ const NewProspect = () => {
               </FormRow>
               <FormRow label="Niveau hiérarchique">
                 <div style={npStyles.segCtrl}>
-                  <button style={npStyles.segBtn}>Opér.</button>
-                  <button style={npStyles.segBtn}>Mgr</button>
-                  <button style={npStyles.segBtn}>Dir.</button>
-                  <button style={{ ...npStyles.segBtn, ...npStyles.segBtnActive }}>C-level</button>
+                  {["Opér.", "Mgr", "Dir.", "C-level"].map((v) => (
+                    <button key={v} onClick={() => setFonction(v)}
+                            style={{ ...npStyles.segBtn, ...(fonction === v ? npStyles.segBtnActive : {}), cursor: "pointer" }}>{v}</button>
+                  ))}
                 </div>
               </FormRow>
             </div>
@@ -198,12 +251,15 @@ const NewProspect = () => {
 
             <FormRow label="Rôle dans le projet" subtitle="Quelle place dans la décision d'achat ?">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <button style={{ ...npStyles.roleChip, ...npStyles.roleChipOn }}>★ Décideur</button>
-                <button style={npStyles.roleChip}>Champion</button>
-                <button style={npStyles.roleChip}>Prescripteur</button>
-                <button style={npStyles.roleChip}>Utilisateur</button>
-                <button style={npStyles.roleChip}>Acheteur</button>
-                <button style={npStyles.roleChip}>Bloqueur</button>
+                {["Décideur", "Champion", "Prescripteur", "Utilisateur", "Acheteur", "Bloqueur"].map((r) => {
+                  const on = roles.includes(r);
+                  return (
+                    <button key={r} onClick={() => toggleRole(r)}
+                            style={{ ...npStyles.roleChip, ...(on ? npStyles.roleChipOn : {}), cursor: "pointer" }}>
+                      {on && "★ "}{r}
+                    </button>
+                  );
+                })}
               </div>
             </FormRow>
 
@@ -335,40 +391,30 @@ const NewProspect = () => {
                   <div style={{ fontSize: 12.5, fontWeight: 600 }}>Karim Ben Salah</div>
                   <div style={{ fontSize: 11, color: "#64748b" }}>AE Senior · Cyber — région SE</div>
                 </div>
-                <button style={npStyles.changeBtn}>Changer</button>
+                <button onClick={() => alert("Changer l'owner attribué\n\n• Nadia Lefèvre (AE Senior · EMEA)\n• Karim Ben Salah (AE Cyber)\n• Tom Verdier (AE Hub)\n• Émilie Garnier (AE BENELUX)\n\n(La sélection sera connectée à la table profiles.)")} style={{ ...npStyles.changeBtn, cursor: "pointer" }}>Changer</button>
               </div>
             </FormRow>
 
             <FormRow label="Première action à mener" subtitle="L'IA proposera un brouillon basé sur le contexte">
               <div style={npStyles.actionRadios}>
-                <label style={{ ...npStyles.actionRadio, ...npStyles.actionRadioOn }}>
-                  <input type="radio" name="next" defaultChecked /> 
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>📧 Email d'introduction personnalisé</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Brouillon IA prêt : « DORA + fin contrat Pega »</div>
-                  </div>
-                </label>
-                <label style={npStyles.actionRadio}>
-                  <input type="radio" name="next" /> 
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>📞 Cold call programmé</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Script généré · slot calendrier suggéré</div>
-                  </div>
-                </label>
-                <label style={npStyles.actionRadio}>
-                  <input type="radio" name="next" /> 
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>in Demande de connexion LinkedIn</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Via Sales Navigator</div>
-                  </div>
-                </label>
-                <label style={npStyles.actionRadio}>
-                  <input type="radio" name="next" /> 
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>📅 Inviter à un événement</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Webinar DORA · 12 juin</div>
-                  </div>
-                </label>
+                {[
+                  { k: "email", title: "📧 Email d'introduction personnalisé", hint: "Brouillon IA prêt : « DORA + fin contrat Pega »" },
+                  { k: "call",  title: "📞 Cold call programmé",                hint: "Script généré · slot calendrier suggéré" },
+                  { k: "in",    title: "in Demande de connexion LinkedIn",     hint: "Via Sales Navigator" },
+                  { k: "event", title: "📅 Inviter à un événement",             hint: "Webinar DORA · 12 juin" },
+                ].map((a) => {
+                  const on = action === a.k;
+                  return (
+                    <label key={a.k} onClick={() => setAction(a.k)}
+                           style={{ ...npStyles.actionRadio, ...(on ? npStyles.actionRadioOn : {}), cursor: "pointer" }}>
+                      <input type="radio" name="next" checked={on} onChange={() => setAction(a.k)} />
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>{a.title}</div>
+                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{a.hint}</div>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </FormRow>
 
@@ -379,7 +425,7 @@ const NewProspect = () => {
                 <span style={npStyles.tag}># Displacement-Pega</span>
                 <span style={npStyles.tag}># DORA</span>
                 <span style={npStyles.tag}># Sud-EMEA</span>
-                <button style={npStyles.addChip}>+</button>
+                <button onClick={() => { const t = prompt("Nouvelle étiquette :"); if (t) showFlash("✓ Étiquette « " + t + " » ajoutée"); }} style={{ ...npStyles.addChip, cursor: "pointer" }}>+</button>
               </div>
             </FormRow>
 
@@ -394,11 +440,14 @@ const NewProspect = () => {
 
           {/* Bottom actions */}
           <div style={npStyles.actionsRow}>
-            <button style={npStyles.ghostBtn}>Annuler</button>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button style={npStyles.ghostBtn}>Enregistrer brouillon</button>
-              <button style={npStyles.ghostBtn}>+ Ajouter un autre contact</button>
-              <button style={npStyles.primaryBtn}>✓ Créer le prospect</button>
+            <button onClick={cancel} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Annuler</button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {flash && (
+                <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6, background: flash.tone === "err" ? "#fee2e2" : "#dcfce7", color: flash.tone === "err" ? "#991b1b" : "#065f46" }}>{flash.msg}</span>
+              )}
+              <button onClick={saveDraft} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Enregistrer brouillon</button>
+              <button onClick={() => { setExtraContacts((n) => n + 1); showFlash("✓ Contact additionnel ajouté"); }} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>+ Ajouter un autre contact{extraContacts > 0 && ` (${extraContacts})`}</button>
+              <button onClick={createProspect} style={{ ...npStyles.primaryBtn, cursor: "pointer" }}>✓ Créer le prospect</button>
             </div>
           </div>
         </div>

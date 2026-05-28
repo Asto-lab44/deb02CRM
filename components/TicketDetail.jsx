@@ -7,8 +7,18 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
   // ───── Actions ticket (résolution, escalade, réponse) wired sur Supabase
   const [flash, setFlash] = React.useState(null);
   const [composerTabState, setComposerTabState] = React.useState("reply");
-  const [replyText, setReplyText] = React.useState("Oui, depuis hier soir le VPN tient toute la journée — plus aucune coupure. Merci beaucoup Tom !");
+  const [replyText, setReplyText] = React.useState("");
   const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+
+  // ───── Messages ajoutés par l'agent — persistés en localStorage par ticket.
+  // (À migrer vers une table Supabase "comments" quand elle sera créée.)
+  const MSG_KEY = `hubAstorya.ticketMsgs.v1.${TICKET_ID}`;
+  const [addedMessages, setAddedMessages] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem(MSG_KEY) || "[]"); } catch (e) { return []; }
+  });
+  React.useEffect(() => {
+    try { return localStorage.setItem(MSG_KEY, JSON.stringify(addedMessages)); } catch (e) {}
+  }, [addedMessages, MSG_KEY]);
 
   // Données du ticket : prop si fournie (depuis TicketList), sinon valeurs par défaut
   // pour la maquette INC-2837 (Camille Dufour, VPN).
@@ -59,10 +69,24 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
   };
 
   const sendReply = async () => {
-    if (!replyText.trim()) { showFlash("Réponse vide", "warn"); return; }
+    const text = replyText.trim();
+    if (!text) { showFlash("Réponse vide", "warn"); return; }
     const isNote = composerTabState === "note";
-    showFlash(isNote ? "✓ Note interne enregistrée" : "✓ Réponse envoyée à " + (ticketData?.client?.name || ticketData?.requester_name || "demandeur"));
+    const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
+    const fromName = currentUser?.name || "Vous";
+    const msg = {
+      type: "msg",
+      from: fromName,
+      role: isNote ? "note" : "agent",
+      at: new Date().toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
+      atIso: new Date().toISOString(),
+      body: text,
+      color: "#3730a3",
+      isNote,
+    };
+    setAddedMessages((prev) => [...prev, msg]);
     setReplyText("");
+    showFlash(isNote ? "✓ Note interne enregistrée" : "✓ Réponse envoyée à " + (ticketData?.client?.name || display.requester || "demandeur"));
   };
 
   // Retranscriptions d'appel 3CX rattachées à ce ticket (alimentées par la
@@ -288,7 +312,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
 
             {/* Conversation thread */}
             <div style={tdStyles.thread}>
-              {events.map((e, i) => {
+              {[...events, ...addedMessages].map((e, i) => {
                 if (e.type === "escalation") {
                   return (
                     <div key={i} style={escStyles.timelineRow}>
@@ -337,13 +361,15 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                 }
                 const isUser = e.role === "user";
                 const isBot = e.role === "bot";
+                const isNote = e.role === "note" || e.isNote;
                 return (
                   <div key={i} style={{ ...tdStyles.msgRow, ...(isUser ? tdStyles.msgRowMine : {}) }}>
                     {!isUser && <Avatar name={e.from} size={32} color={e.color} role={isBot ? "bot" : null} />}
                     <div style={{ ...tdStyles.bubbleWrap, alignItems: isUser ? "flex-end" : "flex-start" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{e.from}</span>
-                        {e.role === "agent" && <span style={tdStyles.roleTag}>Technicien · N2</span>}
+                        {isNote && <span style={{ ...tdStyles.roleTag, background: "#fef3c7", color: "#78350f", borderColor: "#fde68a" }}>🔒 Note interne</span>}
+                        {e.role === "agent" && !isNote && <span style={tdStyles.roleTag}>Technicien · Support</span>}
                         {isBot && <span style={{ ...tdStyles.roleTag, background: "#0f172a", color: "#fff", borderColor: "#0f172a" }}>Assistant IA</span>}
                         <span style={{ fontSize: 11, color: "#94a3b8" }}>{e.at}</span>
                       </div>
@@ -351,8 +377,9 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                         ...tdStyles.bubble,
                         ...(isUser ? tdStyles.bubbleUser : {}),
                         ...(isBot ? tdStyles.bubbleBot : {}),
+                        ...(isNote ? { background: "#fffbeb", borderColor: "#fde68a", borderStyle: "dashed", borderWidth: 1 } : {}),
                       }}>
-                        <div style={{ fontSize: 13.5, lineHeight: 1.55, color: isUser ? "#fff" : "#0f172a" }}>{e.body}</div>
+                        <div style={{ fontSize: 13.5, lineHeight: 1.55, color: isUser ? "#fff" : "#0f172a", whiteSpace: "pre-wrap" }}>{e.body}</div>
                         {e.attachments && (
                           <div style={tdStyles.attachRow}>
                             {e.attachments.map((a) => (

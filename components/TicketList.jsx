@@ -17,27 +17,16 @@ const TicketList = () => {
     setTimeout(() => setLastCreated(null), 6000);
   };
 
-  // ───── Création d'un nouveau ticket (formulaire minimal, persisté DB si dispo)
-  const openNewTicket = async () => {
-    const title = prompt("Titre du nouveau ticket :");
-    if (!title) return;
-    const ticketId = "INC-" + Math.floor(2900 + Math.random() * 99);
-    const payload = {
-      id: ticketId, title,
-      status: "open", priority: "normale",
-      category: "Support technique",
-      opened_at: new Date().toISOString(),
-      sla_due_at: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
-    };
-    if (window.HubData && window.HubData.enabled()) {
-      const { error } = await window.HubData.createTicket(payload);
-      if (error) { alert("Erreur création : " + error.message); return; }
-      setLastCreated({ ticketId, client: "—", subject: title });
-      setTimeout(() => setLastCreated(null), 6000);
-    } else {
-      setLastCreated({ ticketId, client: "Mode démo", subject: title });
-      setTimeout(() => setLastCreated(null), 6000);
-    }
+  // ───── Création d'un nouveau ticket : ouvre la modale complète
+  const [newTicketOpen, setNewTicketOpen] = React.useState(false);
+  const openNewTicket = () => setNewTicketOpen(true);
+  const handleTicketCreated = (ticket) => {
+    setLastCreated({
+      ticketId: ticket.id,
+      client: ticket.client_id || "—",
+      subject: ticket.title || ticket.subject || "",
+    });
+    setTimeout(() => setLastCreated(null), 6000);
   };
 
   // ───── Données live depuis Supabase si configuré, sinon fallback inline
@@ -486,6 +475,12 @@ const TicketList = () => {
         call={activeCall}
         onClose={() => setActiveCall(null)}
         onCreateTicket={handleCreateTicket}
+      />
+
+      <NewTicketModal
+        open={newTicketOpen}
+        onClose={() => setNewTicketOpen(false)}
+        onCreated={handleTicketCreated}
       />
     </div>
   );

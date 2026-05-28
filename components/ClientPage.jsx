@@ -119,6 +119,7 @@ const ClientPage = () => {
           </div>
         </a>
         <a href="/nouvelle-opportunite" style={{ ...cliStyles.newBtn, textDecoration: "none", cursor: "pointer" }}>+ Nouvelle opportunité <span style={cliStyles.kbd}>N</span></a>
+        <a href="/nouveau-prospect" style={{ ...cliStyles.newBtn, textDecoration: "none", cursor: "pointer", background: "#fff", color: "#0f172a", border: "1px solid #e2e8f0", marginTop: -8 }}>+ Nouveau prospect <span style={{ ...cliStyles.kbd, background: "#f1f5f9", color: "#475569" }}>P</span></a>
 
         <div style={cliStyles.navSection}>
           <div style={cliStyles.navLabel}>Espace</div>

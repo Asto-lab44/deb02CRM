@@ -301,8 +301,13 @@ var CRMPipeline = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "CRM commercial"))), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.newBtn
+  }, "CRM commercial"))), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite",
+    style: {
+      ...crmStyles.newBtn,
+      textDecoration: "none",
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
@@ -310,7 +315,28 @@ var CRMPipeline = () => {
     }
   }, "+"), /*#__PURE__*/React.createElement("span", null, "Nouvelle opportunit\xE9"), /*#__PURE__*/React.createElement("span", {
     style: crmStyles.kbd
-  }, "N")), /*#__PURE__*/React.createElement("div", {
+  }, "N")), /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      ...crmStyles.newBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      background: "#fff",
+      color: "#0f172a",
+      border: "1px solid #e2e8f0"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      lineHeight: 1
+    }
+  }, "+"), /*#__PURE__*/React.createElement("span", null, "Nouveau prospect"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      ...crmStyles.kbd,
+      background: "#f1f5f9",
+      color: "#475569"
+    }
+  }, "P")), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: crmStyles.navLabel
@@ -571,8 +597,26 @@ var CRMPipeline = () => {
     style: crmStyles.ghostBtn
   }, "Importer"), /*#__PURE__*/React.createElement("button", {
     style: crmStyles.ghostBtn
-  }, "Exporter"), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.primaryBtn
+  }, "Exporter"), /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      ...crmStyles.primaryBtn,
+      background: "#fff",
+      color: "#3730a3",
+      border: "1px solid #c7d2fe",
+      textDecoration: "none",
+      display: "inline-block",
+      cursor: "pointer",
+      boxShadow: "none"
+    }
+  }, "+ Nouveau prospect"), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite",
+    style: {
+      ...crmStyles.primaryBtn,
+      textDecoration: "none",
+      display: "inline-block",
+      cursor: "pointer"
+    }
   }, "+ Nouvelle opportunit\xE9"))), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.kpiStrip
   }, [{

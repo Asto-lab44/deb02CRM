@@ -22,6 +22,7 @@
     client:     "/fiche-client",
     sales_team: "/equipe-commerciale",
     new_opp:    "/nouvelle-opportunite",
+    new_prospect: "/nouveau-prospect",
     renewals:   "/fins-contrats-concurrents",
   };
 

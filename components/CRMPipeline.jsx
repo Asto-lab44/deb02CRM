@@ -83,11 +83,16 @@ const CRMPipeline = () => {
           </div>
         </a>
 
-        <button style={crmStyles.newBtn}>
+        <a href="/nouvelle-opportunite" style={{ ...crmStyles.newBtn, textDecoration: "none", cursor: "pointer" }}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
           <span>Nouvelle opportunité</span>
           <span style={crmStyles.kbd}>N</span>
-        </button>
+        </a>
+        <a href="/nouveau-prospect" style={{ ...crmStyles.newBtn, textDecoration: "none", cursor: "pointer", background: "#fff", color: "#0f172a", border: "1px solid #e2e8f0" }}>
+          <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+          <span>Nouveau prospect</span>
+          <span style={{ ...crmStyles.kbd, background: "#f1f5f9", color: "#475569" }}>P</span>
+        </a>
 
         <div style={crmStyles.navSection}>
           <div style={crmStyles.navLabel}>Espace de travail</div>
@@ -197,7 +202,8 @@ const CRMPipeline = () => {
           <div style={{ display: "flex", gap: 8 }}>
             <button style={crmStyles.ghostBtn}>Importer</button>
             <button style={crmStyles.ghostBtn}>Exporter</button>
-            <button style={crmStyles.primaryBtn}>+ Nouvelle opportunité</button>
+            <a href="/nouveau-prospect" style={{ ...crmStyles.primaryBtn, background: "#fff", color: "#3730a3", border: "1px solid #c7d2fe", textDecoration: "none", display: "inline-block", cursor: "pointer", boxShadow: "none" }}>+ Nouveau prospect</a>
+            <a href="/nouvelle-opportunite" style={{ ...crmStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
           </div>
         </div>
 

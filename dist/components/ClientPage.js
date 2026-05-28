@@ -307,7 +307,24 @@ var ClientPage = () => {
     }
   }, "+ Nouvelle opportunit\xE9 ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.kbd
-  }, "N")), /*#__PURE__*/React.createElement("div", {
+  }, "N")), /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      ...cliStyles.newBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      background: "#fff",
+      color: "#0f172a",
+      border: "1px solid #e2e8f0",
+      marginTop: -8
+    }
+  }, "+ Nouveau prospect ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      ...cliStyles.kbd,
+      background: "#f1f5f9",
+      color: "#475569"
+    }
+  }, "P")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel

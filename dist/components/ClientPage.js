@@ -1,16 +1,16 @@
 // Fiche client 360 — pipe multi-contrats + actions menées / à mener
 
-const ClientPage = () => {
-  const [statsOpen, setStatsOpen] = React.useState(false);
-  const [assetsOpen, setAssetsOpen] = React.useState(false);
-  const Avatar = ({
+var ClientPage = () => {
+  var [statsOpen, setStatsOpen] = React.useState(false);
+  var [assetsOpen, setAssetsOpen] = React.useState(false);
+  var Avatar = ({
     name,
     size = 24,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -23,7 +23,7 @@ const ClientPage = () => {
       J: "#0ea5e9",
       P: "#8b5cf6"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -43,7 +43,7 @@ const ClientPage = () => {
   };
 
   // ── Pipe : opportunités du client AXA Wealth France
-  const pipeStages = [{
+  var pipeStages = [{
     k: "qualif",
     label: "Qualification",
     color: "#94a3b8"
@@ -64,7 +64,7 @@ const ClientPage = () => {
     label: "Signé",
     color: "#10b981"
   }];
-  const opportunities = [{
+  var opportunities = [{
     name: "Astorya Suite — 750 sièges",
     amount: "215 000 €",
     stage: "propo",
@@ -110,7 +110,7 @@ const ClientPage = () => {
   }];
 
   // ── Actions menées (passé, dernières)
-  const past = [{
+  var past = [{
     type: "email",
     icon: "✉",
     color: "#a855f7",
@@ -177,7 +177,7 @@ const ClientPage = () => {
   }];
 
   // ── Actions à mener (futur, à faire)
-  const future = [{
+  var future = [{
     priority: "haute",
     overdue: true,
     icon: "📧",
@@ -248,7 +248,7 @@ const ClientPage = () => {
     tag: "Insight",
     tagColor: "#0f172a"
   }];
-  const prioMeta = {
+  var prioMeta = {
     haute: {
       label: "Haute",
       color: "#dc2626",
@@ -639,9 +639,9 @@ const ClientPage = () => {
     }
   }, "+ Nouvelle opportunit\xE9"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      const to = prompt("Destinataire (email) :", "e.roux@axa-im.fr");
+      var to = prompt("Destinataire (email) :", "e.roux@axa-im.fr");
       if (!to) return;
-      const subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite");
+      var subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite");
       if (subj) {
         window.location.href = `mailto:${to}?subject=${encodeURIComponent(subj)}`;
       }
@@ -658,7 +658,7 @@ const ClientPage = () => {
     }
   }, "\uD83D\uDCC5 RDV"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      const num = prompt("Numéro à appeler :", "+33 1 42 86 74 21");
+      var num = prompt("Numéro à appeler :", "+33 1 42 86 74 21");
       if (num) window.location.href = `tel:${num}`;
     },
     style: {
@@ -667,7 +667,7 @@ const ClientPage = () => {
     }
   }, "\uD83D\uDCDE Appel"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      const txt = prompt("Nouvelle tâche pour AXA Wealth France :");
+      var txt = prompt("Nouvelle tâche pour AXA Wealth France :");
       if (txt) alert("✓ Tâche créée : " + txt + "\n\n(Sera persistée dans la table tasks.)");
     },
     style: {
@@ -676,7 +676,7 @@ const ClientPage = () => {
     }
   }, "\u2713 T\xE2che"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      const txt = prompt("Nouvelle note privée :");
+      var txt = prompt("Nouvelle note privée :");
       if (txt) alert("✓ Note enregistrée : " + txt + "\n\n(Sera persistée dans la timeline activities.)");
     },
     style: {
@@ -709,7 +709,7 @@ const ClientPage = () => {
     }
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      const rows = [["Champ", "Valeur"]];
+      var rows = [["Champ", "Valeur"]];
       rows.push(["Nom", "AXA Wealth France"]);
       rows.push(["Référence", "ACC-0184"]);
       rows.push(["Industrie", "Asset Management"]);
@@ -724,8 +724,8 @@ const ClientPage = () => {
       rows.push(["Opportunités"]);
       rows.push(["Ref", "Nom", "Étape", "Montant", "Owner", "Clôture"]);
       opportunities.forEach(o => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
-      const csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
-      const a = document.createElement("a");
+      var csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      var a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob(["﻿" + csv], {
         type: "text/csv;charset=utf-8;"
       }));
@@ -768,8 +768,8 @@ const ClientPage = () => {
   }, "Vue Liste \u2630"))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.stagesStrip
   }, pipeStages.map((s, i) => {
-    const opps = opportunities.filter(o => o.stage === s.k);
-    const sum = opps.reduce((acc, o) => acc + parseInt(o.amount.replace(/\s/g, "").replace(" €", "").replace(/[^\d]/g, "")), 0);
+    var opps = opportunities.filter(o => o.stage === s.k);
+    var sum = opps.reduce((acc, o) => acc + parseInt(o.amount.replace(/\s/g, "").replace(" €", "").replace(/[^\d]/g, "")), 0);
     return /*#__PURE__*/React.createElement("div", {
       key: s.k,
       style: cliStyles.stageCol
@@ -811,8 +811,8 @@ const ClientPage = () => {
   })), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.oppGrid
   }, opportunities.map((o, i) => {
-    const openOpp = () => alert(`${o.ref} — ${o.name}\n\nÉtape : ${o.stage}\nMontant : ${o.amount}\nProba : ${o.proba} %\nOwner : ${o.owner}\nClôture : ${o.close}\n\n(La fiche détail opportunité s'ouvrira ici quand la table deals sera créée.)`);
-    const stage = pipeStages.find(s => s.k === o.stage);
+    var openOpp = () => alert(`${o.ref} — ${o.name}\n\nÉtape : ${o.stage}\nMontant : ${o.amount}\nProba : ${o.proba} %\nOwner : ${o.owner}\nClôture : ${o.close}\n\n(La fiche détail opportunité s'ouvrira ici quand la table deals sera créée.)`);
+    var stage = pipeStages.find(s => s.k === o.stage);
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       onClick: openOpp,
@@ -963,7 +963,7 @@ const ClientPage = () => {
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsList
   }, future.map((a, i) => {
-    const p = prioMeta[a.priority];
+    var p = prioMeta[a.priority];
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -1387,7 +1387,7 @@ const ClientPage = () => {
     onClose: () => setAssetsOpen(false)
   }));
 };
-const DetailRow = ({
+var DetailRow = ({
   label,
   value
 }) => /*#__PURE__*/React.createElement("div", {
@@ -1413,7 +1413,7 @@ const DetailRow = ({
     minWidth: 0
   }
 }, value));
-const cliStyles = {
+var cliStyles = {
   frame: {
     width: 1440,
     height: 1500,

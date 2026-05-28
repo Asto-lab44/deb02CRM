@@ -2,19 +2,19 @@
 // PC, serveurs, réseau, imprimantes, etc. avec OS, dates d'achat/garantie,
 // contrats de maintenance. Filtres par type, statut, et garantie.
 
-const AssetInventoryModal = ({
+var AssetInventoryModal = ({
   open,
   client,
   onClose
 }) => {
-  const [filterType, setFilterType] = React.useState("all");
-  const [filterStatus, setFilterStatus] = React.useState("all");
-  const [filterWarranty, setFilterWarranty] = React.useState("all");
-  const [search, setSearch] = React.useState("");
+  var [filterType, setFilterType] = React.useState("all");
+  var [filterStatus, setFilterStatus] = React.useState("all");
+  var [filterWarranty, setFilterWarranty] = React.useState("all");
+  var [search, setSearch] = React.useState("");
 
   // Données live depuis Supabase, fallback inline si non configuré
-  const dataEnabled = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
-  const [liveAssets, setLiveAssets] = React.useState(null);
+  var dataEnabled = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+  var [liveAssets, setLiveAssets] = React.useState(null);
   React.useEffect(() => {
     if (!open) {
       setFilterType("all");
@@ -23,7 +23,7 @@ const AssetInventoryModal = ({
       setSearch("");
       return;
     }
-    const onKey = e => {
+    var onKey = e => {
       if (e.key === "Escape" && onClose) onClose();
     };
     window.addEventListener("keydown", onKey);
@@ -31,10 +31,10 @@ const AssetInventoryModal = ({
   }, [open, onClose]);
   React.useEffect(() => {
     if (!open || !dataEnabled) return;
-    let cancelled = false;
+    var cancelled = false;
     (async () => {
       // Pour cette maquette le client AXA est ACC-0184 ; en prod, prendre l'ID du client courant.
-      const {
+      var {
         data,
         error
       } = await window.HubData.fetchAssetsByClient("ACC-0184");
@@ -60,8 +60,8 @@ const AssetInventoryModal = ({
     };
   }, [open, dataEnabled]);
   if (!open) return null;
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
-  const TYPES = {
+  var portalTarget = typeof document !== "undefined" ? document.body : null;
+  var TYPES = {
     laptop: {
       label: "Portable",
       icon: "💻",
@@ -100,17 +100,17 @@ const AssetInventoryModal = ({
   };
 
   // Aujourd'hui = 2026-05-27 dans la maquette
-  const TODAY = new Date("2026-05-27");
-  const daysUntil = iso => Math.round((new Date(iso) - TODAY) / 86400000);
-  const warrantyStatus = endIso => {
-    const d = daysUntil(endIso);
+  var TODAY = new Date("2026-05-27");
+  var daysUntil = iso => Math.round((new Date(iso) - TODAY) / 86400000);
+  var warrantyStatus = endIso => {
+    var d = daysUntil(endIso);
     if (d < 0) return "expired";
     if (d <= 90) return "warning";
     return "active";
   };
 
   // ── Inventaire : Supabase si configuré, sinon fallback maquette
-  const assets = liveAssets || [
+  var assets = liveAssets || [
   // SERVEURS
   {
     id: "AX-SRV-001",
@@ -517,40 +517,40 @@ const AssetInventoryModal = ({
   }];
 
   // ── KPIs
-  const totalAssets = assets.length;
-  const activeAssets = assets.filter(a => a.status === "active").length;
-  const expiredWarranty = assets.filter(a => warrantyStatus(a.warranty) === "expired").length;
-  const expiringWarranty = assets.filter(a => warrantyStatus(a.warranty) === "warning").length;
-  const withContract = assets.filter(a => a.contract && a.contract !== "—").length;
-  const win10Count = assets.filter(a => /Windows 10/.test(a.os)).length;
-  const totalValue = "≈ 487 k€"; // valeur d'inventaire (estimation fictive)
+  var totalAssets = assets.length;
+  var activeAssets = assets.filter(a => a.status === "active").length;
+  var expiredWarranty = assets.filter(a => warrantyStatus(a.warranty) === "expired").length;
+  var expiringWarranty = assets.filter(a => warrantyStatus(a.warranty) === "warning").length;
+  var withContract = assets.filter(a => a.contract && a.contract !== "—").length;
+  var win10Count = assets.filter(a => /Windows 10/.test(a.os)).length;
+  var totalValue = "≈ 487 k€"; // valeur d'inventaire (estimation fictive)
 
   // ── Filtrage
-  const filtered = assets.filter(a => {
+  var filtered = assets.filter(a => {
     if (filterType !== "all" && a.type !== filterType) return false;
     if (filterStatus !== "all" && a.status !== filterStatus) return false;
     if (filterWarranty !== "all" && warrantyStatus(a.warranty) !== filterWarranty) return false;
     if (search && !(a.host + " " + a.model + " " + a.assigned + " " + a.serial + " " + a.os).toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
-  const typeCounts = Object.keys(TYPES).reduce((acc, k) => {
+  var typeCounts = Object.keys(TYPES).reduce((acc, k) => {
     acc[k] = assets.filter(a => a.type === k).length;
     return acc;
   }, {});
-  const fmtDate = iso => new Date(iso).toLocaleDateString("fr-FR", {
+  var fmtDate = iso => new Date(iso).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "short",
     year: "numeric"
   });
-  const fmtWarranty = iso => {
-    const status = warrantyStatus(iso);
-    const days = daysUntil(iso);
-    const colorByStatus = {
+  var fmtWarranty = iso => {
+    var status = warrantyStatus(iso);
+    var days = daysUntil(iso);
+    var colorByStatus = {
       expired: "#dc2626",
       warning: "#a65f00",
       active: "#0e7a55"
     };
-    const labelByStatus = {
+    var labelByStatus = {
       expired: `Expirée (${Math.abs(days)} j)`,
       warning: `Expire ${days <= 30 ? "dans " + days + " j" : "dans " + Math.round(days / 30) + " mois"}`,
       active: `Active`
@@ -565,7 +565,7 @@ const AssetInventoryModal = ({
       }[status]
     };
   };
-  const tree = /*#__PURE__*/React.createElement("div", {
+  var tree = /*#__PURE__*/React.createElement("div", {
     style: S.backdrop,
     onClick: onClose
   }, /*#__PURE__*/React.createElement("div", {
@@ -728,9 +728,9 @@ const AssetInventoryModal = ({
   }, "Site"), /*#__PURE__*/React.createElement("th", {
     style: S.th
   }, "Statut"))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(a => {
-    const t = TYPES[a.type];
-    const w = fmtWarranty(a.warranty);
-    const isObsoleteOs = /Windows 10|Windows Server 2016/.test(a.os);
+    var t = TYPES[a.type];
+    var w = fmtWarranty(a.warranty);
+    var isObsoleteOs = /Windows 10|Windows Server 2016/.test(a.os);
     return /*#__PURE__*/React.createElement("tr", {
       key: a.id,
       style: S.tr
@@ -882,7 +882,7 @@ const AssetInventoryModal = ({
   return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
 };
 window.AssetInventoryModal = AssetInventoryModal;
-const statusColors = {
+var statusColors = {
   active: {
     fg: "#10b981",
     label: "Actif"
@@ -896,7 +896,7 @@ const statusColors = {
     label: "Retiré"
   }
 };
-const S = {
+var S = {
   backdrop: {
     position: "fixed",
     inset: 0,

@@ -2,25 +2,25 @@
 // depuis Supabase si dispo, sinon affiche un message clair. Permet l'édition
 // inline du statut, de la priorité, de la catégorie et de l'assignation.
 
-const TicketDetailModal = ({
+var TicketDetailModal = ({
   ticketId,
   onClose
 }) => {
-  const [ticket, setTicket] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-  const [profiles, setProfiles] = React.useState([]);
-  const [saving, setSaving] = React.useState(false);
-  const [flash, setFlash] = React.useState(null);
-  const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+  var [ticket, setTicket] = React.useState(null);
+  var [loading, setLoading] = React.useState(true);
+  var [profiles, setProfiles] = React.useState([]);
+  var [saving, setSaving] = React.useState(false);
+  var [flash, setFlash] = React.useState(null);
+  var dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
 
   // Charger ticket + profils à l'ouverture
   React.useEffect(() => {
     if (!ticketId) return;
     setLoading(true);
-    let cancelled = false;
+    var cancelled = false;
     (async () => {
       if (dataOn) {
-        const [{
+        var [{
           data: t
         }, {
           data: p
@@ -42,25 +42,25 @@ const TicketDetailModal = ({
     };
   }, [ticketId, dataOn]);
   React.useEffect(() => {
-    const onKey = e => {
+    var onKey = e => {
       if (e.key === "Escape" && onClose) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   if (!ticketId) return null;
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
-  const showFlash = (msg, tone = "ok") => {
+  var portalTarget = typeof document !== "undefined" ? document.body : null;
+  var showFlash = (msg, tone = "ok") => {
     setFlash({
       msg,
       tone
     });
     setTimeout(() => setFlash(null), 2500);
   };
-  const patch = async changes => {
+  var patch = async changes => {
     if (!dataOn || !ticket) return;
     setSaving(true);
-    const {
+    var {
       data,
       error
     } = await window.HubData.updateTicket(ticket.id, changes);
@@ -75,11 +75,11 @@ const TicketDetailModal = ({
     });
     showFlash("✓ Enregistré");
   };
-  const escalate = async () => {
-    const reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
+  var escalate = async () => {
+    var reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason || !ticket) return;
     setSaving(true);
-    const {
+    var {
       error
     } = await window.HubData.escalateTicket(ticket.id, {
       toUserId: null,
@@ -99,7 +99,7 @@ const TicketDetailModal = ({
     });
     showFlash("✓ Ticket escaladé à Supervision");
   };
-  const STATUS = [{
+  var STATUS = [{
     v: "open",
     label: "Ouvert",
     color: "#3b82f6",
@@ -125,7 +125,7 @@ const TicketDetailModal = ({
     color: "#94a3b8",
     soft: "#f1f3f6"
   }];
-  const PRIO = [{
+  var PRIO = [{
     v: "critique",
     label: "Critique",
     color: "#dc2626",
@@ -146,14 +146,14 @@ const TicketDetailModal = ({
     color: "#64748b",
     soft: "#f1f3f6"
   }];
-  const CATEGORIES = ["Support technique", "Réseau · VPN", "Accès & Droits", "Messagerie", "Matériel · Imprimante", "Matériel · Périphérique", "Logiciel · Installation", "Téléphonie", "Gestion comptes RH · Onboarding", "Gestion comptes RH · Offboarding", "Autre"];
-  const sMeta = ticket ? STATUS.find(s => s.v === ticket.status) || STATUS[0] : STATUS[0];
-  const pMeta = ticket ? PRIO.find(p => p.v === ticket.priority) || PRIO[2] : PRIO[2];
-  const fmtDate = iso => iso ? new Date(iso).toLocaleString("fr-FR", {
+  var CATEGORIES = ["Support technique", "Réseau · VPN", "Accès & Droits", "Messagerie", "Matériel · Imprimante", "Matériel · Périphérique", "Logiciel · Installation", "Téléphonie", "Gestion comptes RH · Onboarding", "Gestion comptes RH · Offboarding", "Autre"];
+  var sMeta = ticket ? STATUS.find(s => s.v === ticket.status) || STATUS[0] : STATUS[0];
+  var pMeta = ticket ? PRIO.find(p => p.v === ticket.priority) || PRIO[2] : PRIO[2];
+  var fmtDate = iso => iso ? new Date(iso).toLocaleString("fr-FR", {
     dateStyle: "medium",
     timeStyle: "short"
   }) : "—";
-  const tree = /*#__PURE__*/React.createElement("div", {
+  var tree = /*#__PURE__*/React.createElement("div", {
     style: D.backdrop,
     onClick: onClose
   }, /*#__PURE__*/React.createElement("div", {
@@ -486,7 +486,7 @@ const TicketDetailModal = ({
   }, ticket.id))))));
   return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
 };
-const PropRow = ({
+var PropRow = ({
   label,
   children
 }) => /*#__PURE__*/React.createElement("div", {
@@ -506,7 +506,7 @@ const PropRow = ({
   }
 }, label), children);
 window.TicketDetailModal = TicketDetailModal;
-const D = {
+var D = {
   backdrop: {
     position: "fixed",
     inset: 0,

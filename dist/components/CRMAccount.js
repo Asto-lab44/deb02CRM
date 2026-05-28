@@ -1,15 +1,15 @@
 // Écran CRM 2 — Fiche compte / opportunité avec timeline d'activité
 
-const CRMAccount = () => {
-  const Avatar = ({
+var CRMAccount = () => {
+  var Avatar = ({
     name,
     size = 24,
     color,
     role
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -20,7 +20,7 @@ const CRMAccount = () => {
       E: "#14b8a6",
       A: "#dc2626"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         position: "relative",
@@ -60,7 +60,7 @@ const CRMAccount = () => {
   };
 
   // Timeline events
-  const activities = [{
+  var activities = [{
     type: "task",
     kind: "future",
     at: "Dans 2 jours · jeu. 28 mai · 14h00",
@@ -1221,7 +1221,7 @@ const CRMAccount = () => {
     style: accStyles.addPill
   }, "+"))))))));
 };
-const Field = ({
+var Field = ({
   label,
   value
 }) => /*#__PURE__*/React.createElement("div", {
@@ -1231,7 +1231,7 @@ const Field = ({
 }, label), /*#__PURE__*/React.createElement("div", {
   style: accStyles.fieldValue
 }, value));
-const accStyles = {
+var accStyles = {
   frame: {
     width: 1440,
     height: 900,

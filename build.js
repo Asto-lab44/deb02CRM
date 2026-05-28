@@ -25,8 +25,14 @@ function compile(srcPath) {
     presets: [
       ["@babel/preset-react", { runtime: "classic" }],
     ],
+    // Converti const/let en var pour que les déclarations top-level d'un
+    // script soient accessibles depuis les autres scripts chargés ensuite
+    // (sans avoir à passer par window.X partout).
+    plugins: [
+      ["@babel/plugin-transform-block-scoping", { throwIfClosureRequired: false }],
+    ],
     sourceMaps: false,
-    compact: false, // gardons lisible (debug)
+    compact: false,
   });
   return out;
 }

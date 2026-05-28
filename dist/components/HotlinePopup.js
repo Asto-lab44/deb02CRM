@@ -2,23 +2,23 @@
 // bouton "Simuler appel" en démo). Match du numéro entrant à la base clients,
 // affiche les tickets ouverts ou bascule sur le formulaire nouveau ticket.
 
-const HotlinePopup = ({
+var HotlinePopup = ({
   call,
   onClose,
   onCreateTicket
 }) => {
   // ───── État interne : "ringing" → l'agent décroche → on affiche la fiche.
-  const [phase, setPhase] = React.useState("ringing"); // ringing | answered | transcript | newTicket
-  const [elapsed, setElapsed] = React.useState(0);
-  const [form, setForm] = React.useState({
+  var [phase, setPhase] = React.useState("ringing"); // ringing | answered | transcript | newTicket
+  var [elapsed, setElapsed] = React.useState(0);
+  var [form, setForm] = React.useState({
     subject: "",
     category: "Support technique",
     prio: "normale",
     desc: ""
   });
-  const [transcriptText, setTranscriptText] = React.useState("");
-  const [targetTicketId, setTargetTicketId] = React.useState(null);
-  const [transcribing, setTranscribing] = React.useState(false);
+  var [transcriptText, setTranscriptText] = React.useState("");
+  var [targetTicketId, setTargetTicketId] = React.useState(null);
+  var [transcribing, setTranscribing] = React.useState(false);
   React.useEffect(() => {
     setPhase("ringing");
     setElapsed(0);
@@ -33,12 +33,12 @@ const HotlinePopup = ({
   }, [call && call.id]);
   React.useEffect(() => {
     if (phase !== "answered") return;
-    const t = setInterval(() => setElapsed(s => s + 1), 1000);
+    var t = setInterval(() => setElapsed(s => s + 1), 1000);
     return () => clearInterval(t);
   }, [phase]);
   React.useEffect(() => {
     if (!call) return;
-    const onKey = e => {
+    var onKey = e => {
       if (e.key === "Escape" && onClose) onClose();
     };
     window.addEventListener("keydown", onKey);
@@ -47,8 +47,8 @@ const HotlinePopup = ({
   if (!call) return null;
   // Le DesignCanvas applique un transform sur l'ancêtre, ce qui casse les
   // position:fixed. On rend la popup directement sur document.body.
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
-  const answer = () => {
+  var portalTarget = typeof document !== "undefined" ? document.body : null;
+  var answer = () => {
     if (call.openTickets && call.openTickets.length > 0) {
       setPhase("answered");
     } else {
@@ -61,11 +61,11 @@ const HotlinePopup = ({
       setPhase("newTicket");
     }
   };
-  const fmtElapsed = () => `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  const fmtDuration = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  var fmtElapsed = () => `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
+  var fmtDuration = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   // Simule le temps de traitement speech-to-text 3CX (~1.2 s)
-  const endAndTranscribe = () => {
+  var endAndTranscribe = () => {
     setTranscribing(true);
     setTimeout(() => {
       setTranscribing(false);
@@ -73,7 +73,7 @@ const HotlinePopup = ({
       setPhase("transcript");
     }, 1200);
   };
-  const attachTranscript = () => {
+  var attachTranscript = () => {
     if (!targetTicketId || !transcriptText.trim()) return;
     if (window.HubAccess && window.HubAccess.addTranscript) {
       window.HubAccess.addTranscript(targetTicketId, {
@@ -92,10 +92,10 @@ const HotlinePopup = ({
     });
     onClose && onClose();
   };
-  const submitNewTicket = e => {
+  var submitNewTicket = e => {
     if (e && e.preventDefault) e.preventDefault();
     if (!form.subject.trim()) return;
-    const ticketId = "INC-" + Math.floor(2900 + Math.random() * 99);
+    var ticketId = "INC-" + Math.floor(2900 + Math.random() * 99);
     // Le ticket fraîchement créé reçoit aussi la retranscription
     if (window.HubAccess && window.HubAccess.addTranscript && form.desc.trim()) {
       window.HubAccess.addTranscript(ticketId, {
@@ -115,9 +115,9 @@ const HotlinePopup = ({
     });
     onClose && onClose();
   };
-  const initials = (call.name || "?").split(" ").slice(0, 2).map(s => s[0]).join("");
-  const isUnknown = !!call.unknown;
-  const tree = /*#__PURE__*/React.createElement("div", {
+  var initials = (call.name || "?").split(" ").slice(0, 2).map(s => s[0]).join("");
+  var isUnknown = !!call.unknown;
+  var tree = /*#__PURE__*/React.createElement("div", {
     style: H.backdrop,
     onClick: onClose
   }, /*#__PURE__*/React.createElement("div", {
@@ -565,7 +565,7 @@ const HotlinePopup = ({
 // ───── Données de démo : 4 callers (différents scénarios)
 // transcript = ce que produirait l'AI speech-to-text 3CX en bout de chaîne.
 // duration = durée typique de la conversation (utilisée pour l'horodatage).
-const HOTLINE_DEMO_CALLERS = [{
+var HOTLINE_DEMO_CALLERS = [{
   id: "c1",
   phone: "+33 1 42 86 74 21",
   line: "Hotline support",
@@ -639,7 +639,7 @@ const HOTLINE_DEMO_CALLERS = [{
 }];
 window.HotlinePopup = HotlinePopup;
 window.HOTLINE_DEMO_CALLERS = HOTLINE_DEMO_CALLERS;
-const prioTone = {
+var prioTone = {
   critique: {
     bg: "#fdecec",
     fg: "#dc2626",
@@ -661,7 +661,7 @@ const prioTone = {
     label: "Basse"
   }
 };
-const H = {
+var H = {
   backdrop: {
     position: "fixed",
     inset: 0,
@@ -910,7 +910,7 @@ const H = {
 
 // CSS animations injectées une seule fois
 if (typeof document !== "undefined" && !document.getElementById("hotline-popup-css")) {
-  const style = document.createElement("style");
+  var style = document.createElement("style");
   style.id = "hotline-popup-css";
   style.textContent = `
     @keyframes ring-icon { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.55); } 70% { box-shadow: 0 0 0 12px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }

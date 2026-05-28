@@ -13,7 +13,7 @@
 //     </DCSection>
 //   </DesignCanvas>
 
-const DC = {
+var DC = {
   bg: '#f0eee9',
   grid: 'rgba(0,0,0,0.06)',
   label: 'rgba(60,50,40,0.7)',
@@ -27,7 +27,7 @@ const DC = {
 // One-time CSS injection (classes are dc-prefixed so they don't collide with
 // the hosted design's own styles).
 if (typeof document !== 'undefined' && !document.getElementById('dc-styles')) {
-  const s = document.createElement('style');
+  var s = document.createElement('style');
   s.id = 'dc-styles';
   s.textContent = ['.dc-editable{cursor:text;outline:none;white-space:nowrap;border-radius:3px;padding:0 2px;margin:0 -2px}', '.dc-editable:focus{background:#fff;box-shadow:0 0 0 1.5px #c96442}', '[data-dc-slot]{transition:transform .18s cubic-bezier(.2,.7,.3,1)}', '[data-dc-slot].dc-dragging{transition:none;z-index:10;pointer-events:none}', '[data-dc-slot].dc-dragging .dc-card{box-shadow:0 12px 40px rgba(0,0,0,.25),0 0 0 2px #c96442;transform:scale(1.02)}',
   // isolation:isolate contains artboard content's z-indexes so a
@@ -66,7 +66,7 @@ if (typeof document !== 'undefined' && !document.getElementById('dc-styles')) {
   '.dc-header{width:calc((100% + 4px) / var(--dc-inv-zoom,1));', '  transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom left}', '.dc-sectionhead{zoom:var(--dc-inv-zoom,1)}'].join('\n');
   document.head.appendChild(s);
 }
-const DCCtx = React.createContext(null);
+var DCCtx = React.createContext(null);
 
 // ─────────────────────────────────────────────────────────────
 // DesignCanvas — stateful wrapper around the pan/zoom viewport.
@@ -79,14 +79,14 @@ const DCCtx = React.createContext(null);
 // host's window.omelette bridge — editing requires the omelette runtime.
 // Focus is ephemeral.
 // ─────────────────────────────────────────────────────────────
-const DC_STATE_FILE = '.design-canvas.state.json';
+var DC_STATE_FILE = '.design-canvas.state.json';
 function DesignCanvas({
   children,
   minScale,
   maxScale,
   style
 }) {
-  const [state, setState] = React.useState({
+  var [state, setState] = React.useState({
     sections: {},
     focus: null
   });
@@ -95,11 +95,11 @@ function DesignCanvas({
   // the read settles so the empty initial state can't clobber a slow read;
   // skipNextWrite suppresses the one echo-write that would otherwise follow
   // hydration.
-  const [ready, setReady] = React.useState(false);
-  const didRead = React.useRef(false);
-  const skipNextWrite = React.useRef(false);
+  var [ready, setReady] = React.useState(false);
+  var didRead = React.useRef(false);
+  var skipNextWrite = React.useRef(false);
   React.useEffect(() => {
-    let off = false;
+    var off = false;
     fetch('./' + DC_STATE_FILE).then(r => r.ok ? r.json() : null).then(saved => {
       if (off || !saved || !saved.sections) return;
       skipNextWrite.current = true;
@@ -111,7 +111,7 @@ function DesignCanvas({
       didRead.current = true;
       if (!off) setReady(true);
     });
-    const t = setTimeout(() => {
+    var t = setTimeout(() => {
       if (!off) setReady(true);
     }, 150);
     return () => {
@@ -125,7 +125,7 @@ function DesignCanvas({
       skipNextWrite.current = false;
       return;
     }
-    const t = setTimeout(() => {
+    var t = setTimeout(() => {
       window.omelette?.writeFile(DC_STATE_FILE, JSON.stringify({
         sections: state.sections
       })).catch(() => {});
@@ -136,26 +136,26 @@ function DesignCanvas({
   // Build registries synchronously from children so FocusOverlay can read
   // them in the same render. Only direct DCSection > DCArtboard children are
   // walked — wrapping them in other elements opts out of focus/reorder.
-  const registry = {}; // slotId -> { sectionId, artboard }
-  const sectionMeta = {}; // sectionId -> { title, subtitle, slotIds[] }
-  const sectionOrder = [];
+  var registry = {}; // slotId -> { sectionId, artboard }
+  var sectionMeta = {}; // sectionId -> { title, subtitle, slotIds[] }
+  var sectionOrder = [];
   React.Children.forEach(children, sec => {
     if (!sec || sec.type !== DCSection) return;
-    const sid = sec.props.id ?? sec.props.title;
+    var sid = sec.props.id ?? sec.props.title;
     if (!sid) return;
     sectionOrder.push(sid);
-    const persisted = state.sections[sid] || {};
-    const abs = [];
+    var persisted = state.sections[sid] || {};
+    var abs = [];
     React.Children.forEach(sec.props.children, ab => {
       if (!ab || ab.type !== DCArtboard) return;
-      const aid = ab.props.id ?? ab.props.label;
+      var aid = ab.props.id ?? ab.props.label;
       if (aid) abs.push([aid, ab]);
     });
     // hidden is scoped to one source revision — when the agent regenerates
     // (artboard-ID set changes), prior deletes don't apply to new content.
-    const srcKey = abs.map(([k]) => k).join('\x1f');
-    const hidden = persisted.srcKey === srcKey ? persisted.hidden || [] : [];
-    const srcIds = [];
+    var srcKey = abs.map(([k]) => k).join('\x1f');
+    var hidden = persisted.srcKey === srcKey ? persisted.hidden || [] : [];
+    var srcIds = [];
     abs.forEach(([aid, ab]) => {
       if (hidden.includes(aid)) return;
       registry[`${sid}/${aid}`] = {
@@ -164,14 +164,14 @@ function DesignCanvas({
       };
       srcIds.push(aid);
     });
-    const kept = (persisted.order || []).filter(k => srcIds.includes(k));
+    var kept = (persisted.order || []).filter(k => srcIds.includes(k));
     sectionMeta[sid] = {
       title: persisted.title ?? sec.props.title,
       subtitle: sec.props.subtitle,
       slotIds: [...kept, ...srcIds.filter(k => !kept.includes(k))]
     };
   });
-  const api = React.useMemo(() => ({
+  var api = React.useMemo(() => ({
     state,
     section: id => state.sections[id] || {},
     patchSection: (id, p) => setState(s => ({
@@ -192,11 +192,11 @@ function DesignCanvas({
 
   // Esc exits focus; any outside pointerdown commits an in-progress rename.
   React.useEffect(() => {
-    const onKey = e => {
+    var onKey = e => {
       if (e.key === 'Escape') api.setFocus(null);
     };
-    const onPd = e => {
-      const ae = document.activeElement;
+    var onPd = e => {
+      var ae = document.activeElement;
       if (ae && ae.isContentEditable && !ae.contains(e.target)) ae.blur();
     };
     document.addEventListener('keydown', onKey);
@@ -238,9 +238,9 @@ function DCViewport({
   maxScale = 8,
   style = {}
 }) {
-  const vpRef = React.useRef(null);
-  const worldRef = React.useRef(null);
-  const tf = React.useRef({
+  var vpRef = React.useRef(null);
+  var worldRef = React.useRef(null);
+  var tf = React.useRef({
     x: 0,
     y: 0,
     scale: 1
@@ -248,16 +248,16 @@ function DCViewport({
   // Persist viewport across reloads so the user lands back where they were
   // after an agent edit or browser refresh. The sandbox origin is already
   // per-project; pathname keeps multiple canvas files in one project apart.
-  const tfKey = 'dc-viewport:' + location.pathname;
-  const saveT = React.useRef(0);
-  const lastPostedScale = React.useRef();
-  const apply = React.useCallback(() => {
-    const {
+  var tfKey = 'dc-viewport:' + location.pathname;
+  var saveT = React.useRef(0);
+  var lastPostedScale = React.useRef();
+  var apply = React.useCallback(() => {
+    var {
       x,
       y,
       scale
     } = tf.current;
-    const el = worldRef.current;
+    var el = worldRef.current;
     if (!el) return;
     el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
     // Exposed for zoom-invariant chrome (labels, buttons, TweaksPanel).
@@ -279,19 +279,19 @@ function DCViewport({
     }, 200);
   }, [tfKey]);
   React.useLayoutEffect(() => {
-    const flush = () => {
+    var flush = () => {
       clearTimeout(saveT.current);
       try {
         localStorage.setItem(tfKey, JSON.stringify(tf.current));
       } catch {}
     };
     try {
-      const s = JSON.parse(localStorage.getItem(tfKey) || 'null');
-      if (s && Number.isFinite(s.x) && Number.isFinite(s.y) && Number.isFinite(s.scale)) {
+      var _s = JSON.parse(localStorage.getItem(tfKey) || 'null');
+      if (_s && Number.isFinite(_s.x) && Number.isFinite(_s.y) && Number.isFinite(_s.scale)) {
         tf.current = {
-          x: s.x,
-          y: s.y,
-          scale: Math.min(maxScale, Math.max(minScale, s.scale))
+          x: _s.x,
+          y: _s.y,
+          scale: Math.min(maxScale, Math.max(minScale, _s.scale))
         };
         apply();
       }
@@ -305,15 +305,15 @@ function DCViewport({
     };
   }, []);
   React.useEffect(() => {
-    const vp = vpRef.current;
+    var vp = vpRef.current;
     if (!vp) return;
-    const zoomAt = (cx, cy, factor) => {
-      const r = vp.getBoundingClientRect();
-      const px = cx - r.left,
+    var zoomAt = (cx, cy, factor) => {
+      var r = vp.getBoundingClientRect();
+      var px = cx - r.left,
         py = cy - r.top;
-      const t = tf.current;
-      const next = Math.min(maxScale, Math.max(minScale, t.scale * factor));
-      const k = next / t.scale;
+      var t = tf.current;
+      var next = Math.min(maxScale, Math.max(minScale, t.scale * factor));
+      var k = next / t.scale;
       // keep the world point under the cursor fixed
       t.x = px - (px - t.x) * k;
       t.y = py - (py - t.y) * k;
@@ -326,8 +326,8 @@ function DCViewport({
     // component (Chrome/Safari, typically multiples of 100/120). Trackpad
     // two-finger scroll sends small/fractional pixel deltas, often with
     // non-zero deltaX. ctrlKey is set by the browser for trackpad pinch.
-    const isMouseWheel = e => e.deltaMode !== 0 || e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40;
-    const onWheel = e => {
+    var isMouseWheel = e => e.deltaMode !== 0 || e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40;
+    var onWheel = e => {
       e.preventDefault();
       if (isGesturing) return; // Safari: gesture* owns the pinch — discard concurrent wheels
       if ((e.ctrlKey || e.metaKey) && !isMouseWheel(e)) {
@@ -350,27 +350,27 @@ function DCViewport({
     // better feel there. No-ops on other browsers. Safari also fires
     // ctrlKey wheel events during the same pinch — isGesturing makes
     // onWheel drop those entirely so they neither zoom nor pan.
-    let gsBase = 1;
-    let isGesturing = false;
-    const onGestureStart = e => {
+    var gsBase = 1;
+    var isGesturing = false;
+    var onGestureStart = e => {
       e.preventDefault();
       isGesturing = true;
       gsBase = tf.current.scale;
     };
-    const onGestureChange = e => {
+    var onGestureChange = e => {
       e.preventDefault();
       zoomAt(e.clientX, e.clientY, gsBase * e.scale / tf.current.scale);
     };
-    const onGestureEnd = e => {
+    var onGestureEnd = e => {
       e.preventDefault();
       isGesturing = false;
     };
 
     // Drag-pan: middle button anywhere, or primary button on canvas
     // background (anything that isn't an artboard or an inline editor).
-    let drag = null;
-    const onPointerDown = e => {
-      const onBg = !e.target.closest('[data-dc-slot], .dc-editable');
+    var drag = null;
+    var onPointerDown = e => {
+      var onBg = !e.target.closest('[data-dc-slot], .dc-editable');
       if (!(e.button === 1 || e.button === 0 && onBg)) return;
       e.preventDefault();
       vp.setPointerCapture(e.pointerId);
@@ -381,7 +381,7 @@ function DCViewport({
       };
       vp.style.cursor = 'grabbing';
     };
-    const onPointerMove = e => {
+    var onPointerMove = e => {
       if (!drag || e.pointerId !== drag.id) return;
       tf.current.x += e.clientX - drag.lx;
       tf.current.y += e.clientY - drag.ly;
@@ -389,7 +389,7 @@ function DCViewport({
       drag.ly = e.clientY;
       apply();
     };
-    const onPointerUp = e => {
+    var onPointerUp = e => {
       if (!drag || e.pointerId !== drag.id) return;
       vp.releasePointerCapture(e.pointerId);
       drag = null;
@@ -398,10 +398,10 @@ function DCViewport({
 
     // Host-driven zoom (toolbar % menu). Zooms around viewport centre so the
     // visible midpoint stays fixed — matching the host's iframe-zoom feel.
-    const onHostMsg = e => {
-      const d = e.data;
+    var onHostMsg = e => {
+      var d = e.data;
       if (d && d.type === '__dc_set_zoom' && typeof d.scale === 'number') {
-        const r = vp.getBoundingClientRect();
+        var r = vp.getBoundingClientRect();
         zoomAt(r.left + r.width / 2, r.top + r.height / 2, d.scale / tf.current.scale);
       } else if (d && d.type === '__dc_probe') {
         // Host's [readyGen] reset asks whether a canvas is present; it
@@ -457,7 +457,7 @@ function DCViewport({
       vp.removeEventListener('pointercancel', onPointerUp);
     };
   }, [apply, minScale, maxScale]);
-  const gridSvg = `url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0H0v120' fill='none' stroke='${encodeURIComponent(DC.grid)}' stroke-width='1'/%3E%3C/svg%3E")`;
+  var gridSvg = `url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0H0v120' fill='none' stroke='${encodeURIComponent(DC.grid)}' stroke-width='1'/%3E%3C/svg%3E")`;
   return /*#__PURE__*/React.createElement("div", {
     ref: vpRef,
     className: "design-canvas",
@@ -508,23 +508,23 @@ function DCSection({
   children,
   gap = 48
 }) {
-  const ctx = React.useContext(DCCtx);
-  const sid = id ?? title;
-  const all = React.Children.toArray(children);
-  const artboards = all.filter(c => c && c.type === DCArtboard);
-  const rest = all.filter(c => !(c && c.type === DCArtboard));
-  const sec = ctx && sid && ctx.section(sid) || {};
+  var ctx = React.useContext(DCCtx);
+  var sid = id ?? title;
+  var all = React.Children.toArray(children);
+  var artboards = all.filter(c => c && c.type === DCArtboard);
+  var rest = all.filter(c => !(c && c.type === DCArtboard));
+  var sec = ctx && sid && ctx.section(sid) || {};
   // Must match DesignCanvas's srcKey computation exactly (it filters falsy
   // IDs), or onDelete persists a srcKey that DesignCanvas never recognizes.
-  const allIds = artboards.map(a => a.props.id ?? a.props.label).filter(Boolean);
-  const srcKey = allIds.join('\x1f');
-  const hidden = sec.srcKey === srcKey ? sec.hidden || [] : [];
-  const srcOrder = allIds.filter(k => !hidden.includes(k));
-  const order = React.useMemo(() => {
-    const kept = (sec.order || []).filter(k => srcOrder.includes(k));
+  var allIds = artboards.map(a => a.props.id ?? a.props.label).filter(Boolean);
+  var srcKey = allIds.join('\x1f');
+  var hidden = sec.srcKey === srcKey ? sec.hidden || [] : [];
+  var srcOrder = allIds.filter(k => !hidden.includes(k));
+  var order = React.useMemo(() => {
+    var kept = (sec.order || []).filter(k => srcOrder.includes(k));
     return [...kept, ...srcOrder.filter(k => !kept.includes(k))];
   }, [sec.order, srcOrder.join('|')]);
-  const byId = Object.fromEntries(artboards.map(a => [a.props.id ?? a.props.label, a]));
+  var byId = Object.fromEntries(artboards.map(a => [a.props.id ?? a.props.label, a]));
 
   // marginBottom counter-scales so the on-screen gap between sections stays
   // constant — otherwise at low zoom the (world-space) gap collapses while
@@ -612,8 +612,8 @@ async function dcExport(node, w, h, name, kind) {
   try {
     await document.fonts.ready;
   } catch {}
-  const toDataURL = url => fetch(url).then(r => r.blob()).then(b => new Promise(res => {
-    const fr = new FileReader();
+  var toDataURL = url => fetch(url).then(r => r.blob()).then(b => new Promise(res => {
+    var fr = new FileReader();
     fr.onload = () => res(fr.result);
     fr.onerror = () => res(url);
     fr.readAsDataURL(b);
@@ -624,27 +624,27 @@ async function dcExport(node, w, h, name, kind) {
   // the CSS text directly (those endpoints send ACAO:*) and regex-extract
   // the blocks. @import and @media/@supports are walked so nested
   // @font-face rules aren't missed.
-  const fontRules = [],
+  var fontRules = [],
     pending = [],
     seen = new Set();
-  const scrapeCss = href => {
+  var scrapeCss = href => {
     if (seen.has(href)) return;
     seen.add(href);
     pending.push(fetch(href).then(r => r.text()).then(css => {
-      for (const m of css.match(/@font-face\s*{[^}]*}/g) || []) fontRules.push({
+      for (var m of css.match(/@font-face\s*{[^}]*}/g) || []) fontRules.push({
         css: m,
         base: href
       });
-      for (const m of css.matchAll(/@import\s+(?:url\()?['"]?([^'")\s;]+)/g)) scrapeCss(new URL(m[1], href).href);
+      for (var _m of css.matchAll(/@import\s+(?:url\()?['"]?([^'")\s;]+)/g)) scrapeCss(new URL(_m[1], href).href);
     }).catch(() => {}));
   };
-  const walk = (rules, base) => {
-    for (const r of rules) {
+  var walk = (rules, base) => {
+    for (var r of rules) {
       if (r.type === CSSRule.FONT_FACE_RULE) fontRules.push({
         css: r.cssText,
         base
       });else if (r.type === CSSRule.IMPORT_RULE && r.styleSheet) {
-        const ibase = r.styleSheet.href || base;
+        var ibase = r.styleSheet.href || base;
         try {
           walk(r.styleSheet.cssRules, ibase);
         } catch {
@@ -653,8 +653,8 @@ async function dcExport(node, w, h, name, kind) {
       } else if (r.cssRules) walk(r.cssRules, base);
     }
   };
-  for (const ss of document.styleSheets) {
-    const base = ss.href || location.href;
+  for (var ss of document.styleSheets) {
+    var base = ss.href || location.href;
     try {
       walk(ss.cssRules, base);
     } catch {
@@ -662,13 +662,13 @@ async function dcExport(node, w, h, name, kind) {
     }
   }
   while (pending.length) await pending.shift();
-  const fontCss = (await Promise.all(fontRules.map(async rule => {
-    let out = rule.css,
+  var fontCss = (await Promise.all(fontRules.map(async rule => {
+    var out = rule.css,
       m;
-    const re = /url\((['"]?)([^'")]+)\1\)/g;
+    var re = /url\((['"]?)([^'")]+)\1\)/g;
     while (m = re.exec(rule.css)) {
       if (m[2].indexOf('data:') === 0) continue;
-      let abs;
+      var abs = void 0;
       try {
         abs = new URL(m[2], rule.base).href;
       } catch {
@@ -678,61 +678,64 @@ async function dcExport(node, w, h, name, kind) {
     }
     return out;
   }))).join('\n');
-  const cloneStyled = src => {
+  var cloneStyled = src => {
     if (src.nodeType === 8 || src.nodeType === 1 && src.tagName === 'SCRIPT') return document.createTextNode('');
-    const dst = src.cloneNode(false);
+    var dst = src.cloneNode(false);
     if (src.nodeType === 1) {
-      const cs = getComputedStyle(src);
-      let txt = '';
-      for (let i = 0; i < cs.length; i++) txt += cs[i] + ':' + cs.getPropertyValue(cs[i]) + ';';
+      var cs = getComputedStyle(src);
+      var txt = '';
+      for (var i = 0; i < cs.length; i++) txt += cs[i] + ':' + cs.getPropertyValue(cs[i]) + ';';
       dst.setAttribute('style', txt + 'animation:none;transition:none;');
       if (src.tagName === 'CANVAS') try {
-        const im = document.createElement('img');
+        var im = document.createElement('img');
         im.src = src.toDataURL();
         im.setAttribute('style', txt);
         return im;
       } catch {}
     }
-    for (let c = src.firstChild; c; c = c.nextSibling) dst.appendChild(cloneStyled(c));
+    for (var c = src.firstChild; c; c = c.nextSibling) dst.appendChild(cloneStyled(c));
     return dst;
   };
-  const clone = cloneStyled(node);
+  var clone = cloneStyled(node);
   clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
   // Drop the card's own shadow/radius so the export is a flush w×h rect;
   // the artboard's own background (if any) is already in the computed style.
   clone.style.boxShadow = 'none';
   clone.style.borderRadius = '0';
-  const jobs = [];
+  var jobs = [];
   clone.querySelectorAll('img').forEach(el => {
-    const s = el.getAttribute('src');
+    var s = el.getAttribute('src');
     if (s && s.indexOf('data:') !== 0) jobs.push(toDataURL(el.src).then(d => el.setAttribute('src', d)));
   });
   [clone, ...clone.querySelectorAll('*')].forEach(el => {
-    const bg = el.style.backgroundImage;
+    var bg = el.style.backgroundImage;
     if (!bg) return;
-    let m;
-    const re = /url\(["']?([^"')]+)["']?\)/g;
-    while (m = re.exec(bg)) {
-      const tok = m[0],
+    var m;
+    var re = /url\(["']?([^"')]+)["']?\)/g;
+    var _loop = function () {
+      var tok = m[0],
         url = m[1];
-      if (url.indexOf('data:') === 0) continue;
+      if (url.indexOf('data:') === 0) return 1; // continue
       jobs.push(toDataURL(url).then(d => {
         el.style.backgroundImage = el.style.backgroundImage.split(tok).join('url("' + d + '")');
       }));
+    };
+    while (m = re.exec(bg)) {
+      if (_loop()) continue;
     }
   });
   await Promise.all(jobs);
-  const xml = new XMLSerializer().serializeToString(clone);
-  const save = (blob, ext) => {
+  var xml = new XMLSerializer().serializeToString(clone);
+  var save = (blob, ext) => {
     if (!blob) return;
-    const a = document.createElement('a');
+    var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = name + '.' + ext;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   if (kind === 'html') {
-    const html = '<!doctype html><html><head><meta charset="utf-8"><title>' + name + '</title>' + (fontCss ? '<style>' + fontCss + '</style>' : '') + '</head><body style="margin:0">' + xml + '</body></html>';
+    var html = '<!doctype html><html><head><meta charset="utf-8"><title>' + name + '</title>' + (fontCss ? '<style>' + fontCss + '</style>' : '') + '</head><body style="margin:0">' + xml + '</body></html>';
     return save(new Blob([html], {
       type: 'text/html'
     }), 'html');
@@ -743,15 +746,15 @@ async function dcExport(node, w, h, name, kind) {
   // and ctx.scale()-ing up would just upscale a 1× bitmap. viewBox maps the
   // w×h foreignObject onto the px·w × px·h SVG canvas so the browser renders
   // the HTML at full resolution.
-  const px = 3;
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w * px + '" height="' + h * px + '" viewBox="0 0 ' + w + ' ' + h + '"><foreignObject width="' + w + '" height="' + h + '">' + (fontCss ? '<style><![CDATA[' + fontCss + ']]></style>' : '') + xml + '</foreignObject></svg>';
-  const img = new Image();
+  var px = 3;
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w * px + '" height="' + h * px + '" viewBox="0 0 ' + w + ' ' + h + '"><foreignObject width="' + w + '" height="' + h + '">' + (fontCss ? '<style><![CDATA[' + fontCss + ']]></style>' : '') + xml + '</foreignObject></svg>';
+  var img = new Image();
   await new Promise((res, rej) => {
     img.onload = res;
     img.onerror = () => rej(new Error('svg load failed'));
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   });
-  const cv = document.createElement('canvas');
+  var cv = document.createElement('canvas');
   cv.width = w * px;
   cv.height = h * px;
   cv.getContext('2d').drawImage(img, 0, 0);
@@ -767,7 +770,7 @@ function DCArtboardFrame({
   onFocus,
   onDelete
 }) {
-  const {
+  var {
     id: rawId,
     label: rawLabel,
     width = 260,
@@ -775,12 +778,12 @@ function DCArtboardFrame({
     children,
     style = {}
   } = artboard.props;
-  const id = rawId ?? rawLabel;
-  const ref = React.useRef(null);
-  const cardRef = React.useRef(null);
-  const menuRef = React.useRef(null);
-  const [menuOpen, setMenuOpen] = React.useState(false);
-  const [confirming, setConfirming] = React.useState(false);
+  var id = rawId ?? rawLabel;
+  var ref = React.useRef(null);
+  var cardRef = React.useRef(null);
+  var menuRef = React.useRef(null);
+  var [menuOpen, setMenuOpen] = React.useState(false);
+  var [confirming, setConfirming] = React.useState(false);
 
   // ⋯ menu: close on any outside pointerdown. Two-click delete lives inside
   // the menu — first click arms the row, second commits; closing disarms.
@@ -789,56 +792,56 @@ function DCArtboardFrame({
       setConfirming(false);
       return;
     }
-    const off = e => {
+    var off = e => {
       if (!menuRef.current || !menuRef.current.contains(e.target)) setMenuOpen(false);
     };
     document.addEventListener('pointerdown', off, true);
     return () => document.removeEventListener('pointerdown', off, true);
   }, [menuOpen]);
-  const doExport = kind => {
+  var doExport = kind => {
     setMenuOpen(false);
     if (!cardRef.current) return;
-    const name = String(label || id || 'artboard').replace(/[^\w\s.-]+/g, '_');
+    var name = String(label || id || 'artboard').replace(/[^\w\s.-]+/g, '_');
     dcExport(cardRef.current, width, height, name, kind).catch(e => console.error('[design-canvas] export failed:', e));
   };
 
   // Live drag-reorder: dragged card sticks to cursor; siblings slide into
   // their would-be slots in real time via transforms. DOM order only
   // changes on drop.
-  const onGripDown = e => {
+  var onGripDown = e => {
     e.preventDefault();
     e.stopPropagation();
-    const me = ref.current;
+    var me = ref.current;
     // translateX is applied in local (pre-scale) space but pointer deltas and
     // getBoundingClientRect().left are screen-space — divide by the viewport's
     // current scale so the dragged card tracks the cursor at any zoom level.
-    const scale = me.getBoundingClientRect().width / me.offsetWidth || 1;
-    const peers = Array.from(document.querySelectorAll(`[data-dc-section="${sectionId}"] [data-dc-slot]`));
-    const homes = peers.map(el => ({
+    var scale = me.getBoundingClientRect().width / me.offsetWidth || 1;
+    var peers = Array.from(document.querySelectorAll(`[data-dc-section="${sectionId}"] [data-dc-slot]`));
+    var homes = peers.map(el => ({
       el,
       id: el.dataset.dcSlot,
       x: el.getBoundingClientRect().left
     }));
-    const slotXs = homes.map(h => h.x);
-    const startIdx = order.indexOf(id);
-    const startX = e.clientX;
-    let liveOrder = order.slice();
+    var slotXs = homes.map(h => h.x);
+    var startIdx = order.indexOf(id);
+    var startX = e.clientX;
+    var liveOrder = order.slice();
     me.classList.add('dc-dragging');
-    const layout = () => {
-      for (const h of homes) {
+    var layout = () => {
+      for (var h of homes) {
         if (h.id === id) continue;
-        const slot = liveOrder.indexOf(h.id);
+        var slot = liveOrder.indexOf(h.id);
         h.el.style.transform = `translateX(${(slotXs[slot] - h.x) / scale}px)`;
       }
     };
-    const move = ev => {
-      const dx = ev.clientX - startX;
+    var move = ev => {
+      var dx = ev.clientX - startX;
       me.style.transform = `translateX(${dx / scale}px)`;
-      const cur = homes[startIdx].x + dx;
-      let nearest = 0,
+      var cur = homes[startIdx].x + dx;
+      var nearest = 0,
         best = Infinity;
-      for (let i = 0; i < slotXs.length; i++) {
-        const d = Math.abs(slotXs[i] - cur);
+      for (var i = 0; i < slotXs.length; i++) {
+        var d = Math.abs(slotXs[i] - cur);
         if (d < best) {
           best = d;
           nearest = i;
@@ -850,22 +853,22 @@ function DCArtboardFrame({
         layout();
       }
     };
-    const up = () => {
+    var up = () => {
       document.removeEventListener('pointermove', move);
       document.removeEventListener('pointerup', up);
-      const finalSlot = liveOrder.indexOf(id);
+      var finalSlot = liveOrder.indexOf(id);
       me.classList.remove('dc-dragging');
       me.style.transform = `translateX(${(slotXs[finalSlot] - homes[startIdx].x) / scale}px)`;
       // After the settle transition, kill transitions + clear transforms +
       // commit the reorder in the same frame so there's no visual snap-back.
       setTimeout(() => {
-        for (const h of homes) {
+        for (var h of homes) {
           h.el.style.transition = 'none';
           h.el.style.transform = '';
         }
         if (liveOrder.join('|') !== order.join('|')) onReorder(liveOrder);
         requestAnimationFrame(() => requestAnimationFrame(() => {
-          for (const h of homes) h.el.style.transition = '';
+          for (var _h of homes) _h.el.style.transition = '';
         }));
       }, 180);
     };
@@ -1024,7 +1027,7 @@ function DCEditable({
   tag = 'span',
   onClick
 }) {
-  const T = tag;
+  var T = tag;
   return /*#__PURE__*/React.createElement(T, {
     className: "dc-editable",
     contentEditable: true,
@@ -1051,28 +1054,28 @@ function DCFocusOverlay({
   sectionMeta,
   sectionOrder
 }) {
-  const ctx = React.useContext(DCCtx);
-  const {
+  var ctx = React.useContext(DCCtx);
+  var {
     sectionId,
     artboard
   } = entry;
-  const sec = ctx.section(sectionId);
-  const meta = sectionMeta[sectionId];
-  const peers = meta.slotIds;
-  const aid = artboard.props.id ?? artboard.props.label;
-  const idx = peers.indexOf(aid);
-  const secIdx = sectionOrder.indexOf(sectionId);
-  const go = d => {
-    const n = peers[(idx + d + peers.length) % peers.length];
+  var sec = ctx.section(sectionId);
+  var meta = sectionMeta[sectionId];
+  var peers = meta.slotIds;
+  var aid = artboard.props.id ?? artboard.props.label;
+  var idx = peers.indexOf(aid);
+  var secIdx = sectionOrder.indexOf(sectionId);
+  var go = d => {
+    var n = peers[(idx + d + peers.length) % peers.length];
     if (n) ctx.setFocus(`${sectionId}/${n}`);
   };
-  const goSection = d => {
+  var goSection = d => {
     // Sections whose artboards are all deleted have slotIds:[] — step past
     // them to the next non-empty section so ↑/↓ doesn't dead-end.
-    const n = sectionOrder.length;
-    for (let i = 1; i < n; i++) {
-      const ns = sectionOrder[((secIdx + d * i) % n + n) % n];
-      const first = sectionMeta[ns] && sectionMeta[ns].slotIds[0];
+    var n = sectionOrder.length;
+    for (var i = 1; i < n; i++) {
+      var ns = sectionOrder[((secIdx + d * i) % n + n) % n];
+      var first = sectionMeta[ns] && sectionMeta[ns].slotIds[0];
       if (first) {
         ctx.setFocus(`${ns}/${first}`);
         return;
@@ -1080,7 +1083,7 @@ function DCFocusOverlay({
     }
   };
   React.useEffect(() => {
-    const k = e => {
+    var k = e => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         go(-1);
@@ -1101,26 +1104,26 @@ function DCFocusOverlay({
     document.addEventListener('keydown', k);
     return () => document.removeEventListener('keydown', k);
   });
-  const {
+  var {
     width = 260,
     height = 480,
     children
   } = artboard.props;
-  const [vp, setVp] = React.useState({
+  var [vp, setVp] = React.useState({
     w: window.innerWidth,
     h: window.innerHeight
   });
   React.useEffect(() => {
-    const r = () => setVp({
+    var r = () => setVp({
       w: window.innerWidth,
       h: window.innerHeight
     });
     window.addEventListener('resize', r);
     return () => window.removeEventListener('resize', r);
   }, []);
-  const scale = Math.max(0.1, Math.min((vp.w - 200) / width, (vp.h - 260) / height, 2));
-  const [ddOpen, setDd] = React.useState(false);
-  const Arrow = ({
+  var scale = Math.max(0.1, Math.min((vp.w - 200) / width, (vp.h - 260) / height, 2));
+  var [ddOpen, setDd] = React.useState(false);
+  var Arrow = ({
     dir,
     onClick
   }) => /*#__PURE__*/React.createElement("button", {
@@ -1253,7 +1256,7 @@ function DCFocusOverlay({
     key: sid,
     onClick: () => {
       setDd(false);
-      const f = sectionMeta[sid].slotIds[0];
+      var f = sectionMeta[sid].slotIds[0];
       if (f) ctx.setFocus(`${sid}/${f}`);
     },
     style: {

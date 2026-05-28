@@ -1,14 +1,14 @@
 // Module équipe commerciale — vue manager 10 commerciaux
 
-const SalesTeam = () => {
-  const Avatar = ({
+var SalesTeam = () => {
+  var Avatar = ({
     name,
     size = 24,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -23,7 +23,7 @@ const SalesTeam = () => {
       R: "#f97316",
       D: "#84cc16"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -43,7 +43,7 @@ const SalesTeam = () => {
   };
 
   // 10 commerciaux
-  const reps = [{
+  var reps = [{
     id: 1,
     name: "Nadia Lefèvre",
     role: "AE Senior · EMEA",
@@ -256,7 +256,7 @@ const SalesTeam = () => {
   }];
 
   // Team aggregates
-  const team = {
+  var team = {
     totalQuota: reps.reduce((s, r) => s + r.quotaTarget, 0),
     totalDone: reps.reduce((s, r) => s + r.quotaDone, 0),
     totalPipe: reps.reduce((s, r) => s + r.pipe, 0),
@@ -266,14 +266,14 @@ const SalesTeam = () => {
     totalMeetings: reps.reduce((s, r) => s + r.meetings, 0),
     avgWinRate: Math.round(reps.reduce((s, r) => s + r.winRate, 0) / reps.length)
   };
-  const fmt = n => `${n.toLocaleString("fr-FR")} k€`;
-  const teamAttainment = Math.round(team.totalDone / team.totalQuota * 100);
-  const statusColor = {
+  var fmt = n => `${n.toLocaleString("fr-FR")} k€`;
+  var teamAttainment = Math.round(team.totalDone / team.totalQuota * 100);
+  var statusColor = {
     online: "#10b981",
     away: "#f59e0b",
     offline: "#cbd5e1"
   };
-  const trendIcon = t => t === "up" ? /*#__PURE__*/React.createElement("span", {
+  var trendIcon = t => t === "up" ? /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#10b981"
     }
@@ -288,7 +288,7 @@ const SalesTeam = () => {
   }, "\u2014");
 
   // Sparkline data (fake per rep)
-  const sparks = {
+  var sparks = {
     1: [40, 55, 48, 62, 70, 68, 78, 85, 82, 92, 88, 95],
     2: [35, 42, 48, 55, 58, 62, 68, 72, 78, 82, 85, 88],
     3: [30, 38, 45, 52, 48, 58, 62, 68, 65, 72, 78, 76],
@@ -672,10 +672,10 @@ const SalesTeam = () => {
   }, "\u2630 Table"))), /*#__PURE__*/React.createElement("div", {
     style: teamStyles.repsGrid
   }, reps.map(r => {
-    const pct = Math.round(r.quotaDone / r.quotaTarget * 100);
-    const isTop = r.rank <= 3;
-    const isRisk = pct < 60;
-    const isLeader = r.rank === 1;
+    var pct = Math.round(r.quotaDone / r.quotaTarget * 100);
+    var isTop = r.rank <= 3;
+    var isRisk = pct < 60;
+    var isLeader = r.rank === 1;
     return /*#__PURE__*/React.createElement("div", {
       key: r.id,
       style: {
@@ -883,19 +883,19 @@ const SalesTeam = () => {
 };
 
 // Mini components
-const Sparkline = ({
+var Sparkline = ({
   data,
   color,
   w = 220,
   h = 32
 }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const step = w / (data.length - 1);
-  const points = data.map((v, i) => `${i * step},${h - (v - min) / range * h}`).join(" ");
-  const last = data[data.length - 1];
-  const lastY = h - (last - min) / range * h;
+  var max = Math.max(...data);
+  var min = Math.min(...data);
+  var range = max - min || 1;
+  var step = w / (data.length - 1);
+  var points = data.map((v, i) => `${i * step},${h - (v - min) / range * h}`).join(" ");
+  var last = data[data.length - 1];
+  var lastY = h - (last - min) / range * h;
   return /*#__PURE__*/React.createElement("svg", {
     width: "100%",
     viewBox: `0 0 ${w} ${h}`,
@@ -936,14 +936,14 @@ const Sparkline = ({
     strokeWidth: "1.5"
   }));
 };
-const ActBar = ({
+var ActBar = ({
   label,
   value,
   max,
   color,
   icon
 }) => {
-  const pct = Math.min(value / max * 100, 100);
+  var pct = Math.min(value / max * 100, 100);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -989,7 +989,7 @@ const ActBar = ({
     }
   }, value));
 };
-const teamStyles = {
+var teamStyles = {
   frame: {
     width: 1440,
     height: 2400,

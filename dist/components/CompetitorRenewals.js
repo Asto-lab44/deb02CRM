@@ -1,14 +1,14 @@
 // Module « Fin de contrats concurrents » — radar opportunités
 
-const CompetitorRenewals = () => {
-  const Avatar = ({
+var CompetitorRenewals = () => {
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -18,7 +18,7 @@ const CompetitorRenewals = () => {
       J: "#8b5cf6",
       P: "#0891b2"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -38,7 +38,7 @@ const CompetitorRenewals = () => {
   };
 
   // Concurrents — palette de marque (fictive, identifiable)
-  const competitors = {
+  var competitors = {
     salesforce: {
       name: "Salesforce",
       abbr: "SF",
@@ -90,7 +90,7 @@ const CompetitorRenewals = () => {
   };
 
   // Dates clés : prospects avec contrats concurrents arrivant à terme
-  const renewals = [{
+  var renewals = [{
     id: "REN-2026-001",
     company: "Mutuelle des Hauts-de-Seine",
     logo: "MH",
@@ -339,8 +339,8 @@ const CompetitorRenewals = () => {
     action: "Présentation comité IT 12 juin",
     productMatch: "Astorya Suite"
   }];
-  const scoreColor = s => s >= 85 ? "#10b981" : s >= 70 ? "#a855f7" : s >= 55 ? "#f59e0b" : "#94a3b8";
-  const tierColor = t => t === "A" ? {
+  var scoreColor = s => s >= 85 ? "#10b981" : s >= 70 ? "#a855f7" : s >= 55 ? "#f59e0b" : "#94a3b8";
+  var tierColor = t => t === "A" ? {
     bg: "#fef3c7",
     color: "#a16207",
     border: "#fde68a"
@@ -353,14 +353,14 @@ const CompetitorRenewals = () => {
     color: "#475569",
     border: "#e2e8f0"
   };
-  const totalValue = renewals.reduce((s, r) => s + r.value, 0);
-  const next90 = renewals.filter(r => r.endIn <= 90);
-  const next90Value = next90.reduce((s, r) => s + r.value, 0);
-  const hotCount = renewals.filter(r => r.score >= 80).length;
+  var totalValue = renewals.reduce((s, r) => s + r.value, 0);
+  var next90 = renewals.filter(r => r.endIn <= 90);
+  var next90Value = next90.reduce((s, r) => s + r.value, 0);
+  var hotCount = renewals.filter(r => r.score >= 80).length;
 
   // Buckets pour la timeline
-  const months = ["Juin 26", "Juil. 26", "Août 26", "Sept. 26", "Oct.-Nov. 26", "Déc. 26+"];
-  const inMonth = (r, m) => {
+  var months = ["Juin 26", "Juil. 26", "Août 26", "Sept. 26", "Oct.-Nov. 26", "Déc. 26+"];
+  var inMonth = (r, m) => {
     if (m === 0) return r.endDate.includes("juin");
     if (m === 1) return r.endDate.includes("juil");
     if (m === 2) return r.endDate.includes("août");
@@ -491,7 +491,7 @@ const CompetitorRenewals = () => {
   }, /*#__PURE__*/React.createElement("div", {
     style: crStyles.navLabel
   }, "Concurrents suivis"), Object.entries(competitors).slice(0, 6).map(([k, c]) => {
-    const count = renewals.filter(r => r.competitor === k).length;
+    var count = renewals.filter(r => r.competitor === k).length;
     return /*#__PURE__*/React.createElement("div", {
       key: k,
       style: crStyles.navItem
@@ -815,9 +815,9 @@ const CompetitorRenewals = () => {
   }))), /*#__PURE__*/React.createElement("div", {
     style: crStyles.tlMonths
   }, months.map((m, i) => {
-    const items = renewals.filter(r => inMonth(r, i));
-    const sum = items.reduce((s, r) => s + r.value, 0);
-    const isUrgent = i <= 1;
+    var items = renewals.filter(r => inMonth(r, i));
+    var sum = items.reduce((s, r) => s + r.value, 0);
+    var isUrgent = i <= 1;
     return /*#__PURE__*/React.createElement("div", {
       key: m,
       style: {
@@ -846,8 +846,8 @@ const CompetitorRenewals = () => {
     }, items.length, " \xB7 ", sum, " k\u20AC")), /*#__PURE__*/React.createElement("div", {
       style: crStyles.tlBubbles
     }, items.map(r => {
-      const size = Math.max(28, Math.min(54, 28 + r.value / 12));
-      const noticeMeta = r.noticeStatus === "passed" ? "#dc2626" : r.noticeStatus === "soon" ? "#f59e0b" : "#10b981";
+      var size = Math.max(28, Math.min(54, 28 + r.value / 12));
+      var noticeMeta = r.noticeStatus === "passed" ? "#dc2626" : r.noticeStatus === "soon" ? "#f59e0b" : "#10b981";
       return /*#__PURE__*/React.createElement("div", {
         key: r.id,
         style: {
@@ -901,9 +901,9 @@ const CompetitorRenewals = () => {
   })), /*#__PURE__*/React.createElement("div", {
     style: crStyles.rows
   }, renewals.map(r => {
-    const c = competitors[r.competitor];
-    const tc = tierColor(r.tier);
-    const isUrgent = r.endIn <= 60;
+    var c = competitors[r.competitor];
+    var tc = tierColor(r.tier);
+    var isUrgent = r.endIn <= 60;
     return /*#__PURE__*/React.createElement("div", {
       key: r.id,
       style: {
@@ -1235,7 +1235,7 @@ const CompetitorRenewals = () => {
     }
   })));
 };
-const Legend = ({
+var Legend = ({
   dot,
   label
 }) => /*#__PURE__*/React.createElement("div", {
@@ -1254,7 +1254,7 @@ const Legend = ({
     background: dot
   }
 }), /*#__PURE__*/React.createElement("span", null, label));
-const crStyles = {
+var crStyles = {
   frame: {
     width: 1440,
     height: 1700,

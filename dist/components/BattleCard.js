@@ -1,21 +1,21 @@
 // Battle card concurrent — Salesforce
 
-const BattleCard = () => {
-  const Avatar = ({
+var BattleCard = () => {
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       N: "#a855f7",
       S: "#10b981",
       T: "#f59e0b",
       E: "#0ea5e9"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -661,7 +661,7 @@ const BattleCard = () => {
     }
   }, r.contact))))))));
 };
-const BarRow = ({
+var BarRow = ({
   label,
   value,
   max,
@@ -706,7 +706,7 @@ const BarRow = ({
     textAlign: "right"
   }
 }, value, "%"));
-const bcStyles = {
+var bcStyles = {
   frame: {
     width: 1440,
     padding: 28,
@@ -992,11 +992,11 @@ const bcStyles = {
 };
 
 // Add bullet marker via pseudo not possible inline; use marker color via span instead
-const inject = `
+var inject = `
 .bc-bullet::before { content: "●"; color: #4f46e5; position: absolute; left: 0; top: 0; font-size: 10px; }
 `;
 if (typeof document !== "undefined" && !document.getElementById("bc-styles")) {
-  const s = document.createElement("style");
+  var s = document.createElement("style");
   s.id = "bc-styles";
   s.textContent = inject;
   document.head.appendChild(s);

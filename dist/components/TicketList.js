@@ -1,41 +1,41 @@
 // Écran 1 — Liste des tickets (vue utilisateur final, helpdesk IT interne)
 
-const TicketList = () => {
+var TicketList = () => {
   // ───── Hotline CTI : popup déclenchée par un appel entrant (simulé en démo,
   // brancher sur le webhook 3CX en prod). Cycle séquentiel des 4 scénarios.
-  const [activeCall, setActiveCall] = React.useState(null);
-  const [callIdx, setCallIdx] = React.useState(0);
-  const [lastCreated, setLastCreated] = React.useState(null);
-  const callers = typeof window !== "undefined" && window.HOTLINE_DEMO_CALLERS || [];
-  const simulateCall = () => {
+  var [activeCall, setActiveCall] = React.useState(null);
+  var [callIdx, setCallIdx] = React.useState(0);
+  var [lastCreated, setLastCreated] = React.useState(null);
+  var callers = typeof window !== "undefined" && window.HOTLINE_DEMO_CALLERS || [];
+  var simulateCall = () => {
     if (!callers.length) return;
     setActiveCall(callers[callIdx % callers.length]);
     setCallIdx(i => i + 1);
   };
-  const handleCreateTicket = ticket => {
+  var handleCreateTicket = ticket => {
     setLastCreated(ticket);
     setTimeout(() => setLastCreated(null), 6000);
   };
 
   // ───── Création d'un nouveau ticket : ouvre la modale complète
   // Auto-ouverture si URL contient ?new=1 (depuis le bouton de la fiche détail)
-  const [newTicketOpen, setNewTicketOpen] = React.useState(() => {
+  var [newTicketOpen, setNewTicketOpen] = React.useState(() => {
     if (typeof window === "undefined") return false;
     return new URLSearchParams(window.location.search).get("new") === "1";
   });
-  const openNewTicket = () => setNewTicketOpen(true);
+  var openNewTicket = () => setNewTicketOpen(true);
 
   // ───── Sélection d'un ticket : ouvre la fiche détail
-  const [selectedTicketId, setSelectedTicketId] = React.useState(null);
+  var [selectedTicketId, setSelectedTicketId] = React.useState(null);
 
   // ───── Filtre actif sur la liste : { kind, value }
   // Lu depuis l'URL au montage (ex. /ticketing?status=open ou ?assignee=me)
-  const initialFilter = (() => {
+  var initialFilter = (() => {
     if (typeof window === "undefined") return {
       kind: "all",
       value: null
     };
-    const sp = new URLSearchParams(window.location.search);
+    var sp = new URLSearchParams(window.location.search);
     if (sp.get("status")) return {
       kind: "status",
       value: sp.get("status")
@@ -69,9 +69,9 @@ const TicketList = () => {
       value: null
     };
   })();
-  const [filter, setFilter] = React.useState(initialFilter);
-  const isFilterActive = (kind, value) => filter.kind === kind && (value === undefined || filter.value === value);
-  const setFilterIfDifferent = (kind, value) => {
+  var [filter, setFilter] = React.useState(initialFilter);
+  var isFilterActive = (kind, value) => filter.kind === kind && (value === undefined || filter.value === value);
+  var setFilterIfDifferent = (kind, value) => {
     if (isFilterActive(kind, value)) setFilter({
       kind: "all",
       value: null
@@ -82,29 +82,29 @@ const TicketList = () => {
   };
 
   // ───── Recherche libre, tri et pagination
-  const [searchText, setSearchText] = React.useState("");
-  const [sortBy, setSortBy] = React.useState({
+  var [searchText, setSearchText] = React.useState("");
+  var [sortBy, setSortBy] = React.useState({
     field: "updated",
     dir: "desc"
   });
-  const [page, setPage] = React.useState(1);
-  const PAGE_SIZE = 13;
-  const toggleSort = field => setSortBy(s => s.field === field ? {
+  var [page, setPage] = React.useState(1);
+  var PAGE_SIZE = 13;
+  var toggleSort = field => setSortBy(s => s.field === field ? {
     field,
     dir: s.dir === "asc" ? "desc" : "asc"
   } : {
     field,
     dir: "asc"
   });
-  const exportCsv = () => {
-    const rows = [["ID", "Client", "Sujet", "Statut", "Priorité", "Catégorie", "Assigné", "SLA", "Mise à jour"]];
+  var exportCsv = () => {
+    var rows = [["ID", "Client", "Sujet", "Statut", "Priorité", "Catégorie", "Assigné", "SLA", "Mise à jour"]];
     tickets.forEach(t => rows.push([t.id, t.client?.name || "", t.title, t.status, t.prio, t.cat, t.assignee?.name || "Non assigné", t.sla?.left || "", t.updated]));
-    const csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob(["﻿" + csv], {
+    var csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    var blob = new Blob(["﻿" + csv], {
       type: "text/csv;charset=utf-8;"
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
     a.href = url;
     a.download = `tickets-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
@@ -114,12 +114,12 @@ const TicketList = () => {
   };
 
   // ───── Menu utilisateur (pied de sidebar)
-  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
-  const handleLogout = () => {
+  var [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  var handleLogout = () => {
     if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
     setUserMenuOpen(false);
   };
-  const handleTicketCreated = ticket => {
+  var handleTicketCreated = ticket => {
     setLastCreated({
       ticketId: ticket.id,
       client: ticket.client_id || "—",
@@ -131,13 +131,13 @@ const TicketList = () => {
   };
 
   // ───── Données live depuis Supabase si configuré, sinon fallback inline
-  const dataEnabled = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
-  const [liveTickets, setLiveTickets] = React.useState(null);
+  var dataEnabled = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+  var [liveTickets, setLiveTickets] = React.useState(null);
   React.useEffect(() => {
     if (!dataEnabled) return;
-    let cancelled = false;
-    const load = async () => {
-      const {
+    var cancelled = false;
+    var load = async () => {
+      var {
         data,
         error
       } = await window.HubData.fetchTickets({
@@ -148,13 +148,13 @@ const TicketList = () => {
       setLiveTickets((data || []).map(mapSupaTicket));
     };
     load();
-    const off = window.HubData.subscribeChanges(load);
+    var off = window.HubData.subscribeChanges(load);
     return () => {
       cancelled = true;
       off && off();
     };
   }, [dataEnabled]);
-  const tickets = liveTickets || [{
+  var tickets = liveTickets || [{
     id: "REQ-1198",
     client: {
       name: "AXA Wealth France",
@@ -447,15 +447,15 @@ const TicketList = () => {
   // de Supabase qui ont déjà leur compteur via mapSupaTicket.
   if (!liveTickets) {
     try {
-      for (const t of tickets) {
-        const extra = JSON.parse(localStorage.getItem("hubAstorya.ticketMsgs.v1." + t.id) || "[]").length;
+      for (var t of tickets) {
+        var extra = JSON.parse(localStorage.getItem("hubAstorya.ticketMsgs.v1." + t.id) || "[]").length;
         if (extra) t.msgs = (t.msgs || 0) + extra;
       }
     } catch (e) {}
   }
 
   // Indicateur visuel du contrat de maintenance parc IT — green/amber/red.
-  const maintMeta = {
+  var maintMeta = {
     active: {
       color: "#10b981",
       soft: "#dcfce7",
@@ -477,7 +477,7 @@ const TicketList = () => {
   };
 
   // Cycle de vie collaborateur — création/désactivation de comptes, facturable.
-  const lifecycleMeta = {
+  var lifecycleMeta = {
     onboarding: {
       icon: "👤+",
       label: "Arrivée",
@@ -493,11 +493,11 @@ const TicketList = () => {
       border: "#fdba74"
     }
   };
-  const billableCount = tickets.filter(t => t.billable).length;
-  const onboardingCount = tickets.filter(t => t.lifecycle === "onboarding").length;
-  const offboardingCount = tickets.filter(t => t.lifecycle === "offboarding").length;
-  const escalatedCount = tickets.filter(t => t.escalated).length;
-  const statusMeta = {
+  var billableCount = tickets.filter(t => t.billable).length;
+  var onboardingCount = tickets.filter(t => t.lifecycle === "onboarding").length;
+  var offboardingCount = tickets.filter(t => t.lifecycle === "offboarding").length;
+  var escalatedCount = tickets.filter(t => t.escalated).length;
+  var statusMeta = {
     open: {
       label: "Ouvert",
       dot: "#3b82f6",
@@ -529,7 +529,7 @@ const TicketList = () => {
       text: "#475569"
     }
   };
-  const prioMeta = {
+  var prioMeta = {
     critique: {
       label: "Critique",
       color: "#dc2626",
@@ -551,7 +551,7 @@ const TicketList = () => {
       soft: "#f1f3f6"
     }
   };
-  const slaColor = {
+  var slaColor = {
     ok: "#10b981",
     warn: "#f59e0b",
     danger: "#dc2626",
@@ -559,7 +559,7 @@ const TicketList = () => {
   };
 
   // counts
-  const counts = {
+  var counts = {
     all: tickets.length,
     mine: 4,
     open: tickets.filter(t => t.status === "open").length,
@@ -567,14 +567,14 @@ const TicketList = () => {
     waiting: tickets.filter(t => t.status === "waiting").length,
     resolved: tickets.filter(t => t.status === "resolved").length
   };
-  const Avatar = ({
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -582,7 +582,7 @@ const TicketList = () => {
       É: "#a855f7",
       C: "#ef4444"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -604,7 +604,7 @@ const TicketList = () => {
   // ───── Vue détail inline : si un ticket est sélectionné, on rend TicketDetail
   // à la place de la liste (même page, pas de modal par-dessus).
   if (selectedTicketId) {
-    const selected = tickets.find(t => t.id === selectedTicketId) || {
+    var selected = tickets.find(t => t.id === selectedTicketId) || {
       id: selectedTicketId
     };
     return /*#__PURE__*/React.createElement(TicketDetail, {
@@ -752,7 +752,7 @@ const TicketList = () => {
     label: "Résolus",
     c: counts.resolved
   }].map(n => {
-    const active = isFilterActive("status", n.k);
+    var active = isFilterActive("status", n.k);
     return /*#__PURE__*/React.createElement("div", {
       key: n.k,
       onClick: () => setFilterIfDifferent("status", n.k),
@@ -907,8 +907,8 @@ const TicketList = () => {
     label: "Messagerie",
     match: "Messagerie"
   }].map(n => {
-    const count = tickets.filter(t => (t.cat || "").toLowerCase().includes(n.match.toLowerCase())).length;
-    const active = isFilterActive("category", n.match);
+    var count = tickets.filter(t => (t.cat || "").toLowerCase().includes(n.match.toLowerCase())).length;
+    var active = isFilterActive("category", n.match);
     return /*#__PURE__*/React.createElement("div", {
       key: n.label,
       onClick: () => setFilterIfDifferent("category", n.match),
@@ -1298,7 +1298,7 @@ const TicketList = () => {
     label: "Fermés",
     c: tickets.filter(t => t.status === "closed").length
   }].map(t => {
-    const active = t.k === "all" ? filter.kind === "all" : isFilterActive("status", t.k);
+    var active = t.k === "all" ? filter.kind === "all" : isFilterActive("status", t.k);
     return /*#__PURE__*/React.createElement("button", {
       key: t.k,
       onClick: () => t.k === "all" ? setFilter({
@@ -1411,7 +1411,7 @@ const TicketList = () => {
   }), /*#__PURE__*/React.createElement("select", {
     value: sortBy.field + ":" + sortBy.dir,
     onChange: e => {
-      const [f, d] = e.target.value.split(":");
+      var [f, d] = e.target.value.split(":");
       setSortBy({
         field: f,
         dir: d
@@ -1480,8 +1480,8 @@ const TicketList = () => {
     w: 110,
     right: true
   }].map(c => {
-    const sortable = !!c.field;
-    const active = sortBy.field === c.field;
+    var sortable = !!c.field;
+    var active = sortBy.field === c.field;
     return /*#__PURE__*/React.createElement("div", {
       key: c.label,
       onClick: sortable ? () => toggleSort(c.field) : undefined,
@@ -1535,8 +1535,8 @@ const TicketList = () => {
   }, "\u2715 Retirer le filtre")), /*#__PURE__*/React.createElement("div", {
     style: tlStyles.rows
   }, (() => {
-    const lower = searchText.trim().toLowerCase();
-    let list = tickets.filter(t => {
+    var lower = searchText.trim().toLowerCase();
+    var list = tickets.filter(t => {
       if (lower && !`${t.id} ${t.title} ${t.cat} ${t.client?.name || ""} ${t.assignee?.name || ""}`.toLowerCase().includes(lower)) return false;
       if (filter.kind === "all") return true;
       if (filter.kind === "status") return t.status === filter.value;
@@ -1549,21 +1549,21 @@ const TicketList = () => {
       return true;
     });
     // Tri
-    const cmp = (a, b) => {
-      const f = sortBy.field;
-      const va = f === "id" ? a.id : f === "title" ? a.title : f === "status" ? a.status : f === "prio" ? a.prio : f === "updated" ? a.updated : a.id;
-      const vb = f === "id" ? b.id : f === "title" ? b.title : f === "status" ? b.status : f === "prio" ? b.prio : f === "updated" ? b.updated : b.id;
-      const r = String(va || "").localeCompare(String(vb || ""));
+    var cmp = (a, b) => {
+      var f = sortBy.field;
+      var va = f === "id" ? a.id : f === "title" ? a.title : f === "status" ? a.status : f === "prio" ? a.prio : f === "updated" ? a.updated : a.id;
+      var vb = f === "id" ? b.id : f === "title" ? b.title : f === "status" ? b.status : f === "prio" ? b.prio : f === "updated" ? b.updated : b.id;
+      var r = String(va || "").localeCompare(String(vb || ""));
       return sortBy.dir === "asc" ? r : -r;
     };
     list = list.slice().sort(cmp);
     // Pagination
-    const start = (page - 1) * PAGE_SIZE;
+    var start = (page - 1) * PAGE_SIZE;
     return list.slice(start, start + PAGE_SIZE);
   })().map((t, i) => {
-    const sm = statusMeta[t.status];
-    const pm = prioMeta[t.prio];
-    const isHighlight = i === 3; // VPN row — SLA risk
+    var sm = statusMeta[t.status];
+    var pm = prioMeta[t.prio];
+    var isHighlight = i === 3; // VPN row — SLA risk
     return /*#__PURE__*/React.createElement("div", {
       key: t.id,
       onClick: e => {
@@ -1596,7 +1596,7 @@ const TicketList = () => {
         gap: 6
       }
     }, t.client && (() => {
-      const m = maintMeta[t.client.maintenance];
+      var m = maintMeta[t.client.maintenance];
       return /*#__PURE__*/React.createElement("span", {
         title: `${t.client.name} — ${m.label} (${t.client.contract})`,
         style: {
@@ -1643,7 +1643,7 @@ const TicketList = () => {
         flexShrink: 0
       }
     }, "\u2191 ESCALAD\xC9"), t.lifecycle && (() => {
-      const lm = lifecycleMeta[t.lifecycle];
+      var lm = lifecycleMeta[t.lifecycle];
       return /*#__PURE__*/React.createElement("span", {
         title: `Cycle collaborateur : ${lm.label} (création/désactivation de comptes)`,
         style: {
@@ -1804,8 +1804,8 @@ const TicketList = () => {
       }
     }, t.updated)));
   })), (() => {
-    const lower = searchText.trim().toLowerCase();
-    const filteredCount = tickets.filter(t => {
+    var lower = searchText.trim().toLowerCase();
+    var filteredCount = tickets.filter(t => {
       if (lower && !`${t.id} ${t.title} ${t.cat} ${t.client?.name || ""} ${t.assignee?.name || ""}`.toLowerCase().includes(lower)) return false;
       if (filter.kind === "all") return true;
       if (filter.kind === "status") return t.status === filter.value;
@@ -1817,9 +1817,9 @@ const TicketList = () => {
       if (filter.kind === "category") return (t.cat || "").toLowerCase().includes(String(filter.value).toLowerCase());
       return true;
     }).length;
-    const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
-    const start = (page - 1) * PAGE_SIZE;
-    const end = Math.min(start + PAGE_SIZE, filteredCount);
+    var totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+    var start = (page - 1) * PAGE_SIZE;
+    var end = Math.min(start + PAGE_SIZE, filteredCount);
     return /*#__PURE__*/React.createElement("div", {
       style: tlStyles.foot
     }, /*#__PURE__*/React.createElement("div", {
@@ -1873,7 +1873,7 @@ const TicketList = () => {
     }
   }));
 };
-const SLA = ({
+var SLA = ({
   bar,
   color
 }) => {
@@ -1883,7 +1883,7 @@ const SLA = ({
       color: "#94a3b8"
     }
   }, "\u2014");
-  const pct = bar.risk === "danger" ? 92 : bar.risk === "warn" ? 78 : 38;
+  var pct = bar.risk === "danger" ? 92 : bar.risk === "warn" ? 78 : 38;
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
@@ -1910,7 +1910,7 @@ const SLA = ({
     }
   })));
 };
-const tlStyles = {
+var tlStyles = {
   frame: {
     width: 1440,
     height: 900,
@@ -2312,29 +2312,29 @@ const tlStyles = {
 // Convertit un ticket lu depuis Supabase au format attendu par le rendu
 // (lignes inline) pour ne pas avoir à refactorer tout le JSX d'un coup.
 function mapSupaTicket(t) {
-  const contract = t.client && t.client.contracts && t.client.contracts[0] || null;
-  const fmtRel = iso => {
+  var contract = t.client && t.client.contracts && t.client.contracts[0] || null;
+  var fmtRel = iso => {
     if (!iso) return "—";
-    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    var diff = (Date.now() - new Date(iso).getTime()) / 1000;
     if (diff < 60) return "à l'instant";
     if (diff < 3600) return `il y a ${Math.round(diff / 60)} min`;
     if (diff < 86400) return `il y a ${Math.round(diff / 3600)} h`;
     if (diff < 86400 * 2) return "hier";
     return `il y a ${Math.round(diff / 86400)} j`;
   };
-  const slaLeft = iso => {
+  var slaLeft = iso => {
     if (!iso) return {
       left: "—",
       risk: "done"
     };
-    const diff = (new Date(iso).getTime() - Date.now()) / 1000;
+    var diff = (new Date(iso).getTime() - Date.now()) / 1000;
     if (diff < 0) return {
       left: "Dépassé",
       risk: "danger"
     };
-    const h = Math.floor(diff / 3600);
-    const m = Math.floor(diff % 3600 / 60);
-    const risk = diff < 3600 ? "danger" : diff < 6 * 3600 ? "warn" : "ok";
+    var h = Math.floor(diff / 3600);
+    var m = Math.floor(diff % 3600 / 60);
+    var risk = diff < 3600 ? "danger" : diff < 6 * 3600 ? "warn" : "ok";
     return {
       left: h >= 24 ? `${Math.floor(h / 24)} j ${h % 24} h` : `${String(h).padStart(2, '0')} h ${String(m).padStart(2, '0')}`,
       risk

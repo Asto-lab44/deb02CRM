@@ -1,14 +1,14 @@
 // Dashboard displacements — wins/losses face aux concurrents
 
-const DisplacementDashboard = () => {
-  const Avatar = ({
+var DisplacementDashboard = () => {
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       N: "#a855f7",
       K: "#6366f1",
       S: "#10b981",
@@ -16,7 +16,7 @@ const DisplacementDashboard = () => {
       E: "#0ea5e9",
       C: "#ec4899"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -33,7 +33,7 @@ const DisplacementDashboard = () => {
       }
     }, initials);
   };
-  const competitors = [{
+  var competitors = [{
     k: "salesforce",
     name: "Salesforce",
     abbr: "SF",
@@ -104,12 +104,12 @@ const DisplacementDashboard = () => {
     openValue: 86,
     market: 4
   }];
-  const totalWins = competitors.reduce((s, c) => s + c.wins, 0);
-  const totalLosses = competitors.reduce((s, c) => s + c.losses, 0);
-  const totalWinRate = Math.round(totalWins / (totalWins + totalLosses) * 100);
+  var totalWins = competitors.reduce((s, c) => s + c.wins, 0);
+  var totalLosses = competitors.reduce((s, c) => s + c.losses, 0);
+  var totalWinRate = Math.round(totalWins / (totalWins + totalLosses) * 100);
 
   // Monthly displacement count
-  const monthly = [{
+  var monthly = [{
     m: "Juin 25",
     wins: 2,
     losses: 3
@@ -158,10 +158,10 @@ const DisplacementDashboard = () => {
     wins: 6,
     losses: 3
   }];
-  const monthMax = Math.max(...monthly.map(m => Math.max(m.wins, m.losses)));
+  var monthMax = Math.max(...monthly.map(m => Math.max(m.wins, m.losses)));
 
   // Recent displacements
-  const recent = [{
+  var recent = [{
     type: "win",
     co: "Crédit Mutuel Océan",
     logo: "CM",
@@ -490,8 +490,8 @@ const DisplacementDashboard = () => {
   })))), /*#__PURE__*/React.createElement("div", {
     style: dispStyles.chartBars
   }, monthly.map(m => {
-    const wH = m.wins / 8 * 100;
-    const lH = m.losses / 8 * 100;
+    var wH = m.wins / 8 * 100;
+    var lH = m.losses / 8 * 100;
     return /*#__PURE__*/React.createElement("div", {
       key: m.m,
       style: dispStyles.barGroup
@@ -576,8 +576,8 @@ const DisplacementDashboard = () => {
       textAlign: "right"
     }
   }, "Part march\xE9")), competitors.map(c => {
-    const wr = Math.round(c.wins / (c.wins + c.losses) * 100);
-    const wrColor = wr >= 60 ? "#10b981" : wr >= 50 ? "#a855f7" : wr >= 40 ? "#f59e0b" : "#dc2626";
+    var wr = Math.round(c.wins / (c.wins + c.losses) * 100);
+    var wrColor = wr >= 60 ? "#10b981" : wr >= 50 ? "#a855f7" : wr >= 40 ? "#f59e0b" : "#dc2626";
     return /*#__PURE__*/React.createElement("div", {
       key: c.k,
       style: dispStyles.compRow
@@ -882,7 +882,7 @@ const DisplacementDashboard = () => {
   }, "Tous"))), /*#__PURE__*/React.createElement("div", {
     style: dispStyles.recentList
   }, recent.map((r, i) => {
-    const comp = competitors.find(c => c.k === r.from);
+    var comp = competitors.find(c => c.k === r.from);
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -1003,7 +1003,7 @@ const DisplacementDashboard = () => {
     }, r.date))));
   }))));
 };
-const dispStyles = {
+var dispStyles = {
   frame: {
     width: 1440,
     padding: 24,

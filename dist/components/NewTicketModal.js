@@ -2,13 +2,13 @@
 // popup hotline (phase newTicket). Ouvert via le bouton "+ Nouveau ticket"
 // du sidebar et du header. Persiste en base si Supabase est configuré.
 
-const NewTicketModal = ({
+var NewTicketModal = ({
   open,
   onClose,
   onCreated,
   prefill
 }) => {
-  const [form, setForm] = React.useState({
+  var [form, setForm] = React.useState({
     client_id: "",
     caller_name: "",
     caller_phone: "",
@@ -19,10 +19,10 @@ const NewTicketModal = ({
     lifecycle: "",
     billable: false
   });
-  const [clients, setClients] = React.useState([]);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState(null);
-  const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+  var [clients, setClients] = React.useState([]);
+  var [submitting, setSubmitting] = React.useState(false);
+  var [error, setError] = React.useState(null);
+  var dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
 
   // Reset + charge la liste clients à chaque ouverture
   React.useEffect(() => {
@@ -69,15 +69,15 @@ const NewTicketModal = ({
         name: "La Banque Postale"
       }]);
     }
-    const onKey = e => {
+    var onKey = e => {
       if (e.key === "Escape" && onClose) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, dataOn]);
   if (!open) return null;
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
-  const submit = async e => {
+  var portalTarget = typeof document !== "undefined" ? document.body : null;
+  var submit = async e => {
     if (e && e.preventDefault) e.preventDefault();
     setError(null);
     if (!form.subject.trim()) {
@@ -85,10 +85,10 @@ const NewTicketModal = ({
       return;
     }
     setSubmitting(true);
-    const prefix = form.lifecycle ? "REQ" : "INC";
-    const ticketId = `${prefix}-${Math.floor(2900 + Math.random() * 99)}`;
-    const slaHours = form.priority === "critique" ? 2 : form.priority === "haute" ? 4 : form.priority === "normale" ? 24 : 72;
-    const payload = {
+    var prefix = form.lifecycle ? "REQ" : "INC";
+    var ticketId = `${prefix}-${Math.floor(2900 + Math.random() * 99)}`;
+    var slaHours = form.priority === "critique" ? 2 : form.priority === "haute" ? 4 : form.priority === "normale" ? 24 : 72;
+    var payload = {
       id: ticketId,
       client_id: form.client_id || null,
       title: form.subject.trim(),
@@ -102,14 +102,14 @@ const NewTicketModal = ({
       opened_at: new Date().toISOString()
     };
     if (dataOn) {
-      const {
+      var {
         data,
         error: dbErr
       } = await window.HubData.createTicket(payload);
       setSubmitting(false);
       if (dbErr) {
         // Diagnostic + fallback gracieux selon le type d'erreur
-        const raw = (dbErr.message || "").toLowerCase();
+        var raw = (dbErr.message || "").toLowerCase();
         if (/row-level security|policy|permission|42501/.test(raw)) {
           // RLS : on accepte quand même en local + on prévient
           onCreated && onCreated({
@@ -129,7 +129,7 @@ const NewTicketModal = ({
           onClose && onClose();
           return;
         }
-        let msg = dbErr.message || "Erreur inconnue";
+        var msg = dbErr.message || "Erreur inconnue";
         if (/violates foreign key/i.test(msg)) msg = "Référence client introuvable. Sélectionnez un client valide.";else if (/duplicate key/i.test(msg)) msg = "Conflit d'ID. Réessayez (un nouvel ID est tiré).";
         setError(msg);
         return;
@@ -147,7 +147,7 @@ const NewTicketModal = ({
       onClose && onClose();
     }
   };
-  const tree = /*#__PURE__*/React.createElement("div", {
+  var tree = /*#__PURE__*/React.createElement("div", {
     style: N.backdrop,
     onClick: onClose
   }, /*#__PURE__*/React.createElement("div", {
@@ -204,7 +204,7 @@ const NewTicketModal = ({
   }, "Type"), /*#__PURE__*/React.createElement("select", {
     value: form.lifecycle,
     onChange: e => {
-      const v = e.target.value;
+      var v = e.target.value;
       setForm({
         ...form,
         lifecycle: v,
@@ -350,7 +350,7 @@ const NewTicketModal = ({
   return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
 };
 window.NewTicketModal = NewTicketModal;
-const N = {
+var N = {
   backdrop: {
     position: "fixed",
     inset: 0,

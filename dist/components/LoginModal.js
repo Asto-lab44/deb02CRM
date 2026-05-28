@@ -2,18 +2,18 @@
 // Permet de choisir une identité parmi les utilisateurs prédéfinis afin de
 // positionner automatiquement le groupe actif et donc le filtrage des tuiles.
 
-const LoginModal = ({
+var LoginModal = ({
   open,
   onClose
 }) => {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [error, setError] = React.useState(null);
-  const [magicSent, setMagicSent] = React.useState(false);
-  const [sending, setSending] = React.useState(false);
-  const users = window.HubAccess.listUsers();
-  const mode = window.HubAccess.authMode && window.HubAccess.authMode() || "demo";
-  const isReal = mode === "supabase";
+  var [email, setEmail] = React.useState("");
+  var [password, setPassword] = React.useState("");
+  var [error, setError] = React.useState(null);
+  var [magicSent, setMagicSent] = React.useState(false);
+  var [sending, setSending] = React.useState(false);
+  var users = window.HubAccess.listUsers();
+  var mode = window.HubAccess.authMode && window.HubAccess.authMode() || "demo";
+  var isReal = mode === "supabase";
   React.useEffect(() => {
     if (!open) {
       setEmail("");
@@ -24,30 +24,30 @@ const LoginModal = ({
     }
   }, [open]);
   if (!open) return null;
-  const submit = async e => {
+  var submit = async e => {
     if (e && e.preventDefault) e.preventDefault();
     setError(null);
     if (isReal) {
       setSending(true);
-      const res = await window.HubAccess.sendMagicLink(email);
+      var _res = await window.HubAccess.sendMagicLink(email);
       setSending(false);
-      if (!res.ok) {
-        setError(res.error);
+      if (!_res.ok) {
+        setError(_res.error);
         return;
       }
       setMagicSent(true);
       return;
     }
-    const res = window.HubAccess.login(email, password);
+    var res = window.HubAccess.login(email, password);
     if (!res.ok) {
       setError(res.error);
       return;
     }
     onClose && onClose();
   };
-  const quickLogin = u => {
+  var quickLogin = u => {
     if (isReal) return; // pas de quick-login en mode auth réelle
-    const res = window.HubAccess.login(u.email, "demo");
+    var res = window.HubAccess.login(u.email, "demo");
     if (res.ok) {
       onClose && onClose();
     }
@@ -202,8 +202,8 @@ const LoginModal = ({
     }
   }, gid)))))))));
 };
-const avatarColor = name => {
-  const palette = {
+var avatarColor = name => {
+  var palette = {
     N: "#a855f7",
     H: "#6366f1",
     C: "#ef4444",
@@ -224,7 +224,7 @@ const avatarColor = name => {
   };
   return palette[name[0]] || "#64748b";
 };
-const M = {
+var M = {
   backdrop: {
     position: "fixed",
     inset: 0,

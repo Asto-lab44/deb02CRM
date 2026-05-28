@@ -1,31 +1,31 @@
 // Écran 2 — Détail ticket + conversation (vue utilisateur final)
 
-const TICKET_ID_DEFAULT = "INC-2837";
-const TicketDetail = ({
+var TICKET_ID_DEFAULT = "INC-2837";
+var TicketDetail = ({
   ticketId,
   ticketData,
   onBack
 } = {}) => {
-  const TICKET_ID = ticketId || TICKET_ID_DEFAULT;
+  var TICKET_ID = ticketId || TICKET_ID_DEFAULT;
   // ───── Actions ticket (résolution, escalade, réponse) wired sur Supabase
-  const [flash, setFlash] = React.useState(null);
-  const [composerTabState, setComposerTabState] = React.useState("reply");
-  const [replyText, setReplyText] = React.useState("");
-  const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+  var [flash, setFlash] = React.useState(null);
+  var [composerTabState, setComposerTabState] = React.useState("reply");
+  var [replyText, setReplyText] = React.useState("");
+  var dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
 
   // ───── Messages ajoutés par l'agent — Supabase si configuré, fallback localStorage.
   // En mode DB : lecture initiale + abonnement realtime pour la collaboration multi-agents.
-  const MSG_KEY = `hubAstorya.ticketMsgs.v1.${TICKET_ID}`;
-  const [addedMessages, setAddedMessages] = React.useState(() => {
+  var MSG_KEY = `hubAstorya.ticketMsgs.v1.${TICKET_ID}`;
+  var [addedMessages, setAddedMessages] = React.useState(() => {
     try {
       return JSON.parse(localStorage.getItem(MSG_KEY) || "[]");
     } catch (e) {
       return [];
     }
   });
-  const loadComments = React.useCallback(async () => {
+  var loadComments = React.useCallback(async () => {
     if (!dataOn || !window.HubData.fetchCommentsByTicket) return;
-    const {
+    var {
       data,
       error
     } = await window.HubData.fetchCommentsByTicket(TICKET_ID);
@@ -50,7 +50,7 @@ const TicketDetail = ({
   React.useEffect(() => {
     if (!dataOn) return;
     loadComments();
-    const off = window.HubData.subscribeCommentsForTicket && window.HubData.subscribeCommentsForTicket(TICKET_ID, loadComments);
+    var off = window.HubData.subscribeCommentsForTicket && window.HubData.subscribeCommentsForTicket(TICKET_ID, loadComments);
     return () => {
       off && off();
     };
@@ -66,8 +66,8 @@ const TicketDetail = ({
 
   // Données du ticket : prop si fournie (depuis TicketList), sinon valeurs par défaut
   // pour la maquette INC-2837 (Camille Dufour, VPN).
-  const t = ticketData || {};
-  const display = {
+  var t = ticketData || {};
+  var display = {
     title: t.title || "VPN se déconnecte toutes les 10 minutes",
     status: t.status || "in_progress",
     priority: t.priority || t.prio || "haute",
@@ -85,7 +85,7 @@ const TicketDetail = ({
       reason: t.escalated_reason
     } : t.escalated || null
   };
-  const statusMap = {
+  var statusMap = {
     open: {
       label: "Ouvert",
       color: "#3b82f6",
@@ -117,7 +117,7 @@ const TicketDetail = ({
       text: "#475569"
     }
   };
-  const priorityMap = {
+  var priorityMap = {
     critique: {
       label: "Critique",
       color: "#dc2626",
@@ -143,21 +143,21 @@ const TicketDetail = ({
       arrow: ""
     }
   };
-  const sMeta = statusMap[display.status] || statusMap.in_progress;
-  const pMeta = priorityMap[display.priority] || priorityMap.normale;
-  const showFlash = (msg, tone = "ok") => {
+  var sMeta = statusMap[display.status] || statusMap.in_progress;
+  var pMeta = priorityMap[display.priority] || priorityMap.normale;
+  var showFlash = (msg, tone = "ok") => {
     setFlash({
       msg,
       tone
     });
     setTimeout(() => setFlash(null), 3000);
   };
-  const resolveTicket = async () => {
+  var resolveTicket = async () => {
     if (!dataOn) {
       showFlash("Mode démo — branchement DB nécessaire", "warn");
       return;
     }
-    const {
+    var {
       error
     } = await window.HubData.updateTicket(TICKET_ID, {
       status: "resolved",
@@ -165,14 +165,14 @@ const TicketDetail = ({
     });
     if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket marqué comme résolu");
   };
-  const escalateTicket = async () => {
+  var escalateTicket = async () => {
     if (!dataOn) {
       showFlash("Mode démo — branchement DB nécessaire", "warn");
       return;
     }
-    const reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
+    var reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason) return;
-    const {
+    var {
       error
     } = await window.HubData.escalateTicket(TICKET_ID, {
       toUserId: null,
@@ -182,20 +182,20 @@ const TicketDetail = ({
     });
     if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket escaladé à Supervision");
   };
-  const sendReply = async () => {
-    const text = replyText.trim();
+  var sendReply = async () => {
+    var text = replyText.trim();
     if (!text) {
       showFlash("Réponse vide", "warn");
       return;
     }
-    const isNote = composerTabState === "note";
-    const currentUser = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
-    const fromName = currentUser?.name || "Vous";
-    const fromEmail = currentUser?.email || null;
+    var isNote = composerTabState === "note";
+    var currentUser = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
+    var fromName = currentUser?.name || "Vous";
+    var fromEmail = currentUser?.email || null;
 
     // En mode Supabase : on persiste en base et on laisse le realtime rafraîchir le fil
     if (dataOn && window.HubData.createComment) {
-      const {
+      var {
         error
       } = await window.HubData.createComment({
         ticket_id: TICKET_ID,
@@ -206,7 +206,7 @@ const TicketDetail = ({
       });
       if (error) {
         // Fallback local si l'insert échoue (RLS, etc.)
-        const msg = {
+        var msg = {
           type: "msg",
           from: fromName,
           role: isNote ? "note" : "agent",
@@ -230,7 +230,7 @@ const TicketDetail = ({
       }
     } else {
       // Mode démo
-      const msg = {
+      var _msg = {
         type: "msg",
         from: fromName,
         role: isNote ? "note" : "agent",
@@ -245,7 +245,7 @@ const TicketDetail = ({
         body: text,
         color: "#3730a3"
       };
-      setAddedMessages(prev => [...prev, msg]);
+      setAddedMessages(prev => [...prev, _msg]);
       showFlash(isNote ? "✓ Note interne enregistrée (local)" : "✓ Réponse envoyée (local)");
     }
     setReplyText("");
@@ -254,12 +254,12 @@ const TicketDetail = ({
   // Retranscriptions d'appel 3CX rattachées à ce ticket (alimentées par la
   // popup hotline). Affichées dans le fil de conversation, sous le dernier
   // message bot.
-  const subscribe = React.useCallback(fn => window.HubAccess && window.HubAccess.subscribe ? window.HubAccess.subscribe(fn) : () => {}, []);
-  const callNotes = React.useSyncExternalStore(subscribe, () => window.HubAccess && window.HubAccess.getTranscriptsForTicket ? window.HubAccess.getTranscriptsForTicket(TICKET_ID) : []);
-  const fmtDur = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-  const fmtWhen = iso => {
+  var subscribe = React.useCallback(fn => window.HubAccess && window.HubAccess.subscribe ? window.HubAccess.subscribe(fn) : () => {}, []);
+  var callNotes = React.useSyncExternalStore(subscribe, () => window.HubAccess && window.HubAccess.getTranscriptsForTicket ? window.HubAccess.getTranscriptsForTicket(TICKET_ID) : []);
+  var fmtDur = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  var fmtWhen = iso => {
     try {
-      const d = new Date(iso);
+      var d = new Date(iso);
       return d.toLocaleString("fr-FR", {
         day: "2-digit",
         month: "short",
@@ -270,15 +270,15 @@ const TicketDetail = ({
       return "";
     }
   };
-  const Avatar = ({
+  var Avatar = ({
     name,
     size = 28,
     color,
     role
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -286,7 +286,7 @@ const TicketDetail = ({
       C: "#ef4444",
       B: "#a855f7"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         position: "relative",
@@ -324,7 +324,7 @@ const TicketDetail = ({
       }
     }, "\u2605"));
   };
-  const events = [{
+  var events = [{
     type: "system",
     at: "il y a 2 j · 09:14",
     text: "Ticket créé par Camille Dufour depuis le portail self-service.",
@@ -508,7 +508,7 @@ const TicketDetail = ({
     c: 2,
     color: "#10b981"
   }].map(s => {
-    const active = display.status === s.k;
+    var active = display.status === s.k;
     return /*#__PURE__*/React.createElement("a", {
       key: s.k,
       href: `/ticketing?status=${s.k}`,
@@ -539,9 +539,9 @@ const TicketDetail = ({
       flex: 1
     }
   }), (() => {
-    const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
-    const name = u?.name || "Camille Dufour";
-    const role = u?.role || "Direction Marketing";
+    var u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
+    var name = u?.name || "Camille Dufour";
+    var role = u?.role || "Direction Marketing";
     return /*#__PURE__*/React.createElement("a", {
       href: "/administration-utilisateurs",
       title: "Profil & pr\xE9f\xE9rences",
@@ -717,7 +717,7 @@ const TicketDetail = ({
         showFlash("Mode démo — branchement DB nécessaire", "warn");
         return;
       }
-      const {
+      var {
         error
       } = await window.HubData.updateTicket(TICKET_ID, {
         escalated_to: null,
@@ -931,9 +931,9 @@ const TicketDetail = ({
         style: tdStyles.sysLine
       }));
     }
-    const isUser = e.role === "user";
-    const isBot = e.role === "bot";
-    const isNote = e.role === "note" || e.isNote;
+    var isUser = e.role === "user";
+    var isBot = e.role === "bot";
+    var isNote = e.role === "note" || e.isNote;
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -1269,7 +1269,7 @@ const TicketDetail = ({
     Avatar: Avatar
   })))));
 };
-const SidePanel = ({
+var SidePanel = ({
   Avatar
 }) => /*#__PURE__*/React.createElement("div", {
   style: {
@@ -1485,7 +1485,7 @@ const SidePanel = ({
 }, "Pi\xE8ces jointes"), /*#__PURE__*/React.createElement("div", {
   style: tdStyles.metricV
 }, "3")))));
-const Field = ({
+var Field = ({
   label,
   value
 }) => /*#__PURE__*/React.createElement("div", {
@@ -1495,7 +1495,7 @@ const Field = ({
 }, label), /*#__PURE__*/React.createElement("div", {
   style: tdStyles.fieldValue
 }, value));
-const tdStyles = {
+var tdStyles = {
   frame: {
     width: 1440,
     height: 900,
@@ -2108,7 +2108,7 @@ const tdStyles = {
     letterSpacing: -0.3
   }
 };
-const escStyles = {
+var escStyles = {
   banner: {
     display: "flex",
     alignItems: "center",
@@ -2192,7 +2192,7 @@ const escStyles = {
     borderRadius: 8
   }
 };
-const callStyles = {
+var callStyles = {
   row: {
     display: "flex",
     gap: 12,

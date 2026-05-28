@@ -1,14 +1,14 @@
 // Détail compte radar — drill-down Mutuelle des Hauts-de-Seine
 
-const RadarAccountDetail = () => {
-  const Avatar = ({
+var RadarAccountDetail = () => {
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       N: "#a855f7",
       K: "#6366f1",
       M: "#dc2626",
@@ -16,7 +16,7 @@ const RadarAccountDetail = () => {
       E: "#14b8a6",
       T: "#f59e0b"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -743,7 +743,7 @@ const RadarAccountDetail = () => {
     }
   }, "Optionnel \u2014 module conformit\xE9 DORA"))))));
 };
-const radStyles = {
+var radStyles = {
   frame: {
     width: 1440,
     display: "flex",

@@ -1,27 +1,27 @@
 // Page d'accueil ERP — tuiles des modules (filtrées par le groupe actif)
 
-const ERPHome = () => {
+var ERPHome = () => {
   // Identité active + accès aux tuiles, partagés avec la page Administration.
   // useSyncExternalStore re-render dès qu'un toggle d'accès change l'état.
-  const subscribe = React.useCallback(fn => window.HubAccess.subscribe(fn), []);
-  const activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
-  const allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
-  const allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
-  const currentUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
-  const [loginOpen, setLoginOpen] = React.useState(false);
-  const Avatar = ({
+  var subscribe = React.useCallback(fn => window.HubAccess.subscribe(fn), []);
+  var activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
+  var allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
+  var allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
+  var currentUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  var [loginOpen, setLoginOpen] = React.useState(false);
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       C: "#a855f7",
       N: "#a855f7",
       K: "#6366f1"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -40,7 +40,7 @@ const ERPHome = () => {
   };
 
   // ───── modules organisés par catégorie
-  const modules = [
+  var modules = [
   // COMMERCIAL
   {
     cat: "Commercial",
@@ -492,9 +492,9 @@ const ERPHome = () => {
       v: "23"
     }]
   }];
-  const visibleModules = modules.filter(m => allowedKeys.has(m.key));
-  const categories = [...new Set(visibleModules.map(m => m.cat))];
-  const badgeTones = {
+  var visibleModules = modules.filter(m => allowedKeys.has(m.key));
+  var categories = [...new Set(visibleModules.map(m => m.cat))];
+  var badgeTones = {
     new: {
       bg: "#4f46e5",
       color: "#fff"
@@ -603,8 +603,8 @@ const ERPHome = () => {
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.navLabel
   }, "Modules"), visibleModules.map(m => {
-    const href = window.HubNav && window.HubNav.ROUTES[m.key];
-    const item = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+    var href = window.HubNav && window.HubNav.ROUTES[m.key];
+    var item = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       style: {
         width: 14,
         color: m.color,
@@ -975,7 +975,7 @@ const ERPHome = () => {
       cursor: window.HubNav && window.HubNav.ROUTES[m.key] ? "pointer" : "default"
     },
     onClick: () => {
-      const r = window.HubNav && window.HubNav.ROUTES[m.key];
+      var r = window.HubNav && window.HubNav.ROUTES[m.key];
       if (r) window.location.href = r;
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1249,17 +1249,17 @@ const ERPHome = () => {
     }
   }, e.cat, " \xB7 ", e.time))))))));
 };
-const MiniSparkline = ({
+var MiniSparkline = ({
   data,
   color,
   w = 50,
   h = 18
 }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const step = w / (data.length - 1);
-  const points = data.map((v, i) => `${i * step},${h - (v - min) / range * h}`).join(" ");
+  var max = Math.max(...data);
+  var min = Math.min(...data);
+  var range = max - min || 1;
+  var step = w / (data.length - 1);
+  var points = data.map((v, i) => `${i * step},${h - (v - min) / range * h}`).join(" ");
   return /*#__PURE__*/React.createElement("svg", {
     width: w,
     height: h,
@@ -1276,7 +1276,7 @@ const MiniSparkline = ({
     strokeLinecap: "round"
   }));
 };
-const erpStyles = {
+var erpStyles = {
   frame: {
     width: 1440,
     display: "flex",

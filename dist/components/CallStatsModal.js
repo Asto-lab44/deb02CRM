@@ -2,24 +2,24 @@
 // répartie en 3 catégories de tickets (Incident / Demande / Problème).
 // Affichage : barres empilées + table récap + KPIs en haut.
 
-const CallStatsModal = ({
+var CallStatsModal = ({
   open,
   client,
   onClose
 }) => {
   React.useEffect(() => {
     if (!open) return;
-    const onKey = e => {
+    var onKey = e => {
       if (e.key === "Escape" && onClose) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
   if (!open) return null;
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
+  var portalTarget = typeof document !== "undefined" ? document.body : null;
 
   // 3 catégories de tickets (ajustable côté API/back-office)
-  const CATEGORIES = [{
+  var CATEGORIES = [{
     key: "incident",
     label: "Incident",
     color: "#dc2626",
@@ -41,7 +41,7 @@ const CallStatsModal = ({
 
   // Démo : 12 mois (juin 2025 → mai 2026) d'appels pour AXA Wealth France.
   // Saisonnalité plausible : pic mars-mai (clôtures), creux juillet-août.
-  const months = [{
+  var months = [{
     m: "Juin 25",
     incident: 4,
     demande: 6,
@@ -102,7 +102,7 @@ const CallStatsModal = ({
     demande: 11,
     probleme: 3
   }];
-  const totals = months.reduce((acc, m) => ({
+  var totals = months.reduce((acc, m) => ({
     incident: acc.incident + m.incident,
     demande: acc.demande + m.demande,
     probleme: acc.probleme + m.probleme
@@ -111,12 +111,12 @@ const CallStatsModal = ({
     demande: 0,
     probleme: 0
   });
-  const grandTotal = totals.incident + totals.demande + totals.probleme;
-  const peak = Math.max(...months.map(m => m.incident + m.demande + m.probleme));
-  const avgPerMonth = Math.round(grandTotal / months.length);
+  var grandTotal = totals.incident + totals.demande + totals.probleme;
+  var peak = Math.max(...months.map(m => m.incident + m.demande + m.probleme));
+  var avgPerMonth = Math.round(grandTotal / months.length);
   // Comparaison vs N-1 (fictif) : Mars 26 = pic à 29 vs 22 il y a un an = +32 %
-  const yoyDelta = 18;
-  const tree = /*#__PURE__*/React.createElement("div", {
+  var yoyDelta = 18;
+  var tree = /*#__PURE__*/React.createElement("div", {
     style: S.backdrop,
     onClick: onClose
   }, /*#__PURE__*/React.createElement("div", {
@@ -242,7 +242,7 @@ const CallStatsModal = ({
   }, /*#__PURE__*/React.createElement("div", {
     style: S.chartGrid
   }, months.map(m => {
-    const total = m.incident + m.demande + m.probleme;
+    var total = m.incident + m.demande + m.probleme;
     return /*#__PURE__*/React.createElement("div", {
       key: m.m,
       style: S.barCol
@@ -309,10 +309,10 @@ const CallStatsModal = ({
       textAlign: "right"
     }
   }, "Variation"))), /*#__PURE__*/React.createElement("tbody", null, months.map((m, i) => {
-    const total = m.incident + m.demande + m.probleme;
-    const prev = i > 0 ? months[i - 1] : null;
-    const prevTotal = prev ? prev.incident + prev.demande + prev.probleme : null;
-    const delta = prevTotal !== null ? total - prevTotal : null;
+    var total = m.incident + m.demande + m.probleme;
+    var prev = i > 0 ? months[i - 1] : null;
+    var prevTotal = prev ? prev.incident + prev.demande + prev.probleme : null;
+    var delta = prevTotal !== null ? total - prevTotal : null;
     return /*#__PURE__*/React.createElement("tr", {
       key: m.m,
       style: S.tr
@@ -414,7 +414,7 @@ const CallStatsModal = ({
   return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
 };
 window.CallStatsModal = CallStatsModal;
-const S = {
+var S = {
   backdrop: {
     position: "fixed",
     inset: 0,

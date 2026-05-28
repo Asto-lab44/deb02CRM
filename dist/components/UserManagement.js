@@ -1,25 +1,25 @@
 // Module Administration — Gestion utilisateurs, groupes et accès aux tuiles
 // Les groupes et l'identité active sont persistés via window.HubAccess (localStorage).
 
-const UserManagement = () => {
+var UserManagement = () => {
   // Données partagées avec l'Accueil ERP
-  const subscribeStore = React.useCallback(fn => window.HubAccess.subscribe(fn), []);
-  const persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
-  const activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
-  const currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
-  const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
-  const [loginOpen, setLoginOpen] = React.useState(false);
-  const [savedFlash, setSavedFlash] = React.useState(null);
-  const flashTimer = React.useRef(null);
-  const flash = text => {
+  var subscribeStore = React.useCallback(fn => window.HubAccess.subscribe(fn), []);
+  var persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
+  var activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
+  var currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
+  var [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
+  var [loginOpen, setLoginOpen] = React.useState(false);
+  var [savedFlash, setSavedFlash] = React.useState(null);
+  var flashTimer = React.useRef(null);
+  var flash = text => {
     setSavedFlash(text);
     if (flashTimer.current) clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setSavedFlash(null), 1800);
   };
-  const updateGroupAccess = (groupId, mutator) => {
-    const next = persistedGroups.map(g => {
+  var updateGroupAccess = (groupId, mutator) => {
+    var next = persistedGroups.map(g => {
       if (g.id !== groupId) return g;
-      const access = mutator(g.access);
+      var access = mutator(g.access);
       return {
         ...g,
         access
@@ -27,22 +27,22 @@ const UserManagement = () => {
     });
     window.HubAccess.saveGroups(next);
   };
-  const toggleTile = (groupId, key) => {
+  var toggleTile = (groupId, key) => {
     updateGroupAccess(groupId, access => {
-      const set = new Set(access);
+      var set = new Set(access);
       if (set.has(key)) set.delete(key);else set.add(key);
       return Array.from(set);
     });
     flash("Accès mis à jour");
   };
-  const Avatar = ({
+  var Avatar = ({
     name,
     size = 24,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -61,7 +61,7 @@ const UserManagement = () => {
       O: "#0e7a55",
       V: "#b45309"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -81,7 +81,7 @@ const UserManagement = () => {
   };
 
   // ───── modules ERP (mêmes clés que l'Accueil ERP)
-  const modules = [{
+  var modules = [{
     key: "crm",
     cat: "Commercial",
     title: "CRM",
@@ -160,11 +160,11 @@ const UserManagement = () => {
     color: "#64748b",
     bg: "#f1f3f6"
   }];
-  const ALL = modules.map(m => m.key);
-  const groups = persistedGroups;
+  var ALL = modules.map(m => m.key);
+  var groups = persistedGroups;
 
   // ───── utilisateurs (avec leurs groupes)
-  const users = [{
+  var users = [{
     name: "Nadia Lefèvre",
     email: "n.lefevre@astorya.fr",
     role: "Directrice technique",
@@ -284,14 +284,14 @@ const UserManagement = () => {
     status: "online",
     last: "il y a 32 min"
   }];
-  const selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
-  const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0];
-  const statusColor = {
+  var selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
+  var activeGroup = groups.find(g => g.id === activeGroupId) || groups[0];
+  var statusColor = {
     online: "#10b981",
     away: "#f59e0b",
     offline: "#cbd5e1"
   };
-  const groupChip = g => /*#__PURE__*/React.createElement("span", {
+  var groupChip = g => /*#__PURE__*/React.createElement("span", {
     key: g.id,
     style: {
       display: "inline-flex",
@@ -313,7 +313,7 @@ const UserManagement = () => {
       background: g.color
     }
   }), g.name);
-  const Toggle = ({
+  var Toggle = ({
     on
   }) => /*#__PURE__*/React.createElement("div", {
     style: {
@@ -337,8 +337,8 @@ const UserManagement = () => {
       boxShadow: "0 1px 2px rgba(0,0,0,.15)"
     }
   }));
-  const accessSet = new Set(selectedGroup.access);
-  const grantedCount = accessSet.size;
+  var accessSet = new Set(selectedGroup.access);
+  var grantedCount = accessSet.size;
   return /*#__PURE__*/React.createElement("div", {
     style: S.frame
   }, /*#__PURE__*/React.createElement("aside", {
@@ -686,8 +686,8 @@ const UserManagement = () => {
       flexDirection: "column"
     }
   }, groups.map(g => {
-    const active = g.id === selectedGroup.id;
-    const isViewer = g.id === activeGroup.id;
+    var active = g.id === selectedGroup.id;
+    var isViewer = g.id === activeGroup.id;
     return /*#__PURE__*/React.createElement("div", {
       key: g.id,
       onClick: () => setSelectedGroupId(g.id),
@@ -959,7 +959,7 @@ const UserManagement = () => {
   }, cat), /*#__PURE__*/React.createElement("div", {
     style: S.tilesGrid
   }, modules.filter(m => m.cat === cat).map(m => {
-    const on = accessSet.has(m.key);
+    var on = accessSet.has(m.key);
     return /*#__PURE__*/React.createElement("div", {
       key: m.key,
       onClick: () => toggleTile(selectedGroup.id, m.key),
@@ -1089,7 +1089,7 @@ const UserManagement = () => {
       gap: 4
     }
   }, u.groups.map(gid => {
-    const g = groups.find(x => x.id === gid);
+    var g = groups.find(x => x.id === gid);
     return g ? groupChip(g) : null;
   }))), /*#__PURE__*/React.createElement("td", {
     style: S.td
@@ -1143,7 +1143,7 @@ const UserManagement = () => {
 };
 
 // ───────── STYLES
-const S = {
+var S = {
   frame: {
     display: "flex",
     height: "100%",

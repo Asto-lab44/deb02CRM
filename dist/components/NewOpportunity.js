@@ -1,21 +1,21 @@
 // Formulaire nouvelle opportunité — modal / écran de création
 
-const NewOpportunity = () => {
-  const Avatar = ({
+var NewOpportunity = () => {
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       N: "#a855f7",
       K: "#6366f1",
       S: "#10b981",
       T: "#f59e0b",
       E: "#0ea5e9"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -1059,7 +1059,7 @@ const NewOpportunity = () => {
 };
 
 // ───── helpers
-const SectionHead = ({
+var SectionHead = ({
   num,
   title,
   subtitle,
@@ -1122,7 +1122,7 @@ const SectionHead = ({
     marginTop: 2
   }
 }, subtitle)));
-const FormRow = ({
+var FormRow = ({
   label,
   subtitle,
   required,
@@ -1156,7 +1156,7 @@ const FormRow = ({
     marginLeft: 4
   }
 }, subtitle)), children);
-const ChecklistRow = ({
+var ChecklistRow = ({
   done,
   active,
   label
@@ -1197,7 +1197,7 @@ const ChecklistRow = ({
     textDecoration: done ? "line-through" : "none"
   }
 }, label));
-const noStyles = {
+var noStyles = {
   frame: {
     width: 1440,
     height: 1700,

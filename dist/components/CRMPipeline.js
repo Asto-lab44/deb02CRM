@@ -1,27 +1,27 @@
 // Écran CRM 1 — Pipeline commercial (kanban + KPIs)
 
-const CRMPipeline = () => {
+var CRMPipeline = () => {
   // Filtre actif sur le pipeline (vue, produit, savedView…)
-  const [crmFilter, setCrmFilter] = React.useState({
+  var [crmFilter, setCrmFilter] = React.useState({
     kind: "all",
     value: null
   });
-  const isCrmActive = (kind, value) => crmFilter.kind === kind && (value === undefined || crmFilter.value === value);
-  const setCrmIfDiff = (kind, value) => setCrmFilter(isCrmActive(kind, value) ? {
+  var isCrmActive = (kind, value) => crmFilter.kind === kind && (value === undefined || crmFilter.value === value);
+  var setCrmIfDiff = (kind, value) => setCrmFilter(isCrmActive(kind, value) ? {
     kind: "all",
     value: null
   } : {
     kind,
     value
   });
-  const Avatar = ({
+  var Avatar = ({
     name,
     size = 22,
     color
   }) => {
     if (!name) return null;
-    const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
-    const palette = {
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
       K: "#6366f1",
       L: "#0ea5e9",
       T: "#f59e0b",
@@ -31,7 +31,7 @@ const CRMPipeline = () => {
       N: "#ec4899",
       J: "#14b8a6"
     };
-    const bg = color || palette[initials[0]] || "#64748b";
+    var bg = color || palette[initials[0]] || "#64748b";
     return /*#__PURE__*/React.createElement("div", {
       style: {
         width: size,
@@ -50,7 +50,7 @@ const CRMPipeline = () => {
       }
     }, initials);
   };
-  const columns = [{
+  var columns = [{
     key: "qualif",
     label: "Qualification",
     count: 8,
@@ -259,7 +259,7 @@ const CRMPipeline = () => {
       won: true
     }]
   }];
-  const tagMeta = {
+  var tagMeta = {
     Cyber: {
       bg: "#fdecec",
       color: "#dc2626"
@@ -344,7 +344,7 @@ const CRMPipeline = () => {
     icon: "▤",
     onClick: () => alert("Rapports BI\n(Sera connecté à la vue stats Supabase.)")
   }].map(n => {
-    const inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+    var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       style: {
         width: 14,
         color: n.active ? "#4f46e5" : "#94a3b8",
@@ -357,7 +357,7 @@ const CRMPipeline = () => {
     }, n.label), n.count && /*#__PURE__*/React.createElement("span", {
       style: crmStyles.navCount
     }, n.count));
-    const styleAct = {
+    var styleAct = {
       ...crmStyles.navItem,
       ...(n.active ? crmStyles.navItemActive : {}),
       cursor: "pointer"
@@ -397,7 +397,7 @@ const CRMPipeline = () => {
     color: "#dc2626",
     value: "stale"
   }].map(n => {
-    const active = isCrmActive("view", n.value);
+    var active = isCrmActive("view", n.value);
     return /*#__PURE__*/React.createElement("div", {
       key: n.label,
       onClick: () => setCrmIfDiff("view", n.value),
@@ -440,7 +440,7 @@ const CRMPipeline = () => {
     c: "9",
     color: "#dc2626"
   }].map(n => {
-    const active = isCrmActive("product", n.label);
+    var active = isCrmActive("product", n.label);
     return /*#__PURE__*/React.createElement("div", {
       key: n.label,
       onClick: () => setCrmIfDiff("product", n.label),
@@ -740,7 +740,7 @@ const CRMPipeline = () => {
   })), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.cards
   }, col.cards.map((c, i) => {
-    const tag = tagMeta[c.tag];
+    var tag = tagMeta[c.tag];
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -883,7 +883,7 @@ const CRMPipeline = () => {
     style: crmStyles.addCard
   }, "+ Ajouter une opportunit\xE9")))))));
 };
-const crmStyles = {
+var crmStyles = {
   frame: {
     width: 1440,
     height: 900,

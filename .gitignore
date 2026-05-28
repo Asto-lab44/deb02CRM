@@ -1,3 +1,5 @@
 vendor/
 preview-*.html
 node_modules/
+tools/node_modules/
+.deploy-trigger

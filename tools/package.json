@@ -1,11 +1,10 @@
 {
-  "name": "hub-astorya",
+  "name": "hub-astorya-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Hub Astorya — ERP + CRM + Hotline",
+  "description": "Local-only build tooling for Hub Astorya (precompile JSX). NOT used by Vercel.",
   "scripts": {
-    "build": "node build.js",
-    "prebuild": "rm -rf dist"
+    "build": "rm -rf ../dist && node build.js"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",

@@ -178,6 +178,7 @@
 
     const channel = supa.channel("hub-data")
       .on("postgres_changes", { event: "*", schema: "public", table: "tickets" },  () => invalidate("tickets"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, () => invalidate("tickets"))
       .on("postgres_changes", { event: "*", schema: "public", table: "groups" },   () => invalidate("groups"))
       .on("postgres_changes", { event: "*", schema: "public", table: "clients" },  () => invalidate("clients"))
       .on("postgres_changes", { event: "*", schema: "public", table: "assets" },   () => invalidate("assets"))

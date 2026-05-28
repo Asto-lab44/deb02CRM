@@ -25,7 +25,20 @@ const TicketList = () => {
   const [selectedTicketId, setSelectedTicketId] = React.useState(null);
 
   // ───── Filtre actif sur la liste : { kind, value }
-  const [filter, setFilter] = React.useState({ kind: "all", value: null });
+  // Lu depuis l'URL au montage (ex. /ticketing?status=open ou ?assignee=me)
+  const initialFilter = (() => {
+    if (typeof window === "undefined") return { kind: "all", value: null };
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("status"))     return { kind: "status",   value: sp.get("status") };
+    if (sp.get("priority"))   return { kind: "priority", value: sp.get("priority") };
+    if (sp.get("category"))   return { kind: "category", value: sp.get("category") };
+    if (sp.get("assignee"))   return { kind: "assignee", value: sp.get("assignee") === "me" ? (window.HubAccess?.getCurrentUser()?.name || "__unassigned__") : sp.get("assignee") };
+    if (sp.get("escalated"))  return { kind: "escalated", value: null };
+    if (sp.get("lifecycle"))  return { kind: "lifecycle", value: sp.get("lifecycle") };
+    if (sp.get("billable"))   return { kind: "billable",  value: null };
+    return { kind: "all", value: null };
+  })();
+  const [filter, setFilter] = React.useState(initialFilter);
   const isFilterActive = (kind, value) => filter.kind === kind && (value === undefined || filter.value === value);
   const setFilterIfDifferent = (kind, value) => {
     if (isFilterActive(kind, value)) setFilter({ kind: "all", value: null });

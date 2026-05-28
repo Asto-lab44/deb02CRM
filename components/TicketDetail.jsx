@@ -220,15 +220,32 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
         <button style={tdStyles.newBtn}>+ Nouveau ticket <span style={tdStyles.kbd}>N</span></button>
         <div style={tdStyles.navSection}>
           <div style={tdStyles.navLabel}>Mes vues</div>
-          <div style={tdStyles.navItem}><span style={tdStyles.bullet}>▦</span><span style={{ flex: 1 }}>Tous mes tickets</span><span style={tdStyles.navCount}>9</span></div>
-          <div style={tdStyles.navItem}><span style={tdStyles.bullet}>◉</span><span style={{ flex: 1 }}>Assignés à moi</span><span style={tdStyles.navCount}>4</span></div>
+          <a href="/ticketing" style={{ ...tdStyles.navItem, textDecoration: "none", color: "inherit" }} title="Retour à la liste complète">
+            <span style={tdStyles.bullet}>▦</span><span style={{ flex: 1 }}>Tous mes tickets</span><span style={tdStyles.navCount}>9</span>
+          </a>
+          <a href="/ticketing?assignee=me" style={{ ...tdStyles.navItem, textDecoration: "none", color: "inherit" }} title="Tickets assignés à moi">
+            <span style={tdStyles.bullet}>◉</span><span style={{ flex: 1 }}>Assignés à moi</span><span style={tdStyles.navCount}>4</span>
+          </a>
         </div>
         <div style={tdStyles.navSection}>
           <div style={tdStyles.navLabel}>Statuts</div>
-          <div style={tdStyles.navItem}><span style={{ width: 7, height: 7, borderRadius: 999, background: "#3b82f6" }} /><span style={{ flex: 1, marginLeft: 6 }}>Ouverts</span><span style={tdStyles.navCount}>2</span></div>
-          <div style={{ ...tdStyles.navItem, ...tdStyles.navItemActive }}><span style={{ width: 7, height: 7, borderRadius: 999, background: "#a855f7" }} /><span style={{ flex: 1, marginLeft: 6 }}>En cours</span><span style={tdStyles.navCount}>3</span></div>
-          <div style={tdStyles.navItem}><span style={{ width: 7, height: 7, borderRadius: 999, background: "#f59e0b" }} /><span style={{ flex: 1, marginLeft: 6 }}>En attente</span><span style={tdStyles.navCount}>1</span></div>
-          <div style={tdStyles.navItem}><span style={{ width: 7, height: 7, borderRadius: 999, background: "#10b981" }} /><span style={{ flex: 1, marginLeft: 6 }}>Résolus</span><span style={tdStyles.navCount}>2</span></div>
+          {[
+            { k: "open",        label: "Ouverts",    c: 2, color: "#3b82f6" },
+            { k: "in_progress", label: "En cours",   c: 3, color: "#a855f7" },
+            { k: "waiting",     label: "En attente", c: 1, color: "#f59e0b" },
+            { k: "resolved",    label: "Résolus",    c: 2, color: "#10b981" },
+          ].map((s) => {
+            const active = display.status === s.k;
+            return (
+              <a key={s.k} href={`/ticketing?status=${s.k}`}
+                 style={{ ...tdStyles.navItem, ...(active ? tdStyles.navItemActive : {}), textDecoration: "none", color: active ? "#3730a3" : "inherit" }}
+                 title={`Voir tous les tickets ${s.label.toLowerCase()}`}>
+                <span style={{ width: 7, height: 7, borderRadius: 999, background: s.color }} />
+                <span style={{ flex: 1, marginLeft: 6 }}>{s.label}</span>
+                <span style={tdStyles.navCount}>{s.c}</span>
+              </a>
+            );
+          })}
         </div>
         <div style={{ flex: 1 }} />
         <div style={tdStyles.userRow}>

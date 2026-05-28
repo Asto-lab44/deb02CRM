@@ -1,0 +1,11 @@
+package.json
+package-lock.json
+node_modules/
+build.js
+components/*.jsx
+design-canvas.jsx
+preview-*.html
+README.md
+DEVELOPMENT.md
+supabase/
+vendor/

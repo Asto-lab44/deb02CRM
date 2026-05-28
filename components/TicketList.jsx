@@ -17,6 +17,29 @@ const TicketList = () => {
     setTimeout(() => setLastCreated(null), 6000);
   };
 
+  // ───── Création d'un nouveau ticket (formulaire minimal, persisté DB si dispo)
+  const openNewTicket = async () => {
+    const title = prompt("Titre du nouveau ticket :");
+    if (!title) return;
+    const ticketId = "INC-" + Math.floor(2900 + Math.random() * 99);
+    const payload = {
+      id: ticketId, title,
+      status: "open", priority: "normale",
+      category: "Support technique",
+      opened_at: new Date().toISOString(),
+      sla_due_at: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+    };
+    if (window.HubData && window.HubData.enabled()) {
+      const { error } = await window.HubData.createTicket(payload);
+      if (error) { alert("Erreur création : " + error.message); return; }
+      setLastCreated({ ticketId, client: "—", subject: title });
+      setTimeout(() => setLastCreated(null), 6000);
+    } else {
+      setLastCreated({ ticketId, client: "Mode démo", subject: title });
+      setTimeout(() => setLastCreated(null), 6000);
+    }
+  };
+
   // ───── Données live depuis Supabase si configuré, sinon fallback inline
   const dataEnabled = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
   const [liveTickets, setLiveTickets] = React.useState(null);
@@ -118,26 +141,31 @@ const TicketList = () => {
           </div>
         </div>
 
-        <button style={tlStyles.newBtn}>
+        <button onClick={openNewTicket} style={tlStyles.newBtn}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
           <span>Nouveau ticket</span>
           <span style={tlStyles.kbd}>N</span>
         </button>
 
         <div style={tlStyles.navSection}>
-          <div style={tlStyles.navLabel}>Mes vues</div>
-          {[
-            { label: "Tous mes tickets", count: counts.all, active: true, icon: "▦" },
-            { label: "Assignés à moi",   count: counts.mine, icon: "◉" },
-            { label: "Brouillons",       count: 1, icon: "◌" },
-            { label: "Archivés",         count: 23, icon: "▤" },
-          ].map((n) => (
-            <div key={n.label} style={{ ...tlStyles.navItem, ...(n.active ? tlStyles.navItemActive : {}) }}>
-              <span style={{ width: 14, color: n.active ? "#4f46e5" : "#94a3b8", fontSize: 11 }}>{n.icon}</span>
-              <span style={{ flex: 1 }}>{n.label}</span>
-              <span style={tlStyles.navCount}>{n.count}</span>
-            </div>
-          ))}
+          <div style={tlStyles.navLabel}>Navigation</div>
+          <a href="/" style={{ ...tlStyles.navItem, textDecoration: "none", color: "inherit" }}>
+            <span style={{ width: 14, color: "#94a3b8", fontSize: 11 }}>⌂</span>
+            <span style={{ flex: 1 }}>Accueil</span>
+          </a>
+          <div style={{ ...tlStyles.navItem, ...tlStyles.navItemActive }}>
+            <span style={{ width: 14, color: "#4f46e5", fontSize: 11 }}>▦</span>
+            <span style={{ flex: 1 }}>Tous mes tickets</span>
+            <span style={tlStyles.navCount}>{counts.all}</span>
+          </div>
+          <a href="/fiche-client" style={{ ...tlStyles.navItem, textDecoration: "none", color: "inherit" }}>
+            <span style={{ width: 14, color: "#94a3b8", fontSize: 11 }}>◉</span>
+            <span style={{ flex: 1 }}>Fiche client</span>
+          </a>
+          <a href="/administration-utilisateurs" style={{ ...tlStyles.navItem, textDecoration: "none", color: "inherit" }}>
+            <span style={{ width: 14, color: "#94a3b8", fontSize: 11 }}>⚙</span>
+            <span style={{ flex: 1 }}>Administration</span>
+          </a>
         </div>
 
         <div style={tlStyles.navSection}>
@@ -273,7 +301,7 @@ const TicketList = () => {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={tlStyles.ghostBtn}>Exporter</button>
-            <button style={tlStyles.primaryBtn}>+ Nouveau ticket</button>
+            <button onClick={openNewTicket} style={tlStyles.primaryBtn}>+ Nouveau ticket</button>
           </div>
         </div>
 

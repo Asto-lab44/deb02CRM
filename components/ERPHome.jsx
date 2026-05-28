@@ -258,14 +258,20 @@ const ERPHome = () => {
 
         <div style={erpStyles.navSection}>
           <div style={erpStyles.navLabel}>Modules</div>
-          {visibleModules.map((m) => (
-            <div key={m.key} style={erpStyles.navItem}>
-              <span style={{ width: 14, color: m.color, display: "flex", alignItems: "center" }}>
-                <span style={{ width: 7, height: 7, borderRadius: 2, background: m.color, display: "inline-block" }} />
-              </span>
-              <span style={{ flex: 1 }}>{m.title}</span>
-            </div>
-          ))}
+          {visibleModules.map((m) => {
+            const href = window.HubNav && window.HubNav.ROUTES[m.key];
+            const item = (
+              <>
+                <span style={{ width: 14, color: m.color, display: "flex", alignItems: "center" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 2, background: m.color, display: "inline-block" }} />
+                </span>
+                <span style={{ flex: 1 }}>{m.title}</span>
+              </>
+            );
+            return href
+              ? <a key={m.key} href={href} style={{ ...erpStyles.navItem, textDecoration: "none", color: "inherit" }}>{item}</a>
+              : <div key={m.key} style={{ ...erpStyles.navItem, opacity: 0.5, cursor: "not-allowed" }} title="Module à venir">{item}</div>;
+          })}
         </div>
 
         <div style={{ flex: 1 }} />
@@ -400,7 +406,9 @@ const ERPHome = () => {
 
               <div style={erpStyles.tiles}>
                 {visibleModules.filter(m => m.cat === cat).map((m) => (
-                  <div key={m.key} style={erpStyles.tile}>
+                  <div key={m.key}
+                       style={{ ...erpStyles.tile, cursor: (window.HubNav && window.HubNav.ROUTES[m.key]) ? "pointer" : "default" }}
+                       onClick={() => { const r = window.HubNav && window.HubNav.ROUTES[m.key]; if (r) window.location.href = r; }}>
                     {/* Hover indicator */}
                     <div style={{ ...erpStyles.tileGlow, background: m.bg }} />
 

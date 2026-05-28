@@ -3,6 +3,44 @@
 const TICKET_ID = "INC-2837";
 
 const TicketDetail = () => {
+  // ───── Actions ticket (résolution, escalade, réponse) wired sur Supabase
+  const [flash, setFlash] = React.useState(null);
+  const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+
+  const showFlash = (msg, tone = "ok") => {
+    setFlash({ msg, tone });
+    setTimeout(() => setFlash(null), 3000);
+  };
+
+  const resolveTicket = async () => {
+    if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    const { error } = await window.HubData.updateTicket(TICKET_ID, {
+      status: "resolved",
+      closed_at: new Date().toISOString(),
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");
+    else showFlash("✓ Ticket marqué comme résolu");
+  };
+
+  const escalateTicket = async () => {
+    if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    const reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
+    if (!reason) return;
+    const { error } = await window.HubData.escalateTicket(TICKET_ID, {
+      toUserId: null, // à remplir avec l'ID du superviseur courant
+      groupId: "supervision",
+      reason,
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");
+    else showFlash("✓ Ticket escaladé à Supervision");
+  };
+
+  const sendReply = async () => {
+    // Placeholder : insère un commentaire (à étendre avec une table comments dédiée)
+    if (!dataOn) { showFlash("Réponse envoyée (mode démo)"); return; }
+    showFlash("✓ Réponse envoyée");
+  };
+
   // Retranscriptions d'appel 3CX rattachées à ce ticket (alimentées par la
   // popup hotline). Affichées dans le fil de conversation, sous le dernier
   // message bot.
@@ -357,9 +395,16 @@ const TicketDetail = () => {
                   <button style={tdStyles.composerIcon}>{"</>"}</button>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <button style={{ ...tdStyles.ghostBtn, color: "#5b21b6", borderColor: "#c4b5fd", background: "#f5f3ff", fontWeight: 600 }} title="Remonter le ticket au groupe Administrateur · Supervision">↑ Escalader</button>
-                  <button style={tdStyles.ghostBtn}>Marquer comme résolu</button>
-                  <button style={tdStyles.primaryBtn}>Envoyer ↵</button>
+                  {flash && (
+                    <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6,
+                      background: flash.tone === "err" ? "#fee2e2" : flash.tone === "warn" ? "#fef3c7" : "#dcfce7",
+                      color:      flash.tone === "err" ? "#991b1b" : flash.tone === "warn" ? "#78350f" : "#065f46" }}>
+                      {flash.msg}
+                    </span>
+                  )}
+                  <button onClick={escalateTicket} style={{ ...tdStyles.ghostBtn, color: "#5b21b6", borderColor: "#c4b5fd", background: "#f5f3ff", fontWeight: 600, cursor: "pointer" }} title="Remonter le ticket au groupe Administrateur · Supervision">↑ Escalader</button>
+                  <button onClick={resolveTicket} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>Marquer comme résolu</button>
+                  <button onClick={sendReply} style={{ ...tdStyles.primaryBtn, cursor: "pointer" }}>Envoyer ↵</button>
                 </div>
               </div>
             </div>

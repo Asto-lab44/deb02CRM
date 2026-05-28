@@ -125,9 +125,10 @@ const UserManagement = () => {
 
         <div style={S.navSection}>
           <div style={S.navLabel}>Navigation</div>
-          <div style={S.navItem}><span style={S.bullet}>⌂</span><span style={{ flex: 1 }}>Accueil</span></div>
-          <div style={S.navItem}><span style={S.bullet}>★</span><span style={{ flex: 1 }}>Favoris</span><span style={S.navCount}>6</span></div>
-          <div style={S.navItem}><span style={S.bullet}>◷</span><span style={{ flex: 1 }}>Récents</span></div>
+          <a href="/" style={{ ...S.navItem, textDecoration: "none", color: "inherit" }}><span style={S.bullet}>⌂</span><span style={{ flex: 1 }}>Accueil</span></a>
+          <a href="/ticketing" style={{ ...S.navItem, textDecoration: "none", color: "inherit" }}><span style={S.bullet}>✎</span><span style={{ flex: 1 }}>Ticketing</span></a>
+          <a href="/fiche-client" style={{ ...S.navItem, textDecoration: "none", color: "inherit" }}><span style={S.bullet}>◉</span><span style={{ flex: 1 }}>Fiche client</span></a>
+          <a href="/crm" style={{ ...S.navItem, textDecoration: "none", color: "inherit" }}><span style={S.bullet}>▦</span><span style={{ flex: 1 }}>CRM</span></a>
         </div>
 
         <div style={S.navSection}>

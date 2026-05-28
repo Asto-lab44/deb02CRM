@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #0f172a; font-family: 'Inter', system-ui, sans-serif; }
+    html, body { margin: 0; padding: 0; height: 100%; background: #f3f5f8; font-family: 'Inter', system-ui, sans-serif; }
     #root { height: 100vh; }
   </style>
 
@@ -29,28 +29,8 @@
   <script type="text/babel" src="components/TicketList.jsx"></script>
   <script type="text/babel" src="components/TicketDetail.jsx"></script>
 
-  <script type="text/babel" data-presets="react">
-    const { useState } = React;
-
-    const App = () => (
-      <DesignCanvas
-        title="Hub Astorya — Outil de ticketing IT"
-        subtitle="Vue utilisateur final · helpdesk interne · maquette haute-fidélité"
-      >
-        <DCSection id="screens" title="Écrans">
-
-          <DCArtboard id="list" label="Liste des tickets" width={1440} height={900}>
-            <TicketList />
-          </DCArtboard>
-
-          <DCArtboard id="detail" label="Détail ticket + conversation" width={1440} height={900}>
-            <TicketDetail />
-          </DCArtboard>
-
-        </DCSection>
-      </DesignCanvas>
-    );
-
+    <script type="text/babel" data-presets="react">
+    const App = () => <TicketList />;
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>

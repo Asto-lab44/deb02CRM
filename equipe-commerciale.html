@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #0f172a; font-family: 'Inter', system-ui, sans-serif; }
+    html, body { margin: 0; padding: 0; height: 100%; background: #f3f5f8; font-family: 'Inter', system-ui, sans-serif; }
     #root { height: 100vh; }
   </style>
 
@@ -22,20 +22,8 @@
   <script type="text/babel" src="design-canvas.jsx"></script>
   <script type="text/babel" src="components/SalesTeam.jsx"></script>
 
-  <script type="text/babel" data-presets="react">
-    const App = () => (
-      <DesignCanvas
-        title="Hub Astorya — Module équipe commerciale"
-        subtitle="Vue manager · 10 commerciaux · quotas, pipeline, activité, leaderboard"
-      >
-        <DCSection id="team" title="Équipe commerciale EMEA">
-          <DCArtboard id="team-view" label="10 commerciaux — vue manager" width={1440} height={2400}>
-            <SalesTeam />
-          </DCArtboard>
-        </DCSection>
-      </DesignCanvas>
-    );
-
+    <script type="text/babel" data-presets="react">
+    const App = () => <SalesTeam />;
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>

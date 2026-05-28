@@ -25,8 +25,10 @@ const TicketList = () => {
       ticketId: ticket.id,
       client: ticket.client_id || "—",
       subject: ticket.title || ticket.subject || "",
+      localOnly: ticket._localOnly,
+      reason: ticket._reason,
     });
-    setTimeout(() => setLastCreated(null), 6000);
+    setTimeout(() => setLastCreated(null), 8000);
   };
 
   // ───── Données live depuis Supabase si configuré, sinon fallback inline
@@ -272,13 +274,26 @@ const TicketList = () => {
         </header>
 
         {lastCreated && (
-          <div style={{ margin: "10px 20px 0", padding: "10px 14px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, fontSize: 12.5, color: "#065f46", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            margin: "10px 20px 0", padding: "10px 14px", borderRadius: 8, fontSize: 12.5,
+            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            background: lastCreated.localOnly ? "#fffbeb" : "#dcfce7",
+            border: lastCreated.localOnly ? "1px solid #fde68a" : "1px solid #86efac",
+            color: lastCreated.localOnly ? "#78350f" : "#065f46",
+          }}>
             <span style={{ fontWeight: 700 }}>
               ✓ {lastCreated.attached ? "Retranscription ajoutée au ticket " + lastCreated.ticketId : "Ticket " + lastCreated.ticketId + " créé"}
             </span>
-            <span style={{ color: "#475569" }}>
+            <span style={{ opacity: 0.85 }}>
               {lastCreated.attached ? "(appel de " + lastCreated.client + ")" : "pour " + lastCreated.client + " — " + lastCreated.subject}
             </span>
+            {lastCreated.localOnly && (
+              <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 600, opacity: 0.9 }}>
+                {lastCreated.reason === "rls" && "⚠ Local seulement — exécuter supabase/rls-anon.sql ou se connecter pour persister."}
+                {lastCreated.reason === "no-schema" && "⚠ Tables Supabase manquantes — exécuter supabase/schema.sql."}
+                {lastCreated.reason === "demo" && "⚠ Mode démo — Supabase non configuré."}
+              </span>
+            )}
           </div>
         )}
 

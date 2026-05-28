@@ -77,24 +77,31 @@ const NewTicketModal = ({ open, onClose, onCreated, prefill }) => {
       const { data, error: dbErr } = await window.HubData.createTicket(payload);
       setSubmitting(false);
       if (dbErr) {
-        // Diagnostique précis pour les erreurs Supabase les plus fréquentes
-        let msg = dbErr.message || "Erreur inconnue";
-        if (/row-level security/i.test(msg) || /policy/i.test(msg)) {
-          msg = "Permission refusée par Supabase RLS. Connectez-vous d'abord (bouton 'Se connecter' depuis l'Accueil) pour créer un ticket en base. En mode démo, la création reste possible sans persistance.";
-        } else if (/violates foreign key/i.test(msg)) {
-          msg = "Référence client introuvable. Sélectionnez un client de la liste.";
-        } else if (/duplicate key/i.test(msg)) {
-          msg = "Conflit d'ID (rare). Réessayez.";
+        // Diagnostic + fallback gracieux selon le type d'erreur
+        const raw = (dbErr.message || "").toLowerCase();
+        if (/row-level security|policy|permission|42501/.test(raw)) {
+          // RLS : on accepte quand même en local + on prévient
+          onCreated && onCreated({ ...payload, _localOnly: true, _reason: "rls" });
+          onClose && onClose();
+          return;
         }
+        if (/relation .* does not exist|42p01/.test(raw)) {
+          onCreated && onCreated({ ...payload, _localOnly: true, _reason: "no-schema" });
+          onClose && onClose();
+          return;
+        }
+        let msg = dbErr.message || "Erreur inconnue";
+        if (/violates foreign key/i.test(msg)) msg = "Référence client introuvable. Sélectionnez un client valide.";
+        else if (/duplicate key/i.test(msg)) msg = "Conflit d'ID. Réessayez (un nouvel ID est tiré).";
         setError(msg);
         return;
       }
       onCreated && onCreated(data || payload);
       onClose && onClose();
     } else {
-      // Mode démo — pas de persistance
+      // Mode démo — pas de Supabase configuré
       setSubmitting(false);
-      onCreated && onCreated(payload);
+      onCreated && onCreated({ ...payload, _localOnly: true, _reason: "demo" });
       onClose && onClose();
     }
   };

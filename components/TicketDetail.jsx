@@ -1,11 +1,32 @@
 // Écran 2 — Détail ticket + conversation (vue utilisateur final)
 
-const TICKET_ID = "INC-2837";
+const TICKET_ID_DEFAULT = "INC-2837";
 
-const TicketDetail = () => {
+const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
+  const TICKET_ID = ticketId || TICKET_ID_DEFAULT;
   // ───── Actions ticket (résolution, escalade, réponse) wired sur Supabase
   const [flash, setFlash] = React.useState(null);
   const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+
+  // Données du ticket : prop si fournie (depuis TicketList), sinon valeurs par défaut
+  // pour la maquette INC-2837 (Camille Dufour, VPN).
+  const t = ticketData || {};
+  const display = {
+    title:    t.title || "VPN se déconnecte toutes les 10 minutes",
+    status:   t.status || "in_progress",
+    priority: t.priority || t.prio || "haute",
+    category: t.category || t.cat || "Réseau · VPN",
+    client:   (t.client && t.client.name) || "AXA Wealth France",
+    clientId: (t.client && t.client.id) || null,
+    contract: t.client && t.client.contracts && t.client.contracts[0] ? t.client.contracts[0] :
+              (t.client && t.client.maintenance ? { status: t.client.maintenance, name: t.client.contract } : null),
+    requester: t.requester_name || "Camille Dufour",
+    escalated: t.escalated_at ? { at: t.escalated_at, group: t.escalated_group, reason: t.escalated_reason } : (t.escalated || null),
+  };
+  const statusMap   = { open: { label: "Ouvert", color: "#3b82f6", soft: "#eff4ff", text: "#1d4ed8" }, in_progress: { label: "En cours", color: "#a855f7", soft: "#f5efff", text: "#7e22ce" }, waiting: { label: "En attente", color: "#f59e0b", soft: "#fff6e6", text: "#a65f00" }, resolved: { label: "Résolu", color: "#10b981", soft: "#e8f8f1", text: "#0e7a55" }, closed: { label: "Fermé", color: "#94a3b8", soft: "#f1f3f6", text: "#475569" } };
+  const priorityMap = { critique: { label: "Critique", color: "#dc2626", soft: "#fdecec", arrow: "▲" }, haute: { label: "Haute", color: "#ea580c", soft: "#fef0e6", arrow: "▲" }, normale: { label: "Normale", color: "#475569", soft: "#eef1f5", arrow: "" }, basse: { label: "Basse", color: "#64748b", soft: "#f1f3f6", arrow: "" } };
+  const sMeta = statusMap[display.status] || statusMap.in_progress;
+  const pMeta = priorityMap[display.priority] || priorityMap.normale;
 
   const showFlash = (msg, tone = "ok") => {
     setFlash({ msg, tone });
@@ -150,26 +171,45 @@ const TicketDetail = () => {
       <main style={tdStyles.main}>
         {/* Topbar / breadcrumbs */}
         <header style={tdStyles.topbar}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#64748b" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#64748b", flexWrap: "wrap" }}>
+            {onBack && (
+              <button onClick={onBack} style={{ ...tdStyles.ghostBtn, marginRight: 4, cursor: "pointer" }}>← Retour</button>
+            )}
             <span>Support IT</span>
             <span style={{ color: "#cbd5e1" }}>/</span>
             <span>Mes tickets</span>
             <span style={{ color: "#cbd5e1" }}>/</span>
-            <span style={{ color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>INC-2837</span>
-            <button style={tdStyles.copyBtn} title="Copier la référence">⧉</button>
+            <span style={{ color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{TICKET_ID}</span>
+            <button style={tdStyles.copyBtn} title="Copier la référence" onClick={() => navigator.clipboard && navigator.clipboard.writeText(TICKET_ID)}>⧉</button>
+
+            {display.client && (
+              <>
+                <span style={{ color: "#cbd5e1" }}>·</span>
+                <span style={{ fontSize: 12.5, color: "#475569", fontWeight: 600 }}>{display.client}</span>
+              </>
+            )}
 
             {/* Indicateur contrat de maintenance parc IT du client */}
-            <span title="AXA Wealth France — Contrat actif Premium 24/7 (jusqu'au 28 fév. 2027)"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 999, background: "#dcfce7", border: "1px solid #86efac", marginLeft: 8, cursor: "help" }}>
-              <span style={{ width: 8, height: 8, borderRadius: 999, background: "#10b981", boxShadow: "0 0 0 2px #f0fdf4" }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#065f46", textTransform: "uppercase", letterSpacing: 0.4 }}>Contrat parc actif</span>
-            </span>
+            {display.contract && display.contract.status && (
+              <span title={`${display.client} — ${display.contract.name || ""}`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 999,
+                      background: display.contract.status === "active" ? "#dcfce7" : display.contract.status === "expiring" ? "#fef3c7" : "#fee2e2",
+                      border: `1px solid ${display.contract.status === "active" ? "#86efac" : display.contract.status === "expiring" ? "#fde68a" : "#fecaca"}`,
+                      marginLeft: 8, cursor: "help",
+                    }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: display.contract.status === "active" ? "#10b981" : display.contract.status === "expiring" ? "#f59e0b" : "#dc2626" }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: display.contract.status === "active" ? "#065f46" : display.contract.status === "expiring" ? "#78350f" : "#991b1b", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  Contrat parc {display.contract.status === "active" ? "actif" : display.contract.status === "expiring" ? "expire" : "absent"}
+                </span>
+              </span>
+            )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={tdStyles.iconBtn}>‹</button>
-            <button style={tdStyles.iconBtn}>›</button>
+            <button style={tdStyles.iconBtn} onClick={onBack} title="Retour à la liste">‹</button>
+            <button style={tdStyles.iconBtn} title="Suivant">›</button>
             <button style={tdStyles.ghostBtn}>Suivre</button>
-            <button style={tdStyles.iconBtn}>⋯</button>
+            <button style={tdStyles.iconBtn} title="Plus d'actions">⋯</button>
           </div>
         </header>
 
@@ -177,40 +217,45 @@ const TicketDetail = () => {
         <div style={tdStyles.body}>
           {/* conversation column */}
           <section style={tdStyles.convCol}>
-            {/* Bannière d'escalade (visible quand le ticket a été remonté à la supervision) */}
-            <div style={escStyles.banner}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={escStyles.bannerIcon}>↑</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Ticket escaladé à Léa Marchand · Administrateur · Supervision</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>
-                    Il y a 35 min · SLA résolution &lt; 30 min — escalade manuelle par Tom Verdier
+            {/* Bannière d'escalade (visible uniquement si le ticket est escaladé) */}
+            {display.escalated && (
+              <div style={escStyles.banner}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={escStyles.bannerIcon}>↑</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Ticket escaladé · {display.escalated.group || "Supervision"}</div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>
+                      {display.escalated.at && (typeof display.escalated.at === "string" ? display.escalated.at : new Date(display.escalated.at).toLocaleString("fr-FR"))}
+                      {display.escalated.reason && <> — {display.escalated.reason}</>}
+                    </div>
                   </div>
                 </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button style={escStyles.bannerBtnGhost}>Voir l'historique d'escalade</button>
+                  <button style={escStyles.bannerBtnPrimary}>Reprendre la main</button>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button style={escStyles.bannerBtnGhost}>Voir l'historique d'escalade</button>
-                <button style={escStyles.bannerBtnPrimary}>Reprendre la main</button>
-              </div>
-            </div>
+            )}
 
             {/* Title block */}
             <div style={tdStyles.titleBlock}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <span style={{ ...tdStyles.statusPill, background: "#f5efff", color: "#7e22ce" }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 999, background: "#a855f7" }} /> En cours
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                <span style={{ ...tdStyles.statusPill, background: sMeta.soft, color: sMeta.text }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 999, background: sMeta.color }} /> {sMeta.label}
                 </span>
-                <span style={{ ...tdStyles.prioPill, background: "#fef0e6", color: "#ea580c" }}>▲ Haute</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 999, background: "#ede9fe", color: "#5b21b6", fontSize: 11.5, fontWeight: 700, border: "1px solid #c4b5fd" }}>
-                  ↑ Escaladé · Supervision
-                </span>
-                <span style={tdStyles.metaChip}>Réseau · VPN</span>
+                <span style={{ ...tdStyles.prioPill, background: pMeta.soft, color: pMeta.color }}>{pMeta.arrow} {pMeta.label}</span>
+                {display.escalated && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 999, background: "#ede9fe", color: "#5b21b6", fontSize: 11.5, fontWeight: 700, border: "1px solid #c4b5fd" }}>
+                    ↑ Escaladé · {display.escalated.group || "Supervision"}
+                  </span>
+                )}
+                <span style={tdStyles.metaChip}>{display.category}</span>
                 <span style={tdStyles.dot} />
-                <span style={{ fontSize: 12, color: "#64748b" }}>Ouvert il y a 1 j 22 h</span>
+                <span style={{ fontSize: 12, color: "#64748b" }}>{t.opened || "Ouvert il y a 1 j 22 h"}</span>
               </div>
-              <h1 style={tdStyles.h1}>VPN se déconnecte toutes les 10 minutes</h1>
+              <h1 style={tdStyles.h1}>{display.title}</h1>
               <p style={tdStyles.subtitle}>
-                Ticket <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>INC-2837</span> · Demandeur Camille Dufour · 11 messages
+                Ticket <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{TICKET_ID}</span> · Demandeur {display.requester} · {(t.msgs != null ? t.msgs : 11)} messages
               </p>
 
               {/* SLA strip */}

@@ -136,6 +136,22 @@ const TicketList = () => {
     );
   };
 
+  // ───── Vue détail inline : si un ticket est sélectionné, on rend TicketDetail
+  // à la place de la liste (même page, pas de modal par-dessus).
+  if (selectedTicketId) {
+    const selected = tickets.find((t) => t.id === selectedTicketId) || { id: selectedTicketId };
+    return (
+      <TicketDetail
+        ticketId={selectedTicketId}
+        ticketData={selected}
+        onBack={() => {
+          setSelectedTicketId(null);
+          if (window.HubData && window.HubData.invalidate) window.HubData.invalidate("tickets");
+        }}
+      />
+    );
+  }
+
   return (
     <div style={tlStyles.frame}>
       {/* ───── SIDEBAR ───── */}
@@ -583,14 +599,6 @@ const TicketList = () => {
         }}
       />
 
-      <TicketDetailModal
-        ticketId={selectedTicketId}
-        onClose={() => {
-          setSelectedTicketId(null);
-          // Force refresh des tickets après fermeture
-          if (window.HubData && window.HubData.invalidate) window.HubData.invalidate("tickets");
-        }}
-      />
     </div>
   );
 };

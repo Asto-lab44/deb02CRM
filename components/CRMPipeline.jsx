@@ -1,6 +1,10 @@
 // Écran CRM 1 — Pipeline commercial (kanban + KPIs)
 
 const CRMPipeline = () => {
+  // Filtre actif sur le pipeline (vue, produit, savedView…)
+  const [crmFilter, setCrmFilter] = React.useState({ kind: "all", value: null });
+  const isCrmActive = (kind, value) => crmFilter.kind === kind && (value === undefined || crmFilter.value === value);
+  const setCrmIfDiff = (kind, value) => setCrmFilter(isCrmActive(kind, value) ? { kind: "all", value: null } : { kind, value });
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -88,51 +92,66 @@ const CRMPipeline = () => {
         <div style={crmStyles.navSection}>
           <div style={crmStyles.navLabel}>Espace de travail</div>
           {[
-            { label: "Pipeline", count: "32", active: true, icon: "▦" },
-            { label: "Comptes", count: "412", icon: "◰" },
-            { label: "Contacts", count: "1 184", icon: "◉" },
-            { label: "Activités", count: "27", icon: "✦" },
-            { label: "Prévisions", icon: "↗" },
-            { label: "Rapports", icon: "▤" },
-          ].map((n) => (
-            <div key={n.label} style={{ ...crmStyles.navItem, ...(n.active ? crmStyles.navItemActive : {}) }}>
-              <span style={{ width: 14, color: n.active ? "#4f46e5" : "#94a3b8", fontSize: 11 }}>{n.icon}</span>
-              <span style={{ flex: 1 }}>{n.label}</span>
-              {n.count && <span style={crmStyles.navCount}>{n.count}</span>}
-            </div>
-          ))}
+            { label: "Pipeline",    count: "32",    icon: "▦", href: "/crm",                      active: isCrmActive("all") },
+            { label: "Comptes",     count: "412",   icon: "◰", href: "/fiche-client" },
+            { label: "Contacts",    count: "1 184", icon: "◉", onClick: () => alert("Carnet contacts — 1 184 fiches\n(Sera connecté à la table profiles + clients de Supabase.)") },
+            { label: "Activités",   count: "27",    icon: "✦", onClick: () => alert("Activités — Appels, emails, RDV, tâches\n(Sera connecté à la timeline d'événements.)") },
+            { label: "Prévisions",  icon: "↗", onClick: () => alert("Prévisions trimestrielles\n(Sera connecté au pipeline pondéré.)") },
+            { label: "Rapports",    icon: "▤", onClick: () => alert("Rapports BI\n(Sera connecté à la vue stats Supabase.)") },
+          ].map((n) => {
+            const inner = (
+              <>
+                <span style={{ width: 14, color: n.active ? "#4f46e5" : "#94a3b8", fontSize: 11 }}>{n.icon}</span>
+                <span style={{ flex: 1 }}>{n.label}</span>
+                {n.count && <span style={crmStyles.navCount}>{n.count}</span>}
+              </>
+            );
+            const styleAct = { ...crmStyles.navItem, ...(n.active ? crmStyles.navItemActive : {}), cursor: "pointer" };
+            if (n.href) return <a key={n.label} href={n.href} style={{ ...styleAct, textDecoration: "none", color: n.active ? "#3730a3" : "inherit" }}>{inner}</a>;
+            return <div key={n.label} onClick={n.onClick} style={styleAct}>{inner}</div>;
+          })}
         </div>
 
         <div style={crmStyles.navSection}>
           <div style={crmStyles.navLabel}>Vues sauvegardées</div>
           {[
-            { label: "Mon pipeline Q2", color: "#4f46e5" },
-            { label: "Deals > 50 k€", color: "#10b981" },
-            { label: "À relancer cette sem.", color: "#f59e0b" },
-            { label: "Stagnants 14 j+", color: "#dc2626" },
-          ].map((n) => (
-            <div key={n.label} style={crmStyles.navItem}>
-              <span style={{ width: 14, display: "flex" }}>
-                <span style={{ width: 7, height: 7, borderRadius: 2, background: n.color }} />
-              </span>
-              <span style={{ flex: 1 }}>{n.label}</span>
-            </div>
-          ))}
+            { label: "Mon pipeline Q2",      color: "#4f46e5", value: "q2" },
+            { label: "Deals > 50 k€",        color: "#10b981", value: "big" },
+            { label: "À relancer cette sem.", color: "#f59e0b", value: "follow" },
+            { label: "Stagnants 14 j+",      color: "#dc2626", value: "stale" },
+          ].map((n) => {
+            const active = isCrmActive("view", n.value);
+            return (
+              <div key={n.label}
+                   onClick={() => setCrmIfDiff("view", n.value)}
+                   style={{ ...crmStyles.navItem, ...(active ? crmStyles.navItemActive : {}), cursor: "pointer" }}>
+                <span style={{ width: 14, display: "flex" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 2, background: n.color }} />
+                </span>
+                <span style={{ flex: 1 }}>{n.label}</span>
+              </div>
+            );
+          })}
         </div>
 
         <div style={crmStyles.navSection}>
           <div style={crmStyles.navLabel}>Produits</div>
           {[
             { label: "Astorya Suite", c: "12", color: "#a855f7" },
-            { label: "Astorya Hub", c: "11", color: "#4f46e5" },
-            { label: "Astorya Cyber", c: "9", color: "#dc2626" },
-          ].map((n) => (
-            <div key={n.label} style={crmStyles.navItem}>
-              <span style={{ width: 14 }}><span style={{ width: 6, height: 6, borderRadius: 999, background: n.color, display: "inline-block" }} /></span>
-              <span style={{ flex: 1 }}>{n.label}</span>
-              <span style={crmStyles.navCount}>{n.c}</span>
-            </div>
-          ))}
+            { label: "Astorya Hub",   c: "11", color: "#4f46e5" },
+            { label: "Astorya Cyber", c: "9",  color: "#dc2626" },
+          ].map((n) => {
+            const active = isCrmActive("product", n.label);
+            return (
+              <div key={n.label}
+                   onClick={() => setCrmIfDiff("product", n.label)}
+                   style={{ ...crmStyles.navItem, ...(active ? crmStyles.navItemActive : {}), cursor: "pointer" }}>
+                <span style={{ width: 14 }}><span style={{ width: 6, height: 6, borderRadius: 999, background: n.color, display: "inline-block" }} /></span>
+                <span style={{ flex: 1 }}>{n.label}</span>
+                <span style={crmStyles.navCount}>{n.c}</span>
+              </div>
+            );
+          })}
         </div>
 
         <div style={{ flex: 1 }} />

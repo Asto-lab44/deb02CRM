@@ -16,7 +16,9 @@
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true, // gère le retour du magic link
-      flowType: "pkce",
+      // implicit flow : le lien email contient les tokens dans le hash, l'utilisateur
+      // peut donc cliquer depuis n'importe quel navigateur (PKCE forcerait le même).
+      flowType: "implicit",
     },
   });
 

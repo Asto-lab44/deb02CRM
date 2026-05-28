@@ -228,10 +228,11 @@ const NewOpportunity = () => {
                 <FormRow label="Nom de l'opportunité" required>
                   <input
                     style={noStyles.input}
-                    defaultValue=""
+                    value={oppName}
+                    onChange={(e) => setOppName(e.target.value)}
                     placeholder="Ex : Déploiement Astorya Suite — 500 sièges"
                   />
-                  <div style={{ ...noStyles.inputHelp, color: "#10b981" }}>✓ Nom unique vérifié</div>
+                  {oppName.trim() && <div style={{ ...noStyles.inputHelp, color: "#10b981" }}>✓ Nom unique vérifié</div>}
                 </FormRow>
 
                 <div style={noStyles.formGrid2}>
@@ -285,11 +286,13 @@ const NewOpportunity = () => {
                   <textarea
                     style={noStyles.textarea}
                     rows="3"
-                    defaultValue=""
+                    value={oppNotes}
+                    onChange={(e) => setOppNotes(e.target.value)}
+                    placeholder="Contexte du besoin, déclencheur, points clés…"
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
                     <span style={{ fontSize: 11, color: "#94a3b8" }}>Markdown supporté</span>
-                    <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>248 / 2 000</span>
+                    <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{oppNotes.length} / 2 000</span>
                   </div>
                 </FormRow>
               </section>
@@ -301,7 +304,12 @@ const NewOpportunity = () => {
                 <div style={noStyles.formGrid2}>
                   <FormRow label="Montant estimé" required>
                     <div style={noStyles.inputWithSuffix}>
-                      <input style={{ ...noStyles.input, border: "none", padding: "0 4px", fontSize: 18, fontWeight: 600 }} defaultValue="" />
+                      <input
+                        style={{ ...noStyles.input, border: "none", padding: "0 4px", fontSize: 18, fontWeight: 600 }}
+                        value={oppAmount}
+                        onChange={(e) => setOppAmount(e.target.value)}
+                        placeholder="0"
+                      />
                       <span style={noStyles.suffix}>€ / an</span>
                     </div>
                     <div style={noStyles.inputHelp}>Récurrent annuel HT</div>
@@ -355,9 +363,13 @@ const NewOpportunity = () => {
                   <FormRow label="Date de clôture cible" required>
                     <div style={noStyles.dateInput}>
                       <span style={{ color: "#94a3b8" }}>📅</span>
-                      <input style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="" />
+                      <input
+                        type="date"
+                        style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                        value={oppDate}
+                        onChange={(e) => setOppDate(e.target.value)}
+                      />
                     </div>
-                    <div style={noStyles.inputHelp}>Dans 112 jours · trimestre Q3 2026</div>
                   </FormRow>
                 </div>
               </section>
@@ -411,13 +423,18 @@ const NewOpportunity = () => {
 
               {/* Bottom actions */}
               <div style={noStyles.actionsRow}>
-                <button style={noStyles.ghostBtn}>Annuler</button>
+                <button onClick={() => { window.location.href = "/crm"; }} style={noStyles.ghostBtn}>Annuler</button>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button style={noStyles.ghostBtn}>Enregistrer brouillon</button>
-                  <button style={noStyles.ghostBtn}>← Précédent</button>
-                  <button style={noStyles.primaryBtn}>Continuer →</button>
+                  <button onClick={createOpp} style={noStyles.ghostBtn}>Enregistrer brouillon</button>
+                  <button onClick={createOpp} style={noStyles.primaryBtn}>Créer l'opportunité →</button>
                 </div>
               </div>
+
+              {flash && (
+                <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", padding: "10px 18px", borderRadius: 8, background: flash.tone === "err" ? "#dc2626" : "#10b981", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "0 6px 20px rgba(0,0,0,0.2)", zIndex: 10000 }}>
+                  {flash.m}
+                </div>
+              )}
             </div>
 
             {/* RIGHT — preview + IA */}

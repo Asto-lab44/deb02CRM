@@ -34,27 +34,75 @@ var ClientPage = () => {
       return next;
     });
   };
-  var addAction = () => {
-    var title = prompt("Nouvelle action à mener :");
-    if (!title) return;
-    var due = prompt("Échéance (texte libre, ex. 'Demain · 10h00') :", "Demain");
+  // Modal "Nouvelle action à mener"
+  var [addActionOpen, setAddActionOpen] = React.useState(false);
+  var [actionMenuKey, setActionMenuKey] = React.useState(null);
+  React.useEffect(() => {
+    if (!actionMenuKey) return;
+    var close = () => setActionMenuKey(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [actionMenuKey]);
+  var [newAction, setNewAction] = React.useState({
+    type: "email",
+    title: "",
+    date: "",
+    time: "",
+    priority: "moyenne",
+    assigned: "",
+    tag: "",
+    meta: ""
+  });
+  var openAddAction = () => {
+    setNewAction({
+      type: "email",
+      title: "",
+      date: "",
+      time: "",
+      priority: "moyenne",
+      assigned: "",
+      tag: "",
+      meta: ""
+    });
+    setAddActionOpen(true);
+  };
+  var submitNewAction = () => {
+    if (!newAction.title.trim()) {
+      alert("Le titre est obligatoire");
+      return;
+    }
+    var iconMap = {
+      email: "✉",
+      call: "📞",
+      visio: "💻",
+      rdv: "📅",
+      task: "✓",
+      note: "✎"
+    };
+    var dueText = newAction.date ? new Date(newAction.date).toLocaleDateString("fr-FR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short"
+    }) + (newAction.time ? " · " + newAction.time : "") : "Date à définir";
     var next = [{
       id: "EX-" + Date.now(),
-      title,
-      due: due || "—",
-      priority: "moyenne",
-      icon: "•",
-      meta: "Ajoutée manuellement",
-      assigned: "Vous",
+      title: newAction.title.trim(),
+      due: dueText,
+      priority: newAction.priority,
+      icon: iconMap[newAction.type] || "•",
+      meta: newAction.meta || "",
+      assigned: newAction.assigned || "Vous",
       assignedColor: "#3730a3",
-      tag: "Manuel",
+      tag: newAction.tag || (newAction.type === "email" ? "Email" : newAction.type === "call" ? "Appel" : newAction.type === "visio" ? "Visio" : newAction.type === "rdv" ? "RDV" : newAction.type === "task" ? "Tâche" : "Note"),
       tagColor: "#475569"
     }, ...extraActions];
     setExtraActions(next);
     try {
       localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
     } catch (e) {}
+    setAddActionOpen(false);
   };
+  var addAction = () => openAddAction();
   var removeAction = id => {
     var next = extraActions.filter(a => a.id !== id);
     setExtraActions(next);
@@ -260,17 +308,21 @@ var ClientPage = () => {
   }, []);
 
   // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
+  // Vide par défaut pour un nouveau prospect tant que rien n'est renseigné (pas de carte vide).
   var allContacts = (() => {
     var localForThis = customContacts.filter(c => c.client_id === (urlId || "ACC-0184")).map(c => ({
       ...c,
       _custom: true
     }));
     if (isCustom) {
-      var principal = display.contactPrincipal ? [{
-        name: ((display.contactPrincipal.prenom || "") + " " + (display.contactPrincipal.nom || "")).trim(),
-        role: display.contactPrincipal.fonction || "—",
-        email: display.contactPrincipal.email || "",
-        phone: display.contactPrincipal.phone || "",
+      var cp = display.contactPrincipal;
+      var fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
+      // Ne créer la carte du contact principal que s'il a au moins un nom OU un email
+      var principal = fullName || cp && cp.email ? [{
+        name: fullName || cp && cp.email || "Contact principal",
+        role: cp && cp.fonction || "—",
+        email: cp && cp.email || "",
+        phone: cp && cp.phone || "",
         color: "#a855f7",
         champion: true,
         last: "Contact principal"
@@ -310,35 +362,8 @@ var ClientPage = () => {
   };
   var [pastShowAll, setPastShowAll] = React.useState(false);
   var addContract = () => {
-    var name = prompt("Intitulé du contrat :");
-    if (!name) return;
-    var amount = prompt("Montant (ex. 48 k€ / an) :", "0 €");
-    var type = prompt("Type (Licence SaaS / Maintenance / Avenant / Autre) :", "Licence SaaS");
-    var newCt = {
-      id: "CTR-" + Date.now().toString().slice(-7),
-      client_id: urlId || display.id,
-      name,
-      product: "",
-      type: type || "—",
-      amount: amount || "0 €",
-      start: new Date().toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }),
-      end: new Date(Date.now() + 365 * 24 * 3600 * 1000).toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }),
-      status: "active"
-    };
-    var next = [newCt, ...contractsList];
-    setContractsList(next);
-    try {
-      var all = JSON.parse(localStorage.getItem("hubAstorya.contracts.v1") || "[]");
-      localStorage.setItem("hubAstorya.contracts.v1", JSON.stringify([newCt, ...all]));
-    } catch (e) {}
+    var cid = urlId || display.id || "";
+    window.location.href = "/nouveau-contrat" + (cid ? "?client=" + encodeURIComponent(cid) : "");
   };
 
   // ───── Récupère le client à afficher selon l'ID dans l'URL
@@ -376,23 +401,29 @@ var ClientPage = () => {
 
   // Mapping unifié vers les champs d'affichage
   var c = loadedClient || {};
-  var isCustom = !!loadedClient;
+  // isCustom = true dès qu'on a un ?id= dans l'URL (même avant que le fetch
+  // ait peuplé loadedClient) → empêche le flash des défauts AXA sur la fiche
+  // d'un prospect Astorya pendant le chargement.
+  var isCustom = !!urlId || !!loadedClient;
+  // Si on a un ?id= mais pas encore de loadedClient, on évite TOUT fallback AXA
+  // (sinon flash visuel du nom/secteur AXA pendant le fetch).
+  var empty = isCustom && !loadedClient;
   var display = {
-    id: c.id || "ACC-0184",
-    name: c.raison_sociale || c.name || "AXA Wealth France",
-    sector: c.secteur || c.industry || "Asset Management",
-    size: c.effectif ? `Effectif ${c.effectif}` : "12 000 employés",
-    city: c.ville || c.city || "Paris · La Défense",
-    web: c.site_web || c.website || "axa-im.fr",
+    id: c.id || (empty ? urlId || "—" : "ACC-0184"),
+    name: c.raison_sociale || c.name || (empty ? "Chargement…" : "AXA Wealth France"),
+    sector: c.secteur || c.industry || (empty ? "—" : "Asset Management"),
+    size: c.effectif ? `Effectif ${c.effectif}` : empty ? "—" : "12 000 employés",
+    city: c.ville || c.city || (empty ? "—" : "Paris · La Défense"),
+    web: c.site_web || c.website || (empty ? "" : "axa-im.fr"),
     since: c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", {
       month: "short",
       year: "numeric"
     })}` : c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", {
       month: "short",
       year: "numeric"
-    })}` : "Client depuis mars 2024",
-    desc: c.notes || (isCustom ? `Compte ${c.tier ? `tier ${c.tier}` : ""} — créé via le formulaire prospect.` : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
-    logo: (c.raison_sociale || c.name || "AX").slice(0, 2).toUpperCase(),
+    })}` : empty ? "" : "Client depuis mars 2024",
+    desc: c.notes || (isCustom ? c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : empty ? "" : "Compte créé via le formulaire prospect." : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
+    logo: (c.raison_sociale || c.name || (empty ? "?" : "AX")).slice(0, 2).toUpperCase(),
     arr: isCustom ? "—" : "184 k€",
     pipe: isCustom ? "0" : "355 k€",
     health: isCustom ? "—" : "78",
@@ -459,7 +490,7 @@ var ClientPage = () => {
     label: "Signé",
     color: "#10b981"
   }];
-  var opportunities = [{
+  var defaultOpps = [{
     name: "Astorya Suite — 750 sièges",
     amount: "215 000 €",
     stage: "propo",
@@ -503,6 +534,31 @@ var ClientPage = () => {
     won: true,
     ref: "OPP-2698"
   }];
+
+  // ── Opportunités créées via /nouvelle-opportunite, filtrées sur ce client
+  var [storedOpps, setStoredOpps] = React.useState([]);
+  React.useEffect(() => {
+    try {
+      var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+      var cid = urlId || "ACC-0184";
+      var mine = all.filter(o => o.client_id === cid).map(o => ({
+        ref: o.ref || o.id,
+        name: o.name,
+        amount: o.amount ? String(o.amount).match(/€/) ? o.amount : o.amount + " €" : "—",
+        stage: o.stage || "qualif",
+        proba: o.proba || 20,
+        owner: o.owner || "Vous",
+        ownerColor: "#0ea5e9",
+        close: o.close || o.target_date || "—",
+        days: 0,
+        isNew: true
+      }));
+      setStoredOpps(mine);
+    } catch (e) {}
+  }, [urlId]);
+
+  // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
+  var opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
 
   // ── Actions menées (passé, dernières)
   var past = [{
@@ -622,8 +678,10 @@ var ClientPage = () => {
     at: "Q1 2026",
     meta: "Mise à jour automatique"
   });
+  // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
   var pastAll = past.concat(pastExtras);
-  var pastShown = pastShowAll ? pastAll : past;
+  var pastShown = isCustom ? [] : pastShowAll ? pastAll : past;
+  var pastTotal = isCustom ? 0 : pastAll.length;
 
   // ── Actions à mener (futur, à faire)
   var future = [{
@@ -1290,31 +1348,30 @@ var ClientPage = () => {
   }, opportunities.map((o, i) => {
     var edited = oppEdits[o.ref] || {};
     var currentStage = edited.stage || o.stage;
-    var stageLabels = {
-      qualif: "Qualification",
-      discovery: "Discovery",
-      propo: "Proposition",
-      nego: "Négociation",
-      won: "Signé / Gagné"
-    };
     var openOpp = () => {
-      var choice = prompt(`${o.ref} — ${o.name}\n\nMontant : ${o.amount}\nOwner : ${o.owner}\nClôture : ${o.close}\n\n──────────────────\nChanger l'étape ?\n  1. Qualification\n  2. Discovery\n  3. Proposition\n  4. Négociation\n  5. Signé / Gagné ✓\n  0. Annuler\n\nTapez le numéro :`, "0");
-      var map = {
-        "1": "qualif",
-        "2": "discovery",
-        "3": "propo",
-        "4": "nego",
-        "5": "won"
+      var cid = urlId || display.id || "";
+      var amountNum = parseInt((edited.amount || o.amount || "").replace(/\D/g, ""), 10) || 0;
+      var oppForStore = {
+        ref: o.ref,
+        name: o.name,
+        client_name: display.name,
+        stage: edited.stage || o.stage,
+        amount: amountNum,
+        proba: edited.proba || o.proba,
+        owner: edited.owner || o.owner,
+        close: edited.close || o.close,
+        hot: o.hot
       };
-      var newStage = map[choice];
-      if (!newStage) return;
-      updateOppField(o.ref, "stage", newStage);
-      if (newStage === "won" && isCustom) {
-        var promoted = promoteToClient(display.id, o.name);
-        if (promoted) alert(`✓ ${o.name} signée !\n\n${display.name} passe de prospect à client.\nRechargez la page pour voir la mise à jour.`);else alert(`✓ Opportunité « ${o.name} » signée — statut mis à jour.`);
-      } else {
-        alert(`✓ Étape mise à jour : ${stageLabels[newStage]}`);
-      }
+      try {
+        var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+        var idx = all.findIndex(x => x.ref === o.ref);
+        if (idx >= 0) all[idx] = {
+          ...all[idx],
+          ...oppForStore
+        };else all.unshift(oppForStore);
+        localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(all));
+      } catch (e) {}
+      window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
     };
     var stage = pipeStages.find(s => s.k === o.stage);
     return /*#__PURE__*/React.createElement("div", {
@@ -1460,7 +1517,7 @@ var ClientPage = () => {
     }
   }, "\u2192"), " Actions \xE0 mener ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.blockCount
-  }, future.length)), /*#__PURE__*/React.createElement("p", {
+  }, extraActions.length + (isCustom ? 0 : future.length))), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
   }, "T\xE2ches, relances et \xE9v\xE9nements planifi\xE9s")), /*#__PURE__*/React.createElement("button", {
     onClick: addAction,
@@ -1470,7 +1527,17 @@ var ClientPage = () => {
     }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsList
-  }, [...extraActions, ...future].map((a, i) => {
+  }, [...extraActions, ...(isCustom ? [] : future)].length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "24px 14px",
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc"
+    }
+  }, "Aucune action planifi\xE9e. Cliquez sur ", /*#__PURE__*/React.createElement("b", null, "+ Ajouter"), " pour en cr\xE9er une."), [...extraActions, ...(isCustom ? [] : future)].map((a, i) => {
     var p = prioMeta[a.priority] || prioMeta.basse;
     var key = a.id || "d-" + i;
     var done = !!doneActions[key];
@@ -1581,16 +1648,83 @@ var ClientPage = () => {
     }, /*#__PURE__*/React.createElement(Avatar, {
       name: n,
       size: 18
-    }))))))), /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        var choice = prompt(`Action « ${a.title} »\n\n1. Marquer comme ${done ? "à faire" : "terminée"}\n2. Supprimer (action manuelle uniquement)\n3. Annuler\n\nTapez 1, 2 ou 3 :`, "1");
-        if (choice === "1") toggleAction(key);else if (choice === "2" && a.id) removeAction(a.id);
+    }))))))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        setActionMenuKey(actionMenuKey === key ? null : key);
       },
       style: {
         ...cliStyles.actionMenu,
         cursor: "pointer"
       }
-    }, "\u22EF"));
+    }, "\u22EF"), actionMenuKey === key && /*#__PURE__*/React.createElement("div", {
+      onClick: e => e.stopPropagation(),
+      style: {
+        position: "absolute",
+        top: "100%",
+        right: 0,
+        marginTop: 4,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 8,
+        boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+        zIndex: 1000,
+        minWidth: 200,
+        padding: 4
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        toggleAction(key);
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem
+    }, done ? "↺ Marquer à faire" : "✓ Marquer terminée"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var newTitle = prompt("Nouveau titre :", a.title);
+        if (newTitle && a.id) {
+          setExtraActions(arr => arr.map(x => x.id === a.id ? {
+            ...x,
+            title: newTitle
+          } : x));
+        }
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem,
+      disabled: !a.id
+    }, "\u270E Renommer"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var newDue = prompt("Nouvelle échéance :", a.due);
+        if (newDue && a.id) {
+          setExtraActions(arr => arr.map(x => x.id === a.id ? {
+            ...x,
+            due: newDue
+          } : x));
+        }
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem,
+      disabled: !a.id
+    }, "\uD83D\uDCC5 Replanifier"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 1,
+        background: "#eef1f5",
+        margin: "4px 0"
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (a.id && confirm("Supprimer cette action ?")) removeAction(a.id);
+        setActionMenuKey(null);
+      },
+      style: {
+        ...cliStyles.menuItem,
+        color: a.id ? "#dc2626" : "#cbd5e1"
+      },
+      disabled: !a.id
+    }, "\uD83D\uDDD1 Supprimer", !a.id && " (action démo)"))));
   }))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsCol
   }, /*#__PURE__*/React.createElement("div", {
@@ -1615,7 +1749,18 @@ var ClientPage = () => {
     style: cliStyles.pastList
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.pastSpine
-  }), pastShown.map((a, i) => /*#__PURE__*/React.createElement("div", {
+  }), pastShown.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "24px 14px",
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc",
+      marginLeft: 18
+    }
+  }, "Aucune action enregistr\xE9e pour ce client."), pastShown.map((a, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     onClick: () => alert(`${a.title}\n\n${a.who || ""}\n${a.at || ""}\n\n${a.meta || ""}`),
     style: {
@@ -2142,7 +2287,233 @@ var ClientPage = () => {
       name: "AXA Wealth France"
     },
     onClose: () => setAssetsOpen(false)
-  }));
+  }), addActionOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setAddActionOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.45)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      width: "100%",
+      maxWidth: 560,
+      maxHeight: "90vh",
+      overflow: "auto",
+      boxShadow: "0 20px 50px rgba(15,23,42,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px 22px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "Nouvelle action \xE0 mener"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, "Planifier une t\xE2che, un appel, un rendez-vous\u2026")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAddActionOpen(false),
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 20,
+      color: "#94a3b8",
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Type"), /*#__PURE__*/React.createElement("select", {
+    value: newAction.type,
+    onChange: e => setNewAction({
+      ...newAction,
+      type: e.target.value
+    }),
+    style: modalInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "email"
+  }, "\u2709 Email"), /*#__PURE__*/React.createElement("option", {
+    value: "call"
+  }, "\uD83D\uDCDE Appel"), /*#__PURE__*/React.createElement("option", {
+    value: "visio"
+  }, "\uD83D\uDCF9 Visio"), /*#__PURE__*/React.createElement("option", {
+    value: "rdv"
+  }, "\uD83E\uDD1D Rendez-vous"), /*#__PURE__*/React.createElement("option", {
+    value: "task"
+  }, "\u2705 T\xE2che"), /*#__PURE__*/React.createElement("option", {
+    value: "note"
+  }, "\uD83D\uDCDD Note"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Titre *"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: newAction.title,
+    onChange: e => setNewAction({
+      ...newAction,
+      title: e.target.value
+    }),
+    placeholder: "Ex. Relance proposition commerciale",
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: newAction.date,
+    onChange: e => setNewAction({
+      ...newAction,
+      date: e.target.value
+    }),
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Heure"), /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: newAction.time,
+    onChange: e => setNewAction({
+      ...newAction,
+      time: e.target.value
+    }),
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Priorit\xE9"), /*#__PURE__*/React.createElement("select", {
+    value: newAction.priority,
+    onChange: e => setNewAction({
+      ...newAction,
+      priority: e.target.value
+    }),
+    style: modalInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "haute"
+  }, "\uD83D\uDD34 Haute"), /*#__PURE__*/React.createElement("option", {
+    value: "moyenne"
+  }, "\uD83D\uDFE0 Moyenne"), /*#__PURE__*/React.createElement("option", {
+    value: "basse"
+  }, "\uD83D\uDFE2 Basse"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Assign\xE9 \xE0"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: newAction.assigned,
+    onChange: e => setNewAction({
+      ...newAction,
+      assigned: e.target.value
+    }),
+    placeholder: "Vous",
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Tag / R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: newAction.tag,
+    onChange: e => setNewAction({
+      ...newAction,
+      tag: e.target.value
+    }),
+    placeholder: "Ex. OPP-2026-001",
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Description / Notes"), /*#__PURE__*/React.createElement("textarea", {
+    value: newAction.meta,
+    onChange: e => setNewAction({
+      ...newAction,
+      meta: e.target.value
+    }),
+    rows: 3,
+    placeholder: "Contexte, points \xE0 aborder\u2026",
+    style: {
+      ...modalInput,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAddActionOpen(false),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: submitNewAction,
+    style: {
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Cr\xE9er l'action")))));
+};
+var modalLabel = {
+  display: "block",
+  fontSize: 11.5,
+  fontWeight: 600,
+  color: "#475569",
+  marginBottom: 5,
+  textTransform: "uppercase",
+  letterSpacing: 0.3
+};
+var modalInput = {
+  width: "100%",
+  padding: "9px 11px",
+  border: "1px solid #e2e8f0",
+  borderRadius: 7,
+  fontSize: 13,
+  color: "#0f172a",
+  background: "#fff",
+  boxSizing: "border-box",
+  outline: "none"
 };
 var DetailRow = ({
   label,
@@ -2747,6 +3118,19 @@ var cliStyles = {
     cursor: "pointer",
     fontSize: 14,
     borderRadius: 4
+  },
+  menuItem: {
+    display: "block",
+    width: "100%",
+    padding: "8px 12px",
+    border: "none",
+    background: "transparent",
+    color: "#0f172a",
+    fontSize: 12.5,
+    fontWeight: 500,
+    textAlign: "left",
+    cursor: "pointer",
+    borderRadius: 5
   },
   // Menées
   pastList: {

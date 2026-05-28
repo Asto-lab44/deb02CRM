@@ -496,9 +496,10 @@ var NewOpportunity = () => {
     required: true
   }, /*#__PURE__*/React.createElement("input", {
     style: noStyles.input,
-    defaultValue: "",
+    value: oppName,
+    onChange: e => setOppName(e.target.value),
     placeholder: "Ex : D\xE9ploiement Astorya Suite \u2014 500 si\xE8ges"
-  }), /*#__PURE__*/React.createElement("div", {
+  }), oppName.trim() && /*#__PURE__*/React.createElement("div", {
     style: {
       ...noStyles.inputHelp,
       color: "#10b981"
@@ -591,7 +592,9 @@ var NewOpportunity = () => {
   }, /*#__PURE__*/React.createElement("textarea", {
     style: noStyles.textarea,
     rows: "3",
-    defaultValue: ""
+    value: oppNotes,
+    onChange: e => setOppNotes(e.target.value),
+    placeholder: "Contexte du besoin, d\xE9clencheur, points cl\xE9s\u2026"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -609,7 +612,7 @@ var NewOpportunity = () => {
       color: "#94a3b8",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, "248 / 2 000")))), /*#__PURE__*/React.createElement("section", {
+  }, oppNotes.length, " / 2 000")))), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
@@ -631,7 +634,9 @@ var NewOpportunity = () => {
       fontSize: 18,
       fontWeight: 600
     },
-    defaultValue: ""
+    value: oppAmount,
+    onChange: e => setOppAmount(e.target.value),
+    placeholder: "0"
   }), /*#__PURE__*/React.createElement("span", {
     style: noStyles.suffix
   }, "\u20AC / an")), /*#__PURE__*/React.createElement("div", {
@@ -779,16 +784,16 @@ var NewOpportunity = () => {
       color: "#94a3b8"
     }
   }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
     style: {
       ...noStyles.input,
       border: "none",
       padding: 0,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: ""
-  })), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.inputHelp
-  }, "Dans 112 jours \xB7 trimestre Q3 2026")))), /*#__PURE__*/React.createElement("section", {
+    value: oppDate,
+    onChange: e => setOppDate(e.target.value)
+  }))))), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "04",
@@ -899,6 +904,9 @@ var NewOpportunity = () => {
   }, "+")))), /*#__PURE__*/React.createElement("div", {
     style: noStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      window.location.href = "/crm";
+    },
     style: noStyles.ghostBtn
   }, "Annuler"), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -906,12 +914,27 @@ var NewOpportunity = () => {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: createOpp,
     style: noStyles.ghostBtn
   }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.ghostBtn
-  }, "\u2190 Pr\xE9c\xE9dent"), /*#__PURE__*/React.createElement("button", {
+    onClick: createOpp,
     style: noStyles.primaryBtn
-  }, "Continuer \u2192")))), /*#__PURE__*/React.createElement("aside", {
+  }, "Cr\xE9er l'opportunit\xE9 \u2192"))), flash && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      bottom: 24,
+      left: "50%",
+      transform: "translateX(-50%)",
+      padding: "10px 18px",
+      borderRadius: 8,
+      background: flash.tone === "err" ? "#dc2626" : "#10b981",
+      color: "#fff",
+      fontSize: 13,
+      fontWeight: 600,
+      boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
+      zIndex: 10000
+    }
+  }, flash.m)), /*#__PURE__*/React.createElement("aside", {
     style: noStyles.previewCol
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.previewSticky

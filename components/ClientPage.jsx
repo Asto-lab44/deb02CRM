@@ -23,14 +23,40 @@ const ClientPage = () => {
       return next;
     });
   };
-  const addAction = () => {
-    const title = prompt("Nouvelle action à mener :");
-    if (!title) return;
-    const due = prompt("Échéance (texte libre, ex. 'Demain · 10h00') :", "Demain");
-    const next = [{ id: "EX-" + Date.now(), title, due: due || "—", priority: "moyenne", icon: "•", meta: "Ajoutée manuellement", assigned: "Vous", assignedColor: "#3730a3", tag: "Manuel", tagColor: "#475569" }, ...extraActions];
+  // Modal "Nouvelle action à mener"
+  const [addActionOpen, setAddActionOpen] = React.useState(false);
+  const [actionMenuKey, setActionMenuKey] = React.useState(null);
+  React.useEffect(() => {
+    if (!actionMenuKey) return;
+    const close = () => setActionMenuKey(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [actionMenuKey]);
+  const [newAction, setNewAction] = React.useState({ type: "email", title: "", date: "", time: "", priority: "moyenne", assigned: "", tag: "", meta: "" });
+  const openAddAction = () => { setNewAction({ type: "email", title: "", date: "", time: "", priority: "moyenne", assigned: "", tag: "", meta: "" }); setAddActionOpen(true); };
+  const submitNewAction = () => {
+    if (!newAction.title.trim()) { alert("Le titre est obligatoire"); return; }
+    const iconMap = { email: "✉", call: "📞", visio: "💻", rdv: "📅", task: "✓", note: "✎" };
+    const dueText = newAction.date
+      ? new Date(newAction.date).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" }) + (newAction.time ? " · " + newAction.time : "")
+      : "Date à définir";
+    const next = [{
+      id: "EX-" + Date.now(),
+      title: newAction.title.trim(),
+      due: dueText,
+      priority: newAction.priority,
+      icon: iconMap[newAction.type] || "•",
+      meta: newAction.meta || "",
+      assigned: newAction.assigned || "Vous",
+      assignedColor: "#3730a3",
+      tag: newAction.tag || (newAction.type === "email" ? "Email" : newAction.type === "call" ? "Appel" : newAction.type === "visio" ? "Visio" : newAction.type === "rdv" ? "RDV" : newAction.type === "task" ? "Tâche" : "Note"),
+      tagColor: "#475569",
+    }, ...extraActions];
     setExtraActions(next);
     try { localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next)); } catch (e) {}
+    setAddActionOpen(false);
   };
+  const addAction = () => openAddAction();
   const removeAction = (id) => {
     const next = extraActions.filter((a) => a.id !== id);
     setExtraActions(next);
@@ -118,14 +144,18 @@ const ClientPage = () => {
   }, []);
 
   // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
+  // Vide par défaut pour un nouveau prospect tant que rien n'est renseigné (pas de carte vide).
   const allContacts = (() => {
     const localForThis = customContacts.filter((c) => c.client_id === (urlId || "ACC-0184")).map((c) => ({ ...c, _custom: true }));
     if (isCustom) {
-      const principal = display.contactPrincipal ? [{
-        name: ((display.contactPrincipal.prenom || "") + " " + (display.contactPrincipal.nom || "")).trim(),
-        role: display.contactPrincipal.fonction || "—",
-        email: display.contactPrincipal.email || "",
-        phone: display.contactPrincipal.phone || "",
+      const cp = display.contactPrincipal;
+      const fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
+      // Ne créer la carte du contact principal que s'il a au moins un nom OU un email
+      const principal = (fullName || (cp && cp.email)) ? [{
+        name: fullName || (cp && cp.email) || "Contact principal",
+        role: (cp && cp.fonction) || "—",
+        email: (cp && cp.email) || "",
+        phone: (cp && cp.phone) || "",
         color: "#a855f7", champion: true, last: "Contact principal",
       }] : [];
       return [...principal, ...localForThis];
@@ -160,25 +190,8 @@ const ClientPage = () => {
   const [pastShowAll, setPastShowAll] = React.useState(false);
 
   const addContract = () => {
-    const name = prompt("Intitulé du contrat :");
-    if (!name) return;
-    const amount = prompt("Montant (ex. 48 k€ / an) :", "0 €");
-    const type = prompt("Type (Licence SaaS / Maintenance / Avenant / Autre) :", "Licence SaaS");
-    const newCt = {
-      id: "CTR-" + Date.now().toString().slice(-7),
-      client_id: urlId || display.id,
-      name, product: "", type: type || "—",
-      amount: amount || "0 €",
-      start: new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }),
-      end: new Date(Date.now() + 365*24*3600*1000).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }),
-      status: "active",
-    };
-    const next = [newCt, ...contractsList];
-    setContractsList(next);
-    try {
-      const all = JSON.parse(localStorage.getItem("hubAstorya.contracts.v1") || "[]");
-      localStorage.setItem("hubAstorya.contracts.v1", JSON.stringify([newCt, ...all]));
-    } catch (e) {}
+    const cid = urlId || display.id || "";
+    window.location.href = "/nouveau-contrat" + (cid ? "?client=" + encodeURIComponent(cid) : "");
   };
 
   // ───── Récupère le client à afficher selon l'ID dans l'URL
@@ -204,17 +217,23 @@ const ClientPage = () => {
 
   // Mapping unifié vers les champs d'affichage
   const c = loadedClient || {};
-  const isCustom = !!loadedClient;
+  // isCustom = true dès qu'on a un ?id= dans l'URL (même avant que le fetch
+  // ait peuplé loadedClient) → empêche le flash des défauts AXA sur la fiche
+  // d'un prospect Astorya pendant le chargement.
+  const isCustom = !!urlId || !!loadedClient;
+  // Si on a un ?id= mais pas encore de loadedClient, on évite TOUT fallback AXA
+  // (sinon flash visuel du nom/secteur AXA pendant le fetch).
+  const empty = isCustom && !loadedClient;
   const display = {
-    id:        c.id || "ACC-0184",
-    name:      c.raison_sociale || c.name || "AXA Wealth France",
-    sector:    c.secteur || c.industry || "Asset Management",
-    size:      c.effectif ? `Effectif ${c.effectif}` : "12 000 employés",
-    city:      c.ville || c.city || "Paris · La Défense",
-    web:       c.site_web || c.website || "axa-im.fr",
-    since:     c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : (c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : "Client depuis mars 2024"),
-    desc:      c.notes || (isCustom ? `Compte ${c.tier ? `tier ${c.tier}` : ""} — créé via le formulaire prospect.` : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
-    logo:      (c.raison_sociale || c.name || "AX").slice(0, 2).toUpperCase(),
+    id:        c.id || (empty ? (urlId || "—") : "ACC-0184"),
+    name:      c.raison_sociale || c.name || (empty ? "Chargement…" : "AXA Wealth France"),
+    sector:    c.secteur || c.industry || (empty ? "—" : "Asset Management"),
+    size:      c.effectif ? `Effectif ${c.effectif}` : (empty ? "—" : "12 000 employés"),
+    city:      c.ville || c.city || (empty ? "—" : "Paris · La Défense"),
+    web:       c.site_web || c.website || (empty ? "" : "axa-im.fr"),
+    since:     c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : (c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : (empty ? "" : "Client depuis mars 2024")),
+    desc:      c.notes || (isCustom ? (c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : (empty ? "" : "Compte créé via le formulaire prospect.")) : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
+    logo:      (c.raison_sociale || c.name || (empty ? "?" : "AX")).slice(0, 2).toUpperCase(),
     arr:       isCustom ? "—" : "184 k€",
     pipe:      isCustom ? "0" : "355 k€",
     health:    isCustom ? "—" : "78",
@@ -244,12 +263,39 @@ const ClientPage = () => {
     { k: "won", label: "Signé", color: "#10b981" },
   ];
 
-  const opportunities = [
+  const defaultOpps = [
     { name: "Astorya Suite — 750 sièges", amount: "215 000 €", stage: "propo", proba: 55, owner: "Nadia Lefèvre", ownerColor: "#a855f7", close: "15 juin 2026", days: 8, hot: true, ref: "OPP-2814" },
     { name: "Module Cyber — POC 50 utilisateurs", amount: "48 000 €", stage: "discovery", proba: 40, owner: "Karim Ben Salah", ownerColor: "#6366f1", close: "30 juin 2026", days: 4, ref: "OPP-2841" },
     { name: "Extension Hub — filiale Belgique", amount: "92 000 €", stage: "qualif", proba: 20, owner: "Nadia Lefèvre", ownerColor: "#a855f7", close: "15 sept. 2026", days: 2, isNew: true, ref: "OPP-2867" },
     { name: "Renouvellement Suite 2024-2026", amount: "184 000 €", stage: "won", proba: 100, owner: "Nadia Lefèvre", ownerColor: "#a855f7", close: "01 mars 2026", days: 0, won: true, ref: "OPP-2698" },
   ];
+
+  // ── Opportunités créées via /nouvelle-opportunite, filtrées sur ce client
+  const [storedOpps, setStoredOpps] = React.useState([]);
+  React.useEffect(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+      const cid = urlId || "ACC-0184";
+      const mine = all
+        .filter((o) => o.client_id === cid)
+        .map((o) => ({
+          ref: o.ref || o.id,
+          name: o.name,
+          amount: o.amount ? (String(o.amount).match(/€/) ? o.amount : o.amount + " €") : "—",
+          stage: o.stage || "qualif",
+          proba: o.proba || 20,
+          owner: o.owner || "Vous",
+          ownerColor: "#0ea5e9",
+          close: o.close || o.target_date || "—",
+          days: 0,
+          isNew: true,
+        }));
+      setStoredOpps(mine);
+    } catch (e) {}
+  }, [urlId]);
+
+  // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
+  const opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
 
   // ── Actions menées (passé, dernières)
   const past = [
@@ -272,8 +318,10 @@ const ClientPage = () => {
     { type: "stage",   icon: "↗",  color: "#a855f7", title: "OPP-2698 : signé",                 who: "Renouvellement Suite 24-26",      at: "01 mars",  meta: "184 k€ · 3 ans" },
   ];
   for (let i = 0; i < 34; i++) pastExtras.push({ type: "stage", icon: "•", color: "#94a3b8", title: `Synchronisation CRM #${i + 1}`, who: "Système", at: "Q1 2026", meta: "Mise à jour automatique" });
+  // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
   const pastAll = past.concat(pastExtras);
-  const pastShown = pastShowAll ? pastAll : past;
+  const pastShown = isCustom ? [] : (pastShowAll ? pastAll : past);
+  const pastTotal = isCustom ? 0 : pastAll.length;
 
   // ── Actions à mener (futur, à faire)
   const future = [
@@ -561,20 +609,28 @@ const ClientPage = () => {
               {opportunities.map((o, i) => {
                 const edited = oppEdits[o.ref] || {};
                 const currentStage = edited.stage || o.stage;
-                const stageLabels = { qualif: "Qualification", discovery: "Discovery", propo: "Proposition", nego: "Négociation", won: "Signé / Gagné" };
                 const openOpp = () => {
-                  const choice = prompt(`${o.ref} — ${o.name}\n\nMontant : ${o.amount}\nOwner : ${o.owner}\nClôture : ${o.close}\n\n──────────────────\nChanger l'étape ?\n  1. Qualification\n  2. Discovery\n  3. Proposition\n  4. Négociation\n  5. Signé / Gagné ✓\n  0. Annuler\n\nTapez le numéro :`, "0");
-                  const map = { "1": "qualif", "2": "discovery", "3": "propo", "4": "nego", "5": "won" };
-                  const newStage = map[choice];
-                  if (!newStage) return;
-                  updateOppField(o.ref, "stage", newStage);
-                  if (newStage === "won" && isCustom) {
-                    const promoted = promoteToClient(display.id, o.name);
-                    if (promoted) alert(`✓ ${o.name} signée !\n\n${display.name} passe de prospect à client.\nRechargez la page pour voir la mise à jour.`);
-                    else alert(`✓ Opportunité « ${o.name} » signée — statut mis à jour.`);
-                  } else {
-                    alert(`✓ Étape mise à jour : ${stageLabels[newStage]}`);
-                  }
+                  const cid = urlId || display.id || "";
+                  const amountNum = parseInt((edited.amount || o.amount || "").replace(/\D/g, ""), 10) || 0;
+                  const oppForStore = {
+                    ref: o.ref,
+                    name: o.name,
+                    client_name: display.name,
+                    stage: edited.stage || o.stage,
+                    amount: amountNum,
+                    proba: edited.proba || o.proba,
+                    owner: edited.owner || o.owner,
+                    close: edited.close || o.close,
+                    hot: o.hot,
+                  };
+                  try {
+                    const all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+                    const idx = all.findIndex((x) => x.ref === o.ref);
+                    if (idx >= 0) all[idx] = { ...all[idx], ...oppForStore };
+                    else all.unshift(oppForStore);
+                    localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(all));
+                  } catch (e) {}
+                  window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
                 };
                 const stage = pipeStages.find(s => s.k === o.stage);
                 return (
@@ -634,7 +690,7 @@ const ClientPage = () => {
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>
-                      <span style={{ color: "#4f46e5" }}>→</span> Actions à mener <span style={cliStyles.blockCount}>{future.length}</span>
+                      <span style={{ color: "#4f46e5" }}>→</span> Actions à mener <span style={cliStyles.blockCount}>{extraActions.length + (isCustom ? 0 : future.length)}</span>
                     </h2>
                     <p style={cliStyles.h2sub}>Tâches, relances et événements planifiés</p>
                   </div>
@@ -642,7 +698,12 @@ const ClientPage = () => {
                 </div>
 
                 <div style={cliStyles.actionsList}>
-                  {[...extraActions, ...future].map((a, i) => {
+                  {([...extraActions, ...(isCustom ? [] : future)].length === 0) && (
+                    <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 12.5, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc" }}>
+                      Aucune action planifiée. Cliquez sur <b>+ Ajouter</b> pour en créer une.
+                    </div>
+                  )}
+                  {[...extraActions, ...(isCustom ? [] : future)].map((a, i) => {
                     const p = prioMeta[a.priority] || prioMeta.basse;
                     const key = a.id || ("d-" + i);
                     const done = !!doneActions[key];
@@ -697,11 +758,61 @@ const ClientPage = () => {
                             )}
                           </div>
                         </div>
-                        <button onClick={() => {
-                          const choice = prompt(`Action « ${a.title} »\n\n1. Marquer comme ${done ? "à faire" : "terminée"}\n2. Supprimer (action manuelle uniquement)\n3. Annuler\n\nTapez 1, 2 ou 3 :`, "1");
-                          if (choice === "1") toggleAction(key);
-                          else if (choice === "2" && a.id) removeAction(a.id);
-                        }} style={{ ...cliStyles.actionMenu, cursor: "pointer" }}>⋯</button>
+                        <div style={{ position: "relative" }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setActionMenuKey(actionMenuKey === key ? null : key); }}
+                            style={{ ...cliStyles.actionMenu, cursor: "pointer" }}
+                          >⋯</button>
+                          {actionMenuKey === key && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                position: "absolute", top: "100%", right: 0, marginTop: 4,
+                                background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8,
+                                boxShadow: "0 8px 24px rgba(15,23,42,0.12)", zIndex: 1000,
+                                minWidth: 200, padding: 4,
+                              }}
+                            >
+                              <button
+                                onClick={() => { toggleAction(key); setActionMenuKey(null); }}
+                                style={cliStyles.menuItem}
+                              >
+                                {done ? "↺ Marquer à faire" : "✓ Marquer terminée"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const newTitle = prompt("Nouveau titre :", a.title);
+                                  if (newTitle && a.id) {
+                                    setExtraActions((arr) => arr.map((x) => x.id === a.id ? { ...x, title: newTitle } : x));
+                                  }
+                                  setActionMenuKey(null);
+                                }}
+                                style={cliStyles.menuItem}
+                                disabled={!a.id}
+                              >✎ Renommer</button>
+                              <button
+                                onClick={() => {
+                                  const newDue = prompt("Nouvelle échéance :", a.due);
+                                  if (newDue && a.id) {
+                                    setExtraActions((arr) => arr.map((x) => x.id === a.id ? { ...x, due: newDue } : x));
+                                  }
+                                  setActionMenuKey(null);
+                                }}
+                                style={cliStyles.menuItem}
+                                disabled={!a.id}
+                              >📅 Replanifier</button>
+                              <div style={{ height: 1, background: "#eef1f5", margin: "4px 0" }} />
+                              <button
+                                onClick={() => {
+                                  if (a.id && confirm("Supprimer cette action ?")) removeAction(a.id);
+                                  setActionMenuKey(null);
+                                }}
+                                style={{ ...cliStyles.menuItem, color: a.id ? "#dc2626" : "#cbd5e1" }}
+                                disabled={!a.id}
+                              >🗑 Supprimer{!a.id && " (action démo)"}</button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -724,6 +835,11 @@ const ClientPage = () => {
 
                 <div style={cliStyles.pastList}>
                   <div style={cliStyles.pastSpine} />
+                  {pastShown.length === 0 && (
+                    <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 12.5, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc", marginLeft: 18 }}>
+                      Aucune action enregistrée pour ce client.
+                    </div>
+                  )}
                   {pastShown.map((a, i) => (
                     <div key={i} onClick={() => alert(`${a.title}\n\n${a.who || ""}\n${a.at || ""}\n\n${a.meta || ""}`)} style={{ ...cliStyles.pastItem, cursor: "pointer" }}>
                       <div style={{ ...cliStyles.pastIcon, color: a.color, borderColor: a.color + "30" }}>{a.icon}</div>
@@ -885,9 +1001,134 @@ const ClientPage = () => {
         client={{ name: "AXA Wealth France" }}
         onClose={() => setAssetsOpen(false)}
       />
+
+      {addActionOpen && (
+        <div
+          onClick={() => setAddActionOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 560, maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 50px rgba(15,23,42,0.25)" }}
+          >
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #eef1f5", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Nouvelle action à mener</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Planifier une tâche, un appel, un rendez-vous…</div>
+              </div>
+              <button onClick={() => setAddActionOpen(false)} style={{ border: "none", background: "transparent", fontSize: 20, color: "#94a3b8", cursor: "pointer" }}>×</button>
+            </div>
+
+            <div style={{ padding: 22, display: "grid", gap: 14 }}>
+              <div>
+                <label style={modalLabel}>Type</label>
+                <select
+                  value={newAction.type}
+                  onChange={(e) => setNewAction({ ...newAction, type: e.target.value })}
+                  style={modalInput}
+                >
+                  <option value="email">✉ Email</option>
+                  <option value="call">📞 Appel</option>
+                  <option value="visio">📹 Visio</option>
+                  <option value="rdv">🤝 Rendez-vous</option>
+                  <option value="task">✅ Tâche</option>
+                  <option value="note">📝 Note</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={modalLabel}>Titre *</label>
+                <input
+                  type="text"
+                  value={newAction.title}
+                  onChange={(e) => setNewAction({ ...newAction, title: e.target.value })}
+                  placeholder="Ex. Relance proposition commerciale"
+                  style={modalInput}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={modalLabel}>Date</label>
+                  <input
+                    type="date"
+                    value={newAction.date}
+                    onChange={(e) => setNewAction({ ...newAction, date: e.target.value })}
+                    style={modalInput}
+                  />
+                </div>
+                <div>
+                  <label style={modalLabel}>Heure</label>
+                  <input
+                    type="time"
+                    value={newAction.time}
+                    onChange={(e) => setNewAction({ ...newAction, time: e.target.value })}
+                    style={modalInput}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={modalLabel}>Priorité</label>
+                  <select
+                    value={newAction.priority}
+                    onChange={(e) => setNewAction({ ...newAction, priority: e.target.value })}
+                    style={modalInput}
+                  >
+                    <option value="haute">🔴 Haute</option>
+                    <option value="moyenne">🟠 Moyenne</option>
+                    <option value="basse">🟢 Basse</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={modalLabel}>Assigné à</label>
+                  <input
+                    type="text"
+                    value={newAction.assigned}
+                    onChange={(e) => setNewAction({ ...newAction, assigned: e.target.value })}
+                    placeholder="Vous"
+                    style={modalInput}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={modalLabel}>Tag / Référence</label>
+                <input
+                  type="text"
+                  value={newAction.tag}
+                  onChange={(e) => setNewAction({ ...newAction, tag: e.target.value })}
+                  placeholder="Ex. OPP-2026-001"
+                  style={modalInput}
+                />
+              </div>
+
+              <div>
+                <label style={modalLabel}>Description / Notes</label>
+                <textarea
+                  value={newAction.meta}
+                  onChange={(e) => setNewAction({ ...newAction, meta: e.target.value })}
+                  rows={3}
+                  placeholder="Contexte, points à aborder…"
+                  style={{ ...modalInput, resize: "vertical", fontFamily: "inherit" }}
+                />
+              </div>
+            </div>
+
+            <div style={{ padding: "14px 22px", borderTop: "1px solid #eef1f5", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setAddActionOpen(false)} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Annuler</button>
+              <button onClick={submitNewAction} style={{ padding: "8px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Créer l'action</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const modalLabel = { display: "block", fontSize: 11.5, fontWeight: 600, color: "#475569", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.3 };
+const modalInput = { width: "100%", padding: "9px 11px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, color: "#0f172a", background: "#fff", boxSizing: "border-box", outline: "none" };
 
 const DetailRow = ({ label, value }) => (
   <div style={{ display: "flex", alignItems: "flex-start", padding: "8px 4px", gap: 10, minHeight: 32, borderBottom: "1px solid #f1f5f9" }}>
@@ -986,6 +1227,7 @@ const cliStyles = {
   linkRef: { fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, padding: "1px 5px", borderRadius: 3, border: "1px solid", fontWeight: 600 },
   overdueChip: { fontSize: 9.5, padding: "1px 6px", borderRadius: 3, background: "#dc2626", color: "#fff", fontWeight: 700, letterSpacing: 0.3 },
   actionMenu: { width: 24, height: 24, border: "none", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 14, borderRadius: 4 },
+  menuItem: { display: "block", width: "100%", padding: "8px 12px", border: "none", background: "transparent", color: "#0f172a", fontSize: 12.5, fontWeight: 500, textAlign: "left", cursor: "pointer", borderRadius: 5 },
 
   // Menées
   pastList: { display: "flex", flexDirection: "column", gap: 0, position: "relative" },

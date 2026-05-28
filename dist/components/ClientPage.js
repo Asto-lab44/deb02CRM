@@ -36,6 +36,13 @@ var ClientPage = () => {
   };
   // Modal "Nouvelle action à mener"
   var [addActionOpen, setAddActionOpen] = React.useState(false);
+  var [actionMenuKey, setActionMenuKey] = React.useState(null);
+  React.useEffect(() => {
+    if (!actionMenuKey) return;
+    var close = () => setActionMenuKey(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [actionMenuKey]);
   var [newAction, setNewAction] = React.useState({
     type: "email",
     title: "",
@@ -483,7 +490,7 @@ var ClientPage = () => {
     label: "Signé",
     color: "#10b981"
   }];
-  var opportunities = [{
+  var defaultOpps = [{
     name: "Astorya Suite — 750 sièges",
     amount: "215 000 €",
     stage: "propo",
@@ -527,6 +534,31 @@ var ClientPage = () => {
     won: true,
     ref: "OPP-2698"
   }];
+
+  // ── Opportunités créées via /nouvelle-opportunite, filtrées sur ce client
+  var [storedOpps, setStoredOpps] = React.useState([]);
+  React.useEffect(() => {
+    try {
+      var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+      var cid = urlId || "ACC-0184";
+      var mine = all.filter(o => o.client_id === cid).map(o => ({
+        ref: o.ref || o.id,
+        name: o.name,
+        amount: o.amount ? String(o.amount).match(/€/) ? o.amount : o.amount + " €" : "—",
+        stage: o.stage || "qualif",
+        proba: o.proba || 20,
+        owner: o.owner || "Vous",
+        ownerColor: "#0ea5e9",
+        close: o.close || o.target_date || "—",
+        days: 0,
+        isNew: true
+      }));
+      setStoredOpps(mine);
+    } catch (e) {}
+  }, [urlId]);
+
+  // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
+  var opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
 
   // ── Actions menées (passé, dernières)
   var past = [{
@@ -1247,7 +1279,7 @@ var ClientPage = () => {
     style: cliStyles.h2
   }, "Pipe contrats ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.blockCount
-  }, isCustom ? 0 : opportunities.length)), /*#__PURE__*/React.createElement("p", {
+  }, opportunities.length)), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
   }, "Vue d'ensemble des opportunit\xE9s et contrats actifs pour ce client")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1313,7 +1345,7 @@ var ClientPage = () => {
     })));
   })), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.oppGrid
-  }, (isCustom ? [] : opportunities).map((o, i) => {
+  }, opportunities.map((o, i) => {
     var edited = oppEdits[o.ref] || {};
     var currentStage = edited.stage || o.stage;
     var openOpp = () => {
@@ -1616,16 +1648,83 @@ var ClientPage = () => {
     }, /*#__PURE__*/React.createElement(Avatar, {
       name: n,
       size: 18
-    }))))))), /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        var choice = prompt(`Action « ${a.title} »\n\n1. Marquer comme ${done ? "à faire" : "terminée"}\n2. Supprimer (action manuelle uniquement)\n3. Annuler\n\nTapez 1, 2 ou 3 :`, "1");
-        if (choice === "1") toggleAction(key);else if (choice === "2" && a.id) removeAction(a.id);
+    }))))))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        setActionMenuKey(actionMenuKey === key ? null : key);
       },
       style: {
         ...cliStyles.actionMenu,
         cursor: "pointer"
       }
-    }, "\u22EF"));
+    }, "\u22EF"), actionMenuKey === key && /*#__PURE__*/React.createElement("div", {
+      onClick: e => e.stopPropagation(),
+      style: {
+        position: "absolute",
+        top: "100%",
+        right: 0,
+        marginTop: 4,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 8,
+        boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+        zIndex: 1000,
+        minWidth: 200,
+        padding: 4
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        toggleAction(key);
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem
+    }, done ? "↺ Marquer à faire" : "✓ Marquer terminée"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var newTitle = prompt("Nouveau titre :", a.title);
+        if (newTitle && a.id) {
+          setExtraActions(arr => arr.map(x => x.id === a.id ? {
+            ...x,
+            title: newTitle
+          } : x));
+        }
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem,
+      disabled: !a.id
+    }, "\u270E Renommer"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var newDue = prompt("Nouvelle échéance :", a.due);
+        if (newDue && a.id) {
+          setExtraActions(arr => arr.map(x => x.id === a.id ? {
+            ...x,
+            due: newDue
+          } : x));
+        }
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem,
+      disabled: !a.id
+    }, "\uD83D\uDCC5 Replanifier"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 1,
+        background: "#eef1f5",
+        margin: "4px 0"
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (a.id && confirm("Supprimer cette action ?")) removeAction(a.id);
+        setActionMenuKey(null);
+      },
+      style: {
+        ...cliStyles.menuItem,
+        color: a.id ? "#dc2626" : "#cbd5e1"
+      },
+      disabled: !a.id
+    }, "\uD83D\uDDD1 Supprimer", !a.id && " (action démo)"))));
   }))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsCol
   }, /*#__PURE__*/React.createElement("div", {
@@ -3019,6 +3118,19 @@ var cliStyles = {
     cursor: "pointer",
     fontSize: 14,
     borderRadius: 4
+  },
+  menuItem: {
+    display: "block",
+    width: "100%",
+    padding: "8px 12px",
+    border: "none",
+    background: "transparent",
+    color: "#0f172a",
+    fontSize: 12.5,
+    fontWeight: 500,
+    textAlign: "left",
+    cursor: "pointer",
+    borderRadius: 5
   },
   // Menées
   pastList: {

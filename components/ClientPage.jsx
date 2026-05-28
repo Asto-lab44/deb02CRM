@@ -25,6 +25,13 @@ const ClientPage = () => {
   };
   // Modal "Nouvelle action à mener"
   const [addActionOpen, setAddActionOpen] = React.useState(false);
+  const [actionMenuKey, setActionMenuKey] = React.useState(null);
+  React.useEffect(() => {
+    if (!actionMenuKey) return;
+    const close = () => setActionMenuKey(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [actionMenuKey]);
   const [newAction, setNewAction] = React.useState({ type: "email", title: "", date: "", time: "", priority: "moyenne", assigned: "", tag: "", meta: "" });
   const openAddAction = () => { setNewAction({ type: "email", title: "", date: "", time: "", priority: "moyenne", assigned: "", tag: "", meta: "" }); setAddActionOpen(true); };
   const submitNewAction = () => {
@@ -256,12 +263,39 @@ const ClientPage = () => {
     { k: "won", label: "Signé", color: "#10b981" },
   ];
 
-  const opportunities = [
+  const defaultOpps = [
     { name: "Astorya Suite — 750 sièges", amount: "215 000 €", stage: "propo", proba: 55, owner: "Nadia Lefèvre", ownerColor: "#a855f7", close: "15 juin 2026", days: 8, hot: true, ref: "OPP-2814" },
     { name: "Module Cyber — POC 50 utilisateurs", amount: "48 000 €", stage: "discovery", proba: 40, owner: "Karim Ben Salah", ownerColor: "#6366f1", close: "30 juin 2026", days: 4, ref: "OPP-2841" },
     { name: "Extension Hub — filiale Belgique", amount: "92 000 €", stage: "qualif", proba: 20, owner: "Nadia Lefèvre", ownerColor: "#a855f7", close: "15 sept. 2026", days: 2, isNew: true, ref: "OPP-2867" },
     { name: "Renouvellement Suite 2024-2026", amount: "184 000 €", stage: "won", proba: 100, owner: "Nadia Lefèvre", ownerColor: "#a855f7", close: "01 mars 2026", days: 0, won: true, ref: "OPP-2698" },
   ];
+
+  // ── Opportunités créées via /nouvelle-opportunite, filtrées sur ce client
+  const [storedOpps, setStoredOpps] = React.useState([]);
+  React.useEffect(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+      const cid = urlId || "ACC-0184";
+      const mine = all
+        .filter((o) => o.client_id === cid)
+        .map((o) => ({
+          ref: o.ref || o.id,
+          name: o.name,
+          amount: o.amount ? (String(o.amount).match(/€/) ? o.amount : o.amount + " €") : "—",
+          stage: o.stage || "qualif",
+          proba: o.proba || 20,
+          owner: o.owner || "Vous",
+          ownerColor: "#0ea5e9",
+          close: o.close || o.target_date || "—",
+          days: 0,
+          isNew: true,
+        }));
+      setStoredOpps(mine);
+    } catch (e) {}
+  }, [urlId]);
+
+  // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
+  const opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
 
   // ── Actions menées (passé, dernières)
   const past = [
@@ -538,7 +572,7 @@ const ClientPage = () => {
           <section style={cliStyles.block}>
             <div style={cliStyles.blockHead}>
               <div>
-                <h2 style={cliStyles.h2}>Pipe contrats <span style={cliStyles.blockCount}>{isCustom ? 0 : opportunities.length}</span></h2>
+                <h2 style={cliStyles.h2}>Pipe contrats <span style={cliStyles.blockCount}>{opportunities.length}</span></h2>
                 <p style={cliStyles.h2sub}>Vue d'ensemble des opportunités et contrats actifs pour ce client</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
@@ -572,7 +606,7 @@ const ClientPage = () => {
 
             {/* Opp cards */}
             <div style={cliStyles.oppGrid}>
-              {(isCustom ? [] : opportunities).map((o, i) => {
+              {opportunities.map((o, i) => {
                 const edited = oppEdits[o.ref] || {};
                 const currentStage = edited.stage || o.stage;
                 const openOpp = () => {
@@ -724,11 +758,61 @@ const ClientPage = () => {
                             )}
                           </div>
                         </div>
-                        <button onClick={() => {
-                          const choice = prompt(`Action « ${a.title} »\n\n1. Marquer comme ${done ? "à faire" : "terminée"}\n2. Supprimer (action manuelle uniquement)\n3. Annuler\n\nTapez 1, 2 ou 3 :`, "1");
-                          if (choice === "1") toggleAction(key);
-                          else if (choice === "2" && a.id) removeAction(a.id);
-                        }} style={{ ...cliStyles.actionMenu, cursor: "pointer" }}>⋯</button>
+                        <div style={{ position: "relative" }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setActionMenuKey(actionMenuKey === key ? null : key); }}
+                            style={{ ...cliStyles.actionMenu, cursor: "pointer" }}
+                          >⋯</button>
+                          {actionMenuKey === key && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                position: "absolute", top: "100%", right: 0, marginTop: 4,
+                                background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8,
+                                boxShadow: "0 8px 24px rgba(15,23,42,0.12)", zIndex: 1000,
+                                minWidth: 200, padding: 4,
+                              }}
+                            >
+                              <button
+                                onClick={() => { toggleAction(key); setActionMenuKey(null); }}
+                                style={cliStyles.menuItem}
+                              >
+                                {done ? "↺ Marquer à faire" : "✓ Marquer terminée"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const newTitle = prompt("Nouveau titre :", a.title);
+                                  if (newTitle && a.id) {
+                                    setExtraActions((arr) => arr.map((x) => x.id === a.id ? { ...x, title: newTitle } : x));
+                                  }
+                                  setActionMenuKey(null);
+                                }}
+                                style={cliStyles.menuItem}
+                                disabled={!a.id}
+                              >✎ Renommer</button>
+                              <button
+                                onClick={() => {
+                                  const newDue = prompt("Nouvelle échéance :", a.due);
+                                  if (newDue && a.id) {
+                                    setExtraActions((arr) => arr.map((x) => x.id === a.id ? { ...x, due: newDue } : x));
+                                  }
+                                  setActionMenuKey(null);
+                                }}
+                                style={cliStyles.menuItem}
+                                disabled={!a.id}
+                              >📅 Replanifier</button>
+                              <div style={{ height: 1, background: "#eef1f5", margin: "4px 0" }} />
+                              <button
+                                onClick={() => {
+                                  if (a.id && confirm("Supprimer cette action ?")) removeAction(a.id);
+                                  setActionMenuKey(null);
+                                }}
+                                style={{ ...cliStyles.menuItem, color: a.id ? "#dc2626" : "#cbd5e1" }}
+                                disabled={!a.id}
+                              >🗑 Supprimer{!a.id && " (action démo)"}</button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1143,6 +1227,7 @@ const cliStyles = {
   linkRef: { fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, padding: "1px 5px", borderRadius: 3, border: "1px solid", fontWeight: 600 },
   overdueChip: { fontSize: 9.5, padding: "1px 6px", borderRadius: 3, background: "#dc2626", color: "#fff", fontWeight: 700, letterSpacing: 0.3 },
   actionMenu: { width: 24, height: 24, border: "none", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 14, borderRadius: 4 },
+  menuItem: { display: "block", width: "100%", padding: "8px 12px", border: "none", background: "transparent", color: "#0f172a", fontSize: 12.5, fontWeight: 500, textAlign: "left", cursor: "pointer", borderRadius: 5 },
 
   // Menées
   pastList: { display: "flex", flexDirection: "column", gap: 0, position: "relative" },

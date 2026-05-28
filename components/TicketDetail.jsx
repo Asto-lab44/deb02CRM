@@ -10,15 +10,42 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
   const [replyText, setReplyText] = React.useState("");
   const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
 
-  // ───── Messages ajoutés par l'agent — persistés en localStorage par ticket.
-  // (À migrer vers une table Supabase "comments" quand elle sera créée.)
+  // ───── Messages ajoutés par l'agent — Supabase si configuré, fallback localStorage.
+  // En mode DB : lecture initiale + abonnement realtime pour la collaboration multi-agents.
   const MSG_KEY = `hubAstorya.ticketMsgs.v1.${TICKET_ID}`;
   const [addedMessages, setAddedMessages] = React.useState(() => {
     try { return JSON.parse(localStorage.getItem(MSG_KEY) || "[]"); } catch (e) { return []; }
   });
+
+  const loadComments = React.useCallback(async () => {
+    if (!dataOn || !window.HubData.fetchCommentsByTicket) return;
+    const { data, error } = await window.HubData.fetchCommentsByTicket(TICKET_ID);
+    if (error || !data) return;
+    setAddedMessages(data.map((c) => ({
+      id: c.id,
+      type: "msg",
+      from: c.author_name,
+      role: c.kind === "note" ? "note" : "agent",
+      isNote: c.kind === "note",
+      at: new Date(c.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
+      atIso: c.created_at,
+      body: c.body,
+      color: "#3730a3",
+    })));
+  }, [TICKET_ID, dataOn]);
+
   React.useEffect(() => {
-    try { return localStorage.setItem(MSG_KEY, JSON.stringify(addedMessages)); } catch (e) {}
-  }, [addedMessages, MSG_KEY]);
+    if (!dataOn) return;
+    loadComments();
+    const off = window.HubData.subscribeCommentsForTicket && window.HubData.subscribeCommentsForTicket(TICKET_ID, loadComments);
+    return () => { off && off(); };
+  }, [TICKET_ID, dataOn, loadComments]);
+
+  // Persistance localStorage uniquement en mode démo (sans Supabase)
+  React.useEffect(() => {
+    if (dataOn) return;
+    try { localStorage.setItem(MSG_KEY, JSON.stringify(addedMessages)); } catch (e) {}
+  }, [addedMessages, MSG_KEY, dataOn]);
 
   // Données du ticket : prop si fournie (depuis TicketList), sinon valeurs par défaut
   // pour la maquette INC-2837 (Camille Dufour, VPN).
@@ -74,19 +101,38 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
     const isNote = composerTabState === "note";
     const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
     const fromName = currentUser?.name || "Vous";
-    const msg = {
-      type: "msg",
-      from: fromName,
-      role: isNote ? "note" : "agent",
-      at: new Date().toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
-      atIso: new Date().toISOString(),
-      body: text,
-      color: "#3730a3",
-      isNote,
-    };
-    setAddedMessages((prev) => [...prev, msg]);
+    const fromEmail = currentUser?.email || null;
+
+    // En mode Supabase : on persiste en base et on laisse le realtime rafraîchir le fil
+    if (dataOn && window.HubData.createComment) {
+      const { error } = await window.HubData.createComment({
+        ticket_id: TICKET_ID,
+        author_name: fromName,
+        author_email: fromEmail,
+        body: text,
+        kind: isNote ? "note" : "reply",
+      });
+      if (error) {
+        // Fallback local si l'insert échoue (RLS, etc.)
+        const msg = { type: "msg", from: fromName, role: isNote ? "note" : "agent", isNote,
+                      at: new Date().toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
+                      atIso: new Date().toISOString(), body: text, color: "#3730a3" };
+        setAddedMessages((prev) => [...prev, msg]);
+        showFlash("Sauvegarde locale uniquement : " + (error.message || "permission DB"), "warn");
+      } else {
+        showFlash(isNote ? "✓ Note interne enregistrée" : "✓ Réponse envoyée à " + (ticketData?.client?.name || display.requester || "demandeur"));
+        // Le subscribe realtime ajoutera le message au fil
+        loadComments();
+      }
+    } else {
+      // Mode démo
+      const msg = { type: "msg", from: fromName, role: isNote ? "note" : "agent", isNote,
+                    at: new Date().toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
+                    atIso: new Date().toISOString(), body: text, color: "#3730a3" };
+      setAddedMessages((prev) => [...prev, msg]);
+      showFlash(isNote ? "✓ Note interne enregistrée (local)" : "✓ Réponse envoyée (local)");
+    }
     setReplyText("");
-    showFlash(isNote ? "✓ Note interne enregistrée" : "✓ Réponse envoyée à " + (ticketData?.client?.name || display.requester || "demandeur"));
   };
 
   // Retranscriptions d'appel 3CX rattachées à ce ticket (alimentées par la

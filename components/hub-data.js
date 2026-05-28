@@ -100,6 +100,31 @@
     return { data, error };
   }
 
+  async function fetchCommentsByTicket(ticketId) {
+    if (!supa) return { data: null, error: null };
+    const { data, error } = await supa.from("comments")
+      .select("id, ticket_id, author_id, author_name, author_email, body, kind, created_at")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: true });
+    return { data, error };
+  }
+
+  async function createComment(payload) {
+    if (!supa) return { data: null, error: new Error("Supabase non configuré.") };
+    const { data, error } = await supa.from("comments").insert(payload).select().single();
+    return { data, error };
+  }
+
+  function subscribeCommentsForTicket(ticketId, onChange) {
+    if (!supa) return () => {};
+    const channel = supa.channel(`comments-${ticketId}`)
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "comments", filter: `ticket_id=eq.${ticketId}` },
+          () => onChange && onChange())
+      .subscribe();
+    return () => { try { supa.removeChannel(channel); } catch (e) {} };
+  }
+
   async function fetchTranscriptsByTicket(ticketId) {
     if (!supa) return { data: null, error: null };
     const { data, error } = await supa.from("call_transcripts")
@@ -168,6 +193,7 @@
     enabled,
     fetchGroups, fetchClients, fetchClientById, fetchTickets, fetchTicketById, fetchProfiles,
     fetchAssetsByClient, fetchTranscriptsByTicket,
+    fetchCommentsByTicket, createComment, subscribeCommentsForTicket,
     createTicket, updateTicket, escalateTicket, recordCall, saveTranscript,
     invalidate, subscribeChanges,
   };

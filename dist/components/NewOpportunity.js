@@ -1,6 +1,93 @@
 // Formulaire nouvelle opportunité — modal / écran de création
 
 var NewOpportunity = () => {
+  // ───── Recherche client (Supabase clients + prospects locaux)
+  var [clientSearch, setClientSearch] = React.useState("");
+  var [selectedClient, setSelectedClient] = React.useState(null);
+  var [allClients, setAllClients] = React.useState([]);
+  React.useEffect(() => {
+    var local = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      } catch (e) {
+        return [];
+      }
+    })();
+    var fromLocal = local.map(p => ({
+      id: p.id,
+      name: p.raison_sociale || p.name,
+      sector: p.secteur,
+      city: p.ville,
+      siren: p.siren,
+      since: "Nouveau prospect",
+      source: "local"
+    }));
+    if (window.HubData && window.HubData.enabled()) {
+      window.HubData.fetchClients().then(({
+        data
+      }) => {
+        var fromSupa = (data || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          sector: c.industry,
+          city: c.city,
+          since: c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", {
+            month: "short",
+            year: "numeric"
+          })}` : "Client",
+          source: "supabase"
+        }));
+        var seen = new Set();
+        setAllClients([...fromLocal, ...fromSupa].filter(c => seen.has(c.id) ? false : (seen.add(c.id), true)));
+      });
+    } else {
+      setAllClients(fromLocal);
+    }
+  }, []);
+  var q = clientSearch.trim().toLowerCase();
+  var matches = q ? allClients.filter(c => [c.name, c.sector, c.city, c.siren].some(v => String(v || "").toLowerCase().includes(q))).slice(0, 8) : allClients.slice(0, 5);
+  var [oppName, setOppName] = React.useState("");
+  var [oppAmount, setOppAmount] = React.useState("");
+  var [oppDate, setOppDate] = React.useState("");
+  var [oppNotes, setOppNotes] = React.useState("");
+  var [flash, setFlash] = React.useState(null);
+  var showFlash = (m, tone = "ok") => {
+    setFlash({
+      m,
+      tone
+    });
+    setTimeout(() => setFlash(null), 2800);
+  };
+  var createOpp = () => {
+    if (!selectedClient) {
+      showFlash("Sélectionnez d'abord un client", "err");
+      return;
+    }
+    if (!oppName.trim()) {
+      showFlash("Nom de l'opportunité obligatoire", "err");
+      return;
+    }
+    var opp = {
+      id: "OPP-" + Math.floor(Math.random() * 9000 + 1000),
+      client_id: selectedClient.id,
+      client_name: selectedClient.name,
+      name: oppName,
+      amount: oppAmount,
+      target_date: oppDate,
+      notes: oppNotes,
+      created_at: new Date().toISOString(),
+      stage: "qualif"
+    };
+    try {
+      var existing = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+      existing.unshift(opp);
+      localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(existing));
+    } catch (e) {}
+    showFlash("✓ Opportunité créée — redirection…");
+    setTimeout(() => {
+      window.location.href = "/crm";
+    }, 900);
+  };
   var Avatar = ({
     name,
     size = 22,
@@ -169,8 +256,9 @@ var NewOpportunity = () => {
     done: true
   }), /*#__PURE__*/React.createElement(FormRow, {
     label: "Compte",
-    required: true
-  }, /*#__PURE__*/React.createElement("div", {
+    required: true,
+    subtitle: "Cherchez parmi vos clients et prospects existants"
+  }, selectedClient ? /*#__PURE__*/React.createElement("div", {
     style: noStyles.linkedCard
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -185,9 +273,10 @@ var NewOpportunity = () => {
       fontSize: 12,
       fontWeight: 700
     }
-  }, "AX"), /*#__PURE__*/React.createElement("div", {
+  }, (selectedClient.name || "").slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
     style: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -195,14 +284,132 @@ var NewOpportunity = () => {
       fontWeight: 600,
       color: "#0f172a"
     }
-  }, "AXA Wealth France"), /*#__PURE__*/React.createElement("div", {
+  }, selectedClient.name), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Asset Management \xB7 12 000 emp. \xB7 Client depuis mars 2024")), /*#__PURE__*/React.createElement("button", {
+  }, selectedClient.sector || "Secteur ?", selectedClient.city && ` · 📍 ${selectedClient.city}`, " \xB7 ", selectedClient.since)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setSelectedClient(null);
+      setClientSearch("");
+    },
     style: noStyles.changeBtn
-  }, "Changer"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "Changer")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8",
+      fontSize: 14
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: clientSearch,
+    onChange: e => setClientSearch(e.target.value),
+    autoFocus: true,
+    placeholder: "Rechercher un client par nom, ville, secteur, SIREN\u2026",
+    style: {
+      ...noStyles.input,
+      paddingLeft: 36
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      maxHeight: 280,
+      overflowY: "auto",
+      boxShadow: "0 4px 12px rgba(0,0,0,.04)"
+    }
+  }, matches.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      textAlign: "center"
+    }
+  }, clientSearch.trim() ? "Aucun client trouvé. " : "Tapez pour rechercher dans la base. ", /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600,
+      textDecoration: "none"
+    }
+  }, "+ Cr\xE9er un nouveau prospect \u2192")), matches.map(c => /*#__PURE__*/React.createElement("div", {
+    key: c.id,
+    onClick: () => {
+      setSelectedClient(c);
+      setClientSearch("");
+    },
+    style: {
+      padding: "10px 12px",
+      borderBottom: "1px solid #f1f5f9",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 6,
+      background: c.source === "local" ? "#fef3c7" : "#dcfce7",
+      color: c.source === "local" ? "#78350f" : "#065f46",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 10,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, (c.name || "?").slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, c.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, c.sector || "—", c.city && ` · ${c.city}`, c.siren && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 6,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, c.siren))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 7px",
+      borderRadius: 999,
+      fontWeight: 700,
+      background: c.source === "local" ? "#fef3c7" : "#eef2ff",
+      color: c.source === "local" ? "#78350f" : "#3730a3",
+      textTransform: "uppercase",
+      letterSpacing: 0.3,
+      flexShrink: 0
+    }
+  }, c.source === "local" ? "Nouveau" : "Client")))))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Contact principal",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
@@ -280,7 +487,7 @@ var NewOpportunity = () => {
     required: true
   }, /*#__PURE__*/React.createElement("input", {
     style: noStyles.input,
-    defaultValue: "Astorya Suite \u2014 extension filiale Belgique",
+    defaultValue: "",
     placeholder: "Ex : D\xE9ploiement Astorya Suite \u2014 500 si\xE8ges"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -341,8 +548,7 @@ var NewOpportunity = () => {
     style: noStyles.radio
   }, /*#__PURE__*/React.createElement("input", {
     type: "radio",
-    name: "type",
-    defaultChecked: true
+    name: "type"
   }), " ", /*#__PURE__*/React.createElement("span", null, "Nouveau client")), /*#__PURE__*/React.createElement("label", {
     style: {
       ...noStyles.radio,
@@ -350,8 +556,7 @@ var NewOpportunity = () => {
     }
   }, /*#__PURE__*/React.createElement("input", {
     type: "radio",
-    name: "type",
-    defaultChecked: true
+    name: "type"
   }), " ", /*#__PURE__*/React.createElement("span", null, "Extension")), /*#__PURE__*/React.createElement("label", {
     style: noStyles.radio
   }, /*#__PURE__*/React.createElement("input", {
@@ -377,7 +582,7 @@ var NewOpportunity = () => {
   }, /*#__PURE__*/React.createElement("textarea", {
     style: noStyles.textarea,
     rows: "3",
-    defaultValue: "Suite \xE0 la signature de la Suite en France (mars 2024), AXA souhaite d\xE9ployer la m\xEAme solution sur sa filiale belge (210 utilisateurs). Demande initi\xE9e par \xC9milie Roux apr\xE8s \xE9change comit\xE9 direction du 22 mai."
+    defaultValue: ""
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -417,7 +622,7 @@ var NewOpportunity = () => {
       fontSize: 18,
       fontWeight: 600
     },
-    defaultValue: "92 000"
+    defaultValue: ""
   }), /*#__PURE__*/React.createElement("span", {
     style: noStyles.suffix
   }, "\u20AC / an")), /*#__PURE__*/React.createElement("div", {
@@ -571,7 +776,7 @@ var NewOpportunity = () => {
       padding: 0,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: "15 septembre 2026"
+    defaultValue: ""
   })), /*#__PURE__*/React.createElement("div", {
     style: noStyles.inputHelp
   }, "Dans 112 jours \xB7 trimestre Q3 2026")))), /*#__PURE__*/React.createElement("section", {
@@ -1199,13 +1404,12 @@ var ChecklistRow = ({
 }, label));
 var noStyles = {
   frame: {
-    width: 1440,
-    height: 1700,
+    width: "100%",
+    minHeight: "100vh",
     position: "relative",
     background: "#0f172a",
     fontFamily: "'Inter', system-ui, sans-serif",
-    color: "#0f172a",
-    overflow: "hidden"
+    color: "#0f172a"
   },
   // Faded behind
   behind: {

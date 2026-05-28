@@ -441,7 +441,7 @@ const Field = ({ label, value }) => (
 );
 
 const accStyles = {
-  frame: { width: 1440, height: 900, display: "flex", background: "#fafbfc", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: "#0f172a", overflow: "hidden" },
+  frame: { width: "100%", minHeight: "100vh", display: "flex", background: "#fafbfc", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: "#0f172a",  },
 
   sidebar: { width: 220, background: "#fff", borderRight: "1px solid #eef1f5", display: "flex", flexDirection: "column", padding: "14px 12px", gap: 14 },
   brandRow: { display: "flex", alignItems: "center", gap: 10, padding: "2px 4px" },

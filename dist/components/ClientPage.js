@@ -1432,13 +1432,12 @@ var DetailRow = ({
 }, value));
 var cliStyles = {
   frame: {
-    width: 1440,
-    height: 1500,
+    width: "100%",
+    minHeight: "100vh",
     display: "flex",
     background: "#fafbfc",
     fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-    color: "#0f172a",
-    overflow: "hidden"
+    color: "#0f172a"
   },
   sidebar: {
     width: 220,

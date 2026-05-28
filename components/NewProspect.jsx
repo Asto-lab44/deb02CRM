@@ -16,6 +16,13 @@ const NewProspect = () => {
   const [contactLi,     setContactLi]     = React.useState("");
   const [besoin,        setBesoin]        = React.useState("");
   const [notes,         setNotes]         = React.useState("");
+  const [source,        setSource]        = React.useState("");
+  const [contactDate,   setContactDate]   = React.useState("");
+  const [projectDate,   setProjectDate]   = React.useState("");
+  const [extraContactList, setExtraContactList] = React.useState([]); // [{prenom, nom, fonction, email, phone}]
+  const addExtraContact = () => setExtraContactList((l) => [...l, { prenom: "", nom: "", fonction: "", email: "", phone: "" }]);
+  const removeExtraContact = (i) => setExtraContactList((l) => l.filter((_, idx) => idx !== i));
+  const updateExtraContact = (i, field, value) => setExtraContactList((l) => l.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
   const [extraContacts, setExtraContacts] = React.useState(0);
   const [flash,         setFlash]         = React.useState(null);
 
@@ -186,27 +193,64 @@ const NewProspect = () => {
     }
   };
 
+  // Construit le payload complet à partir de tous les champs du formulaire
+  const buildPayload = () => ({
+    id: "ACC-" + Math.floor(Math.random() * 9000 + 1000),
+    raison_sociale: companyName,
+    siren: companySiren,
+    naf: companyNaf,
+    tva: companyTva,
+    adresse: companyAddress,
+    code_postal: companyCP,
+    ville: companyCity,
+    secteur: companySector,
+    sous_secteur: companySubSect,
+    site_web: companyWeb,
+    linkedin_entreprise: companyLi,
+    effectif, tier, fonction, roles, action,
+    ca_meur: ca,
+    contact_principal: {
+      prenom: contactPrenom, nom: contactNom, fonction: contactRole,
+      email: contactEmail, phone: contactPhone, linkedin: contactLi,
+    },
+    contacts_additionnels: extraContactList,
+    source, contact_date: contactDate, project_date: projectDate,
+    besoin, notes,
+    created_at: new Date().toISOString(),
+    status: "prospect",
+  });
+
   const saveDraft = () => {
-    const draft = { effectif, tier, fonction, roles, action, at: new Date().toISOString() };
-    try { localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify(draft)); } catch (e) {}
+    try { localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify(buildPayload())); } catch (e) {}
     showFlash("✓ Brouillon enregistré localement");
   };
 
   const createProspect = async () => {
-    const payload = { effectif, tier, fonction, roles, action, at: new Date().toISOString() };
+    if (!companyName.trim()) { showFlash("La raison sociale est obligatoire", "err"); return; }
+    const payload = buildPayload();
+
+    // 1. Append au localStorage "hubAstorya.prospects.v1" (liste partagée avec la vue Comptes)
+    try {
+      const existing = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      existing.unshift(payload);
+      localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(existing));
+      localStorage.removeItem("hubAstorya.prospectDraft.v1");
+    } catch (e) {}
+
+    // 2. Insertion Supabase si configuré (best-effort)
     if (window.HubData && window.HubData.enabled()) {
-      // Insertion minimale dans clients (le formulaire complet sera connecté champ par champ ensuite)
       try {
-        const id = "ACC-" + Math.floor(Math.random() * 9000 + 1000);
-        await window.HubSupabase.client.from("clients").insert({ id, name: "Nouveau prospect (à compléter)" });
-        showFlash("✓ Prospect créé en base — redirection…");
-        setTimeout(() => { window.location.href = "/fiche-client"; }, 900);
-        return;
-      } catch (e) { /* fallback ci-dessous */ }
+        await window.HubSupabase.client.from("clients").insert({
+          id: payload.id, name: companyName,
+          industry: companySector || null,
+          city: companyCity || null,
+          website: companyWeb || null,
+        });
+      } catch (e) { /* tolère l'échec, le local survit */ }
     }
-    try { localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify({ ...payload, _created: true })); } catch (e) {}
-    showFlash("✓ Prospect enregistré (mode démo)");
-    setTimeout(() => { window.location.href = "/fiche-client"; }, 900);
+
+    showFlash("✓ Prospect créé — redirection vers Comptes & Contacts…");
+    setTimeout(() => { window.location.href = "/crm#comptes"; }, 900);
   };
 
   const Avatar = ({ name, size = 22, color }) => {
@@ -405,7 +449,27 @@ const NewProspect = () => {
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Fonction" required>
-                <input style={npStyles.input} value={contactRole} onChange={(e) => setContactRole(e.target.value)} />
+                <select style={npStyles.input} value={contactRole} onChange={(e) => setContactRole(e.target.value)}>
+                  <option value="">— Choisir une fonction —</option>
+                  <option>CEO / Directeur général</option>
+                  <option>COO / Directeur des opérations</option>
+                  <option>CFO / Directeur financier</option>
+                  <option>CTO / Directeur technique</option>
+                  <option>CIO / DSI</option>
+                  <option>CISO / RSSI</option>
+                  <option>CMO / Directeur marketing</option>
+                  <option>CHRO / DRH</option>
+                  <option>Directeur des achats</option>
+                  <option>Directeur de la transformation digitale</option>
+                  <option>Responsable IT / Manager SI</option>
+                  <option>Responsable infrastructure</option>
+                  <option>Chef de projet</option>
+                  <option>Architecte SI</option>
+                  <option>Consultant / Expert</option>
+                  <option>Acheteur</option>
+                  <option>Juriste / DPO</option>
+                  <option>Autre — préciser dans notes</option>
+                </select>
               </FormRow>
               <FormRow label="Niveau hiérarchique">
                 <div style={npStyles.segCtrl}>
@@ -454,6 +518,39 @@ const NewProspect = () => {
                 {contactLi && <span style={{ ...npStyles.linkTag, color: "#4f46e5" }}>↗</span>}
               </div>
             </FormRow>
+
+            {/* Contacts additionnels */}
+            {extraContactList.map((c, i) => (
+              <div key={i} style={{ marginTop: 16, padding: 14, background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Contact additionnel #{i + 2}</div>
+                  <button onClick={() => removeExtraContact(i)} style={{ background: "transparent", border: 0, color: "#dc2626", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✕ Retirer</button>
+                </div>
+                <div style={npStyles.formGrid2}>
+                  <FormRow label="Prénom"><input style={npStyles.input} value={c.prenom} onChange={(e) => updateExtraContact(i, "prenom", e.target.value)} /></FormRow>
+                  <FormRow label="Nom"><input style={npStyles.input} value={c.nom} onChange={(e) => updateExtraContact(i, "nom", e.target.value)} /></FormRow>
+                </div>
+                <FormRow label="Fonction">
+                  <select style={npStyles.input} value={c.fonction} onChange={(e) => updateExtraContact(i, "fonction", e.target.value)}>
+                    <option value="">— Choisir —</option>
+                    <option>CEO / Directeur général</option>
+                    <option>CFO / Directeur financier</option>
+                    <option>CIO / DSI</option>
+                    <option>CTO / Directeur technique</option>
+                    <option>CMO / Directeur marketing</option>
+                    <option>CHRO / DRH</option>
+                    <option>Chef de projet</option>
+                    <option>Acheteur</option>
+                    <option>Consultant / Expert</option>
+                    <option>Autre</option>
+                  </select>
+                </FormRow>
+                <div style={npStyles.formGrid2}>
+                  <FormRow label="Email"><input type="email" style={npStyles.input} value={c.email} onChange={(e) => updateExtraContact(i, "email", e.target.value)} /></FormRow>
+                  <FormRow label="Téléphone"><input style={npStyles.input} value={c.phone} onChange={(e) => updateExtraContact(i, "phone", e.target.value)} /></FormRow>
+                </div>
+              </div>
+            ))}
           </section>
 
           {/* SECTION 3 — Qualification BANT */}
@@ -539,7 +636,8 @@ const NewProspect = () => {
               <FormRow label="Échéance estimée du projet">
                 <div style={npStyles.dateInput}>
                   <span style={{ color: "#94a3b8" }}>📅</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="" />
+                  <input type="date" style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                         value={projectDate} onChange={(e) => setProjectDate(e.target.value)} />
                 </div>
               </FormRow>
             </div>
@@ -551,21 +649,31 @@ const NewProspect = () => {
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Source du prospect" required>
-                <div style={npStyles.select}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 14 }}>◷</span>
-                    <span>Radar fin de contrat concurrent</span>
-                  </span>
-                  <span style={{ color: "#94a3b8" }}>▾</span>
-                </div>
-                <div style={npStyles.inputHelp}>Détecté automatiquement le 18 mai</div>
+                <select style={npStyles.input} value={source} onChange={(e) => setSource(e.target.value)}>
+                  <option value="">— Choisir une source —</option>
+                  <option>Radar fin de contrat concurrent</option>
+                  <option>LinkedIn / Sales Navigator</option>
+                  <option>Salon professionnel</option>
+                  <option>Recommandation client</option>
+                  <option>Inbound site web</option>
+                  <option>Demande de devis</option>
+                  <option>Cold call sortant</option>
+                  <option>Cold email sortant</option>
+                  <option>Webinar / événement Astorya</option>
+                  <option>Référencement (Google, Bing)</option>
+                  <option>Réseau partenaires</option>
+                  <option>Article de presse</option>
+                  <option>Autre</option>
+                </select>
+                {source && <div style={npStyles.inputHelp}>Source enregistrée : {source}</div>}
               </FormRow>
               <FormRow label="Date de prise de contact">
                 <div style={npStyles.dateInput}>
                   <span style={{ color: "#94a3b8" }}>📅</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="" />
+                  <input type="date" style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                         value={contactDate} onChange={(e) => setContactDate(e.target.value)} />
                 </div>
-                <div style={npStyles.inputHelp}>Premier email envoyé · réponse positive 23 mai</div>
+                {contactDate && <div style={npStyles.inputHelp}>1er contact prévu/effectué le {new Date(contactDate).toLocaleDateString("fr-FR")}</div>}
               </FormRow>
             </div>
 
@@ -633,7 +741,7 @@ const NewProspect = () => {
                 <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6, background: flash.tone === "err" ? "#fee2e2" : "#dcfce7", color: flash.tone === "err" ? "#991b1b" : "#065f46" }}>{flash.msg}</span>
               )}
               <button onClick={saveDraft} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Enregistrer brouillon</button>
-              <button onClick={() => { setExtraContacts((n) => n + 1); showFlash("✓ Contact additionnel ajouté"); }} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>+ Ajouter un autre contact{extraContacts > 0 && ` (${extraContacts})`}</button>
+              <button onClick={() => { addExtraContact(); showFlash("✓ Contact additionnel ajouté"); }} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>+ Ajouter un autre contact{extraContactList.length > 0 && ` (${extraContactList.length})`}</button>
               <button onClick={createProspect} style={{ ...npStyles.primaryBtn, cursor: "pointer" }}>✓ Créer le prospect</button>
             </div>
           </div>

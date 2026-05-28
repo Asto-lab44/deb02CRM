@@ -336,13 +336,19 @@ const CRMPipeline = () => {
             </div>
           ))}
         </div>
+
+        {/* ─── COMPTES & CONTACTS ─────────────────────────────────────── */}
+        <CRMAccountsList />
+
+        {/* ─── ACTIONS À MENER ────────────────────────────────────────── */}
+        <CRMActionsList />
       </main>
     </div>
   );
 };
 
 const crmStyles = {
-  frame: { width: 1440, height: 900, display: "flex", background: "#fafbfc", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: "#0f172a", overflow: "hidden" },
+  frame: { width: "100%", minHeight: "100vh", display: "flex", background: "#fafbfc", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: "#0f172a" },
 
   sidebar: { width: 248, background: "#fff", borderRight: "1px solid #eef1f5", display: "flex", flexDirection: "column", padding: "14px 12px", gap: 14 },
   brandRow: { display: "flex", alignItems: "center", gap: 10, padding: "2px 4px" },
@@ -385,7 +391,7 @@ const crmStyles = {
   divider: { width: 1, height: 18, background: "#eef1f5", alignSelf: "center", margin: "0 4px" },
 
   // Kanban
-  kanban: { flex: 1, display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, padding: "14px 24px 24px", overflow: "hidden", background: "#fafbfc" },
+  kanban: { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, padding: "14px 24px 24px", background: "#fafbfc" },
   column: { display: "flex", flexDirection: "column", minWidth: 0, background: "#f1f3f6", borderRadius: 10, padding: 10, gap: 8 },
   colHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px" },
   colCount: { fontSize: 11, padding: "0 6px", borderRadius: 999, background: "#fff", color: "#475569", fontFamily: "'JetBrains Mono', monospace", border: "1px solid #e2e8f0" },
@@ -408,5 +414,178 @@ const crmStyles = {
 
   addCard: { padding: "8px", border: "1px dashed #cbd5e1", background: "transparent", borderRadius: 8, fontSize: 11.5, color: "#94a3b8", cursor: "pointer", fontWeight: 500 },
 };
+
+// ───── Sous-composant : Comptes & Contacts avec recherche
+const CRMAccountsList = () => {
+  const [search, setSearch] = React.useState("");
+  const [localProspects, setLocalProspects] = React.useState([]);
+  const [supaClients, setSupaClients] = React.useState([]);
+
+  React.useEffect(() => {
+    // Charge les prospects créés localement
+    try { setLocalProspects(JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]")); }
+    catch (e) { setLocalProspects([]); }
+    // Charge les clients depuis Supabase si dispo
+    if (window.HubData && window.HubData.enabled()) {
+      window.HubData.fetchClients().then(({ data }) => { if (data) setSupaClients(data); });
+    }
+  }, []);
+
+  // Auto-scroll vers la section si URL contient #comptes
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#comptes") {
+      setTimeout(() => {
+        const el = document.getElementById("comptes-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, []);
+
+  // Fusionne les deux sources en évitant les doublons par id
+  const ids = new Set();
+  const merged = [];
+  for (const p of localProspects) { if (!ids.has(p.id)) { ids.add(p.id); merged.push({ ...p, _source: "local" }); } }
+  for (const c of supaClients)    { if (!ids.has(c.id)) { ids.add(c.id); merged.push({ ...c, _source: "supabase", raison_sociale: c.name, ville: c.city, secteur: c.industry, site_web: c.website }); } }
+
+  // Filtrage live
+  const q = search.trim().toLowerCase();
+  const filtered = q ? merged.filter((c) =>
+    [c.raison_sociale, c.ville, c.siren, c.secteur, c.site_web].some((v) => String(v || "").toLowerCase().includes(q))
+  ) : merged;
+
+  return (
+    <section id="comptes-section" style={{ background: "#fff", borderTop: "1px solid #eef1f5", padding: "20px 24px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Comptes & contacts</h2>
+          <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>
+            {merged.length} compte{merged.length > 1 ? "s" : ""} ({localProspects.length} créé{localProspects.length > 1 ? "s" : ""} récemment · {supaClients.length} en base)
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 480 }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
+            <input value={search} onChange={(e) => setSearch(e.target.value)}
+                   placeholder="Rechercher (raison sociale, ville, SIREN, secteur…)"
+                   style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff" }} />
+          </div>
+          <a href="/nouveau-prospect" style={{ padding: "8px 14px", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>+ Nouveau prospect</a>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div style={{ padding: "40px 24px", textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 10, border: "1px dashed #e2e8f0" }}>
+          {merged.length === 0 ? "Aucun compte pour l'instant. Créez votre premier prospect via le bouton ci-dessus." : "Aucun compte ne correspond à la recherche."}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10 }}>
+          {filtered.map((c) => (
+            <a key={c.id} href={`/fiche-client?id=${encodeURIComponent(c.id)}`}
+               style={{ display: "block", padding: 14, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, textDecoration: "none", color: "inherit", cursor: "pointer", transition: "border-color 120ms" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.raison_sociale || c.name || "—"}</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
+                    {c.secteur || "Secteur non renseigné"}
+                    {c.ville && <> · 📍 {c.ville}</>}
+                  </div>
+                  {c.siren && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>SIREN {c.siren}</div>}
+                </div>
+                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, fontWeight: 700, background: c._source === "local" ? "#fef3c7" : "#dcfce7", color: c._source === "local" ? "#78350f" : "#065f46", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  {c._source === "local" ? "Nouveau" : "Client"}
+                </span>
+              </div>
+              {c.contact_principal && (c.contact_principal.prenom || c.contact_principal.nom) && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#475569" }}>
+                  👤 {c.contact_principal.prenom} {c.contact_principal.nom}
+                  {c.contact_principal.fonction && <span style={{ color: "#94a3b8" }}> · {c.contact_principal.fonction}</span>}
+                </div>
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
+
+window.CRMAccountsList = CRMAccountsList;
+
+// ───── Sous-composant : Actions à mener (vue commerciale globale)
+const CRMActionsList = () => {
+  const actions = [
+    { priority: "haute", overdue: true, icon: "📧", title: "Répondre aux 3 questions techniques d'Émilie Roux (AXA)", due: "Aujourd'hui · 18:00", assigned: "Nadia Lefèvre", color: "#a855f7", meta: "Brouillon IA prêt (citations p.12-14 proposition)", tag: "OPP-2814" },
+    { priority: "haute", icon: "📅", title: "Comité achats AXA — présentation Astorya Suite", due: "Jeu. 28 mai · 14h00 · 30 min", assigned: "Nadia Lefèvre", color: "#a855f7", meta: "Visio Teams · 4 participants AXA", tag: "OPP-2814" },
+    { priority: "haute", icon: "📞", title: "Cold call Banque Méridionale — prise de RDV", due: "Demain · 10h30", assigned: "Karim Ben Salah", color: "#6366f1", meta: "Script préparé · Laurent Mercier (DSI)", tag: "Nouveau prospect" },
+    { priority: "moyenne", icon: "📞", title: "Appel cadrage POC Cyber avec Antoine Mercier", due: "Ven. 29 mai · 10h00", assigned: "Karim Ben Salah", color: "#6366f1", meta: "Préparer planning d'installation et plan de test", tag: "OPP-2841" },
+    { priority: "moyenne", icon: "✉", title: "Envoyer proposition v3 Suite mise à jour (AXA)", due: "Dim. 31 mai", assigned: "Nadia Lefèvre", color: "#a855f7", meta: "Intégrer commentaires CFO sur le ROI 18 mois", tag: "OPP-2814" },
+    { priority: "moyenne", icon: "📧", title: "Relance email MAIF — suite démo POC", due: "Lun. 02 juin", assigned: "Émilie Garnier", color: "#0ea5e9", meta: "Pas de réponse depuis 7 jours", tag: "OPP-2702" },
+    { priority: "basse", icon: "👥", title: "RDV découverte filiale Belgique (AXA)", due: "Sem. du 02 juin", assigned: "Nadia Lefèvre", color: "#a855f7", meta: "Identifier interlocuteurs locaux à Bruxelles", tag: "OPP-2867" },
+    { priority: "basse", icon: "🔄", title: "Préparer renouvellement Suite 2026-2028", due: "Sept. 2026", assigned: "Nadia Lefèvre", color: "#a855f7", meta: "Renouvellement auto en mars — anticiper négo", tag: "Recurring" },
+    { priority: "ai", icon: "★", title: "Suggestion IA — Inviter Émilie Roux au user-group Astorya", due: "Ce mois", assigned: "IA Hub", color: "#0f172a", meta: "Émilie a téléchargé 3 white papers ce trimestre", tag: "Insight" },
+  ];
+
+  const prioMeta = {
+    haute:   { label: "Haute",   color: "#dc2626", bg: "#fdecec" },
+    moyenne: { label: "Moyenne", color: "#ea580c", bg: "#fef0e6" },
+    basse:   { label: "Basse",   color: "#475569", bg: "#eef1f5" },
+    ai:      { label: "IA",      color: "#fff",    bg: "#0f172a" },
+  };
+
+  const [filter, setFilter] = React.useState("all");
+  const filtered = filter === "all" ? actions : actions.filter((a) => a.priority === filter);
+  const counts = { all: actions.length, haute: actions.filter(a => a.priority === "haute").length, moyenne: actions.filter(a => a.priority === "moyenne").length, basse: actions.filter(a => a.priority === "basse").length, ai: actions.filter(a => a.priority === "ai").length };
+
+  return (
+    <section id="actions-section" style={{ background: "#fafbfc", borderTop: "1px solid #eef1f5", padding: "20px 24px 40px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Actions à mener</h2>
+          <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>{actions.length} action{actions.length > 1 ? "s" : ""} commerciale{actions.length > 1 ? "s" : ""} en file — triées par priorité</div>
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {[
+            { k: "all",     label: "Toutes",  c: counts.all },
+            { k: "haute",   label: "Haute",   c: counts.haute },
+            { k: "moyenne", label: "Moyenne", c: counts.moyenne },
+            { k: "basse",   label: "Basse",   c: counts.basse },
+            { k: "ai",      label: "★ IA",   c: counts.ai },
+          ].map((t) => (
+            <button key={t.k} onClick={() => setFilter(t.k)}
+                    style={{ padding: "5px 10px", border: "1px solid " + (filter === t.k ? "#0f172a" : "#e2e8f0"), background: filter === t.k ? "#0f172a" : "#fff", color: filter === t.k ? "#fff" : "#475569", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              {t.label} <span style={{ marginLeft: 4, fontWeight: 700, opacity: 0.7 }}>{t.c}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {filtered.map((a, i) => {
+          const pm = prioMeta[a.priority] || prioMeta.basse;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: a.overdue ? "#fff7ed" : "#fff", border: "1px solid " + (a.overdue ? "#fdba74" : "#e2e8f0"), borderRadius: 10 }}>
+              <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f8fafc", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{a.icon}</span>
+              <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 700, color: pm.color, background: pm.bg, textTransform: "uppercase", letterSpacing: 0.4, flexShrink: 0 }}>
+                {a.overdue ? "⚠ EN RETARD" : pm.label}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{a.title}</div>
+                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{a.meta}</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                <span style={{ fontSize: 11.5, color: a.overdue ? "#c2410c" : "#475569", fontWeight: 600 }}>{a.due}</span>
+                <span style={{ fontSize: 11, color: a.color, fontWeight: 600 }}>{a.assigned}</span>
+              </div>
+              <span style={{ fontSize: 10.5, padding: "2px 7px", background: "#eef2ff", color: "#3730a3", borderRadius: 4, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{a.tag}</span>
+              <button onClick={() => alert("Action « " + a.title + " » marquée comme traitée")}
+                      style={{ padding: "5px 9px", background: "#10b981", color: "#fff", border: 0, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>✓ Traiter</button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+window.CRMActionsList = CRMActionsList;
 
 window.CRMPipeline = CRMPipeline;

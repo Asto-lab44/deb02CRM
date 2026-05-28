@@ -1,6 +1,46 @@
 // Formulaire nouvelle opportunité — modal / écran de création
 
 const NewOpportunity = () => {
+  // ───── Recherche client (Supabase clients + prospects locaux)
+  const [clientSearch, setClientSearch] = React.useState("");
+  const [selectedClient, setSelectedClient] = React.useState(null);
+  const [allClients, setAllClients] = React.useState([]);
+
+  React.useEffect(() => {
+    const local = (() => { try { return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]"); } catch (e) { return []; } })();
+    const fromLocal = local.map((p) => ({ id: p.id, name: p.raison_sociale || p.name, sector: p.secteur, city: p.ville, siren: p.siren, since: "Nouveau prospect", source: "local" }));
+    if (window.HubData && window.HubData.enabled()) {
+      window.HubData.fetchClients().then(({ data }) => {
+        const fromSupa = (data || []).map((c) => ({ id: c.id, name: c.name, sector: c.industry, city: c.city, since: c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : "Client", source: "supabase" }));
+        const seen = new Set();
+        setAllClients([...fromLocal, ...fromSupa].filter((c) => seen.has(c.id) ? false : (seen.add(c.id), true)));
+      });
+    } else { setAllClients(fromLocal); }
+  }, []);
+
+  const q = clientSearch.trim().toLowerCase();
+  const matches = q ? allClients.filter((c) => [c.name, c.sector, c.city, c.siren].some((v) => String(v || "").toLowerCase().includes(q))).slice(0, 8) : allClients.slice(0, 5);
+
+  const [oppName, setOppName]     = React.useState("");
+  const [oppAmount, setOppAmount] = React.useState("");
+  const [oppDate, setOppDate]     = React.useState("");
+  const [oppNotes, setOppNotes]   = React.useState("");
+  const [flash, setFlash]         = React.useState(null);
+  const showFlash = (m, tone = "ok") => { setFlash({ m, tone }); setTimeout(() => setFlash(null), 2800); };
+
+  const createOpp = () => {
+    if (!selectedClient) { showFlash("Sélectionnez d'abord un client", "err"); return; }
+    if (!oppName.trim()) { showFlash("Nom de l'opportunité obligatoire", "err"); return; }
+    const opp = { id: "OPP-" + Math.floor(Math.random() * 9000 + 1000), client_id: selectedClient.id, client_name: selectedClient.name, name: oppName, amount: oppAmount, target_date: oppDate, notes: oppNotes, created_at: new Date().toISOString(), stage: "qualif" };
+    try {
+      const existing = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+      existing.unshift(opp);
+      localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(existing));
+    } catch (e) {}
+    showFlash("✓ Opportunité créée — redirection…");
+    setTimeout(() => { window.location.href = "/crm"; }, 900);
+  };
+
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -92,15 +132,56 @@ const NewOpportunity = () => {
               <section style={noStyles.section}>
                 <SectionHead num="01" title="Compte & demandeur" subtitle="Lié à un compte existant" required done />
 
-                <FormRow label="Compte" required>
-                  <div style={noStyles.linkedCard}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "#1e40af", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>AX</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>AXA Wealth France</div>
-                      <div style={{ fontSize: 11, color: "#64748b" }}>Asset Management · 12 000 emp. · Client depuis mars 2024</div>
+                <FormRow label="Compte" required subtitle="Cherchez parmi vos clients et prospects existants">
+                  {selectedClient ? (
+                    <div style={noStyles.linkedCard}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "#1e40af", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
+                        {(selectedClient.name || "").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{selectedClient.name}</div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>
+                          {selectedClient.sector || "Secteur ?"}{selectedClient.city && ` · 📍 ${selectedClient.city}`} · {selectedClient.since}
+                        </div>
+                      </div>
+                      <button onClick={() => { setSelectedClient(null); setClientSearch(""); }} style={noStyles.changeBtn}>Changer</button>
                     </div>
-                    <button style={noStyles.changeBtn}>Changer</button>
-                  </div>
+                  ) : (
+                    <div style={{ position: "relative" }}>
+                      <div style={{ position: "relative" }}>
+                        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>⌕</span>
+                        <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} autoFocus
+                               placeholder="Rechercher un client par nom, ville, secteur, SIREN…"
+                               style={{ ...noStyles.input, paddingLeft: 36 }} />
+                      </div>
+                      <div style={{ marginTop: 6, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 280, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,.04)" }}>
+                        {matches.length === 0 && (
+                          <div style={{ padding: "14px", fontSize: 12.5, color: "#94a3b8", textAlign: "center" }}>
+                            {clientSearch.trim() ? "Aucun client trouvé. " : "Tapez pour rechercher dans la base. "}
+                            <a href="/nouveau-prospect" style={{ color: "#3730a3", fontWeight: 600, textDecoration: "none" }}>+ Créer un nouveau prospect →</a>
+                          </div>
+                        )}
+                        {matches.map((c) => (
+                          <div key={c.id} onClick={() => { setSelectedClient(c); setClientSearch(""); }}
+                               style={{ padding: "10px 12px", borderBottom: "1px solid #f1f5f9", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 28, height: 28, borderRadius: 6, background: c.source === "local" ? "#fef3c7" : "#dcfce7", color: c.source === "local" ? "#78350f" : "#065f46", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                              {(c.name || "?").slice(0, 2).toUpperCase()}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                              <div style={{ fontSize: 11, color: "#64748b" }}>
+                                {c.sector || "—"}{c.city && ` · ${c.city}`}
+                                {c.siren && <span style={{ marginLeft: 6, fontFamily: "'JetBrains Mono', monospace" }}>{c.siren}</span>}
+                              </div>
+                            </div>
+                            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, fontWeight: 700, background: c.source === "local" ? "#fef3c7" : "#eef2ff", color: c.source === "local" ? "#78350f" : "#3730a3", textTransform: "uppercase", letterSpacing: 0.3, flexShrink: 0 }}>
+                              {c.source === "local" ? "Nouveau" : "Client"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </FormRow>
 
                 <FormRow label="Contact principal" required>
@@ -138,7 +219,7 @@ const NewOpportunity = () => {
                 <FormRow label="Nom de l'opportunité" required>
                   <input
                     style={noStyles.input}
-                    defaultValue="Astorya Suite — extension filiale Belgique"
+                    defaultValue=""
                     placeholder="Ex : Déploiement Astorya Suite — 500 sièges"
                   />
                   <div style={{ ...noStyles.inputHelp, color: "#10b981" }}>✓ Nom unique vérifié</div>
@@ -169,10 +250,10 @@ const NewOpportunity = () => {
                   <FormRow label="Type d'opportunité" required>
                     <div style={noStyles.radioGroup}>
                       <label style={noStyles.radio}>
-                        <input type="radio" name="type" defaultChecked /> <span>Nouveau client</span>
+                        <input type="radio" name="type" /> <span>Nouveau client</span>
                       </label>
                       <label style={{ ...noStyles.radio, ...noStyles.radioOn }}>
-                        <input type="radio" name="type" defaultChecked /> <span>Extension</span>
+                        <input type="radio" name="type" /> <span>Extension</span>
                       </label>
                       <label style={noStyles.radio}>
                         <input type="radio" name="type" /> <span>Renouvellement</span>
@@ -195,7 +276,7 @@ const NewOpportunity = () => {
                   <textarea
                     style={noStyles.textarea}
                     rows="3"
-                    defaultValue="Suite à la signature de la Suite en France (mars 2024), AXA souhaite déployer la même solution sur sa filiale belge (210 utilisateurs). Demande initiée par Émilie Roux après échange comité direction du 22 mai."
+                    defaultValue=""
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
                     <span style={{ fontSize: 11, color: "#94a3b8" }}>Markdown supporté</span>
@@ -211,7 +292,7 @@ const NewOpportunity = () => {
                 <div style={noStyles.formGrid2}>
                   <FormRow label="Montant estimé" required>
                     <div style={noStyles.inputWithSuffix}>
-                      <input style={{ ...noStyles.input, border: "none", padding: "0 4px", fontSize: 18, fontWeight: 600 }} defaultValue="92 000" />
+                      <input style={{ ...noStyles.input, border: "none", padding: "0 4px", fontSize: 18, fontWeight: 600 }} defaultValue="" />
                       <span style={noStyles.suffix}>€ / an</span>
                     </div>
                     <div style={noStyles.inputHelp}>Récurrent annuel HT</div>
@@ -265,7 +346,7 @@ const NewOpportunity = () => {
                   <FormRow label="Date de clôture cible" required>
                     <div style={noStyles.dateInput}>
                       <span style={{ color: "#94a3b8" }}>📅</span>
-                      <input style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="15 septembre 2026" />
+                      <input style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="" />
                     </div>
                     <div style={noStyles.inputHelp}>Dans 112 jours · trimestre Q3 2026</div>
                   </FormRow>
@@ -491,7 +572,7 @@ const ChecklistRow = ({ done, active, label }) => (
 );
 
 const noStyles = {
-  frame: { width: 1440, height: 1700, position: "relative", background: "#0f172a", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", overflow: "hidden" },
+  frame: { width: "100%", minHeight: "100vh", position: "relative", background: "#0f172a", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a",  },
 
   // Faded behind
   behind: { position: "absolute", inset: 0, display: "flex", background: "#fafbfc", opacity: 0.55, filter: "blur(0.5px)" },

@@ -1912,13 +1912,12 @@ var SLA = ({
 };
 var tlStyles = {
   frame: {
-    width: 1440,
-    height: 900,
+    width: "100%",
+    minHeight: "100vh",
     display: "flex",
     background: "#fafbfc",
     fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-    color: "#0f172a",
-    overflow: "hidden"
+    color: "#0f172a"
   },
   // sidebar
   sidebar: {

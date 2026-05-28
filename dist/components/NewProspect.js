@@ -16,6 +16,22 @@ var NewProspect = () => {
   var [contactLi, setContactLi] = React.useState("");
   var [besoin, setBesoin] = React.useState("");
   var [notes, setNotes] = React.useState("");
+  var [source, setSource] = React.useState("");
+  var [contactDate, setContactDate] = React.useState("");
+  var [projectDate, setProjectDate] = React.useState("");
+  var [extraContactList, setExtraContactList] = React.useState([]); // [{prenom, nom, fonction, email, phone}]
+  var addExtraContact = () => setExtraContactList(l => [...l, {
+    prenom: "",
+    nom: "",
+    fonction: "",
+    email: "",
+    phone: ""
+  }]);
+  var removeExtraContact = i => setExtraContactList(l => l.filter((_, idx) => idx !== i));
+  var updateExtraContact = (i, field, value) => setExtraContactList(l => l.map((c, idx) => idx === i ? {
+    ...c,
+    [field]: value
+  } : c));
   var [extraContacts, setExtraContacts] = React.useState(0);
   var [flash, setFlash] = React.useState(null);
 
@@ -182,53 +198,80 @@ var NewProspect = () => {
       window.location.href = "/crm";
     }
   };
+
+  // Construit le payload complet à partir de tous les champs du formulaire
+  var buildPayload = () => ({
+    id: "ACC-" + Math.floor(Math.random() * 9000 + 1000),
+    raison_sociale: companyName,
+    siren: companySiren,
+    naf: companyNaf,
+    tva: companyTva,
+    adresse: companyAddress,
+    code_postal: companyCP,
+    ville: companyCity,
+    secteur: companySector,
+    sous_secteur: companySubSect,
+    site_web: companyWeb,
+    linkedin_entreprise: companyLi,
+    effectif,
+    tier,
+    fonction,
+    roles,
+    action,
+    ca_meur: ca,
+    contact_principal: {
+      prenom: contactPrenom,
+      nom: contactNom,
+      fonction: contactRole,
+      email: contactEmail,
+      phone: contactPhone,
+      linkedin: contactLi
+    },
+    contacts_additionnels: extraContactList,
+    source,
+    contact_date: contactDate,
+    project_date: projectDate,
+    besoin,
+    notes,
+    created_at: new Date().toISOString(),
+    status: "prospect"
+  });
   var saveDraft = () => {
-    var draft = {
-      effectif,
-      tier,
-      fonction,
-      roles,
-      action,
-      at: new Date().toISOString()
-    };
     try {
-      localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify(draft));
+      localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify(buildPayload()));
     } catch (e) {}
     showFlash("✓ Brouillon enregistré localement");
   };
   var createProspect = async () => {
-    var payload = {
-      effectif,
-      tier,
-      fonction,
-      roles,
-      action,
-      at: new Date().toISOString()
-    };
-    if (window.HubData && window.HubData.enabled()) {
-      // Insertion minimale dans clients (le formulaire complet sera connecté champ par champ ensuite)
-      try {
-        var id = "ACC-" + Math.floor(Math.random() * 9000 + 1000);
-        await window.HubSupabase.client.from("clients").insert({
-          id,
-          name: "Nouveau prospect (à compléter)"
-        });
-        showFlash("✓ Prospect créé en base — redirection…");
-        setTimeout(() => {
-          window.location.href = "/fiche-client";
-        }, 900);
-        return;
-      } catch (e) {/* fallback ci-dessous */}
+    if (!companyName.trim()) {
+      showFlash("La raison sociale est obligatoire", "err");
+      return;
     }
+    var payload = buildPayload();
+
+    // 1. Append au localStorage "hubAstorya.prospects.v1" (liste partagée avec la vue Comptes)
     try {
-      localStorage.setItem("hubAstorya.prospectDraft.v1", JSON.stringify({
-        ...payload,
-        _created: true
-      }));
+      var existing = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      existing.unshift(payload);
+      localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(existing));
+      localStorage.removeItem("hubAstorya.prospectDraft.v1");
     } catch (e) {}
-    showFlash("✓ Prospect enregistré (mode démo)");
+
+    // 2. Insertion Supabase si configuré (best-effort)
+    if (window.HubData && window.HubData.enabled()) {
+      try {
+        await window.HubSupabase.client.from("clients").insert({
+          id: payload.id,
+          name: companyName,
+          industry: companySector || null,
+          city: companyCity || null,
+          website: companyWeb || null
+        });
+      } catch (e) {/* tolère l'échec, le local survit */}
+    }
+    showFlash("✓ Prospect créé — redirection vers Comptes & Contacts…");
     setTimeout(() => {
-      window.location.href = "/fiche-client";
+      window.location.href = "/crm#comptes";
     }, 900);
   };
   var Avatar = ({
@@ -698,11 +741,13 @@ var NewProspect = () => {
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Fonction",
     required: true
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("select", {
     style: npStyles.input,
     value: contactRole,
     onChange: e => setContactRole(e.target.value)
-  })), /*#__PURE__*/React.createElement(FormRow, {
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir une fonction \u2014"), /*#__PURE__*/React.createElement("option", null, "CEO / Directeur g\xE9n\xE9ral"), /*#__PURE__*/React.createElement("option", null, "COO / Directeur des op\xE9rations"), /*#__PURE__*/React.createElement("option", null, "CFO / Directeur financier"), /*#__PURE__*/React.createElement("option", null, "CTO / Directeur technique"), /*#__PURE__*/React.createElement("option", null, "CIO / DSI"), /*#__PURE__*/React.createElement("option", null, "CISO / RSSI"), /*#__PURE__*/React.createElement("option", null, "CMO / Directeur marketing"), /*#__PURE__*/React.createElement("option", null, "CHRO / DRH"), /*#__PURE__*/React.createElement("option", null, "Directeur des achats"), /*#__PURE__*/React.createElement("option", null, "Directeur de la transformation digitale"), /*#__PURE__*/React.createElement("option", null, "Responsable IT / Manager SI"), /*#__PURE__*/React.createElement("option", null, "Responsable infrastructure"), /*#__PURE__*/React.createElement("option", null, "Chef de projet"), /*#__PURE__*/React.createElement("option", null, "Architecte SI"), /*#__PURE__*/React.createElement("option", null, "Consultant / Expert"), /*#__PURE__*/React.createElement("option", null, "Acheteur"), /*#__PURE__*/React.createElement("option", null, "Juriste / DPO"), /*#__PURE__*/React.createElement("option", null, "Autre \u2014 pr\xE9ciser dans notes"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Niveau hi\xE9rarchique"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.segCtrl
@@ -803,7 +848,78 @@ var NewProspect = () => {
       ...npStyles.linkTag,
       color: "#4f46e5"
     }
-  }, "\u2197")))), /*#__PURE__*/React.createElement("section", {
+  }, "\u2197"))), extraContactList.map((c, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      marginTop: 16,
+      padding: 14,
+      background: "#f8fafc",
+      border: "1px dashed #cbd5e1",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Contact additionnel #", i + 2), /*#__PURE__*/React.createElement("button", {
+    onClick: () => removeExtraContact(i),
+    style: {
+      background: "transparent",
+      border: 0,
+      color: "#dc2626",
+      fontSize: 12,
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "\u2715 Retirer")), /*#__PURE__*/React.createElement("div", {
+    style: npStyles.formGrid2
+  }, /*#__PURE__*/React.createElement(FormRow, {
+    label: "Pr\xE9nom"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: npStyles.input,
+    value: c.prenom,
+    onChange: e => updateExtraContact(i, "prenom", e.target.value)
+  })), /*#__PURE__*/React.createElement(FormRow, {
+    label: "Nom"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: npStyles.input,
+    value: c.nom,
+    onChange: e => updateExtraContact(i, "nom", e.target.value)
+  }))), /*#__PURE__*/React.createElement(FormRow, {
+    label: "Fonction"
+  }, /*#__PURE__*/React.createElement("select", {
+    style: npStyles.input,
+    value: c.fonction,
+    onChange: e => updateExtraContact(i, "fonction", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir \u2014"), /*#__PURE__*/React.createElement("option", null, "CEO / Directeur g\xE9n\xE9ral"), /*#__PURE__*/React.createElement("option", null, "CFO / Directeur financier"), /*#__PURE__*/React.createElement("option", null, "CIO / DSI"), /*#__PURE__*/React.createElement("option", null, "CTO / Directeur technique"), /*#__PURE__*/React.createElement("option", null, "CMO / Directeur marketing"), /*#__PURE__*/React.createElement("option", null, "CHRO / DRH"), /*#__PURE__*/React.createElement("option", null, "Chef de projet"), /*#__PURE__*/React.createElement("option", null, "Acheteur"), /*#__PURE__*/React.createElement("option", null, "Consultant / Expert"), /*#__PURE__*/React.createElement("option", null, "Autre"))), /*#__PURE__*/React.createElement("div", {
+    style: npStyles.formGrid2
+  }, /*#__PURE__*/React.createElement(FormRow, {
+    label: "Email"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    style: npStyles.input,
+    value: c.email,
+    onChange: e => updateExtraContact(i, "email", e.target.value)
+  })), /*#__PURE__*/React.createElement(FormRow, {
+    label: "T\xE9l\xE9phone"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: npStyles.input,
+    value: c.phone,
+    onChange: e => updateExtraContact(i, "phone", e.target.value)
+  })))))), /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
@@ -1020,13 +1136,15 @@ var NewProspect = () => {
       color: "#94a3b8"
     }
   }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
     style: {
       ...npStyles.input,
       border: "none",
       padding: 0,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: ""
+    value: projectDate,
+    onChange: e => setProjectDate(e.target.value)
   }))))), /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
@@ -1039,25 +1157,15 @@ var NewProspect = () => {
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Source du prospect",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.select
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14
-    }
-  }, "\u25F7"), /*#__PURE__*/React.createElement("span", null, "Radar fin de contrat concurrent")), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, "\u25BE")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("select", {
+    style: npStyles.input,
+    value: source,
+    onChange: e => setSource(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir une source \u2014"), /*#__PURE__*/React.createElement("option", null, "Radar fin de contrat concurrent"), /*#__PURE__*/React.createElement("option", null, "LinkedIn / Sales Navigator"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Recommandation client"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Demande de devis"), /*#__PURE__*/React.createElement("option", null, "Cold call sortant"), /*#__PURE__*/React.createElement("option", null, "Cold email sortant"), /*#__PURE__*/React.createElement("option", null, "Webinar / \xE9v\xE9nement Astorya"), /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rencement (Google, Bing)"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau partenaires"), /*#__PURE__*/React.createElement("option", null, "Article de presse"), /*#__PURE__*/React.createElement("option", null, "Autre")), source && /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
-  }, "D\xE9tect\xE9 automatiquement le 18 mai")), /*#__PURE__*/React.createElement(FormRow, {
+  }, "Source enregistr\xE9e : ", source)), /*#__PURE__*/React.createElement(FormRow, {
     label: "Date de prise de contact"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.dateInput
@@ -1066,16 +1174,18 @@ var NewProspect = () => {
       color: "#94a3b8"
     }
   }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
     style: {
       ...npStyles.input,
       border: "none",
       padding: 0,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: ""
-  })), /*#__PURE__*/React.createElement("div", {
+    value: contactDate,
+    onChange: e => setContactDate(e.target.value)
+  })), contactDate && /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
-  }, "Premier email envoy\xE9 \xB7 r\xE9ponse positive 23 mai"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "1er contact pr\xE9vu/effectu\xE9 le ", new Date(contactDate).toLocaleDateString("fr-FR")))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Owner attribu\xE9",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
@@ -1220,14 +1330,14 @@ var NewProspect = () => {
     }
   }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      setExtraContacts(n => n + 1);
+      addExtraContact();
       showFlash("✓ Contact additionnel ajouté");
     },
     style: {
       ...npStyles.ghostBtn,
       cursor: "pointer"
     }
-  }, "+ Ajouter un autre contact", extraContacts > 0 && ` (${extraContacts})`), /*#__PURE__*/React.createElement("button", {
+  }, "+ Ajouter un autre contact", extraContactList.length > 0 && ` (${extraContactList.length})`), /*#__PURE__*/React.createElement("button", {
     onClick: createProspect,
     style: {
       ...npStyles.primaryBtn,

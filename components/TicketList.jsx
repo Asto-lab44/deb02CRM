@@ -32,6 +32,25 @@ const TicketList = () => {
     else setFilter({ kind, value });
   };
 
+  // ───── Recherche libre, tri et pagination
+  const [searchText, setSearchText] = React.useState("");
+  const [sortBy, setSortBy] = React.useState({ field: "updated", dir: "desc" });
+  const [page, setPage] = React.useState(1);
+  const PAGE_SIZE = 13;
+  const toggleSort = (field) => setSortBy((s) => s.field === field ? { field, dir: s.dir === "asc" ? "desc" : "asc" } : { field, dir: "asc" });
+
+  const exportCsv = () => {
+    const rows = [["ID", "Client", "Sujet", "Statut", "Priorité", "Catégorie", "Assigné", "SLA", "Mise à jour"]];
+    tickets.forEach((t) => rows.push([t.id, t.client?.name || "", t.title, t.status, t.prio, t.cat, t.assignee?.name || "Non assigné", t.sla?.left || "", t.updated]));
+    const csv = rows.map((r) => r.map((c) => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `tickets-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // ───── Menu utilisateur (pied de sidebar)
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const handleLogout = () => {
@@ -314,7 +333,7 @@ const TicketList = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={tlStyles.search}>
               <span style={{ color: "#94a3b8", fontSize: 12 }}>⌕</span>
-              <input placeholder="Rechercher par sujet, ID, technicien…" style={tlStyles.searchInput} readOnly />
+              <input placeholder="Rechercher par sujet, ID, technicien…" style={tlStyles.searchInput} value={searchText} onChange={(e) => { setSearchText(e.target.value); setPage(1); }} />
               <span style={tlStyles.kbdLight}>⌘K</span>
             </div>
             <button
@@ -326,11 +345,11 @@ const TicketList = () => {
               Simuler appel entrant
               <span style={{ fontSize: 10, color: "#64748b", marginLeft: 4 }}>{(callIdx % (callers.length || 1)) + 1}/{callers.length || 0}</span>
             </button>
-            <button style={tlStyles.iconBtn} title="Notifications">
+            <button onClick={() => alert(`Notifications (${escalatedCount + (tickets.filter(t => t.status === 'open').length)})\n\n• ${tickets.filter(t => t.status === 'open').length} ticket(s) en attente d'assignation\n• ${escalatedCount} ticket(s) escaladé(s) à la Supervision\n• Mise à jour SLA toutes les 5 min\n\n(Sera connecté au flux temps réel Supabase.)`)} style={tlStyles.iconBtn} title="Notifications">
               <span style={{ fontSize: 13 }}>◔</span>
               <span style={tlStyles.notifDot} />
             </button>
-            <button style={tlStyles.iconBtn} title="Aide">?</button>
+            <button onClick={() => alert("Centre d'aide Hub Astorya\n\nRaccourcis clavier :\n• N — Nouveau ticket\n• ⌘K — Recherche globale\n• Esc — Fermer la fiche détail\n• Cliquez sur une ligne pour ouvrir le ticket\n• Filtres dans la sidebar gauche\n\nContactez support@astorya.fr pour plus d'aide.")} style={tlStyles.iconBtn} title="Aide">?</button>
           </div>
         </header>
 
@@ -365,7 +384,7 @@ const TicketList = () => {
             <p style={tlStyles.h1sub}>Suivez l'avancement de vos demandes auprès du support IT.</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={tlStyles.ghostBtn}>Exporter</button>
+            <button onClick={exportCsv} style={tlStyles.ghostBtn} title="Télécharger CSV de tous les tickets">↓ Exporter</button>
             <button onClick={openNewTicket} style={tlStyles.primaryBtn}>+ Nouveau ticket</button>
           </div>
         </div>
@@ -373,13 +392,13 @@ const TicketList = () => {
         {/* KPI strip */}
         <div style={tlStyles.kpiStrip}>
           {[
-            { label: "Ouverts", value: 2, delta: "+1 cette semaine", color: "#3b82f6" },
-            { label: "En cours", value: 3, delta: "MTTR moyen 6 h 12", color: "#a855f7" },
-            { label: "En attente de moi", value: 1, delta: "Validation manager", color: "#f59e0b" },
-            { label: "SLA à risque", value: 1, delta: "INC-2837 — 22 min", color: "#dc2626" },
-            { label: "Résolus 30 j", value: 18, delta: "CSAT 4,6 / 5", color: "#10b981" },
+            { label: "Ouverts",          value: counts.open,        delta: "+1 cette semaine",      color: "#3b82f6", click: () => setFilter({ kind: "status", value: "open" }) },
+            { label: "En cours",         value: counts.in_progress, delta: "MTTR moyen 6 h 12",     color: "#a855f7", click: () => setFilter({ kind: "status", value: "in_progress" }) },
+            { label: "En attente de moi", value: counts.waiting,    delta: "Validation manager",    color: "#f59e0b", click: () => setFilter({ kind: "status", value: "waiting" }) },
+            { label: "SLA à risque",     value: tickets.filter(t => t.sla?.risk === "danger" || t.sla?.risk === "warn").length, delta: "INC-2837 — 22 min", color: "#dc2626", click: () => alert("Tickets avec SLA à risque\n\n" + tickets.filter(t => t.sla?.risk === "danger" || t.sla?.risk === "warn").map(t => `• ${t.id} — ${t.sla.left} restantes`).join("\n")) },
+            { label: "Résolus 30 j",     value: counts.resolved,    delta: "CSAT 4,6 / 5",          color: "#10b981", click: () => setFilter({ kind: "status", value: "resolved" }) },
           ].map((k) => (
-            <div key={k.label} style={tlStyles.kpi}>
+            <div key={k.label} onClick={k.click} style={{ ...tlStyles.kpi, cursor: "pointer" }} title="Cliquer pour filtrer">
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <span style={{ width: 6, height: 6, borderRadius: 999, background: k.color }} />
                 <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, letterSpacing: 0.2, textTransform: "uppercase" }}>{k.label}</span>
@@ -413,25 +432,70 @@ const TicketList = () => {
             })}
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button style={tlStyles.filterPill}>+ Priorité</button>
-            <button style={tlStyles.filterPill}>+ Catégorie</button>
-            <button style={tlStyles.filterPill}>+ Assigné</button>
+            <select onChange={(e) => { if (e.target.value) setFilter({ kind: "status", value: e.target.value }); e.target.value = ""; }}
+                    style={{ ...tlStyles.filterPill, padding: "4px 9px", cursor: "pointer" }}>
+              <option value="">+ Statut</option>
+              <option value="open">Ouverts</option>
+              <option value="in_progress">En cours</option>
+              <option value="waiting">En attente</option>
+              <option value="resolved">Résolus</option>
+              <option value="closed">Fermés</option>
+            </select>
+            <select onChange={(e) => { if (e.target.value) setFilter({ kind: "priority", value: e.target.value }); e.target.value = ""; }}
+                    style={{ ...tlStyles.filterPill, padding: "4px 9px", cursor: "pointer" }}>
+              <option value="">+ Priorité</option>
+              <option value="critique">Critique</option>
+              <option value="haute">Haute</option>
+              <option value="normale">Normale</option>
+              <option value="basse">Basse</option>
+            </select>
+            <select onChange={(e) => { if (e.target.value) setFilter({ kind: "category", value: e.target.value }); e.target.value = ""; }}
+                    style={{ ...tlStyles.filterPill, padding: "4px 9px", cursor: "pointer" }}>
+              <option value="">+ Catégorie</option>
+              {Array.from(new Set(tickets.map(t => t.cat).filter(Boolean))).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select onChange={(e) => { if (e.target.value) setFilter({ kind: "assignee", value: e.target.value }); e.target.value = ""; }}
+                    style={{ ...tlStyles.filterPill, padding: "4px 9px", cursor: "pointer" }}>
+              <option value="">+ Assigné</option>
+              <option value="__unassigned__">Non assigné</option>
+              {Array.from(new Set(tickets.map(t => t.assignee?.name).filter(Boolean))).map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
             <span style={tlStyles.divider} />
-            <button style={tlStyles.filterPill}>↕ Dernière activité</button>
-            <button style={tlStyles.filterPill} title="Vue">▦</button>
+            <select value={sortBy.field + ":" + sortBy.dir} onChange={(e) => { const [f, d] = e.target.value.split(":"); setSortBy({ field: f, dir: d }); }}
+                    style={{ ...tlStyles.filterPill, padding: "4px 9px", cursor: "pointer" }} title="Trier">
+              <option value="updated:desc">↕ Dernière activité</option>
+              <option value="updated:asc">↑ Plus anciens d'abord</option>
+              <option value="id:asc">ID croissant</option>
+              <option value="id:desc">ID décroissant</option>
+              <option value="prio:asc">Priorité ↑</option>
+              <option value="prio:desc">Priorité ↓</option>
+            </select>
+            <button onClick={() => alert("Vues disponibles :\n• Liste (actuel)\n• Kanban par statut\n• Calendar SLA\n\n(Sera connecté au sélecteur de vues.)")} style={tlStyles.filterPill} title="Changer la vue">▦</button>
           </div>
         </div>
 
         {/* Table header */}
         <div style={tlStyles.tableHead}>
-          <div style={{ ...tlStyles.col, width: 18 }}><input type="checkbox" readOnly /></div>
-          <div style={{ ...tlStyles.col, width: 92 }}>Ref.</div>
-          <div style={{ ...tlStyles.col, flex: 1 }}>Sujet</div>
-          <div style={{ ...tlStyles.col, width: 110 }}>Statut</div>
-          <div style={{ ...tlStyles.col, width: 92 }}>Priorité</div>
-          <div style={{ ...tlStyles.col, width: 170 }}>Assigné à</div>
-          <div style={{ ...tlStyles.col, width: 130 }}>SLA</div>
-          <div style={{ ...tlStyles.col, width: 110, textAlign: "right" }}>Mise à jour</div>
+          <div style={{ ...tlStyles.col, width: 18 }}><input type="checkbox" readOnly onClick={(e) => e.stopPropagation()} /></div>
+          {[
+            { field: "id",      label: "Ref.",         w: 92 },
+            { field: "title",   label: "Sujet",        flex: 1 },
+            { field: "status",  label: "Statut",       w: 110 },
+            { field: "prio",    label: "Priorité",     w: 92 },
+            { field: null,      label: "Assigné à",    w: 170 },
+            { field: null,      label: "SLA",          w: 130 },
+            { field: "updated", label: "Mise à jour",  w: 110, right: true },
+          ].map((c) => {
+            const sortable = !!c.field;
+            const active = sortBy.field === c.field;
+            return (
+              <div key={c.label}
+                   onClick={sortable ? () => toggleSort(c.field) : undefined}
+                   style={{ ...tlStyles.col, ...(c.w ? { width: c.w } : { flex: c.flex }), textAlign: c.right ? "right" : "left", cursor: sortable ? "pointer" : "default", color: active ? "#3730a3" : undefined }}>
+                {c.label}{sortable && active && <span style={{ marginLeft: 4 }}>{sortBy.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+            );
+          })}
         </div>
 
         {/* Filter banner */}
@@ -451,16 +515,33 @@ const TicketList = () => {
 
         {/* Rows */}
         <div style={tlStyles.rows}>
-          {tickets
-            .filter((t) => {
+          {(() => {
+            const lower = searchText.trim().toLowerCase();
+            let list = tickets.filter((t) => {
+              if (lower && !(`${t.id} ${t.title} ${t.cat} ${t.client?.name || ""} ${t.assignee?.name || ""}`.toLowerCase().includes(lower))) return false;
               if (filter.kind === "all") return true;
               if (filter.kind === "status")     return t.status === filter.value;
+              if (filter.kind === "priority")   return t.prio === filter.value;
+              if (filter.kind === "assignee")   return filter.value === "__unassigned__" ? !t.assignee : t.assignee?.name === filter.value;
               if (filter.kind === "escalated")  return !!t.escalated;
               if (filter.kind === "lifecycle")  return t.lifecycle === filter.value;
               if (filter.kind === "billable")   return !!t.billable;
               if (filter.kind === "category")   return (t.cat || "").toLowerCase().includes(String(filter.value).toLowerCase());
               return true;
-            })
+            });
+            // Tri
+            const cmp = (a, b) => {
+              const f = sortBy.field;
+              const va = f === "id" ? a.id : f === "title" ? a.title : f === "status" ? a.status : f === "prio" ? a.prio : f === "updated" ? a.updated : a.id;
+              const vb = f === "id" ? b.id : f === "title" ? b.title : f === "status" ? b.status : f === "prio" ? b.prio : f === "updated" ? b.updated : b.id;
+              const r = String(va || "").localeCompare(String(vb || ""));
+              return sortBy.dir === "asc" ? r : -r;
+            };
+            list = list.slice().sort(cmp);
+            // Pagination
+            const start = (page - 1) * PAGE_SIZE;
+            return list.slice(start, start + PAGE_SIZE);
+          })()
             .map((t, i) => {
             const sm = statusMeta[t.status];
             const pm = prioMeta[t.prio];
@@ -570,17 +651,40 @@ const TicketList = () => {
         </div>
 
         {/* Footer */}
-        <div style={tlStyles.foot}>
-          <div style={{ fontSize: 12, color: "#64748b" }}>{tickets.length} tickets affichés sur 34 — chargement automatique au défilement</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button style={tlStyles.filterPill}>‹</button>
-            <button style={{ ...tlStyles.filterPill, ...tlStyles.tabActive }}>1</button>
-            <button style={tlStyles.filterPill}>2</button>
-            <button style={tlStyles.filterPill}>3</button>
-            <button style={tlStyles.filterPill}>4</button>
-            <button style={tlStyles.filterPill}>›</button>
-          </div>
-        </div>
+        {(() => {
+          const lower = searchText.trim().toLowerCase();
+          const filteredCount = tickets.filter((t) => {
+            if (lower && !(`${t.id} ${t.title} ${t.cat} ${t.client?.name || ""} ${t.assignee?.name || ""}`.toLowerCase().includes(lower))) return false;
+            if (filter.kind === "all") return true;
+            if (filter.kind === "status")     return t.status === filter.value;
+            if (filter.kind === "priority")   return t.prio === filter.value;
+            if (filter.kind === "assignee")   return filter.value === "__unassigned__" ? !t.assignee : t.assignee?.name === filter.value;
+            if (filter.kind === "escalated")  return !!t.escalated;
+            if (filter.kind === "lifecycle")  return t.lifecycle === filter.value;
+            if (filter.kind === "billable")   return !!t.billable;
+            if (filter.kind === "category")   return (t.cat || "").toLowerCase().includes(String(filter.value).toLowerCase());
+            return true;
+          }).length;
+          const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+          const start = (page - 1) * PAGE_SIZE;
+          const end = Math.min(start + PAGE_SIZE, filteredCount);
+          return (
+            <div style={tlStyles.foot}>
+              <div style={{ fontSize: 12, color: "#64748b" }}>
+                {filteredCount === 0 ? "Aucun ticket" : `${start + 1}–${end} sur ${filteredCount} ticket${filteredCount > 1 ? "s" : ""}`}
+                {filter.kind !== "all" && <> (filtré sur {tickets.length})</>}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} style={{ ...tlStyles.filterPill, opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? "not-allowed" : "pointer" }}>‹</button>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((n) => (
+                  <button key={n} onClick={() => setPage(n)}
+                          style={{ ...tlStyles.filterPill, ...(page === n ? tlStyles.tabActive : {}), cursor: "pointer" }}>{n}</button>
+                ))}
+                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ ...tlStyles.filterPill, opacity: page === totalPages ? 0.5 : 1, cursor: page === totalPages ? "not-allowed" : "pointer" }}>›</button>
+              </div>
+            </div>
+          );
+        })()}
       </main>
 
       <HotlinePopup

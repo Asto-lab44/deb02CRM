@@ -188,8 +188,33 @@
     emit();
   }
 
-  // ───── Session (login factice — démo uniquement)
+  // ───── Session
+  // Si Supabase est configuré → vraie auth (magic link). Sinon → login factice.
+  const supa = (typeof window !== "undefined" && window.HubSupabase && window.HubSupabase.enabled) ? window.HubSupabase.client : null;
+
+  // Cache de la session Supabase (rafraîchi via onAuthStateChange)
+  let _supaSession = null;
+  if (supa) {
+    supa.auth.getSession().then(({ data }) => { _supaSession = data.session; emit(); });
+    supa.auth.onAuthStateChange((_event, session) => { _supaSession = session; emit(); });
+  }
+
   function getCurrentUser() {
+    if (supa) {
+      // Mode auth réelle
+      if (!_supaSession || !_supaSession.user) return null;
+      const u = _supaSession.user;
+      const meta = u.user_metadata || {};
+      // Pour le mapping groupe : on regarde d'abord user_metadata.groups (settable
+      // depuis le dashboard Supabase), sinon on cherche dans USERS par email,
+      // sinon on tombe sur le groupe "admin" par défaut (à durcir en prod).
+      const fallback = USERS.find((x) => x.email.toLowerCase() === (u.email || "").toLowerCase());
+      const groups = meta.groups || (fallback ? fallback.groups : ["admin"]);
+      const name = meta.name || (fallback ? fallback.name : (u.email || "Utilisateur"));
+      const role = meta.role || (fallback ? fallback.role : "—");
+      return { email: u.email, name, role, groups };
+    }
+    // Mode démo
     const raw = localStorage.getItem(SESSION_KEY);
     if (raw === _sessionRaw) return _sessionCache;
     _sessionRaw = raw;
@@ -201,25 +226,50 @@
     } catch (e) { _sessionCache = null; }
     return _sessionCache;
   }
+
+  // Démo uniquement — login email/password factice
   function login(email, password) {
+    if (supa) {
+      // En mode auth réelle, le login passe par sendMagicLink (pas de password)
+      return { ok: false, error: "Auth réelle activée — utilisez le lien magique par email." };
+    }
     const user = USERS.find((u) => u.email.toLowerCase() === String(email || "").toLowerCase() && u.password === password);
     if (!user) return { ok: false, error: "Email ou mot de passe incorrect." };
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify({ email: user.email, at: Date.now() }));
-      // Pré-positionne l'identité active sur le premier groupe de l'utilisateur
       if (user.groups[0]) localStorage.setItem(ACTIVE_KEY, user.groups[0]);
     } catch (e) {}
     emit();
     return { ok: true, user: { email: user.email, name: user.name, role: user.role, groups: user.groups } };
   }
-  function logout() {
-    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+
+  // Auth réelle — envoie un magic link à l'email indiqué
+  async function sendMagicLink(email) {
+    if (!supa) return { ok: false, error: "Supabase non configuré — éditez components/supabase-config.js." };
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: "Email invalide." };
+    const { error } = await supa.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname },
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  }
+
+  async function logout() {
+    if (supa) {
+      await supa.auth.signOut();
+    } else {
+      try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    }
     emit();
   }
+
   function listUsers() {
     // Renvoie une copie sans les mots de passe (pour l'UI quick-login)
     return USERS.map(({ password, ...u }) => u);
   }
+
+  function authMode() { return supa ? "supabase" : "demo"; }
 
   function resetAll() {
     try {
@@ -242,8 +292,10 @@
     getAllowedKeys,
     getCurrentUser,
     login,
+    sendMagicLink,
     logout,
     listUsers,
+    authMode,
     loadTranscripts,
     getTranscriptsForTicket,
     addTranscript,

@@ -6,22 +6,36 @@ const LoginModal = ({ open, onClose }) => {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState(null);
+  const [magicSent, setMagicSent] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
   const users = window.HubAccess.listUsers();
+  const mode = (window.HubAccess.authMode && window.HubAccess.authMode()) || "demo";
+  const isReal = mode === "supabase";
 
   React.useEffect(() => {
-    if (!open) { setEmail(""); setPassword(""); setError(null); }
+    if (!open) { setEmail(""); setPassword(""); setError(null); setMagicSent(false); setSending(false); }
   }, [open]);
 
   if (!open) return null;
 
-  const submit = (e) => {
+  const submit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    setError(null);
+    if (isReal) {
+      setSending(true);
+      const res = await window.HubAccess.sendMagicLink(email);
+      setSending(false);
+      if (!res.ok) { setError(res.error); return; }
+      setMagicSent(true);
+      return;
+    }
     const res = window.HubAccess.login(email, password);
     if (!res.ok) { setError(res.error); return; }
     onClose && onClose();
   };
 
   const quickLogin = (u) => {
+    if (isReal) return; // pas de quick-login en mode auth réelle
     const res = window.HubAccess.login(u.email, "demo");
     if (res.ok) { onClose && onClose(); }
   };
@@ -41,59 +55,85 @@ const LoginModal = ({ open, onClose }) => {
         </div>
 
         <form onSubmit={submit} style={M.form}>
-          <label style={M.label}>
-            <span>Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="prenom.nom@astorya.fr"
-              style={M.input}
-              autoFocus
-              required
-            />
-          </label>
-          <label style={M.label}>
-            <span>Mot de passe</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              style={M.input}
-              required
-            />
-          </label>
+          {magicSent ? (
+            <div style={{ padding: "16px 14px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, color: "#065f46", fontSize: 13, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>✓ Lien envoyé !</div>
+              Un email de connexion a été envoyé à <strong>{email}</strong>. Cliquez sur le lien pour entrer dans le Hub. Vous pouvez fermer cette fenêtre.
+            </div>
+          ) : (
+            <>
+              <label style={M.label}>
+                <span>Email professionnel</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="prenom.nom@astorya.fr"
+                  style={M.input}
+                  autoFocus
+                  required
+                />
+              </label>
+              {!isReal && (
+                <label style={M.label}>
+                  <span>Mot de passe</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    style={M.input}
+                    required
+                  />
+                </label>
+              )}
 
-          {error && <div style={M.error}>{error}</div>}
+              {error && <div style={M.error}>{error}</div>}
 
-          <button type="submit" style={M.submit}>Se connecter →</button>
+              <button type="submit" disabled={sending} style={{ ...M.submit, opacity: sending ? 0.6 : 1, cursor: sending ? "wait" : "pointer" }}>
+                {isReal
+                  ? (sending ? "Envoi du lien…" : "Recevoir un lien de connexion →")
+                  : "Se connecter →"}
+              </button>
 
-          <div style={M.demoNote}>
-            <strong style={{ color: "#a16207" }}>Démo · </strong>
-            Le mot de passe pour tous les comptes est <code style={M.kbd}>demo</code>. Cliquez sur un compte ci-dessous pour vous connecter directement.
-          </div>
+              {isReal ? (
+                <div style={{ ...M.demoNote, background: "#eef2ff", borderColor: "#c7d2fe", color: "#3730a3" }}>
+                  <strong>Auth Supabase · </strong>
+                  Aucun mot de passe : vous recevez un lien sécurisé valable 1 h. Vérifiez aussi votre dossier spam.
+                </div>
+              ) : (
+                <div style={M.demoNote}>
+                  <strong style={{ color: "#a16207" }}>Démo · </strong>
+                  Le mot de passe pour tous les comptes est <code style={M.kbd}>demo</code>. Cliquez sur un compte ci-dessous pour vous connecter directement. Pour activer la vraie auth, configurez vos clés Supabase dans <code style={M.kbd}>components/supabase-config.js</code>.
+                </div>
+              )}
+            </>
+          )}
         </form>
 
-        <div style={M.quickHead}>Connexion rapide ({users.length} comptes de démo)</div>
-        <div style={M.quickList}>
-          {users.map((u) => (
-            <button key={u.email} onClick={() => quickLogin(u)} style={M.quickItem}>
-              <div style={{ ...M.avatar, background: avatarColor(u.name) }}>
-                {u.name.split(" ").slice(0, 2).map(s => s[0]).join("")}
-              </div>
-              <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</div>
-                <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.role}</div>
-              </div>
-              <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {u.groups.slice(0, 2).map((gid) => (
-                  <span key={gid} style={{ fontSize: 9.5, fontWeight: 700, color: "#3730a3", background: "#eef2ff", padding: "1px 6px", borderRadius: 999 }}>{gid}</span>
-                ))}
-              </div>
-            </button>
-          ))}
-        </div>
+        {!isReal && !magicSent && (
+          <>
+            <div style={M.quickHead}>Connexion rapide ({users.length} comptes de démo)</div>
+            <div style={M.quickList}>
+              {users.map((u) => (
+                <button key={u.email} onClick={() => quickLogin(u)} style={M.quickItem}>
+                  <div style={{ ...M.avatar, background: avatarColor(u.name) }}>
+                    {u.name.split(" ").slice(0, 2).map(s => s[0]).join("")}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.role}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    {u.groups.slice(0, 2).map((gid) => (
+                      <span key={gid} style={{ fontSize: 9.5, fontWeight: 700, color: "#3730a3", background: "#eef2ff", padding: "1px 6px", borderRadius: 999 }}>{gid}</span>
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

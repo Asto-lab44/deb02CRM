@@ -1,25 +1,85 @@
 // Fiche nouveau prospect — formulaire de qualification
 
 const NewProspect = () => {
-  // ───── État UI interactif (segments, chips, action)
-  const [effectif,   setEffectif]   = React.useState("1k-5k");
-  const [tier,       setTier]       = React.useState("A");
-  const [fonction,   setFonction]   = React.useState("C-level");
-  const [roles,      setRoles]      = React.useState(["Décideur"]);
-  const [action,     setAction]     = React.useState("email");
+  // ───── État UI interactif (segments, chips, action) — fiche neuve, tout vide
+  const [effectif,   setEffectif]   = React.useState(null);
+  const [tier,       setTier]       = React.useState(null);
+  const [fonction,   setFonction]   = React.useState(null);
+  const [roles,      setRoles]      = React.useState([]);
+  const [action,     setAction]     = React.useState(null);
+  const [ca,         setCa]         = React.useState("");
+  const [contactPrenom, setContactPrenom] = React.useState("");
+  const [contactNom,    setContactNom]    = React.useState("");
+  const [contactRole,   setContactRole]   = React.useState("");
+  const [contactEmail,  setContactEmail]  = React.useState("");
+  const [contactPhone,  setContactPhone]  = React.useState("");
+  const [contactLi,     setContactLi]     = React.useState("");
+  const [besoin,        setBesoin]        = React.useState("");
+  const [notes,         setNotes]         = React.useState("");
   const [extraContacts, setExtraContacts] = React.useState(0);
-  const [flash,      setFlash]      = React.useState(null);
+  const [flash,         setFlash]         = React.useState(null);
 
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
-  const [companyName,  setCompanyName]  = React.useState("Banque Méridionale");
-  const [companySiren, setCompanySiren] = React.useState("312 482 671");
-  const [companyNaf,   setCompanyNaf]   = React.useState("64.19Z");
-  const [companyTva,   setCompanyTva]   = React.useState("FR47312482671");
-  const [companyCity,  setCompanyCity]  = React.useState("Marseille");
-  const [companyCP,    setCompanyCP]    = React.useState("13006");
-  const [siretResults, setSiretResults] = React.useState([]);
-  const [siretLoading, setSiretLoading] = React.useState(false);
-  const [siretOpen,    setSiretOpen]    = React.useState(false);
+  const [companyName,    setCompanyName]    = React.useState("");
+  const [companySiren,   setCompanySiren]   = React.useState("");
+  const [companyNaf,     setCompanyNaf]     = React.useState("");
+  const [companyTva,     setCompanyTva]     = React.useState("");
+  const [companyAddress, setCompanyAddress] = React.useState("");
+  const [companyCity,    setCompanyCity]    = React.useState("");
+  const [companyCP,      setCompanyCP]      = React.useState("");
+  const [companySector,  setCompanySector]  = React.useState("");
+  const [companySubSect, setCompanySubSect] = React.useState("");
+  const [companyWeb,     setCompanyWeb]     = React.useState("");
+  const [companyLi,      setCompanyLi]      = React.useState("");
+  const [siretResults,   setSiretResults]   = React.useState([]);
+  const [siretLoading,   setSiretLoading]   = React.useState(false);
+  const [siretOpen,      setSiretOpen]      = React.useState(false);
+
+  // Mapping section NAF (lettre) → libellé secteur
+  const sectionLabels = {
+    A: "Agriculture, sylviculture et pêche",
+    B: "Industries extractives",
+    C: "Industrie manufacturière",
+    D: "Production et distribution d'électricité",
+    E: "Eau, déchets et dépollution",
+    F: "Construction & BTP",
+    G: "Commerce",
+    H: "Transports et entreposage",
+    I: "Hébergement et restauration",
+    J: "Information et communication",
+    K: "Banque, finance & assurance",
+    L: "Activités immobilières",
+    M: "Activités spécialisées, scientifiques et techniques",
+    N: "Services administratifs et de soutien",
+    O: "Administration publique",
+    P: "Enseignement",
+    Q: "Santé et action sociale",
+    R: "Arts, spectacles et activités récréatives",
+    S: "Autres activités de services",
+    T: "Activités des ménages",
+    U: "Activités extra-territoriales",
+  };
+
+  // Sous-secteur dérivé de la division NAF (2 premiers chiffres)
+  const subSectorByDivision = {
+    "62": "Programmation et conseil informatique",
+    "63": "Services d'information",
+    "64": "Activités financières",
+    "65": "Assurance",
+    "66": "Activités auxiliaires de services financiers",
+    "70": "Conseil de direction",
+    "71": "Architecture, ingénierie",
+    "72": "Recherche et développement",
+    "73": "Publicité, études de marché",
+    "74": "Autres activités spécialisées",
+  };
+
+  // Slug pour deviner site web / LinkedIn depuis le nom
+  const slugify = (s) => String(s || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
   // Mapping tranche_effectif_salarie INSEE → mes 5 buckets
   const mapEffectif = (code) => {
@@ -64,12 +124,48 @@ const NewProspect = () => {
   const pickCompany = (e) => {
     const siege = e.siege || {};
     const siren = e.siren || "";
-    setCompanyName(e.nom_complet || e.nom_raison_sociale || siege.denomination_usuelle || "");
+    const name = e.nom_complet || e.nom_raison_sociale || siege.denomination_usuelle || "";
+    const naf = e.activite_principale || siege.activite_principale || "";
+    const section = e.section_activite_principale || siege.section_activite_principale || (naf ? null : null);
+
+    setCompanyName(name);
     setCompanySiren(formatSiren(siren));
-    setCompanyNaf(e.activite_principale || siege.activite_principale || "");
+    setCompanyNaf(naf);
     setCompanyTva(computeTva(siren));
+
+    // Adresse — privilégie geo_adresse (concaténée), sinon reconstitue
+    const addr = siege.geo_adresse
+      || [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(" ")
+      || siege.adresse || "";
+    // On retire la ville + CP en fin de adresse pour ne garder que la rue
+    let street = addr;
+    if (siege.code_postal) street = street.replace(siege.code_postal, "").trim();
+    if (siege.libelle_commune) street = street.replace(new RegExp(siege.libelle_commune, "i"), "").trim();
+    street = street.replace(/[\s,]+$/, "");
+    setCompanyAddress(street);
     setCompanyCity(siege.libelle_commune || "");
     setCompanyCP(siege.code_postal || "");
+
+    // Secteur (section NAF) + sous-secteur (division NAF)
+    if (section && sectionLabels[section]) setCompanySector(sectionLabels[section]);
+    else if (naf) {
+      const sec = naf.charAt(0);
+      const divCode = naf.slice(0, 2);
+      const div = subSectorByDivision[divCode];
+      if (div) setCompanySector(div);
+    }
+    if (naf) {
+      const div = subSectorByDivision[naf.slice(0, 2)];
+      setCompanySubSect(div || naf);
+    }
+
+    // Site web et LinkedIn — devinés depuis le nom (à corriger manuellement si besoin)
+    const slug = slugify(name);
+    if (slug) {
+      setCompanyWeb(slug + ".fr");
+      setCompanyLi("linkedin.com/company/" + slug);
+    }
+
     const mapped = mapEffectif(e.tranche_effectif_salarie || siege.tranche_effectif_salarie);
     if (mapped) setEffectif(mapped);
     setSiretOpen(false);
@@ -227,16 +323,10 @@ const NewProspect = () => {
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Secteur d'activité" required>
-                <div style={npStyles.select}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 999, background: "#4f46e5" }} />
-                    <span>Banque privée</span>
-                  </span>
-                  <span style={{ color: "#94a3b8" }}>▾</span>
-                </div>
+                <input style={npStyles.input} value={companySector} onChange={(e) => setCompanySector(e.target.value)} placeholder="Auto-rempli depuis le NAF" />
               </FormRow>
               <FormRow label="Sous-secteur">
-                <input style={npStyles.input} defaultValue="Gestion de patrimoine HNWI" />
+                <input style={npStyles.input} value={companySubSect} onChange={(e) => setCompanySubSect(e.target.value)} placeholder="" />
               </FormRow>
             </div>
 
@@ -252,10 +342,10 @@ const NewProspect = () => {
               </FormRow>
               <FormRow label="CA annuel">
                 <div style={npStyles.inputWithSuffix}>
-                  <input style={{ ...npStyles.input, border: "none", padding: "0 4px", fontWeight: 600 }} defaultValue="142" />
+                  <input style={{ ...npStyles.input, border: "none", padding: "0 4px", fontWeight: 600 }} value={ca} onChange={(e) => setCa(e.target.value)} placeholder="0" />
                   <span style={npStyles.suffix}>M€</span>
                 </div>
-                <div style={npStyles.inputHelp}>Bilan 2024</div>
+                <div style={npStyles.inputHelp}>{ca ? `Saisi · bilan ${new Date().getFullYear() - 1}` : "À renseigner"}</div>
               </FormRow>
               <FormRow label="Tier prospect">
                 <div style={npStyles.tierRow}>
@@ -277,21 +367,21 @@ const NewProspect = () => {
               <FormRow label="Site web">
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#94a3b8" }}>🌐</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} defaultValue="banque-meridionale.fr" />
-                  <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Actif</span>
+                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={companyWeb} onChange={(e) => setCompanyWeb(e.target.value)} placeholder="exemple.fr" />
+                  {companyWeb && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>↗</span>}
                 </div>
               </FormRow>
               <FormRow label="LinkedIn entreprise">
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#0a66c2" }}>in</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} defaultValue="linkedin.com/company/banque-meridionale" />
+                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={companyLi} onChange={(e) => setCompanyLi(e.target.value)} placeholder="linkedin.com/company/…" />
                 </div>
               </FormRow>
             </div>
 
             <FormRow label="Adresse siège">
               <div style={npStyles.formGrid2}>
-                <input style={npStyles.input} defaultValue="42 cours Pierre Puget" placeholder="Adresse" />
+                <input style={npStyles.input} value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder="Adresse" />
                 <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 8 }}>
                   <input style={npStyles.input} value={companyCP} onChange={(e) => setCompanyCP(e.target.value)} placeholder="CP" />
                   <input style={npStyles.input} value={companyCity} onChange={(e) => setCompanyCity(e.target.value)} placeholder="Ville" />
@@ -306,16 +396,16 @@ const NewProspect = () => {
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Prénom" required>
-                <input style={npStyles.input} defaultValue="Laurent" />
+                <input style={npStyles.input} value={contactPrenom} onChange={(e) => setContactPrenom(e.target.value)} />
               </FormRow>
               <FormRow label="Nom" required>
-                <input style={npStyles.input} defaultValue="Mercier" />
+                <input style={npStyles.input} value={contactNom} onChange={(e) => setContactNom(e.target.value)} />
               </FormRow>
             </div>
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Fonction" required>
-                <input style={npStyles.input} defaultValue="Directeur des Systèmes d'Information" />
+                <input style={npStyles.input} value={contactRole} onChange={(e) => setContactRole(e.target.value)} />
               </FormRow>
               <FormRow label="Niveau hiérarchique">
                 <div style={npStyles.segCtrl}>
@@ -331,14 +421,14 @@ const NewProspect = () => {
               <FormRow label="Email pro" required>
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#94a3b8" }}>✉</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} defaultValue="l.mercier@banque-meridionale.fr" />
-                  <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Vérifié</span>
+                  <input type="email" style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+                  {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Format ok</span>}
                 </div>
               </FormRow>
               <FormRow label="Téléphone">
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#94a3b8" }}>☎</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} defaultValue="+33 4 91 14 ••" />
+                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
                 </div>
               </FormRow>
             </div>
@@ -360,10 +450,9 @@ const NewProspect = () => {
             <FormRow label="LinkedIn profil">
               <div style={npStyles.inputWithIcon}>
                 <span style={{ color: "#0a66c2" }}>in</span>
-                <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} defaultValue="linkedin.com/in/laurent-mercier-dsi" />
-                <span style={{ ...npStyles.linkTag, color: "#4f46e5" }}>★ 2nd niveau</span>
+                <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactLi} onChange={(e) => setContactLi(e.target.value)} placeholder="linkedin.com/in/…" />
+                {contactLi && <span style={{ ...npStyles.linkTag, color: "#4f46e5" }}>↗</span>}
               </div>
-              <div style={npStyles.inputHelp}>Connecté à Nadia Lefèvre via 3 contacts mutuels</div>
             </FormRow>
           </section>
 
@@ -433,7 +522,9 @@ const NewProspect = () => {
               <textarea
                 style={npStyles.textarea}
                 rows="3"
-                defaultValue="Modernisation de l'outil de gestion patrimoniale. Pega jugé trop lourd et non-conforme DORA. Recherche d'une solution avec hébergement UE, time-to-value < 6 mois, et expertise vertical banque privée."
+                value={besoin}
+                onChange={(e) => setBesoin(e.target.value)}
+                placeholder="Modernisation, contraintes, contexte concurrentiel…"
               />
             </FormRow>
 
@@ -448,7 +539,7 @@ const NewProspect = () => {
               <FormRow label="Échéance estimée du projet">
                 <div style={npStyles.dateInput}>
                   <span style={{ color: "#94a3b8" }}>📅</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="Septembre 2026" />
+                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="" />
                 </div>
               </FormRow>
             </div>
@@ -472,7 +563,7 @@ const NewProspect = () => {
               <FormRow label="Date de prise de contact">
                 <div style={npStyles.dateInput}>
                   <span style={{ color: "#94a3b8" }}>📅</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="20 mai 2026" />
+                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }} defaultValue="" />
                 </div>
                 <div style={npStyles.inputHelp}>Premier email envoyé · réponse positive 23 mai</div>
               </FormRow>
@@ -527,7 +618,9 @@ const NewProspect = () => {
               <textarea
                 style={npStyles.textarea}
                 rows="3"
-                defaultValue="Nadia connaît Laurent via Salon Finovate 2024. Il est en charge du chantier modernisation lancé par le nouveau CIO arrivé en janvier. Le nouveau DG (Jean-Luc Pichon) est ex-AXA — référence Astorya via cercle commun."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Contexte additionnel, contacts mutuels, anecdotes…"
               />
             </FormRow>
           </section>

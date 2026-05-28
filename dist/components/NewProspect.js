@@ -1,25 +1,81 @@
 // Fiche nouveau prospect — formulaire de qualification
 
 var NewProspect = () => {
-  // ───── État UI interactif (segments, chips, action)
-  var [effectif, setEffectif] = React.useState("1k-5k");
-  var [tier, setTier] = React.useState("A");
-  var [fonction, setFonction] = React.useState("C-level");
-  var [roles, setRoles] = React.useState(["Décideur"]);
-  var [action, setAction] = React.useState("email");
+  // ───── État UI interactif (segments, chips, action) — fiche neuve, tout vide
+  var [effectif, setEffectif] = React.useState(null);
+  var [tier, setTier] = React.useState(null);
+  var [fonction, setFonction] = React.useState(null);
+  var [roles, setRoles] = React.useState([]);
+  var [action, setAction] = React.useState(null);
+  var [ca, setCa] = React.useState("");
+  var [contactPrenom, setContactPrenom] = React.useState("");
+  var [contactNom, setContactNom] = React.useState("");
+  var [contactRole, setContactRole] = React.useState("");
+  var [contactEmail, setContactEmail] = React.useState("");
+  var [contactPhone, setContactPhone] = React.useState("");
+  var [contactLi, setContactLi] = React.useState("");
+  var [besoin, setBesoin] = React.useState("");
+  var [notes, setNotes] = React.useState("");
   var [extraContacts, setExtraContacts] = React.useState(0);
   var [flash, setFlash] = React.useState(null);
 
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
-  var [companyName, setCompanyName] = React.useState("Banque Méridionale");
-  var [companySiren, setCompanySiren] = React.useState("312 482 671");
-  var [companyNaf, setCompanyNaf] = React.useState("64.19Z");
-  var [companyTva, setCompanyTva] = React.useState("FR47312482671");
-  var [companyCity, setCompanyCity] = React.useState("Marseille");
-  var [companyCP, setCompanyCP] = React.useState("13006");
+  var [companyName, setCompanyName] = React.useState("");
+  var [companySiren, setCompanySiren] = React.useState("");
+  var [companyNaf, setCompanyNaf] = React.useState("");
+  var [companyTva, setCompanyTva] = React.useState("");
+  var [companyAddress, setCompanyAddress] = React.useState("");
+  var [companyCity, setCompanyCity] = React.useState("");
+  var [companyCP, setCompanyCP] = React.useState("");
+  var [companySector, setCompanySector] = React.useState("");
+  var [companySubSect, setCompanySubSect] = React.useState("");
+  var [companyWeb, setCompanyWeb] = React.useState("");
+  var [companyLi, setCompanyLi] = React.useState("");
   var [siretResults, setSiretResults] = React.useState([]);
   var [siretLoading, setSiretLoading] = React.useState(false);
   var [siretOpen, setSiretOpen] = React.useState(false);
+
+  // Mapping section NAF (lettre) → libellé secteur
+  var sectionLabels = {
+    A: "Agriculture, sylviculture et pêche",
+    B: "Industries extractives",
+    C: "Industrie manufacturière",
+    D: "Production et distribution d'électricité",
+    E: "Eau, déchets et dépollution",
+    F: "Construction & BTP",
+    G: "Commerce",
+    H: "Transports et entreposage",
+    I: "Hébergement et restauration",
+    J: "Information et communication",
+    K: "Banque, finance & assurance",
+    L: "Activités immobilières",
+    M: "Activités spécialisées, scientifiques et techniques",
+    N: "Services administratifs et de soutien",
+    O: "Administration publique",
+    P: "Enseignement",
+    Q: "Santé et action sociale",
+    R: "Arts, spectacles et activités récréatives",
+    S: "Autres activités de services",
+    T: "Activités des ménages",
+    U: "Activités extra-territoriales"
+  };
+
+  // Sous-secteur dérivé de la division NAF (2 premiers chiffres)
+  var subSectorByDivision = {
+    "62": "Programmation et conseil informatique",
+    "63": "Services d'information",
+    "64": "Activités financières",
+    "65": "Assurance",
+    "66": "Activités auxiliaires de services financiers",
+    "70": "Conseil de direction",
+    "71": "Architecture, ingénierie",
+    "72": "Recherche et développement",
+    "73": "Publicité, études de marché",
+    "74": "Autres activités spécialisées"
+  };
+
+  // Slug pour deviner site web / LinkedIn depuis le nom
+  var slugify = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   // Mapping tranche_effectif_salarie INSEE → mes 5 buckets
   var mapEffectif = code => {
@@ -70,12 +126,43 @@ var NewProspect = () => {
   var pickCompany = e => {
     var siege = e.siege || {};
     var siren = e.siren || "";
-    setCompanyName(e.nom_complet || e.nom_raison_sociale || siege.denomination_usuelle || "");
+    var name = e.nom_complet || e.nom_raison_sociale || siege.denomination_usuelle || "";
+    var naf = e.activite_principale || siege.activite_principale || "";
+    var section = e.section_activite_principale || siege.section_activite_principale || (naf ? null : null);
+    setCompanyName(name);
     setCompanySiren(formatSiren(siren));
-    setCompanyNaf(e.activite_principale || siege.activite_principale || "");
+    setCompanyNaf(naf);
     setCompanyTva(computeTva(siren));
+
+    // Adresse — privilégie geo_adresse (concaténée), sinon reconstitue
+    var addr = siege.geo_adresse || [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(" ") || siege.adresse || "";
+    // On retire la ville + CP en fin de adresse pour ne garder que la rue
+    var street = addr;
+    if (siege.code_postal) street = street.replace(siege.code_postal, "").trim();
+    if (siege.libelle_commune) street = street.replace(new RegExp(siege.libelle_commune, "i"), "").trim();
+    street = street.replace(/[\s,]+$/, "");
+    setCompanyAddress(street);
     setCompanyCity(siege.libelle_commune || "");
     setCompanyCP(siege.code_postal || "");
+
+    // Secteur (section NAF) + sous-secteur (division NAF)
+    if (section && sectionLabels[section]) setCompanySector(sectionLabels[section]);else if (naf) {
+      var sec = naf.charAt(0);
+      var divCode = naf.slice(0, 2);
+      var div = subSectorByDivision[divCode];
+      if (div) setCompanySector(div);
+    }
+    if (naf) {
+      var _div = subSectorByDivision[naf.slice(0, 2)];
+      setCompanySubSect(_div || naf);
+    }
+
+    // Site web et LinkedIn — devinés depuis le nom (à corriger manuellement si besoin)
+    var slug = slugify(name);
+    if (slug) {
+      setCompanyWeb(slug + ".fr");
+      setCompanyLi("linkedin.com/company/" + slug);
+    }
     var mapped = mapEffectif(e.tranche_effectif_salarie || siege.tranche_effectif_salarie);
     if (mapped) setEffectif(mapped);
     setSiretOpen(false);
@@ -441,30 +528,18 @@ var NewProspect = () => {
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Secteur d'activit\xE9",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.select
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 8,
-      height: 8,
-      borderRadius: 999,
-      background: "#4f46e5"
-    }
-  }), /*#__PURE__*/React.createElement("span", null, "Banque priv\xE9e")), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, "\u25BE"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, /*#__PURE__*/React.createElement("input", {
+    style: npStyles.input,
+    value: companySector,
+    onChange: e => setCompanySector(e.target.value),
+    placeholder: "Auto-rempli depuis le NAF"
+  })), /*#__PURE__*/React.createElement(FormRow, {
     label: "Sous-secteur"
   }, /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "Gestion de patrimoine HNWI"
+    value: companySubSect,
+    onChange: e => setCompanySubSect(e.target.value),
+    placeholder: ""
   }))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid3
   }, /*#__PURE__*/React.createElement(FormRow, {
@@ -493,12 +568,14 @@ var NewProspect = () => {
       padding: "0 4px",
       fontWeight: 600
     },
-    defaultValue: "142"
+    value: ca,
+    onChange: e => setCa(e.target.value),
+    placeholder: "0"
   }), /*#__PURE__*/React.createElement("span", {
     style: npStyles.suffix
   }, "M\u20AC")), /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
-  }, "Bilan 2024")), /*#__PURE__*/React.createElement(FormRow, {
+  }, ca ? `Saisi · bilan ${new Date().getFullYear() - 1}` : "À renseigner")), /*#__PURE__*/React.createElement(FormRow, {
     label: "Tier prospect"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.tierRow
@@ -541,13 +618,15 @@ var NewProspect = () => {
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 12.5
     },
-    defaultValue: "banque-meridionale.fr"
-  }), /*#__PURE__*/React.createElement("span", {
+    value: companyWeb,
+    onChange: e => setCompanyWeb(e.target.value),
+    placeholder: "exemple.fr"
+  }), companyWeb && /*#__PURE__*/React.createElement("span", {
     style: {
       ...npStyles.linkTag,
       color: "#10b981"
     }
-  }, "\u2713 Actif"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "\u2197"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "LinkedIn entreprise"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputWithIcon
@@ -563,14 +642,17 @@ var NewProspect = () => {
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 12.5
     },
-    defaultValue: "linkedin.com/company/banque-meridionale"
+    value: companyLi,
+    onChange: e => setCompanyLi(e.target.value),
+    placeholder: "linkedin.com/company/\u2026"
   })))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Adresse si\xE8ge"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "42 cours Pierre Puget",
+    value: companyAddress,
+    onChange: e => setCompanyAddress(e.target.value),
     placeholder: "Adresse"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -602,13 +684,15 @@ var NewProspect = () => {
     required: true
   }, /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "Laurent"
+    value: contactPrenom,
+    onChange: e => setContactPrenom(e.target.value)
   })), /*#__PURE__*/React.createElement(FormRow, {
     label: "Nom",
     required: true
   }, /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "Mercier"
+    value: contactNom,
+    onChange: e => setContactNom(e.target.value)
   }))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
@@ -616,7 +700,8 @@ var NewProspect = () => {
     required: true
   }, /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "Directeur des Syst\xE8mes d'Information"
+    value: contactRole,
+    onChange: e => setContactRole(e.target.value)
   })), /*#__PURE__*/React.createElement(FormRow, {
     label: "Niveau hi\xE9rarchique"
   }, /*#__PURE__*/React.createElement("div", {
@@ -641,6 +726,7 @@ var NewProspect = () => {
       color: "#94a3b8"
     }
   }, "\u2709"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
     style: {
       ...npStyles.input,
       border: "none",
@@ -648,13 +734,14 @@ var NewProspect = () => {
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 12.5
     },
-    defaultValue: "l.mercier@banque-meridionale.fr"
-  }), /*#__PURE__*/React.createElement("span", {
+    value: contactEmail,
+    onChange: e => setContactEmail(e.target.value)
+  }), /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) && /*#__PURE__*/React.createElement("span", {
     style: {
       ...npStyles.linkTag,
       color: "#10b981"
     }
-  }, "\u2713 V\xE9rifi\xE9"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "\u2713 Format ok"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "T\xE9l\xE9phone"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputWithIcon
@@ -670,7 +757,8 @@ var NewProspect = () => {
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 12.5
     },
-    defaultValue: "+33 4 91 14 \u2022\u2022"
+    value: contactPhone,
+    onChange: e => setContactPhone(e.target.value)
   })))), /*#__PURE__*/React.createElement(FormRow, {
     label: "R\xF4le dans le projet",
     subtitle: "Quelle place dans la d\xE9cision d'achat ?"
@@ -707,15 +795,15 @@ var NewProspect = () => {
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 12.5
     },
-    defaultValue: "linkedin.com/in/laurent-mercier-dsi"
-  }), /*#__PURE__*/React.createElement("span", {
+    value: contactLi,
+    onChange: e => setContactLi(e.target.value),
+    placeholder: "linkedin.com/in/\u2026"
+  }), contactLi && /*#__PURE__*/React.createElement("span", {
     style: {
       ...npStyles.linkTag,
       color: "#4f46e5"
     }
-  }, "\u2605 2nd niveau")), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.inputHelp
-  }, "Connect\xE9 \xE0 Nadia Lef\xE8vre via 3 contacts mutuels"))), /*#__PURE__*/React.createElement("section", {
+  }, "\u2197")))), /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
@@ -893,7 +981,9 @@ var NewProspect = () => {
   }, /*#__PURE__*/React.createElement("textarea", {
     style: npStyles.textarea,
     rows: "3",
-    defaultValue: "Modernisation de l'outil de gestion patrimoniale. Pega jug\xE9 trop lourd et non-conforme DORA. Recherche d'une solution avec h\xE9bergement UE, time-to-value < 6 mois, et expertise vertical banque priv\xE9e."
+    value: besoin,
+    onChange: e => setBesoin(e.target.value),
+    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026"
   })), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
@@ -936,7 +1026,7 @@ var NewProspect = () => {
       padding: 0,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: "Septembre 2026"
+    defaultValue: ""
   }))))), /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
@@ -982,7 +1072,7 @@ var NewProspect = () => {
       padding: 0,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: "20 mai 2026"
+    defaultValue: ""
   })), /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
   }, "Premier email envoy\xE9 \xB7 r\xE9ponse positive 23 mai"))), /*#__PURE__*/React.createElement(FormRow, {
@@ -1096,7 +1186,9 @@ var NewProspect = () => {
   }, /*#__PURE__*/React.createElement("textarea", {
     style: npStyles.textarea,
     rows: "3",
-    defaultValue: "Nadia conna\xEEt Laurent via Salon Finovate 2024. Il est en charge du chantier modernisation lanc\xE9 par le nouveau CIO arriv\xE9 en janvier. Le nouveau DG (Jean-Luc Pichon) est ex-AXA \u2014 r\xE9f\xE9rence Astorya via cercle commun."
+    value: notes,
+    onChange: e => setNotes(e.target.value),
+    placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
   }))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {

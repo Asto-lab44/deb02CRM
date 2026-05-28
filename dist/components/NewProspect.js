@@ -9,6 +9,79 @@ var NewProspect = () => {
   var [action, setAction] = React.useState("email");
   var [extraContacts, setExtraContacts] = React.useState(0);
   var [flash, setFlash] = React.useState(null);
+
+  // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
+  var [companyName, setCompanyName] = React.useState("Banque Méridionale");
+  var [companySiren, setCompanySiren] = React.useState("312 482 671");
+  var [companyNaf, setCompanyNaf] = React.useState("64.19Z");
+  var [companyTva, setCompanyTva] = React.useState("FR47312482671");
+  var [companyCity, setCompanyCity] = React.useState("Marseille");
+  var [companyCP, setCompanyCP] = React.useState("13006");
+  var [siretResults, setSiretResults] = React.useState([]);
+  var [siretLoading, setSiretLoading] = React.useState(false);
+  var [siretOpen, setSiretOpen] = React.useState(false);
+
+  // Mapping tranche_effectif_salarie INSEE → mes 5 buckets
+  var mapEffectif = code => {
+    if (!code) return null;
+    if (["NN", "00", "01", "02", "03", "11", "12"].includes(code)) return "1-50";
+    if (["21", "22"].includes(code)) return "51-250";
+    if (["31", "32"].includes(code)) return "251-1k";
+    if (["41", "42"].includes(code)) return "1k-5k";
+    return "5k+";
+  };
+
+  // Calcule la clé TVA intracom FR à partir du SIREN
+  var computeTva = siren => {
+    var clean = String(siren).replace(/\D/g, "");
+    if (clean.length !== 9) return "";
+    var key = (12 + 3 * (parseInt(clean, 10) % 97)) % 97;
+    return "FR" + String(key).padStart(2, "0") + clean;
+  };
+  var formatSiren = s => {
+    var c = String(s).replace(/\D/g, "");
+    return c.length === 9 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6, 9)}` : c;
+  };
+
+  // Debounce 300ms sur la recherche
+  var siretTimer = React.useRef(null);
+  React.useEffect(() => {
+    if (siretTimer.current) clearTimeout(siretTimer.current);
+    var q = (companyName || "").trim();
+    if (q.length < 3) {
+      setSiretResults([]);
+      return;
+    }
+    siretTimer.current = setTimeout(async () => {
+      setSiretLoading(true);
+      try {
+        var r = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(q)}&page=1&per_page=6`);
+        var j = await r.json();
+        setSiretResults(Array.isArray(j.results) ? j.results : []);
+      } catch (e) {
+        setSiretResults([]);
+      }
+      setSiretLoading(false);
+    }, 300);
+    return () => {
+      if (siretTimer.current) clearTimeout(siretTimer.current);
+    };
+  }, [companyName]);
+  var pickCompany = e => {
+    var siege = e.siege || {};
+    var siren = e.siren || "";
+    setCompanyName(e.nom_complet || e.nom_raison_sociale || siege.denomination_usuelle || "");
+    setCompanySiren(formatSiren(siren));
+    setCompanyNaf(e.activite_principale || siege.activite_principale || "");
+    setCompanyTva(computeTva(siren));
+    setCompanyCity(siege.libelle_commune || "");
+    setCompanyCP(siege.code_postal || "");
+    var mapped = mapEffectif(e.tranche_effectif_salarie || siege.tranche_effectif_salarie);
+    if (mapped) setEffectif(mapped);
+    setSiretOpen(false);
+    setSiretResults([]);
+    showFlash("✓ Entreprise importée depuis SIRENE");
+  };
   var showFlash = (msg, tone = "ok") => {
     setFlash({
       msg,
@@ -254,13 +327,82 @@ var NewProspect = () => {
     label: "Raison sociale",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.searchInputWrap
+    style: {
+      ...npStyles.searchInputWrap,
+      position: "relative"
+    }
   }, /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "Banque M\xE9ridionale"
+    value: companyName,
+    onChange: e => {
+      setCompanyName(e.target.value);
+      setSiretOpen(true);
+    },
+    onFocus: () => setSiretOpen(true),
+    onBlur: () => setTimeout(() => setSiretOpen(false), 150),
+    placeholder: "Tapez le nom de l'entreprise ou un SIREN\u2026"
   }), /*#__PURE__*/React.createElement("span", {
     style: npStyles.searchTag
-  }, "\uD83D\uDD0D Auto-compl\xE9t\xE9 via base SIRENE"))), /*#__PURE__*/React.createElement("div", {
+  }, siretLoading ? "⏳ Recherche…" : "🔍 Auto-complété via base SIRENE"), siretOpen && siretResults.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 20px rgba(0,0,0,.08)",
+      zIndex: 20,
+      maxHeight: 320,
+      overflowY: "auto"
+    }
+  }, siretResults.map(e => {
+    var siege = e.siege || {};
+    return /*#__PURE__*/React.createElement("div", {
+      key: e.siren,
+      onMouseDown: () => pickCompany(e),
+      style: {
+        padding: "10px 12px",
+        borderBottom: "1px solid #f1f5f9",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, e.nom_complet || e.nom_raison_sociale), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, "SIREN ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, formatSiren(e.siren)), siege.libelle_commune && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 ", siege.libelle_commune), e.activite_principale && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 NAF ", e.activite_principale))), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#3730a3",
+        fontWeight: 700
+      }
+    }, "\u21B5"));
+  })))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid3
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "SIREN",
@@ -270,7 +412,12 @@ var NewProspect = () => {
       ...npStyles.input,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: "312 482 671"
+    value: companySiren,
+    onChange: e => {
+      setCompanySiren(e.target.value);
+      var t = computeTva(e.target.value);
+      if (t) setCompanyTva(t);
+    }
   })), /*#__PURE__*/React.createElement(FormRow, {
     label: "Code NAF"
   }, /*#__PURE__*/React.createElement("input", {
@@ -278,7 +425,8 @@ var NewProspect = () => {
       ...npStyles.input,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: "64.19Z"
+    value: companyNaf,
+    onChange: e => setCompanyNaf(e.target.value)
   })), /*#__PURE__*/React.createElement(FormRow, {
     label: "TVA intracom."
   }, /*#__PURE__*/React.createElement("input", {
@@ -286,7 +434,8 @@ var NewProspect = () => {
       ...npStyles.input,
       fontFamily: "'JetBrains Mono', monospace"
     },
-    defaultValue: "FR47312482671"
+    value: companyTva,
+    onChange: e => setCompanyTva(e.target.value)
   }))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
@@ -431,11 +580,13 @@ var NewProspect = () => {
     }
   }, /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "13006",
+    value: companyCP,
+    onChange: e => setCompanyCP(e.target.value),
     placeholder: "CP"
   }), /*#__PURE__*/React.createElement("input", {
     style: npStyles.input,
-    defaultValue: "Marseille",
+    value: companyCity,
+    onChange: e => setCompanyCity(e.target.value),
     placeholder: "Ville"
   }))))), /*#__PURE__*/React.createElement("section", {
     style: npStyles.section

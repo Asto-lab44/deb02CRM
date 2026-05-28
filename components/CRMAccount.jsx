@@ -54,10 +54,10 @@ const CRMAccount = () => {
     <div style={accStyles.frame}>
       {/* sidebar (compact) */}
       <aside style={accStyles.sidebar}>
-        <div style={accStyles.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...accStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={accStyles.logo}><div style={accStyles.logoMark}>H</div></div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
-        </div>
+        </a>
         <button style={accStyles.newBtn}>+ Nouvelle opportunité <span style={accStyles.kbd}>N</span></button>
         <div style={accStyles.navSection}>
           <div style={accStyles.navLabel}>Espace</div>

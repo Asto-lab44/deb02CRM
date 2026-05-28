@@ -114,13 +114,13 @@ const UserManagement = () => {
     <div style={S.frame}>
       {/* ───── SIDEBAR ───── */}
       <aside style={S.sidebar}>
-        <div style={S.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...S.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={S.logo}><div style={S.logoMark}>H</div></div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Administration</div>
           </div>
-        </div>
+        </a>
         <button style={S.newBtn}>+ Inviter un utilisateur <span style={S.kbd}>I</span></button>
 
         <div style={S.navSection}>

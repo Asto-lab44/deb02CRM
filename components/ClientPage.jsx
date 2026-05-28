@@ -111,13 +111,13 @@ const ClientPage = () => {
     <div style={cliStyles.frame}>
       {/* ───── SIDEBAR ───── */}
       <aside style={cliStyles.sidebar}>
-        <div style={cliStyles.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...cliStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={cliStyles.logo}><div style={cliStyles.logoMark}>H</div></div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>CRM commercial</div>
           </div>
-        </div>
+        </a>
         <button style={cliStyles.newBtn}>+ Nouvelle opportunité <span style={cliStyles.kbd}>N</span></button>
 
         <div style={cliStyles.navSection}>

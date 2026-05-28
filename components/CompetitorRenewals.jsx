@@ -276,13 +276,13 @@ const CompetitorRenewals = () => {
     <div style={crStyles.frame}>
       {/* SIDEBAR */}
       <aside style={crStyles.sidebar}>
-        <div style={crStyles.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...crStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={crStyles.logo}><div style={crStyles.logoMark}>H</div></div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>CRM commercial</div>
           </div>
-        </div>
+        </a>
         <button style={crStyles.newBtn}>+ Nouvelle opportunité <span style={crStyles.kbd}>N</span></button>
 
         <div style={crStyles.navSection}>

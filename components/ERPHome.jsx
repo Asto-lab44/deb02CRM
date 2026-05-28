@@ -234,13 +234,13 @@ const ERPHome = () => {
     <div style={erpStyles.frame}>
       {/* SIDEBAR */}
       <aside style={erpStyles.sidebar}>
-        <div style={erpStyles.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...erpStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={erpStyles.logo}><div style={erpStyles.logoMark}>H</div></div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>ERP unifié</div>
           </div>
-        </div>
+        </a>
 
         <div style={{ position: "relative" }}>
           <input style={erpStyles.search} placeholder="Rechercher partout…" readOnly />

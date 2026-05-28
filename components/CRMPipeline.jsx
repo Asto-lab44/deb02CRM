@@ -71,13 +71,13 @@ const CRMPipeline = () => {
     <div style={crmStyles.frame}>
       {/* ───── SIDEBAR ───── */}
       <aside style={crmStyles.sidebar}>
-        <div style={crmStyles.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...crmStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={crmStyles.logo}><div style={crmStyles.logoMark}>H</div></div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>CRM commercial</div>
           </div>
-        </div>
+        </a>
 
         <button style={crmStyles.newBtn}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>

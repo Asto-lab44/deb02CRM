@@ -119,10 +119,10 @@ const TicketDetail = () => {
     <div style={tdStyles.frame}>
       {/* ───── SIDEBAR (compact) ───── */}
       <aside style={tdStyles.sidebar}>
-        <div style={tdStyles.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...tdStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={tdStyles.logo}><div style={tdStyles.logoMark}>H</div></div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
-        </div>
+        </a>
         <button style={tdStyles.newBtn}>+ Nouveau ticket <span style={tdStyles.kbd}>N</span></button>
         <div style={tdStyles.navSection}>
           <div style={tdStyles.navLabel}>Mes vues</div>

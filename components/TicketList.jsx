@@ -125,7 +125,7 @@ const TicketList = () => {
     <div style={tlStyles.frame}>
       {/* ───── SIDEBAR ───── */}
       <aside style={tlStyles.sidebar}>
-        <div style={tlStyles.brandRow}>
+        <a href="/" title="Retour à l'accueil" style={{...tlStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
           <div style={tlStyles.logo}>
             <div style={tlStyles.logoMark}>H</div>
           </div>
@@ -133,7 +133,7 @@ const TicketList = () => {
             <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Support IT interne</div>
           </div>
-        </div>
+        </a>
 
         <button onClick={openNewTicket} style={tlStyles.newBtn}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>

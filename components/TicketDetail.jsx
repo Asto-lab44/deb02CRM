@@ -217,7 +217,11 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
           <div style={tdStyles.logo}><div style={tdStyles.logoMark}>H</div></div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
         </a>
-        <button style={tdStyles.newBtn}>+ Nouveau ticket <span style={tdStyles.kbd}>N</span></button>
+        <a href="/ticketing?new=1" style={{ ...tdStyles.newBtn, textDecoration: "none", cursor: "pointer" }} title="Créer un nouveau ticket">
+          <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+          <span>Nouveau ticket</span>
+          <span style={tdStyles.kbd}>N</span>
+        </a>
         <div style={tdStyles.navSection}>
           <div style={tdStyles.navLabel}>Mes vues</div>
           <a href="/ticketing" style={{ ...tdStyles.navItem, textDecoration: "none", color: "inherit" }} title="Retour à la liste complète">
@@ -248,13 +252,22 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
           })}
         </div>
         <div style={{ flex: 1 }} />
-        <div style={tdStyles.userRow}>
-          <Avatar name="Camille Dufour" size={26} color="#6366f1" />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Camille Dufour</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Direction Marketing</div>
-          </div>
-        </div>
+        {(() => {
+          const u = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
+          const name = u?.name || "Camille Dufour";
+          const role = u?.role || "Direction Marketing";
+          return (
+            <a href="/administration-utilisateurs"
+               title="Profil & préférences"
+               style={{ ...tdStyles.userRow, textDecoration: "none", color: "inherit", cursor: "pointer" }}>
+              <Avatar name={name} size={26} color="#6366f1" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+                <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{role}</div>
+              </div>
+            </a>
+          );
+        })()}
       </aside>
 
       {/* ───── MAIN ───── */}

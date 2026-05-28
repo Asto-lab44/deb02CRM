@@ -18,7 +18,11 @@ const TicketList = () => {
   };
 
   // ───── Création d'un nouveau ticket : ouvre la modale complète
-  const [newTicketOpen, setNewTicketOpen] = React.useState(false);
+  // Auto-ouverture si URL contient ?new=1 (depuis le bouton de la fiche détail)
+  const [newTicketOpen, setNewTicketOpen] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("new") === "1";
+  });
   const openNewTicket = () => setNewTicketOpen(true);
 
   // ───── Sélection d'un ticket : ouvre la fiche détail

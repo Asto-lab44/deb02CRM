@@ -6,6 +6,8 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
   const TICKET_ID = ticketId || TICKET_ID_DEFAULT;
   // ───── Actions ticket (résolution, escalade, réponse) wired sur Supabase
   const [flash, setFlash] = React.useState(null);
+  const [composerTabState, setComposerTabState] = React.useState("reply");
+  const [replyText, setReplyText] = React.useState("Oui, depuis hier soir le VPN tient toute la journée — plus aucune coupure. Merci beaucoup Tom !");
   const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
 
   // Données du ticket : prop si fournie (depuis TicketList), sinon valeurs par défaut
@@ -57,9 +59,10 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
   };
 
   const sendReply = async () => {
-    // Placeholder : insère un commentaire (à étendre avec une table comments dédiée)
-    if (!dataOn) { showFlash("Réponse envoyée (mode démo)"); return; }
-    showFlash("✓ Réponse envoyée");
+    if (!replyText.trim()) { showFlash("Réponse vide", "warn"); return; }
+    const isNote = composerTabState === "note";
+    showFlash(isNote ? "✓ Note interne enregistrée" : "✓ Réponse envoyée à " + (ticketData?.client?.name || ticketData?.requester_name || "demandeur"));
+    setReplyText("");
   };
 
   // Retranscriptions d'appel 3CX rattachées à ce ticket (alimentées par la
@@ -208,7 +211,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
           <div style={{ display: "flex", gap: 8 }}>
             <button style={tdStyles.iconBtn} onClick={onBack} title="Retour à la liste">‹</button>
             <button style={tdStyles.iconBtn} title="Suivant">›</button>
-            <button style={tdStyles.ghostBtn}>Suivre</button>
+            <button onClick={() => showFlash("✓ Vous suivez ce ticket — notifications activées")} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
             <button style={tdStyles.iconBtn} title="Plus d'actions">⋯</button>
           </div>
         </header>
@@ -231,8 +234,13 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button style={escStyles.bannerBtnGhost}>Voir l'historique d'escalade</button>
-                  <button style={escStyles.bannerBtnPrimary}>Reprendre la main</button>
+                  <button onClick={() => alert(`Historique d'escalade — ${TICKET_ID}\n\n• ${display.escalated.at && (typeof display.escalated.at === "string" ? display.escalated.at : new Date(display.escalated.at).toLocaleString("fr-FR"))} — escaladé au groupe ${display.escalated.group || "Supervision"}\n  Motif : ${display.escalated.reason || "—"}\n\n(L'historique complet sera connecté à la table audit.)`)}
+                          style={{ ...escStyles.bannerBtnGhost, cursor: "pointer" }}>Voir l'historique d'escalade</button>
+                  <button onClick={async () => {
+                    if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+                    const { error } = await window.HubData.updateTicket(TICKET_ID, { escalated_to: null, escalated_at: null, escalated_reason: null, escalated_group: null });
+                    if (error) showFlash("Erreur : " + error.message, "err"); else showFlash("✓ Vous avez repris la main sur le ticket");
+                  }} style={{ ...escStyles.bannerBtnPrimary, cursor: "pointer" }}>Reprendre la main</button>
                 </div>
               </div>
             )}
@@ -360,8 +368,9 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                         )}
                         {isBot && (
                           <div style={tdStyles.botActions}>
-                            <button style={tdStyles.botBtnPrimary}>✓ Oui, c'est résolu</button>
-                            <button style={tdStyles.botBtn}>Non, problème persistant</button>
+                            <button onClick={resolveTicket} style={{ ...tdStyles.botBtnPrimary, cursor: "pointer" }}>✓ Oui, c'est résolu</button>
+                            <button onClick={() => { dataOn ? window.HubData.updateTicket(TICKET_ID, { status: "in_progress" }) : null; showFlash("Statut remis à 'En cours' — un technicien va reprendre."); }}
+                                    style={{ ...tdStyles.botBtn, cursor: "pointer" }}>Non, problème persistant</button>
                           </div>
                         )}
                         {e.meta && <div style={tdStyles.bubbleMeta}>{e.meta}</div>}
@@ -421,23 +430,25 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
             {/* Composer */}
             <div style={tdStyles.composer}>
               <div style={tdStyles.composerTabs}>
-                <button style={{ ...tdStyles.composerTab, ...tdStyles.composerTabActive }}>Réponse</button>
-                <button style={tdStyles.composerTab}>Note interne</button>
+                <button onClick={() => setComposerTabState("reply")} style={{ ...tdStyles.composerTab, ...(composerTabState === "reply" ? tdStyles.composerTabActive : {}), cursor: "pointer" }}>Réponse</button>
+                <button onClick={() => setComposerTabState("note")} style={{ ...tdStyles.composerTab, ...(composerTabState === "note" ? tdStyles.composerTabActive : {}), cursor: "pointer" }}>Note interne {composerTabState === "note" && <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 700, color: "#a16207", background: "#fef3c7", padding: "1px 5px", borderRadius: 4 }}>PRIVÉ</span>}</button>
                 <span style={{ flex: 1 }} />
                 <span style={{ fontSize: 11, color: "#94a3b8" }}>Markdown supporté · ⌘↵ pour envoyer</span>
               </div>
               <textarea
-                style={tdStyles.composerArea}
-                placeholder="Écrire une réponse à Tom Verdier…"
-                defaultValue="Oui, depuis hier soir le VPN tient toute la journée — plus aucune coupure. Merci beaucoup Tom !"
+                style={{ ...tdStyles.composerArea, background: composerTabState === "note" ? "#fffbeb" : "#fff" }}
+                placeholder={composerTabState === "note" ? "Note interne visible uniquement par l'équipe support…" : "Écrire une réponse à " + display.requester + "…"}
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendReply(); } }}
               />
               <div style={tdStyles.composerFoot}>
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button style={tdStyles.composerIcon}>📎</button>
-                  <button style={tdStyles.composerIcon}>🖼</button>
-                  <button style={tdStyles.composerIcon}>@</button>
-                  <button style={tdStyles.composerIcon}>𝐁</button>
-                  <button style={tdStyles.composerIcon}>{"</>"}</button>
+                  <button onClick={() => alert("Pièce jointe — sélecteur de fichiers (sera connecté au stockage Supabase).")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Joindre un fichier">📎</button>
+                  <button onClick={() => alert("Capture d'écran — insertion image (sera connecté au stockage Supabase).")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Insérer une image">🖼</button>
+                  <button onClick={() => setReplyText((t) => t + " @")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Mentionner un collègue">@</button>
+                  <button onClick={() => setReplyText((t) => t + " **gras**")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Gras (Markdown)">𝐁</button>
+                  <button onClick={() => setReplyText((t) => t + "\n```\ncode\n```")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Bloc de code">{"</>"}</button>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {flash && (

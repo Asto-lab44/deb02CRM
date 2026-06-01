@@ -34,20 +34,65 @@ const NewOpportunity = () => {
   const [oppAmount, setOppAmount] = React.useState("");
   const [oppDate, setOppDate]     = React.useState("");
   const [oppNotes, setOppNotes]   = React.useState("");
+  const [oppType, setOppType]     = React.useState("new"); // new | extension | renewal | upsell
+  const [oppProduit, setOppProduit] = React.useState("Astorya Suite");
+  const [oppModules, setOppModules] = React.useState([]); // ["Cyber", "Hub", ...]
+  const [oppSource, setOppSource] = React.useState("Référence client existant");
+  const [oppDuration, setOppDuration] = React.useState("3 ans");
+  const [oppStage, setOppStage] = React.useState("qualif");
   const [flash, setFlash]         = React.useState(null);
+
+  // Résolution du dossier prospect complet (pour récupérer contact_principal + contacts_additionnels)
+  const fullProspect = React.useMemo(() => {
+    if (!selectedClient) return null;
+    try {
+      const local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      return local.find((p) => p.id === selectedClient.id) || null;
+    } catch (e) { return null; }
+  }, [selectedClient]);
+
+  // Probabilité auto selon étape
+  const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
+  const proba = stageProba[oppStage] || 20;
+
+  // Toggle module
+  const toggleModule = (m) => setOppModules((arr) => arr.includes(m) ? arr.filter((x) => x !== m) : [...arr, m]);
   const showFlash = (m, tone = "ok") => { setFlash({ m, tone }); setTimeout(() => setFlash(null), 2800); };
 
   const createOpp = () => {
     if (!selectedClient) { showFlash("Sélectionnez d'abord un client", "err"); return; }
     if (!oppName.trim()) { showFlash("Nom de l'opportunité obligatoire", "err"); return; }
-    const opp = { id: "OPP-" + Math.floor(Math.random() * 9000 + 1000), client_id: selectedClient.id, client_name: selectedClient.name, name: oppName, amount: oppAmount, target_date: oppDate, notes: oppNotes, created_at: new Date().toISOString(), stage: "qualif" };
+    const ref = "OPP-" + Math.floor(Math.random() * 9000 + 1000);
+    const opp = {
+      id: ref, ref,
+      client_id: selectedClient.id,
+      client_name: selectedClient.name,
+      name: oppName,
+      amount: oppAmount,
+      target_date: oppDate,
+      close: oppDate ? new Date(oppDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "",
+      notes: oppNotes,
+      type: oppType,
+      produit: oppProduit,
+      modules: oppModules,
+      source: oppSource,
+      duration: oppDuration,
+      stage: oppStage,
+      proba,
+      owner: "Vous",
+      created_at: new Date().toISOString(),
+    };
     try {
       const existing = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
       existing.unshift(opp);
       localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(existing));
     } catch (e) {}
     showFlash("✓ Opportunité créée — redirection…");
-    setTimeout(() => { window.location.href = "/crm"; }, 900);
+    setTimeout(() => {
+      window.location.href = selectedClient && selectedClient.id
+        ? "/fiche-client?id=" + encodeURIComponent(selectedClient.id)
+        : "/crm";
+    }, 900);
   };
 
   const Avatar = ({ name, size = 22, color }) => {
@@ -194,29 +239,50 @@ const NewOpportunity = () => {
                 </FormRow>
 
                 <FormRow label="Contact principal" required>
-                  <div style={noStyles.linkedCardMini}>
-                    <Avatar name="Émilie Roux" size={24} color="#a855f7" />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>Émilie Roux <span style={noStyles.championPill}>★ Champion</span></div>
-                      <div style={{ fontSize: 11, color: "#64748b" }}>VP Innovation · e.roux@axa-im.fr</div>
-                    </div>
-                    <button style={noStyles.changeBtn}>Changer</button>
-                  </div>
+                  {(() => {
+                    const cp = fullProspect && fullProspect.contact_principal;
+                    const fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
+                    if (!fullName && !(cp && cp.email)) {
+                      return (
+                        <div style={{ ...noStyles.linkedCardMini, color: "#94a3b8", fontStyle: "italic" }}>
+                          Aucun contact principal renseigné pour ce client
+                        </div>
+                      );
+                    }
+                    const champion = Array.isArray(fullProspect.roles) && fullProspect.roles.includes("Champion");
+                    return (
+                      <div style={noStyles.linkedCardMini}>
+                        <Avatar name={fullName || cp.email} size={24} color="#a855f7" />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600 }}>
+                            {fullName || cp.email}
+                            {champion && <span style={noStyles.championPill}>★ Champion</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#64748b" }}>
+                            {(cp.fonction || "—")}{cp.email ? ` · ${cp.email}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </FormRow>
 
-                <FormRow label="Co-contacts" subtitle="Ajoutez les autres décideurs identifiés">
+                <FormRow label="Co-contacts" subtitle="Décideurs supplémentaires identifiés à la création du prospect">
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <div style={noStyles.contactChip}>
-                      <Avatar name="Antoine Mercier" size={18} color="#dc2626" />
-                      <span style={{ fontSize: 11.5, fontWeight: 500 }}>Antoine Mercier</span>
-                      <span style={noStyles.removeChip}>×</span>
-                    </div>
-                    <div style={noStyles.contactChip}>
-                      <Avatar name="Julien Pasquier" size={18} color="#0ea5e9" />
-                      <span style={{ fontSize: 11.5, fontWeight: 500 }}>Julien Pasquier</span>
-                      <span style={noStyles.removeChip}>×</span>
-                    </div>
-                    <button style={noStyles.addChip}>+ Ajouter</button>
+                    {(() => {
+                      const add = (fullProspect && fullProspect.contacts_additionnels) || [];
+                      if (!add.length) return <span style={{ fontSize: 11.5, color: "#94a3b8", fontStyle: "italic" }}>Aucun co-contact</span>;
+                      const colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
+                      return add.map((x, i) => {
+                        const n = ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact";
+                        return (
+                          <div key={i} style={noStyles.contactChip}>
+                            <Avatar name={n} size={18} color={colors[i % colors.length]} />
+                            <span style={{ fontSize: 11.5, fontWeight: 500 }}>{n}</span>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </FormRow>
               </section>
@@ -237,21 +303,28 @@ const NewOpportunity = () => {
 
                 <div style={noStyles.formGrid2}>
                   <FormRow label="Produit principal" required>
-                    <div style={noStyles.select}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#a855f7" }} />
-                        <span>Astorya Suite</span>
-                      </span>
-                      <span style={{ color: "#94a3b8" }}>▾</span>
-                    </div>
+                    <select value={oppProduit} onChange={(e) => setOppProduit(e.target.value)} style={{ ...noStyles.input, padding: "8px 12px" }}>
+                      <option>Astorya Suite</option>
+                      <option>Astorya Cyber</option>
+                      <option>Astorya Hub</option>
+                      <option>Astorya Analytics</option>
+                      <option>Astorya Mobile</option>
+                      <option>Prestation sur mesure</option>
+                    </select>
                   </FormRow>
 
                   <FormRow label="Modules complémentaires">
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      <button style={{ ...noStyles.toggleChip, ...noStyles.toggleChipOn }}>✓ Cyber</button>
-                      <button style={noStyles.toggleChip}>+ Hub</button>
-                      <button style={noStyles.toggleChip}>+ Analytics</button>
-                      <button style={noStyles.toggleChip}>+ Mobile</button>
+                      {["Cyber", "Hub", "Analytics", "Mobile"].map((m) => {
+                        const on = oppModules.includes(m);
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => toggleModule(m)}
+                            style={{ ...noStyles.toggleChip, ...(on ? noStyles.toggleChipOn : {}), cursor: "pointer" }}
+                          >{on ? "✓ " : "+ "}{m}</button>
+                        );
+                      })}
                     </div>
                   </FormRow>
                 </div>
@@ -259,26 +332,34 @@ const NewOpportunity = () => {
                 <div style={noStyles.formGrid2}>
                   <FormRow label="Type d'opportunité" required>
                     <div style={noStyles.radioGroup}>
-                      <label style={noStyles.radio}>
-                        <input type="radio" name="type" /> <span>Nouveau client</span>
-                      </label>
-                      <label style={{ ...noStyles.radio, ...noStyles.radioOn }}>
-                        <input type="radio" name="type" /> <span>Extension</span>
-                      </label>
-                      <label style={noStyles.radio}>
-                        <input type="radio" name="type" /> <span>Renouvellement</span>
-                      </label>
-                      <label style={noStyles.radio}>
-                        <input type="radio" name="type" /> <span>Up-sell</span>
-                      </label>
+                      {[
+                        { k: "new",       label: "Nouveau client" },
+                        { k: "extension", label: "Extension" },
+                        { k: "renewal",   label: "Renouvellement" },
+                        { k: "upsell",    label: "Up-sell" },
+                      ].map((t) => (
+                        <label
+                          key={t.k}
+                          onClick={() => setOppType(t.k)}
+                          style={{ ...noStyles.radio, ...(oppType === t.k ? noStyles.radioOn : {}), cursor: "pointer" }}
+                        >
+                          <input type="radio" name="type" checked={oppType === t.k} onChange={() => setOppType(t.k)} /> <span>{t.label}</span>
+                        </label>
+                      ))}
                     </div>
                   </FormRow>
 
                   <FormRow label="Source" required>
-                    <div style={noStyles.select}>
-                      <span>Référence client existant</span>
-                      <span style={{ color: "#94a3b8" }}>▾</span>
-                    </div>
+                    <select value={oppSource} onChange={(e) => setOppSource(e.target.value)} style={{ ...noStyles.input, padding: "8px 12px" }}>
+                      <option>Référence client existant</option>
+                      <option>Cold outbound</option>
+                      <option>Inbound site web</option>
+                      <option>Salon professionnel</option>
+                      <option>Partenaire revendeur</option>
+                      <option>Renouvellement automatique</option>
+                      <option>Réseau personnel</option>
+                      <option>Autre</option>
+                    </select>
                   </FormRow>
                 </div>
 
@@ -317,34 +398,51 @@ const NewOpportunity = () => {
 
                   <FormRow label="Durée contrat">
                     <div style={noStyles.segCtrl}>
-                      <button style={noStyles.segBtn}>1 an</button>
-                      <button style={{ ...noStyles.segBtn, ...noStyles.segBtnActive }}>3 ans</button>
-                      <button style={noStyles.segBtn}>5 ans</button>
-                      <button style={noStyles.segBtn}>Custom</button>
+                      {["1 an", "3 ans", "5 ans", "Custom"].map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => setOppDuration(d)}
+                          style={{ ...noStyles.segBtn, ...(oppDuration === d ? noStyles.segBtnActive : {}), cursor: "pointer" }}
+                        >{d}</button>
+                      ))}
                     </div>
-                    <div style={{ ...noStyles.inputHelp, color: "#0f172a", fontWeight: 600, marginTop: 6 }}>TCV : 276 000 € sur 3 ans</div>
+                    {(() => {
+                      const amtN = parseFloat(String(oppAmount).replace(/[^\d.]/g, "")) || 0;
+                      const years = oppDuration === "1 an" ? 1 : oppDuration === "3 ans" ? 3 : oppDuration === "5 ans" ? 5 : 0;
+                      if (!amtN || !years) return null;
+                      const tcv = amtN * years;
+                      return <div style={{ ...noStyles.inputHelp, color: "#0f172a", fontWeight: 600, marginTop: 6 }}>TCV : {tcv.toLocaleString("fr-FR").replace(/,/g, " ")} € sur {oppDuration}</div>;
+                    })()}
                   </FormRow>
                 </div>
 
                 <FormRow label="Étape pipeline" required>
                   <div style={noStyles.pipelineSelector}>
                     {[
-                      { k: "qualif", label: "Qualification", color: "#94a3b8", proba: 20, active: true },
+                      { k: "qualif", label: "Qualification", color: "#94a3b8", proba: 20 },
                       { k: "discovery", label: "Discovery", color: "#3b82f6", proba: 35 },
                       { k: "propo", label: "Proposition", color: "#a855f7", proba: 55 },
                       { k: "nego", label: "Négociation", color: "#ea580c", proba: 75 },
                       { k: "won", label: "Gagné", color: "#10b981", proba: 100 },
-                    ].map((s) => (
-                      <div key={s.k} style={{
-                        ...noStyles.pipeStep,
-                        ...(s.active ? noStyles.pipeStepActive : {}),
-                        borderColor: s.active ? s.color : "transparent",
-                      }}>
-                        <span style={{ width: 6, height: 6, borderRadius: 999, background: s.color, marginRight: 6 }} />
-                        <span style={{ fontSize: 11.5, fontWeight: s.active ? 700 : 500, color: s.active ? "#0f172a" : "#64748b" }}>{s.label}</span>
-                        {s.active && <span style={{ fontSize: 10, color: s.color, fontWeight: 700, marginLeft: 6, fontFamily: "'JetBrains Mono', monospace" }}>{s.proba}%</span>}
-                      </div>
-                    ))}
+                    ].map((s) => {
+                      const active = oppStage === s.k;
+                      return (
+                        <div
+                          key={s.k}
+                          onClick={() => setOppStage(s.k)}
+                          style={{
+                            ...noStyles.pipeStep,
+                            ...(active ? noStyles.pipeStepActive : {}),
+                            borderColor: active ? s.color : "transparent",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: 999, background: s.color, marginRight: 6 }} />
+                          <span style={{ fontSize: 11.5, fontWeight: active ? 700 : 500, color: active ? "#0f172a" : "#64748b" }}>{s.label}</span>
+                          {active && <span style={{ fontSize: 10, color: s.color, fontWeight: 700, marginLeft: 6, fontFamily: "'JetBrains Mono', monospace" }}>{s.proba}%</span>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </FormRow>
 
@@ -352,12 +450,11 @@ const NewOpportunity = () => {
                   <FormRow label="Probabilité de gain">
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ flex: 1, position: "relative", height: 6, background: "#eef1f5", borderRadius: 999 }}>
-                        <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: "20%", background: "#94a3b8", borderRadius: 999 }} />
-                        <div style={{ position: "absolute", left: "calc(20% - 8px)", top: -5, width: 16, height: 16, borderRadius: 999, background: "#fff", border: "3px solid #94a3b8", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }} />
+                        <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: proba + "%", background: stageProba[oppStage] >= 75 ? "#10b981" : "#a855f7", borderRadius: 999 }} />
                       </div>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", width: 44, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>20%</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", width: 44, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{proba}%</span>
                     </div>
-                    <div style={noStyles.inputHelp}>Auto-rempli depuis l'étape — modifiable</div>
+                    <div style={noStyles.inputHelp}>Auto-rempli depuis l'étape</div>
                   </FormRow>
 
                   <FormRow label="Date de clôture cible" required>
@@ -449,35 +546,41 @@ const NewOpportunity = () => {
                 {/* Mini opp card (like in pipeline) */}
                 <div style={noStyles.previewCard}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 6, background: "#1e40af", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>AX</div>
+                    <div style={{ width: 28, height: 28, borderRadius: 6, background: "#1e40af", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {((selectedClient && selectedClient.name) || "??").slice(0, 2).toUpperCase()}
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", lineHeight: 1.3 }}>AXA Wealth France</div>
-                      <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                        <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "#f5efff", color: "#7e22ce", fontWeight: 700 }}>Suite</span>
-                        <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "#fdecec", color: "#dc2626", fontWeight: 700 }}>Cyber</span>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", lineHeight: 1.3 }}>{(selectedClient && selectedClient.name) || "Sélectionnez un client…"}</div>
+                      <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "#f5efff", color: "#7e22ce", fontWeight: 700 }}>{oppProduit.replace(/^Astorya\s+/, "")}</span>
+                        {oppModules.map((m) => (
+                          <span key={m} style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "#fdecec", color: "#dc2626", fontWeight: 700 }}>{m}</span>
+                        ))}
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 8, color: "#0f172a", letterSpacing: -0.3 }}>92 000 €</div>
-                  <div style={{ fontSize: 11.5, color: "#475569", marginTop: 2, lineHeight: 1.3 }}>Astorya Suite — extension filiale Belgique</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 8, color: "#0f172a", letterSpacing: -0.3 }}>
+                    {oppAmount ? (String(oppAmount).replace(/[^\d.\s]/g, "").trim() + " € / an") : "—"}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#475569", marginTop: 2, lineHeight: 1.3 }}>{oppName || "Nom de l'opportunité…"}</div>
 
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                       <span style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Probabilité</span>
-                      <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>20%</span>
+                      <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{proba}%</span>
                     </div>
                     <div style={{ width: "100%", height: 3, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
-                      <div style={{ width: "20%", height: "100%", background: "#94a3b8", borderRadius: 999 }} />
+                      <div style={{ width: proba + "%", height: "100%", background: proba >= 75 ? "#10b981" : proba >= 55 ? "#a855f7" : proba >= 35 ? "#3b82f6" : "#94a3b8", borderRadius: 999 }} />
                     </div>
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
-                    <Avatar name="Nadia Lefèvre" size={18} color="#a855f7" />
-                    <span style={{ fontSize: 10.5, color: "#64748b" }}>15 sept. 2026</span>
+                    <Avatar name="Vous" size={18} color="#3730a3" />
+                    <span style={{ fontSize: 10.5, color: "#64748b" }}>{oppDate ? new Date(oppDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "Date à définir"}</span>
                   </div>
                 </div>
 
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>Qualification</strong></div>
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>{({ qualif: "Qualification", discovery: "Discovery", propo: "Proposition", nego: "Négociation", won: "Gagné" })[oppStage]}</strong></div>
               </div>
 
               {/* IA suggestions */}

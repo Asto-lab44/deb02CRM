@@ -225,13 +225,12 @@ const NewProspect = () => {
     site_web: companyWeb,
     linkedin_entreprise: companyLi,
     effectif, tier, fonction, roles, action,
-    ca_meur: ca,
     contact_principal: {
       prenom: contactPrenom, nom: contactNom, fonction: contactRole,
       email: contactEmail, phone: contactPhone, linkedin: contactLi,
     },
     contacts_additionnels: extraContactList,
-    source, contact_date: contactDate, project_date: projectDate,
+    source, project_date: projectDate,
     concurrent,
     concurrent_end: concurrentEnd,
     concurrent_amount: concurrentAmount,
@@ -415,7 +414,7 @@ const NewProspect = () => {
               </FormRow>
             </div>
 
-            <div style={npStyles.formGrid3}>
+            <div style={npStyles.formGrid2}>
               <FormRow label="Effectif" required>
                 <div style={npStyles.segCtrl}>
                   {["1-50", "51-250", "251-1k", "1k-5k", "5k+"].map((v) => (
@@ -424,13 +423,6 @@ const NewProspect = () => {
                   ))}
                 </div>
                 <div style={npStyles.inputHelp}>Source SIRENE : 1 200 collaborateurs</div>
-              </FormRow>
-              <FormRow label="CA annuel">
-                <div style={npStyles.inputWithSuffix}>
-                  <input style={{ ...npStyles.input, border: "none", padding: "0 4px", fontWeight: 600 }} value={ca} onChange={(e) => setCa(e.target.value)} placeholder="0" />
-                  <span style={npStyles.suffix}>M€</span>
-                </div>
-                <div style={npStyles.inputHelp}>{ca ? `Saisi · bilan ${new Date().getFullYear() - 1}` : "À renseigner"}</div>
               </FormRow>
               <FormRow label="Tier prospect">
                 <div style={npStyles.tierRow}>
@@ -750,14 +742,6 @@ const NewProspect = () => {
                   <option>Autre</option>
                 </select>
                 {source && <div style={npStyles.inputHelp}>Source enregistrée : {source}</div>}
-              </FormRow>
-              <FormRow label="Date de prise de contact">
-                <div style={npStyles.dateInput}>
-                  <span style={{ color: "#94a3b8" }}>📅</span>
-                  <input type="date" style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
-                         value={contactDate} onChange={(e) => setContactDate(e.target.value)} />
-                </div>
-                {contactDate && <div style={npStyles.inputHelp}>1er contact prévu/effectué le {new Date(contactDate).toLocaleDateString("fr-FR")}</div>}
               </FormRow>
             </div>
 

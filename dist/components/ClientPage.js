@@ -19,10 +19,56 @@ var ClientPage = () => {
       setExtraActions(JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]"));
     } catch (e) {}
     try {
+      setCompletedActions(JSON.parse(localStorage.getItem("hubAstorya.actionsCompleted.v1") || "[]"));
+    } catch (e) {}
+    try {
       setOppEdits(JSON.parse(localStorage.getItem("hubAstorya.oppEdits.v1") || "{}"));
     } catch (e) {}
   }, []);
-  var toggleAction = key => {
+  var [completedActions, setCompletedActions] = React.useState([]);
+
+  // Complète une action utilisateur : la sort de extraActions et la pose dans completedActions
+  var completeAction = a => {
+    var completedEntry = {
+      id: a.id,
+      client_id: a.client_id || null,
+      type: a.type || (a.icon === "📞" ? "call" : a.icon === "✉" ? "email" : a.icon === "👥" ? "meeting" : a.icon === "📅" ? "rdv" : "task"),
+      icon: a.icon || "✓",
+      color: "#10b981",
+      title: a.title,
+      who: a.assigned ? `Réalisé par ${a.assigned}` : "Terminée",
+      at: new Date().toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }) + " · " + new Date().toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      }),
+      meta: a.meta || null,
+      completed_at: new Date().toISOString()
+    };
+    setExtraActions(arr => {
+      var next = arr.filter(x => x.id !== a.id);
+      try {
+        localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+    setCompletedActions(arr => {
+      var next = [completedEntry, ...arr];
+      try {
+        localStorage.setItem("hubAstorya.actionsCompleted.v1", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+  var toggleAction = (key, action) => {
+    // Pour une action utilisateur (a.id présent) : passer au statut terminé = déplacer
+    if (action && action.id) {
+      completeAction(action);
+      return;
+    }
     setDoneActions(prev => {
       var next = {
         ...prev,
@@ -56,6 +102,7 @@ var ClientPage = () => {
     color: "#10b981"
   }];
   var [actionMenuKey, setActionMenuKey] = React.useState(null);
+  var [reschedule, setReschedule] = React.useState(null); // { id, date, time, title }
   React.useEffect(() => {
     if (!actionMenuKey) return;
     var close = () => setActionMenuKey(null);
@@ -105,6 +152,8 @@ var ClientPage = () => {
     }) + (newAction.time ? " · " + newAction.time : "") : "Date à définir";
     var next = [{
       id: "EX-" + Date.now(),
+      client_id: urlId || "ACC-0184",
+      type: newAction.type,
       title: newAction.title.trim(),
       due: dueText,
       priority: newAction.priority,
@@ -292,30 +341,32 @@ var ClientPage = () => {
   // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
   // Vide par défaut pour un nouveau prospect tant que rien n'est renseigné (pas de carte vide).
   var allContacts = (() => {
-    var localForThis = customContacts.filter(c => c.client_id === (urlId || "ACC-0184")).map(c => ({
-      ...c,
+    var localForThis = customContacts.filter(cc => cc.client_id === (urlId || "ACC-0184")).map(cc => ({
+      ...cc,
       _custom: true
     }));
     if (isCustom) {
-      var cp = display.contactPrincipal;
+      var cp = c.contact_principal || display.contactPrincipal;
       var fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
-      var principal = fullName || cp && cp.email ? [{
+      var principal = fullName || cp && cp.email || cp && cp.phone ? [{
         name: fullName || cp && cp.email || "Contact principal",
         role: cp && cp.fonction || "—",
         email: cp && cp.email || "",
         phone: cp && cp.phone || "",
+        linkedin: cp && cp.linkedin || "",
         color: "#a855f7",
         champion: Array.isArray(c.roles) && c.roles.includes("Champion"),
         decisionRoles: Array.isArray(c.roles) ? c.roles : [],
-        last: "Contact principal"
+        last: "Contact principal · ajouté à la création"
       }] : [];
       var additionnels = (c.contacts_additionnels || []).map((x, i) => ({
         name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact",
         role: x.fonction || "—",
         email: x.email || "",
         phone: x.phone || "",
+        linkedin: x.linkedin || "",
         color: ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"][i % 5],
-        last: "Ajouté à la création"
+        last: "Co-contact · ajouté à la création"
       }));
       return [...principal, ...additionnels, ...localForThis];
     }
@@ -778,9 +829,12 @@ var ClientPage = () => {
     meta: "Mise à jour automatique"
   });
   // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
+  // Actions terminées par l'utilisateur, filtrées sur ce client
+  var completedForThis = completedActions.filter(x => x.client_id === (urlId || "ACC-0184"));
   var pastAll = past.concat(pastExtras);
-  var pastShown = isCustom ? [] : pastShowAll ? pastAll : past;
-  var pastTotal = isCustom ? 0 : pastAll.length;
+  // Custom prospect : on n'affiche QUE les actions terminées par l'utilisateur. AXA : démo + customs en tête.
+  var pastShown = isCustom ? completedForThis : [...completedForThis, ...(pastShowAll ? pastAll : past)];
+  var pastTotal = isCustom ? completedForThis.length : pastAll.length + completedForThis.length;
 
   // ── Actions à mener (futur, à faire)
   var future = [{
@@ -1626,7 +1680,7 @@ var ClientPage = () => {
     }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsList
-  }, [...extraActions, ...(isCustom ? [] : future)].length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, [...extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "24px 14px",
       textAlign: "center",
@@ -1636,7 +1690,7 @@ var ClientPage = () => {
       borderRadius: 8,
       background: "#fafbfc"
     }
-  }, "Aucune action planifi\xE9e. Cliquez sur ", /*#__PURE__*/React.createElement("b", null, "+ Ajouter"), " pour en cr\xE9er une."), [...extraActions, ...(isCustom ? [] : future)].map((a, i) => {
+  }, "Aucune action planifi\xE9e. Cliquez sur ", /*#__PURE__*/React.createElement("b", null, "+ Ajouter"), " pour en cr\xE9er une."), [...extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].map((a, i) => {
     var p = prioMeta[a.priority] || prioMeta.basse;
     var key = a.id || "d-" + i;
     var done = !!doneActions[key];
@@ -1656,7 +1710,7 @@ var ClientPage = () => {
         cursor: "pointer"
       },
       checked: done,
-      onChange: () => toggleAction(key)
+      onChange: () => toggleAction(key, a)
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         ...cliStyles.actionIcon,
@@ -1777,7 +1831,7 @@ var ClientPage = () => {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: () => {
-        toggleAction(key);
+        toggleAction(key, a);
         setActionMenuKey(null);
       },
       style: cliStyles.menuItem
@@ -1796,13 +1850,13 @@ var ClientPage = () => {
       disabled: !a.id
     }, "\u270E Renommer"), /*#__PURE__*/React.createElement("button", {
       onClick: () => {
-        var newDue = prompt("Nouvelle échéance :", a.due);
-        if (newDue && a.id) {
-          setExtraActions(arr => arr.map(x => x.id === a.id ? {
-            ...x,
-            due: newDue
-          } : x));
-        }
+        if (!a.id) return;
+        setReschedule({
+          id: a.id,
+          title: a.title,
+          date: "",
+          time: ""
+        });
         setActionMenuKey(null);
       },
       style: cliStyles.menuItem,
@@ -2507,7 +2561,134 @@ var ClientPage = () => {
       name: "AXA Wealth France"
     },
     onClose: () => setAssetsOpen(false)
-  }), editOpen && /*#__PURE__*/React.createElement("div", {
+  }), reschedule && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setReschedule(null),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.45)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      width: "100%",
+      maxWidth: 420,
+      boxShadow: "0 20px 50px rgba(15,23,42,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px 22px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCC5 Replanifier l'action"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 2,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, reschedule.title)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReschedule(null),
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 20,
+      color: "#94a3b8",
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    autoFocus: true,
+    value: reschedule.date,
+    onChange: e => setReschedule({
+      ...reschedule,
+      date: e.target.value
+    }),
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Heure"), /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: reschedule.time,
+    onChange: e => setReschedule({
+      ...reschedule,
+      time: e.target.value
+    }),
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReschedule(null),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (!reschedule.date) {
+        alert("Sélectionnez une date");
+        return;
+      }
+      var newDue = new Date(reschedule.date).toLocaleDateString("fr-FR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short"
+      }) + (reschedule.time ? " · " + reschedule.time : "");
+      setExtraActions(arr => arr.map(x => x.id === reschedule.id ? {
+        ...x,
+        due: newDue
+      } : x));
+      setReschedule(null);
+    },
+    style: {
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Confirmer")))), editOpen && /*#__PURE__*/React.createElement("div", {
     onClick: () => setEditOpen(false),
     style: {
       position: "fixed",

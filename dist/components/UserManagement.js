@@ -163,126 +163,21 @@ var UserManagement = () => {
   var ALL = modules.map(m => m.key);
   var groups = persistedGroups;
 
-  // ───── utilisateurs (avec leurs groupes)
+  // ───── utilisateurs réels Astorya
   var users = [{
-    name: "Nadia Lefèvre",
-    email: "n.lefevre@astorya.fr",
-    role: "Directrice technique",
-    groups: ["admin", "direction"],
-    status: "online",
-    last: "il y a 3 min"
-  }, {
-    name: "Hugo Bertrand",
-    email: "h.bertrand@astorya.fr",
-    role: "IT Manager",
-    groups: ["admin", "finance"],
-    status: "online",
-    last: "il y a 8 min"
-  }, {
-    name: "Catherine Marchand",
-    email: "c.marchand@astorya.fr",
-    role: "CEO",
-    groups: ["direction"],
-    status: "away",
-    last: "il y a 1 h"
-  }, {
-    name: "Olivier Vasseur",
-    email: "o.vasseur@astorya.fr",
-    role: "COO",
-    groups: ["direction", "ops"],
+    name: "Romain Daviaud",
+    email: "achat@astorya.fr",
+    role: "Direction",
+    groups: ["admin", "direction", "commercial", "finance"],
     status: "online",
     last: "à l'instant"
   }, {
-    name: "Karim Ben Salah",
-    email: "k.bensalah@astorya.fr",
-    role: "AE Senior Cyber",
-    groups: ["commercial"],
+    name: "Augustin Morin",
+    email: "a.morin@astorya.fr",
+    role: "Direction",
+    groups: ["admin", "direction", "commercial"],
     status: "online",
-    last: "il y a 12 min"
-  }, {
-    name: "Sophie Aubry",
-    email: "s.aubry@astorya.fr",
-    role: "AE & DRH",
-    groups: ["direction", "rh"],
-    status: "away",
-    last: "il y a 2 h"
-  }, {
-    name: "Tom Verdier",
-    email: "t.verdier@astorya.fr",
-    role: "AE Hub",
-    groups: ["commercial"],
-    status: "online",
-    last: "il y a 5 min"
-  }, {
-    name: "Émilie Garnier",
-    email: "e.garnier@astorya.fr",
-    role: "AE BENELUX",
-    groups: ["commercial", "marketing"],
-    status: "offline",
-    last: "hier 18:42"
-  }, {
-    name: "Antoine Mercier",
-    email: "a.mercier@astorya.fr",
-    role: "AE DACH",
-    groups: ["commercial"],
-    status: "online",
-    last: "il y a 22 min"
-  }, {
-    name: "Julien Pasquier",
-    email: "j.pasquier@astorya.fr",
-    role: "AE Suite",
-    groups: ["commercial"],
-    status: "online",
-    last: "il y a 4 min"
-  }, {
-    name: "Marie Lopez",
-    email: "m.lopez@astorya.fr",
-    role: "AE UK & Marketing Ops",
-    groups: ["commercial", "marketing"],
-    status: "online",
-    last: "il y a 18 min"
-  }, {
-    name: "Pierre Dubois",
-    email: "p.dubois@astorya.fr",
-    role: "Comptable senior",
-    groups: ["finance"],
-    status: "away",
-    last: "il y a 45 min"
-  }, {
-    name: "Romain Faure",
-    email: "r.faure@astorya.fr",
-    role: "AE Junior · Support",
-    groups: ["commercial", "support"],
-    status: "online",
-    last: "il y a 2 min"
-  }, {
-    name: "Léo Tanaka",
-    email: "l.tanaka@astorya.fr",
-    role: "Tech Lead Support",
-    groups: ["support", "ops"],
-    status: "online",
-    last: "il y a 1 min"
-  }, {
-    name: "Diane Roussel",
-    email: "d.roussel@astorya.fr",
-    role: "Ingénieure support N2",
-    groups: ["support", "ops"],
-    status: "online",
-    last: "il y a 7 min"
-  }, {
-    name: "Farid Belkacem",
-    email: "f.belkacem@astorya.fr",
-    role: "Technicien N1",
-    groups: ["support"],
-    status: "offline",
-    last: "hier 17:10"
-  }, {
-    name: "Valérie Chen",
-    email: "v.chen@astorya.fr",
-    role: "DAF",
-    groups: ["finance", "rh"],
-    status: "online",
-    last: "il y a 32 min"
+    last: "à l'instant"
   }];
   var selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
   var activeGroup = groups.find(g => g.id === activeGroupId) || groups[0];
@@ -649,9 +544,38 @@ var UserManagement = () => {
     },
     style: S.btnGhost
   }, "\u27F2 R\xE9initialiser"), /*#__PURE__*/React.createElement("button", {
-    style: S.btnGhost
+    onClick: () => {
+      flash("⟳ Synchronisation SSO lancée — 0 changement détecté");
+    },
+    style: {
+      ...S.btnGhost,
+      cursor: "pointer"
+    }
   }, "\u27F3 Synchroniser SSO"), /*#__PURE__*/React.createElement("button", {
-    style: S.btnPrimary
+    onClick: () => {
+      var label = prompt("Nom du nouveau groupe :");
+      if (!label || !label.trim()) return;
+      var id = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "group-" + Date.now();
+      if (persistedGroups.find(g => g.id === id)) {
+        alert("Un groupe avec cet identifiant existe déjà");
+        return;
+      }
+      var colors = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#dc2626", "#8b5cf6", "#ec4899"];
+      var newGroup = {
+        id,
+        label: label.trim(),
+        color: colors[persistedGroups.length % colors.length],
+        accessibleModules: [],
+        description: "Nouveau groupe créé manuellement"
+      };
+      window.HubAccess.saveGroups([...persistedGroups, newGroup]);
+      setSelectedGroupId(id);
+      flash("Groupe « " + label + " » créé");
+    },
+    style: {
+      ...S.btnPrimary,
+      cursor: "pointer"
+    }
   }, "+ Nouveau groupe")))), /*#__PURE__*/React.createElement("div", {
     style: S.tabsRow
   }, /*#__PURE__*/React.createElement("div", {
@@ -842,7 +766,21 @@ var UserManagement = () => {
       color: "#10b981"
     }
   }, "\u2713 ", savedFlash), /*#__PURE__*/React.createElement("button", {
-    style: S.btnGhost
+    onClick: () => {
+      var name = prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
+      if (!name || !name.trim()) return;
+      var next = persistedGroups.map(g => g.id === selectedGroup.id ? {
+        ...g,
+        label: name.trim(),
+        name: name.trim()
+      } : g);
+      window.HubAccess.saveGroups(next);
+      flash("Groupe renommé");
+    },
+    style: {
+      ...S.btnGhost,
+      cursor: "pointer"
+    }
   }, "Renommer"), /*#__PURE__*/React.createElement("button", {
     onClick: () => window.HubAccess.setActiveGroupId(selectedGroup.id),
     style: selectedGroup.id === activeGroup.id ? {
@@ -891,7 +829,23 @@ var UserManagement = () => {
   }, /*#__PURE__*/React.createElement("div", {
     style: S.sectionTitle
   }, "Membres du groupe"), /*#__PURE__*/React.createElement("button", {
-    style: S.linkBtn
+    onClick: () => {
+      var candidates = users.filter(u => !u.groups.includes(selectedGroup.id));
+      if (!candidates.length) {
+        alert("Tous les utilisateurs font déjà partie de ce groupe");
+        return;
+      }
+      var list = candidates.map((u, i) => `${i + 1}. ${u.name} (${u.email})`).join("\n");
+      var choice = prompt(`Ajouter au groupe ${selectedGroup.name || selectedGroup.label} :\n\n${list}\n\nTapez le numéro :`);
+      var idx = parseInt(choice, 10) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= candidates.length) return;
+      var target = candidates[idx];
+      flash(`✓ ${target.name} ajouté au groupe (UI-only — Supabase à connecter)`);
+    },
+    style: {
+      ...S.linkBtn,
+      cursor: "pointer"
+    }
   }, "+ Ajouter un membre")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",

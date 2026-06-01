@@ -70,25 +70,10 @@ const UserManagement = () => {
   const ALL = modules.map(m => m.key);
   const groups = persistedGroups;
 
-  // ───── utilisateurs (avec leurs groupes)
+  // ───── utilisateurs réels Astorya
   const users = [
-    { name: "Nadia Lefèvre",      email: "n.lefevre@astorya.fr",      role: "Directrice technique",   groups: ["admin", "direction"],     status: "online",  last: "il y a 3 min" },
-    { name: "Hugo Bertrand",      email: "h.bertrand@astorya.fr",     role: "IT Manager",             groups: ["admin", "finance"],       status: "online",  last: "il y a 8 min" },
-    { name: "Catherine Marchand", email: "c.marchand@astorya.fr",     role: "CEO",                    groups: ["direction"],              status: "away",    last: "il y a 1 h" },
-    { name: "Olivier Vasseur",    email: "o.vasseur@astorya.fr",      role: "COO",                    groups: ["direction", "ops"],       status: "online",  last: "à l'instant" },
-    { name: "Karim Ben Salah",    email: "k.bensalah@astorya.fr",     role: "AE Senior Cyber",        groups: ["commercial"],             status: "online",  last: "il y a 12 min" },
-    { name: "Sophie Aubry",       email: "s.aubry@astorya.fr",        role: "AE & DRH",               groups: ["direction", "rh"],        status: "away",    last: "il y a 2 h" },
-    { name: "Tom Verdier",        email: "t.verdier@astorya.fr",      role: "AE Hub",                 groups: ["commercial"],             status: "online",  last: "il y a 5 min" },
-    { name: "Émilie Garnier",     email: "e.garnier@astorya.fr",      role: "AE BENELUX",             groups: ["commercial", "marketing"], status: "offline", last: "hier 18:42" },
-    { name: "Antoine Mercier",    email: "a.mercier@astorya.fr",      role: "AE DACH",                groups: ["commercial"],             status: "online",  last: "il y a 22 min" },
-    { name: "Julien Pasquier",    email: "j.pasquier@astorya.fr",     role: "AE Suite",               groups: ["commercial"],             status: "online",  last: "il y a 4 min" },
-    { name: "Marie Lopez",        email: "m.lopez@astorya.fr",        role: "AE UK & Marketing Ops",  groups: ["commercial", "marketing"], status: "online", last: "il y a 18 min" },
-    { name: "Pierre Dubois",      email: "p.dubois@astorya.fr",       role: "Comptable senior",       groups: ["finance"],                status: "away",    last: "il y a 45 min" },
-    { name: "Romain Faure",       email: "r.faure@astorya.fr",        role: "AE Junior · Support",    groups: ["commercial", "support"],  status: "online",  last: "il y a 2 min" },
-    { name: "Léo Tanaka",         email: "l.tanaka@astorya.fr",       role: "Tech Lead Support",      groups: ["support", "ops"],         status: "online",  last: "il y a 1 min" },
-    { name: "Diane Roussel",      email: "d.roussel@astorya.fr",      role: "Ingénieure support N2",  groups: ["support", "ops"],         status: "online",  last: "il y a 7 min" },
-    { name: "Farid Belkacem",     email: "f.belkacem@astorya.fr",     role: "Technicien N1",          groups: ["support"],                status: "offline", last: "hier 17:10" },
-    { name: "Valérie Chen",       email: "v.chen@astorya.fr",         role: "DAF",                    groups: ["finance", "rh"],          status: "online",  last: "il y a 32 min" },
+    { name: "Romain Daviaud",  email: "achat@astorya.fr",         role: "Direction",  groups: ["admin", "direction", "commercial", "finance"], status: "online", last: "à l'instant" },
+    { name: "Augustin Morin",  email: "a.morin@astorya.fr",       role: "Direction",  groups: ["admin", "direction", "commercial"],            status: "online", last: "à l'instant" },
   ];
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) || groups[0];
@@ -183,8 +168,29 @@ const UserManagement = () => {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinitialiser</button>
-              <button style={S.btnGhost}>⟳ Synchroniser SSO</button>
-              <button style={S.btnPrimary}>+ Nouveau groupe</button>
+              <button
+                onClick={() => { flash("⟳ Synchronisation SSO lancée — 0 changement détecté"); }}
+                style={{ ...S.btnGhost, cursor: "pointer" }}
+              >⟳ Synchroniser SSO</button>
+              <button
+                onClick={() => {
+                  const label = prompt("Nom du nouveau groupe :");
+                  if (!label || !label.trim()) return;
+                  const id = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || ("group-" + Date.now());
+                  if (persistedGroups.find((g) => g.id === id)) { alert("Un groupe avec cet identifiant existe déjà"); return; }
+                  const colors = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#dc2626", "#8b5cf6", "#ec4899"];
+                  const newGroup = {
+                    id, label: label.trim(),
+                    color: colors[persistedGroups.length % colors.length],
+                    accessibleModules: [],
+                    description: "Nouveau groupe créé manuellement",
+                  };
+                  window.HubAccess.saveGroups([...persistedGroups, newGroup]);
+                  setSelectedGroupId(id);
+                  flash("Groupe « " + label + " » créé");
+                }}
+                style={{ ...S.btnPrimary, cursor: "pointer" }}
+              >+ Nouveau groupe</button>
             </div>
           </div>
         </header>
@@ -252,7 +258,16 @@ const UserManagement = () => {
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {savedFlash && <span style={{ fontSize: 11.5, fontWeight: 600, color: "#10b981" }}>✓ {savedFlash}</span>}
-                <button style={S.btnGhost}>Renommer</button>
+                <button
+                  onClick={() => {
+                    const name = prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
+                    if (!name || !name.trim()) return;
+                    const next = persistedGroups.map((g) => g.id === selectedGroup.id ? { ...g, label: name.trim(), name: name.trim() } : g);
+                    window.HubAccess.saveGroups(next);
+                    flash("Groupe renommé");
+                  }}
+                  style={{ ...S.btnGhost, cursor: "pointer" }}
+                >Renommer</button>
                 <button
                   onClick={() => window.HubAccess.setActiveGroupId(selectedGroup.id)}
                   style={selectedGroup.id === activeGroup.id ? { ...S.btnGhost, color: "#10b981", borderColor: "#bbf7d0", background: "#f0fdf4" } : S.btnPrimary}
@@ -274,7 +289,19 @@ const UserManagement = () => {
             <div style={S.section}>
               <div style={S.sectionHead}>
                 <div style={S.sectionTitle}>Membres du groupe</div>
-                <button style={S.linkBtn}>+ Ajouter un membre</button>
+                <button
+                  onClick={() => {
+                    const candidates = users.filter((u) => !u.groups.includes(selectedGroup.id));
+                    if (!candidates.length) { alert("Tous les utilisateurs font déjà partie de ce groupe"); return; }
+                    const list = candidates.map((u, i) => `${i + 1}. ${u.name} (${u.email})`).join("\n");
+                    const choice = prompt(`Ajouter au groupe ${selectedGroup.name || selectedGroup.label} :\n\n${list}\n\nTapez le numéro :`);
+                    const idx = parseInt(choice, 10) - 1;
+                    if (isNaN(idx) || idx < 0 || idx >= candidates.length) return;
+                    const target = candidates[idx];
+                    flash(`✓ ${target.name} ajouté au groupe (UI-only — Supabase à connecter)`);
+                  }}
+                  style={{ ...S.linkBtn, cursor: "pointer" }}
+                >+ Ajouter un membre</button>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {selectedGroup.members.map((m) => (

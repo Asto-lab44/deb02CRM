@@ -19,6 +19,9 @@ var NewProspect = () => {
   var [source, setSource] = React.useState("");
   var [contactDate, setContactDate] = React.useState("");
   var [projectDate, setProjectDate] = React.useState("");
+  var [concurrent, setConcurrent] = React.useState("");
+  var [concurrentEnd, setConcurrentEnd] = React.useState("");
+  var [concurrentAmount, setConcurrentAmount] = React.useState("");
   var [owner, setOwner] = React.useState({
     name: "Karim Ben Salah",
     role: "AE Senior · Cyber — région SE",
@@ -260,6 +263,9 @@ var NewProspect = () => {
     source,
     contact_date: contactDate,
     project_date: projectDate,
+    concurrent,
+    concurrent_end: concurrentEnd,
+    concurrent_amount: concurrentAmount,
     besoin,
     notes,
     owner: owner.name,
@@ -704,11 +710,17 @@ var NewProspect = () => {
     value: companyWeb,
     onChange: e => setCompanyWeb(e.target.value),
     placeholder: "exemple.fr"
-  }), companyWeb && /*#__PURE__*/React.createElement("span", {
+  }), companyWeb && /*#__PURE__*/React.createElement("a", {
+    href: companyWeb.startsWith("http") ? companyWeb : "https://" + companyWeb.replace(/^\/+/, ""),
+    target: "_blank",
+    rel: "noopener noreferrer",
     style: {
       ...npStyles.linkTag,
-      color: "#10b981"
-    }
+      color: "#10b981",
+      textDecoration: "none",
+      cursor: "pointer"
+    },
+    title: "Ouvrir le site"
   }, "\u2197"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "LinkedIn entreprise"
   }, /*#__PURE__*/React.createElement("div", {
@@ -728,7 +740,18 @@ var NewProspect = () => {
     value: companyLi,
     onChange: e => setCompanyLi(e.target.value),
     placeholder: "linkedin.com/company/\u2026"
-  })))), /*#__PURE__*/React.createElement(FormRow, {
+  }), companyLi && /*#__PURE__*/React.createElement("a", {
+    href: companyLi.startsWith("http") ? companyLi : "https://" + companyLi.replace(/^\/+/, ""),
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      ...npStyles.linkTag,
+      color: "#0a66c2",
+      textDecoration: "none",
+      cursor: "pointer"
+    },
+    title: "Ouvrir la page LinkedIn"
+  }, "\u2197")))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Adresse si\xE8ge"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
@@ -1144,30 +1167,46 @@ var NewProspect = () => {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Concurrent actuel"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("input", {
+    style: npStyles.input,
+    value: concurrent,
+    onChange: e => setConcurrent(e.target.value),
+    placeholder: "Ex. Salesforce, Pega, HubSpot\u2026"
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
-      ...npStyles.compChip,
-      background: "#e8f8f1",
-      borderColor: "#0e7a55",
-      color: "#0e7a55",
-      display: "inline-flex"
+      display: "flex",
+      gap: 8,
+      marginTop: 6
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "date",
     style: {
-      fontSize: 9,
-      fontWeight: 700,
-      padding: "1px 4px",
-      background: "#0e7a55",
-      color: "#fff",
-      borderRadius: 3
-    }
-  }, "PG"), /*#__PURE__*/React.createElement("span", {
+      ...npStyles.input,
+      fontFamily: "'JetBrains Mono', monospace",
+      flex: 1
+    },
+    value: concurrentEnd,
+    onChange: e => setConcurrentEnd(e.target.value),
+    title: "Fin de contrat concurrent"
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontWeight: 600
+      ...npStyles.inputWithSuffix,
+      flex: 1
     }
-  }, "Pega Platform Cloud")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...npStyles.input,
+      border: "none",
+      padding: "0 4px"
+    },
+    value: concurrentAmount,
+    onChange: e => setConcurrentAmount(e.target.value),
+    placeholder: "Montant"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: npStyles.suffix
+  }, "k\u20AC/an"))), (concurrentEnd || concurrentAmount) && /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
-  }, "Fin de contrat : 30 juin 2026 \xB7 218 k\u20AC/an")), /*#__PURE__*/React.createElement(FormRow, {
+  }, concurrentEnd && `Fin de contrat : ${new Date(concurrentEnd).toLocaleDateString("fr-FR")}`, concurrentEnd && concurrentAmount && " · ", concurrentAmount && `${concurrentAmount} k€/an`)), /*#__PURE__*/React.createElement(FormRow, {
     label: "\xC9ch\xE9ance estim\xE9e du projet"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.dateInput

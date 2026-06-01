@@ -36,6 +36,25 @@ var ClientPage = () => {
   };
   // Modal "Nouvelle action à mener"
   var [addActionOpen, setAddActionOpen] = React.useState(false);
+  var [editOpen, setEditOpen] = React.useState(false);
+  var [editDraft, setEditDraft] = React.useState({});
+  var ownerListE = [{
+    name: "Nadia Lefèvre",
+    role: "AE Senior · EMEA",
+    color: "#a855f7"
+  }, {
+    name: "Karim Ben Salah",
+    role: "AE Senior · Cyber",
+    color: "#6366f1"
+  }, {
+    name: "Tom Verdier",
+    role: "AE Hub",
+    color: "#f59e0b"
+  }, {
+    name: "Émilie Garnier",
+    role: "AE BENELUX",
+    color: "#10b981"
+  }];
   var [actionMenuKey, setActionMenuKey] = React.useState(null);
   React.useEffect(() => {
     if (!actionMenuKey) return;
@@ -262,44 +281,7 @@ var ClientPage = () => {
   }, [urlId]);
 
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
-  var defaultContacts = [{
-    name: "Émilie Roux",
-    role: "VP Innovation",
-    email: "e.roux@axa-im.fr",
-    phone: "+33 1 40 76 00",
-    color: "#a855f7",
-    champion: true,
-    last: "il y a 2 h"
-  }, {
-    name: "Antoine Mercier",
-    role: "CISO",
-    email: "a.mercier@axa-im.fr",
-    phone: "+33 1 40 76 01",
-    color: "#dc2626",
-    last: "il y a 8 h"
-  }, {
-    name: "Julien Pasquier",
-    role: "CFO",
-    email: "j.pasquier@axa-im.fr",
-    phone: "+33 1 40 76 02",
-    color: "#0ea5e9",
-    last: "il y a 4 j"
-  }, {
-    name: "Marie Lopez",
-    role: "Head of Ops",
-    email: "m.lopez@axa-im.fr",
-    phone: "+33 1 40 76 03",
-    color: "#f59e0b",
-    last: "il y a 1 sem."
-  }, {
-    name: "Sébastien Roy",
-    role: "Procurement",
-    email: "s.roy@axa-im.fr",
-    phone: "+33 1 40 76 04",
-    color: "#10b981",
-    coldZone: true,
-    last: "il y a 3 sem."
-  }];
+  var defaultContacts = [];
   var [customContacts, setCustomContacts] = React.useState([]);
   React.useEffect(() => {
     try {
@@ -323,7 +305,8 @@ var ClientPage = () => {
         email: cp && cp.email || "",
         phone: cp && cp.phone || "",
         color: "#a855f7",
-        champion: true,
+        champion: Array.isArray(c.roles) && c.roles.includes("Champion"),
+        decisionRoles: Array.isArray(c.roles) ? c.roles : [],
         last: "Contact principal"
       }] : [];
       var additionnels = (c.contacts_additionnels || []).map((x, i) => ({
@@ -441,6 +424,10 @@ var ClientPage = () => {
     coownerColor: c.coowner_color || (isCustom ? "#64748b" : "#6366f1"),
     source: c.source || (isCustom ? "—" : "Salon Finovate Paris"),
     concurrent: c.concurrent || (isCustom ? "—" : "Salesforce · Pega"),
+    concurrentEnd: c.concurrent_end || "",
+    concurrentAmount: c.concurrent_amount || "",
+    contactDate: c.contact_date || "",
+    projectDate: c.project_date || "",
     clientSince: c.client_since ? new Date(c.client_since).toLocaleDateString("fr-FR", {
       day: "2-digit",
       month: "long",
@@ -462,6 +449,84 @@ var ClientPage = () => {
     ca: c.ca_meur || "",
     linkedin: c.linkedin_entreprise || "",
     tva: c.tva || ""
+  };
+  var openEdit = () => {
+    setEditDraft({
+      owner: display.owner === "—" ? "" : display.owner,
+      coowner: display.coowner === "—" ? "" : display.coowner,
+      sector: display.sector === "—" ? "" : display.sector,
+      sousSecteur: display.sousSecteur || "",
+      source: display.source === "—" ? "" : display.source,
+      concurrent: display.concurrent === "—" ? "" : display.concurrent,
+      concurrentEnd: display.concurrentEnd || "",
+      concurrentAmount: display.concurrentAmount || "",
+      contactDate: display.contactDate || "",
+      projectDate: display.projectDate || "",
+      tier: display.tier || "",
+      ca: display.ca || "",
+      address: display.address === "—" ? "" : display.address,
+      cp: display.cp || "",
+      addressCity: display.addressCity || "",
+      web: display.web || "",
+      linkedin: display.linkedin || "",
+      siren: display.siren || "",
+      naf: display.naf || "",
+      tva: display.tva || "",
+      desc: c.notes || c.besoin || ""
+    });
+    setEditOpen(true);
+  };
+  var saveEdit = () => {
+    if (!urlId) {
+      alert("Édition uniquement disponible pour les prospects créés");
+      return;
+    }
+    var ownerObj = ownerListE.find(o => o.name === editDraft.owner);
+    var coownerObj = ownerListE.find(o => o.name === editDraft.coowner);
+    var patch = {
+      owner: editDraft.owner || null,
+      owner_role: ownerObj ? ownerObj.role : null,
+      owner_color: ownerObj ? ownerObj.color : null,
+      coowner: editDraft.coowner || null,
+      coowner_color: coownerObj ? coownerObj.color : null,
+      secteur: editDraft.sector || null,
+      sous_secteur: editDraft.sousSecteur || null,
+      source: editDraft.source || null,
+      concurrent: editDraft.concurrent || null,
+      concurrent_end: editDraft.concurrentEnd || null,
+      concurrent_amount: editDraft.concurrentAmount || null,
+      contact_date: editDraft.contactDate || null,
+      project_date: editDraft.projectDate || null,
+      tier: editDraft.tier || null,
+      ca_meur: editDraft.ca || null,
+      adresse: editDraft.address || null,
+      code_postal: editDraft.cp || null,
+      ville: editDraft.addressCity || null,
+      site_web: editDraft.web || null,
+      linkedin_entreprise: editDraft.linkedin || null,
+      siren: editDraft.siren || null,
+      naf: editDraft.naf || null,
+      tva: editDraft.tva || null,
+      notes: editDraft.desc || null
+    };
+    try {
+      var all = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      var idx = all.findIndex(p => p.id === urlId);
+      if (idx >= 0) {
+        all[idx] = {
+          ...all[idx],
+          ...patch
+        };
+        localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(all));
+        setLoadedClient({
+          ...(loadedClient || {}),
+          ...patch
+        });
+      } else {
+        alert("Prospect introuvable en local — modification non sauvée");
+      }
+    } catch (e) {}
+    setEditOpen(false);
   };
   var Avatar = ({
     name,
@@ -1919,7 +1984,26 @@ var ClientPage = () => {
       color: "#64748b",
       marginTop: 1
     }
-  }, p.role), /*#__PURE__*/React.createElement("div", {
+  }, p.role), Array.isArray(p.decisionRoles) && p.decisionRoles.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      flexWrap: "wrap",
+      marginTop: 4
+    }
+  }, p.decisionRoles.map(r => /*#__PURE__*/React.createElement("span", {
+    key: r,
+    style: {
+      fontSize: 10,
+      padding: "1px 6px",
+      borderRadius: 3,
+      fontWeight: 700,
+      letterSpacing: 0.3,
+      background: r === "Champion" ? "#fffbeb" : r === "Bloqueur" ? "#fdecec" : r === "Décideur" ? "#eef2ff" : "#f1f5f9",
+      color: r === "Champion" ? "#a65f00" : r === "Bloqueur" ? "#dc2626" : r === "Décideur" ? "#4338ca" : "#475569",
+      border: r === "Champion" ? "1px solid #fde68a" : "none"
+    }
+  }, r))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#475569",
@@ -1981,7 +2065,11 @@ var ClientPage = () => {
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
     style: cliStyles.h2
   }, "Informations compte")), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.filterPill
+    onClick: openEdit,
+    style: {
+      ...cliStyles.filterPill,
+      cursor: "pointer"
+    }
   }, "\xC9diter")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 4
@@ -2049,12 +2137,44 @@ var ClientPage = () => {
     }, display.source)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Concurrent",
-    value: /*#__PURE__*/React.createElement("span", {
+    value: /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
         color: "#475569"
       }
-    }, display.concurrent)
+    }, display.concurrent), (display.concurrentEnd || display.concurrentAmount) && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#94a3b8",
+        marginTop: 2
+      }
+    }, display.concurrentEnd && `Fin : ${new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}`, display.concurrentEnd && display.concurrentAmount && " · ", display.concurrentAmount && `${display.concurrentAmount} k€/an`))
+  }), display.contactDate && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "1er contact",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#0f172a",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, new Date(display.contactDate).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }))
+  }), display.projectDate && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "\xC9ch\xE9ance projet",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#0f172a",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, new Date(display.projectDate).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }))
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: isCustom ? "Prospect depuis" : "Client depuis",
     value: /*#__PURE__*/React.createElement("span", {
@@ -2387,7 +2507,371 @@ var ClientPage = () => {
       name: "AXA Wealth France"
     },
     onClose: () => setAssetsOpen(false)
-  }), addActionOpen && /*#__PURE__*/React.createElement("div", {
+  }), editOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setEditOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.45)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      width: "100%",
+      maxWidth: 640,
+      maxHeight: "90vh",
+      overflow: "auto",
+      boxShadow: "0 20px 50px rgba(15,23,42,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px 22px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\xC9diter les informations compte"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, display.name)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditOpen(false),
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 20,
+      color: "#94a3b8",
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Owner"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.owner || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      owner: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o.name,
+    value: o.name
+  }, o.name, " \xB7 ", o.role)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Co-owner"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.coowner || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      coowner: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o.name,
+    value: o.name
+  }, o.name, " \xB7 ", o.role))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Secteur d'activit\xE9"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.sector || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      sector: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Sous-secteur"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.sousSecteur || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      sousSecteur: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Source"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.source || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      source: e.target.value
+    }),
+    placeholder: "Ex. LinkedIn, salon\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Concurrent"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.concurrent || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      concurrent: e.target.value
+    }),
+    placeholder: "Ex. Salesforce",
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Fin contrat concurrent"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: editDraft.concurrentEnd || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      concurrentEnd: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Montant concurrent (k\u20AC/an)"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.concurrentAmount || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      concurrentAmount: e.target.value
+    }),
+    placeholder: "0",
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Date 1er contact"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: editDraft.contactDate || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      contactDate: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: editDraft.projectDate || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      projectDate: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Tier"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.tier || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      tier: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "A"
+  }, "Tier A"), /*#__PURE__*/React.createElement("option", {
+    value: "B"
+  }, "Tier B"), /*#__PURE__*/React.createElement("option", {
+    value: "C"
+  }, "Tier C"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "CA (M\u20AC)"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.ca || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      ca: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "SIREN"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.siren || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      siren: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "NAF"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.naf || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      naf: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "TVA intra."), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.tva || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      tva: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Adresse"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.address || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      address: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 2fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Code postal"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Ville"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.addressCity || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      addressCity: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Site web"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.web || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      web: e.target.value
+    }),
+    placeholder: "www.\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "LinkedIn"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.linkedin || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      linkedin: e.target.value
+    }),
+    placeholder: "linkedin.com/company/\u2026",
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Description / Notes"), /*#__PURE__*/React.createElement("textarea", {
+    value: editDraft.desc || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      desc: e.target.value
+    }),
+    rows: 3,
+    style: {
+      ...editInput,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditOpen(false),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: saveEdit,
+    style: {
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Enregistrer")))), addActionOpen && /*#__PURE__*/React.createElement("div", {
     onClick: () => setAddActionOpen(false),
     style: {
       position: "fixed",
@@ -2615,6 +3099,8 @@ var modalInput = {
   boxSizing: "border-box",
   outline: "none"
 };
+var editLabel = modalLabel;
+var editInput = modalInput;
 var DetailRow = ({
   label,
   value

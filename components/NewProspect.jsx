@@ -19,6 +19,9 @@ const NewProspect = () => {
   const [source,        setSource]        = React.useState("");
   const [contactDate,   setContactDate]   = React.useState("");
   const [projectDate,   setProjectDate]   = React.useState("");
+  const [concurrent,    setConcurrent]    = React.useState("");
+  const [concurrentEnd, setConcurrentEnd] = React.useState("");
+  const [concurrentAmount, setConcurrentAmount] = React.useState("");
   const [owner,         setOwner]         = React.useState({ name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" });
   const [ownerMenu,     setOwnerMenu]     = React.useState(false);
   const ownerList = [
@@ -229,6 +232,9 @@ const NewProspect = () => {
     },
     contacts_additionnels: extraContactList,
     source, contact_date: contactDate, project_date: projectDate,
+    concurrent,
+    concurrent_end: concurrentEnd,
+    concurrent_amount: concurrentAmount,
     besoin, notes,
     owner: owner.name,
     owner_role: owner.role,
@@ -447,13 +453,30 @@ const NewProspect = () => {
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#94a3b8" }}>🌐</span>
                   <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={companyWeb} onChange={(e) => setCompanyWeb(e.target.value)} placeholder="exemple.fr" />
-                  {companyWeb && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>↗</span>}
+                  {companyWeb && (
+                    <a
+                      href={companyWeb.startsWith("http") ? companyWeb : "https://" + companyWeb.replace(/^\/+/, "")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ ...npStyles.linkTag, color: "#10b981", textDecoration: "none", cursor: "pointer" }}
+                      title="Ouvrir le site"
+                    >↗</a>
+                  )}
                 </div>
               </FormRow>
               <FormRow label="LinkedIn entreprise">
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#0a66c2" }}>in</span>
                   <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={companyLi} onChange={(e) => setCompanyLi(e.target.value)} placeholder="linkedin.com/company/…" />
+                  {companyLi && (
+                    <a
+                      href={companyLi.startsWith("http") ? companyLi : "https://" + companyLi.replace(/^\/+/, "")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ ...npStyles.linkTag, color: "#0a66c2", textDecoration: "none", cursor: "pointer" }}
+                      title="Ouvrir la page LinkedIn"
+                    >↗</a>
+                  )}
                 </div>
               </FormRow>
             </div>
@@ -662,11 +685,37 @@ const NewProspect = () => {
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Concurrent actuel">
-                <div style={{ ...npStyles.compChip, background: "#e8f8f1", borderColor: "#0e7a55", color: "#0e7a55", display: "inline-flex" }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", background: "#0e7a55", color: "#fff", borderRadius: 3 }}>PG</span>
-                  <span style={{ fontWeight: 600 }}>Pega Platform Cloud</span>
+                <input
+                  style={npStyles.input}
+                  value={concurrent}
+                  onChange={(e) => setConcurrent(e.target.value)}
+                  placeholder="Ex. Salesforce, Pega, HubSpot…"
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <input
+                    type="date"
+                    style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", flex: 1 }}
+                    value={concurrentEnd}
+                    onChange={(e) => setConcurrentEnd(e.target.value)}
+                    title="Fin de contrat concurrent"
+                  />
+                  <div style={{ ...npStyles.inputWithSuffix, flex: 1 }}>
+                    <input
+                      style={{ ...npStyles.input, border: "none", padding: "0 4px" }}
+                      value={concurrentAmount}
+                      onChange={(e) => setConcurrentAmount(e.target.value)}
+                      placeholder="Montant"
+                    />
+                    <span style={npStyles.suffix}>k€/an</span>
+                  </div>
                 </div>
-                <div style={npStyles.inputHelp}>Fin de contrat : 30 juin 2026 · 218 k€/an</div>
+                {(concurrentEnd || concurrentAmount) && (
+                  <div style={npStyles.inputHelp}>
+                    {concurrentEnd && `Fin de contrat : ${new Date(concurrentEnd).toLocaleDateString("fr-FR")}`}
+                    {concurrentEnd && concurrentAmount && " · "}
+                    {concurrentAmount && `${concurrentAmount} k€/an`}
+                  </div>
+                )}
               </FormRow>
               <FormRow label="Échéance estimée du projet">
                 <div style={npStyles.dateInput}>

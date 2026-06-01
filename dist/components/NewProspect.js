@@ -19,6 +19,35 @@ var NewProspect = () => {
   var [source, setSource] = React.useState("");
   var [contactDate, setContactDate] = React.useState("");
   var [projectDate, setProjectDate] = React.useState("");
+  var [owner, setOwner] = React.useState({
+    name: "Karim Ben Salah",
+    role: "AE Senior · Cyber — région SE",
+    color: "#6366f1"
+  });
+  var [ownerMenu, setOwnerMenu] = React.useState(false);
+  var ownerList = [{
+    name: "Nadia Lefèvre",
+    role: "AE Senior · EMEA",
+    color: "#a855f7"
+  }, {
+    name: "Karim Ben Salah",
+    role: "AE Senior · Cyber — région SE",
+    color: "#6366f1"
+  }, {
+    name: "Tom Verdier",
+    role: "AE Hub",
+    color: "#f59e0b"
+  }, {
+    name: "Émilie Garnier",
+    role: "AE BENELUX",
+    color: "#10b981"
+  }];
+  React.useEffect(() => {
+    if (!ownerMenu) return;
+    var close = () => setOwnerMenu(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [ownerMenu]);
   var [extraContactList, setExtraContactList] = React.useState([]); // [{prenom, nom, fonction, email, phone}]
   var addExtraContact = () => setExtraContactList(l => [...l, {
     prenom: "",
@@ -233,6 +262,9 @@ var NewProspect = () => {
     project_date: projectDate,
     besoin,
     notes,
+    owner: owner.name,
+    owner_role: owner.role,
+    owner_color: owner.color,
     created_at: new Date().toISOString(),
     status: "prospect"
   });
@@ -571,19 +603,27 @@ var NewProspect = () => {
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Secteur d'activit\xE9",
     required: true
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("select", {
     style: npStyles.input,
     value: companySector,
-    onChange: e => setCompanySector(e.target.value),
-    placeholder: "Auto-rempli depuis le NAF"
-  })), /*#__PURE__*/React.createElement(FormRow, {
+    onChange: e => setCompanySector(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 S\xE9lectionner un secteur \u2014"), Object.entries(sectionLabels).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: v
+  }, v)))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Sous-secteur"
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("select", {
     style: npStyles.input,
     value: companySubSect,
-    onChange: e => setCompanySubSect(e.target.value),
-    placeholder: ""
-  }))), /*#__PURE__*/React.createElement("div", {
+    onChange: e => setCompanySubSect(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 S\xE9lectionner un sous-secteur \u2014"), Object.entries(subSectorByDivision).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: v
+  }, v))))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid3
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Effectif",
@@ -1189,11 +1229,15 @@ var NewProspect = () => {
     label: "Owner attribu\xE9",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.linkedCardMini
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Karim Ben Salah",
+    name: owner.name,
     size: 26,
-    color: "#6366f1"
+    color: owner.color
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
@@ -1203,18 +1247,78 @@ var NewProspect = () => {
       fontSize: 12.5,
       fontWeight: 600
     }
-  }, "Karim Ben Salah"), /*#__PURE__*/React.createElement("div", {
+  }, owner.name), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "AE Senior \xB7 Cyber \u2014 r\xE9gion SE")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Changer l'owner attribué\n\n• Nadia Lefèvre (AE Senior · EMEA)\n• Karim Ben Salah (AE Cyber)\n• Tom Verdier (AE Hub)\n• Émilie Garnier (AE BENELUX)\n\n(La sélection sera connectée à la table profiles.)"),
+  }, owner.role)), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setOwnerMenu(v => !v);
+    },
     style: {
       ...npStyles.changeBtn,
       cursor: "pointer"
     }
-  }, "Changer"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "Changer \u25BE")), ownerMenu && /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "absolute",
+      top: "100%",
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+      zIndex: 1000,
+      minWidth: 280,
+      padding: 4
+    }
+  }, ownerList.map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.name,
+    onClick: () => {
+      setOwner(o);
+      setOwnerMenu(false);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
+      padding: "8px 10px",
+      border: "none",
+      borderRadius: 6,
+      background: owner.name === o.name ? "#eef2ff" : "transparent",
+      cursor: "pointer",
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement(Avatar, {
+    name: o.name,
+    size: 24,
+    color: o.color
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, o.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, o.role)), owner.name === o.name && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4f46e5",
+      fontSize: 14
+    }
+  }, "\u2713")))))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Premi\xE8re action \xE0 mener",
     subtitle: "L'IA proposera un brouillon bas\xE9 sur le contexte"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1529,15 +1633,15 @@ var NewProspect = () => {
       gap: 6
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Karim Ben Salah",
+    name: owner.name,
     size: 20,
-    color: "#6366f1"
+    color: owner.color
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       color: "#475569"
     }
-  }, "Owner : ", /*#__PURE__*/React.createElement("strong", null, "Karim Ben Salah"))))), /*#__PURE__*/React.createElement("div", {
+  }, "Owner : ", /*#__PURE__*/React.createElement("strong", null, owner.name))))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.previewBlock
   }, /*#__PURE__*/React.createElement("div", {
     style: {

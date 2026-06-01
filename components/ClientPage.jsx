@@ -150,7 +150,6 @@ const ClientPage = () => {
     if (isCustom) {
       const cp = display.contactPrincipal;
       const fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
-      // Ne créer la carte du contact principal que s'il a au moins un nom OU un email
       const principal = (fullName || (cp && cp.email)) ? [{
         name: fullName || (cp && cp.email) || "Contact principal",
         role: (cp && cp.fonction) || "—",
@@ -158,7 +157,15 @@ const ClientPage = () => {
         phone: (cp && cp.phone) || "",
         color: "#a855f7", champion: true, last: "Contact principal",
       }] : [];
-      return [...principal, ...localForThis];
+      const additionnels = ((c.contacts_additionnels || []).map((x, i) => ({
+        name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact",
+        role: x.fonction || "—",
+        email: x.email || "",
+        phone: x.phone || "",
+        color: ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"][i % 5],
+        last: "Ajouté à la création",
+      })));
+      return [...principal, ...additionnels, ...localForThis];
     }
     return [...defaultContacts, ...localForThis];
   })();
@@ -232,12 +239,35 @@ const ClientPage = () => {
     city:      c.ville || c.city || (empty ? "—" : "Paris · La Défense"),
     web:       c.site_web || c.website || (empty ? "" : "axa-im.fr"),
     since:     c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : (c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : (empty ? "" : "Client depuis mars 2024")),
-    desc:      c.notes || (isCustom ? (c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : (empty ? "" : "Compte créé via le formulaire prospect.")) : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
+    desc:      c.notes || c.besoin || (isCustom ? (c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : (empty ? "" : "Compte créé via le formulaire prospect.")) : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
     logo:      (c.raison_sociale || c.name || (empty ? "?" : "AX")).slice(0, 2).toUpperCase(),
     arr:       isCustom ? "—" : "184 k€",
     pipe:      isCustom ? "0" : "355 k€",
     health:    isCustom ? "—" : "78",
     contactPrincipal: c.contact_principal || null,
+    owner:     c.owner || (isCustom ? "—" : "Nadia Lefèvre"),
+    ownerColor: c.owner_color || (isCustom ? "#64748b" : "#a855f7"),
+    coowner:   c.coowner || (isCustom ? "—" : "Karim Ben Salah"),
+    coownerColor: c.coowner_color || (isCustom ? "#64748b" : "#6366f1"),
+    source:    c.source || (isCustom ? "—" : "Salon Finovate Paris"),
+    concurrent: c.concurrent || (isCustom ? "—" : "Salesforce · Pega"),
+    clientSince: c.client_since
+      ? new Date(c.client_since).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
+      : c.created_at
+      ? new Date(c.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
+      : (isCustom ? "—" : "14 mars 2024"),
+    renewal:   c.renewal || (isCustom ? "—" : "01 mars 2026 ✓"),
+    activeContracts: c.active_contracts || (isCustom ? "—" : "1 (Suite 2024-2026)"),
+    address:   c.adresse || (isCustom ? "—" : "Tour Majunga"),
+    cp:        c.code_postal || (isCustom ? "" : "92800"),
+    addressCity: c.ville || c.city || (isCustom ? "" : "Puteaux"),
+    siren:     c.siren || (isCustom ? "" : "487 921 304"),
+    naf:       c.naf || (isCustom ? "" : "6420Z"),
+    sousSecteur: c.sous_secteur || "",
+    tier:      c.tier || (isCustom ? "" : ""),
+    ca:        c.ca_meur || "",
+    linkedin:  c.linkedin_entreprise || "",
+    tva:       c.tva || "",
   };
 
   const Avatar = ({ name, size = 24, color }) => {
@@ -912,24 +942,35 @@ const ClientPage = () => {
                 </div>
                 <div style={{ padding: 4 }}>
                   <DetailRow label="Owner" value={
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <Avatar name="Nadia Lefèvre" size={22} color="#a855f7" />
-                      <span style={{ fontSize: 12.5, fontWeight: 500 }}>Nadia Lefèvre</span>
-                    </div>
+                    display.owner === "—" ? <span style={{ fontSize: 12.5, color: "#94a3b8" }}>—</span> : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <Avatar name={display.owner} size={22} color={display.ownerColor} />
+                        <span style={{ fontSize: 12.5, fontWeight: 500 }}>{display.owner}</span>
+                      </div>
+                    )
                   } />
                   <DetailRow label="Co-owner" value={
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <Avatar name="Karim Ben Salah" size={22} color="#6366f1" />
-                      <span style={{ fontSize: 12.5, fontWeight: 500 }}>Karim Ben Salah</span>
-                    </div>
+                    display.coowner === "—" ? <span style={{ fontSize: 12.5, color: "#94a3b8" }}>—</span> : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <Avatar name={display.coowner} size={22} color={display.coownerColor} />
+                        <span style={{ fontSize: 12.5, fontWeight: 500 }}>{display.coowner}</span>
+                      </div>
+                    )
                   } />
-                  <DetailRow label="Secteur" value={<span style={cliStyles.fieldChip}>Asset Management</span>} />
-                  <DetailRow label="Source" value={<span style={cliStyles.fieldChip}>Salon Finovate Paris</span>} />
-                  <DetailRow label="Concurrent" value={<span style={{ fontSize: 12.5, color: "#475569" }}>Salesforce · Pega</span>} />
-                  <DetailRow label="Client depuis" value={<span style={{ fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", fontWeight: 600 }}>14 mars 2024</span>} />
-                  <DetailRow label="Renouvellement" value={<span style={{ fontSize: 12.5, color: "#0e7a55", fontWeight: 600 }}>01 mars 2026 ✓</span>} />
-                  <DetailRow label="Contrats actifs" value={<span style={{ fontSize: 12.5, fontWeight: 600 }}>1 (Suite 2024-2026)</span>} />
-                  <DetailRow label="Adresse" value={<span style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>Tour Majunga<br/>6 place de la Pyramide<br/>92800 Puteaux</span>} />
+                  <DetailRow label="Secteur" value={<span style={cliStyles.fieldChip}>{display.sector}</span>} />
+                  {display.sousSecteur && <DetailRow label="Sous-secteur" value={<span style={cliStyles.fieldChip}>{display.sousSecteur}</span>} />}
+                  <DetailRow label="Source" value={<span style={cliStyles.fieldChip}>{display.source}</span>} />
+                  <DetailRow label="Concurrent" value={<span style={{ fontSize: 12.5, color: "#475569" }}>{display.concurrent}</span>} />
+                  <DetailRow label={isCustom ? "Prospect depuis" : "Client depuis"} value={<span style={{ fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", fontWeight: 600 }}>{display.clientSince}</span>} />
+                  {!isCustom && <DetailRow label="Renouvellement" value={<span style={{ fontSize: 12.5, color: "#0e7a55", fontWeight: 600 }}>{display.renewal}</span>} />}
+                  <DetailRow label="Contrats actifs" value={<span style={{ fontSize: 12.5, fontWeight: 600 }}>{contractsList.length > 0 ? `${contractsList.length} (${contractsList.map((x) => x.name).slice(0, 2).join(", ")}${contractsList.length > 2 ? "…" : ""})` : (isCustom ? "Aucun" : display.activeContracts)}</span>} />
+                  {display.siren && <DetailRow label="SIREN" value={<span style={{ fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{display.siren}</span>} />}
+                  {display.naf && <DetailRow label="NAF" value={<span style={{ fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{display.naf}</span>} />}
+                  {display.tva && <DetailRow label="TVA intra." value={<span style={{ fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{display.tva}</span>} />}
+                  {display.ca && <DetailRow label="CA annuel" value={<span style={{ fontSize: 12.5, fontWeight: 600 }}>{display.ca} M€</span>} />}
+                  {display.tier && <DetailRow label="Tier" value={<span style={cliStyles.fieldChip}>Tier {display.tier}</span>} />}
+                  {display.linkedin && <DetailRow label="LinkedIn" value={<a href={display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin} target="_blank" rel="noopener" style={{ fontSize: 12, color: "#3730a3" }}>{display.linkedin.replace(/^https?:\/\//, "")} ↗</a>} />}
+                  <DetailRow label="Adresse" value={<span style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{display.address}{display.cp || display.addressCity ? <><br/>{display.cp} {display.addressCity}</> : null}</span>} />
                 </div>
               </div>
             </div>

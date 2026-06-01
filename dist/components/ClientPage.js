@@ -317,7 +317,6 @@ var ClientPage = () => {
     if (isCustom) {
       var cp = display.contactPrincipal;
       var fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
-      // Ne créer la carte du contact principal que s'il a au moins un nom OU un email
       var principal = fullName || cp && cp.email ? [{
         name: fullName || cp && cp.email || "Contact principal",
         role: cp && cp.fonction || "—",
@@ -327,7 +326,15 @@ var ClientPage = () => {
         champion: true,
         last: "Contact principal"
       }] : [];
-      return [...principal, ...localForThis];
+      var additionnels = (c.contacts_additionnels || []).map((x, i) => ({
+        name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact",
+        role: x.fonction || "—",
+        email: x.email || "",
+        phone: x.phone || "",
+        color: ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"][i % 5],
+        last: "Ajouté à la création"
+      }));
+      return [...principal, ...additionnels, ...localForThis];
     }
     return [...defaultContacts, ...localForThis];
   })();
@@ -422,12 +429,39 @@ var ClientPage = () => {
       month: "short",
       year: "numeric"
     })}` : empty ? "" : "Client depuis mars 2024",
-    desc: c.notes || (isCustom ? c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : empty ? "" : "Compte créé via le formulaire prospect." : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
+    desc: c.notes || c.besoin || (isCustom ? c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : empty ? "" : "Compte créé via le formulaire prospect." : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
     logo: (c.raison_sociale || c.name || (empty ? "?" : "AX")).slice(0, 2).toUpperCase(),
     arr: isCustom ? "—" : "184 k€",
     pipe: isCustom ? "0" : "355 k€",
     health: isCustom ? "—" : "78",
-    contactPrincipal: c.contact_principal || null
+    contactPrincipal: c.contact_principal || null,
+    owner: c.owner || (isCustom ? "—" : "Nadia Lefèvre"),
+    ownerColor: c.owner_color || (isCustom ? "#64748b" : "#a855f7"),
+    coowner: c.coowner || (isCustom ? "—" : "Karim Ben Salah"),
+    coownerColor: c.coowner_color || (isCustom ? "#64748b" : "#6366f1"),
+    source: c.source || (isCustom ? "—" : "Salon Finovate Paris"),
+    concurrent: c.concurrent || (isCustom ? "—" : "Salesforce · Pega"),
+    clientSince: c.client_since ? new Date(c.client_since).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }) : c.created_at ? new Date(c.created_at).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }) : isCustom ? "—" : "14 mars 2024",
+    renewal: c.renewal || (isCustom ? "—" : "01 mars 2026 ✓"),
+    activeContracts: c.active_contracts || (isCustom ? "—" : "1 (Suite 2024-2026)"),
+    address: c.adresse || (isCustom ? "—" : "Tour Majunga"),
+    cp: c.code_postal || (isCustom ? "" : "92800"),
+    addressCity: c.ville || c.city || (isCustom ? "" : "Puteaux"),
+    siren: c.siren || (isCustom ? "" : "487 921 304"),
+    naf: c.naf || (isCustom ? "" : "6420Z"),
+    sousSecteur: c.sous_secteur || "",
+    tier: c.tier || (isCustom ? "" : ""),
+    ca: c.ca_meur || "",
+    linkedin: c.linkedin_entreprise || "",
+    tva: c.tva || ""
   };
   var Avatar = ({
     name,
@@ -1954,50 +1988,65 @@ var ClientPage = () => {
     }
   }, /*#__PURE__*/React.createElement(DetailRow, {
     label: "Owner",
-    value: /*#__PURE__*/React.createElement("div", {
+    value: display.owner === "—" ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#94a3b8"
+      }
+    }, "\u2014") : /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         gap: 7
       }
     }, /*#__PURE__*/React.createElement(Avatar, {
-      name: "Nadia Lef\xE8vre",
+      name: display.owner,
       size: 22,
-      color: "#a855f7"
+      color: display.ownerColor
     }), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
         fontWeight: 500
       }
-    }, "Nadia Lef\xE8vre"))
+    }, display.owner))
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Co-owner",
-    value: /*#__PURE__*/React.createElement("div", {
+    value: display.coowner === "—" ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#94a3b8"
+      }
+    }, "\u2014") : /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         gap: 7
       }
     }, /*#__PURE__*/React.createElement(Avatar, {
-      name: "Karim Ben Salah",
+      name: display.coowner,
       size: 22,
-      color: "#6366f1"
+      color: display.coownerColor
     }), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
         fontWeight: 500
       }
-    }, "Karim Ben Salah"))
+    }, display.coowner))
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Secteur",
     value: /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, "Asset Management")
+    }, display.sector)
+  }), display.sousSecteur && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Sous-secteur",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, display.sousSecteur)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Source",
     value: /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, "Salon Finovate Paris")
+    }, display.source)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Concurrent",
     value: /*#__PURE__*/React.createElement("span", {
@@ -2005,9 +2054,9 @@ var ClientPage = () => {
         fontSize: 12.5,
         color: "#475569"
       }
-    }, "Salesforce \xB7 Pega")
+    }, display.concurrent)
   }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Client depuis",
+    label: isCustom ? "Prospect depuis" : "Client depuis",
     value: /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
@@ -2015,8 +2064,8 @@ var ClientPage = () => {
         color: "#0f172a",
         fontWeight: 600
       }
-    }, "14 mars 2024")
-  }), /*#__PURE__*/React.createElement(DetailRow, {
+    }, display.clientSince)
+  }), !isCustom && /*#__PURE__*/React.createElement(DetailRow, {
     label: "Renouvellement",
     value: /*#__PURE__*/React.createElement("span", {
       style: {
@@ -2024,7 +2073,7 @@ var ClientPage = () => {
         color: "#0e7a55",
         fontWeight: 600
       }
-    }, "01 mars 2026 \u2713")
+    }, display.renewal)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Contrats actifs",
     value: /*#__PURE__*/React.createElement("span", {
@@ -2032,7 +2081,58 @@ var ClientPage = () => {
         fontSize: 12.5,
         fontWeight: 600
       }
-    }, "1 (Suite 2024-2026)")
+    }, contractsList.length > 0 ? `${contractsList.length} (${contractsList.map(x => x.name).slice(0, 2).join(", ")}${contractsList.length > 2 ? "…" : ""})` : isCustom ? "Aucun" : display.activeContracts)
+  }), display.siren && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "SIREN",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, display.siren)
+  }), display.naf && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "NAF",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, display.naf)
+  }), display.tva && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "TVA intra.",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, display.tva)
+  }), display.ca && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "CA annuel",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600
+      }
+    }, display.ca, " M\u20AC")
+  }), display.tier && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Tier",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, "Tier ", display.tier)
+  }), display.linkedin && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "LinkedIn",
+    value: /*#__PURE__*/React.createElement("a", {
+      href: display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin,
+      target: "_blank",
+      rel: "noopener",
+      style: {
+        fontSize: 12,
+        color: "#3730a3"
+      }
+    }, display.linkedin.replace(/^https?:\/\//, ""), " \u2197")
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Adresse",
     value: /*#__PURE__*/React.createElement("span", {
@@ -2041,7 +2141,7 @@ var ClientPage = () => {
         color: "#475569",
         lineHeight: 1.4
       }
-    }, "Tour Majunga", /*#__PURE__*/React.createElement("br", null), "6 place de la Pyramide", /*#__PURE__*/React.createElement("br", null), "92800 Puteaux")
+    }, display.address, display.cp || display.addressCity ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), display.cp, " ", display.addressCity) : null)
   }))))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {

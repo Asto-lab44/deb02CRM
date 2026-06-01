@@ -19,6 +19,20 @@ const NewProspect = () => {
   const [source,        setSource]        = React.useState("");
   const [contactDate,   setContactDate]   = React.useState("");
   const [projectDate,   setProjectDate]   = React.useState("");
+  const [owner,         setOwner]         = React.useState({ name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" });
+  const [ownerMenu,     setOwnerMenu]     = React.useState(false);
+  const ownerList = [
+    { name: "Nadia Lefèvre",   role: "AE Senior · EMEA",   color: "#a855f7" },
+    { name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" },
+    { name: "Tom Verdier",     role: "AE Hub",             color: "#f59e0b" },
+    { name: "Émilie Garnier",  role: "AE BENELUX",         color: "#10b981" },
+  ];
+  React.useEffect(() => {
+    if (!ownerMenu) return;
+    const close = () => setOwnerMenu(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [ownerMenu]);
   const [extraContactList, setExtraContactList] = React.useState([]); // [{prenom, nom, fonction, email, phone}]
   const addExtraContact = () => setExtraContactList((l) => [...l, { prenom: "", nom: "", fonction: "", email: "", phone: "" }]);
   const removeExtraContact = (i) => setExtraContactList((l) => l.filter((_, idx) => idx !== i));
@@ -216,6 +230,9 @@ const NewProspect = () => {
     contacts_additionnels: extraContactList,
     source, contact_date: contactDate, project_date: projectDate,
     besoin, notes,
+    owner: owner.name,
+    owner_role: owner.role,
+    owner_color: owner.color,
     created_at: new Date().toISOString(),
     status: "prospect",
   });
@@ -367,10 +384,28 @@ const NewProspect = () => {
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Secteur d'activité" required>
-                <input style={npStyles.input} value={companySector} onChange={(e) => setCompanySector(e.target.value)} placeholder="Auto-rempli depuis le NAF" />
+                <select
+                  style={npStyles.input}
+                  value={companySector}
+                  onChange={(e) => setCompanySector(e.target.value)}
+                >
+                  <option value="">— Sélectionner un secteur —</option>
+                  {Object.entries(sectionLabels).map(([k, v]) => (
+                    <option key={k} value={v}>{v}</option>
+                  ))}
+                </select>
               </FormRow>
               <FormRow label="Sous-secteur">
-                <input style={npStyles.input} value={companySubSect} onChange={(e) => setCompanySubSect(e.target.value)} placeholder="" />
+                <select
+                  style={npStyles.input}
+                  value={companySubSect}
+                  onChange={(e) => setCompanySubSect(e.target.value)}
+                >
+                  <option value="">— Sélectionner un sous-secteur —</option>
+                  {Object.entries(subSectorByDivision).map(([k, v]) => (
+                    <option key={k} value={v}>{v}</option>
+                  ))}
+                </select>
               </FormRow>
             </div>
 
@@ -678,13 +713,49 @@ const NewProspect = () => {
             </div>
 
             <FormRow label="Owner attribué" required>
-              <div style={npStyles.linkedCardMini}>
-                <Avatar name="Karim Ben Salah" size={26} color="#6366f1" />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>Karim Ben Salah</div>
-                  <div style={{ fontSize: 11, color: "#64748b" }}>AE Senior · Cyber — région SE</div>
+              <div style={{ position: "relative" }}>
+                <div style={npStyles.linkedCardMini}>
+                  <Avatar name={owner.name} size={26} color={owner.color} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600 }}>{owner.name}</div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>{owner.role}</div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setOwnerMenu((v) => !v); }}
+                    style={{ ...npStyles.changeBtn, cursor: "pointer" }}
+                  >Changer ▾</button>
                 </div>
-                <button onClick={() => alert("Changer l'owner attribué\n\n• Nadia Lefèvre (AE Senior · EMEA)\n• Karim Ben Salah (AE Cyber)\n• Tom Verdier (AE Hub)\n• Émilie Garnier (AE BENELUX)\n\n(La sélection sera connectée à la table profiles.)")} style={{ ...npStyles.changeBtn, cursor: "pointer" }}>Changer</button>
+                {ownerMenu && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: "absolute", top: "100%", right: 0, marginTop: 4,
+                      background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8,
+                      boxShadow: "0 8px 24px rgba(15,23,42,0.12)", zIndex: 1000,
+                      minWidth: 280, padding: 4,
+                    }}
+                  >
+                    {ownerList.map((o) => (
+                      <button
+                        key={o.name}
+                        onClick={() => { setOwner(o); setOwnerMenu(false); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10, width: "100%",
+                          padding: "8px 10px", border: "none", borderRadius: 6,
+                          background: owner.name === o.name ? "#eef2ff" : "transparent",
+                          cursor: "pointer", textAlign: "left",
+                        }}
+                      >
+                        <Avatar name={o.name} size={24} color={o.color} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{o.name}</div>
+                          <div style={{ fontSize: 11, color: "#64748b" }}>{o.role}</div>
+                        </div>
+                        {owner.name === o.name && <span style={{ color: "#4f46e5", fontSize: 14 }}>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </FormRow>
 
@@ -794,8 +865,8 @@ const NewProspect = () => {
               </div>
 
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 6 }}>
-                <Avatar name="Karim Ben Salah" size={20} color="#6366f1" />
-                <span style={{ fontSize: 11, color: "#475569" }}>Owner : <strong>Karim Ben Salah</strong></span>
+                <Avatar name={owner.name} size={20} color={owner.color} />
+                <span style={{ fontSize: 11, color: "#475569" }}>Owner : <strong>{owner.name}</strong></span>
               </div>
             </div>
           </div>

@@ -877,7 +877,7 @@ const ClientPage = () => {
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>
-                      <span style={{ color: "#4f46e5" }}>→</span> Actions à mener <span style={cliStyles.blockCount}>{extraActions.length + (isCustom ? 0 : future.length)}</span>
+                      <span style={{ color: "#4f46e5" }}>→</span> Actions à mener <span style={cliStyles.blockCount}>{extraActions.filter((x) => !x.client_id || x.client_id === (urlId || "ACC-0184")).length + (isCustom ? 0 : future.length)}</span>
                     </h2>
                     <p style={cliStyles.h2sub}>Tâches, relances et événements planifiés</p>
                   </div>

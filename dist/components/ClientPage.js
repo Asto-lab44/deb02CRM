@@ -1701,7 +1701,7 @@ var ClientPage = () => {
     }
   }, "\u2192"), " Actions \xE0 mener ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.blockCount
-  }, extraActions.length + (isCustom ? 0 : future.length))), /*#__PURE__*/React.createElement("p", {
+  }, extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")).length + (isCustom ? 0 : future.length))), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
   }, "T\xE2ches, relances et \xE9v\xE9nements planifi\xE9s")), /*#__PURE__*/React.createElement("button", {
     onClick: addAction,

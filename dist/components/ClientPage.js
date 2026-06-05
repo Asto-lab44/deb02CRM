@@ -19,10 +19,56 @@ var ClientPage = () => {
       setExtraActions(JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]"));
     } catch (e) {}
     try {
+      setCompletedActions(JSON.parse(localStorage.getItem("hubAstorya.actionsCompleted.v1") || "[]"));
+    } catch (e) {}
+    try {
       setOppEdits(JSON.parse(localStorage.getItem("hubAstorya.oppEdits.v1") || "{}"));
     } catch (e) {}
   }, []);
-  var toggleAction = key => {
+  var [completedActions, setCompletedActions] = React.useState([]);
+
+  // Complète une action utilisateur : la sort de extraActions et la pose dans completedActions
+  var completeAction = a => {
+    var completedEntry = {
+      id: a.id,
+      client_id: a.client_id || null,
+      type: a.type || (a.icon === "📞" ? "call" : a.icon === "✉" ? "email" : a.icon === "👥" ? "meeting" : a.icon === "📅" ? "rdv" : "task"),
+      icon: a.icon || "✓",
+      color: "#10b981",
+      title: a.title,
+      who: a.assigned ? `Réalisé par ${a.assigned}` : "Terminée",
+      at: new Date().toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }) + " · " + new Date().toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      }),
+      meta: a.meta || null,
+      completed_at: new Date().toISOString()
+    };
+    setExtraActions(arr => {
+      var next = arr.filter(x => x.id !== a.id);
+      try {
+        localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+    setCompletedActions(arr => {
+      var next = [completedEntry, ...arr];
+      try {
+        localStorage.setItem("hubAstorya.actionsCompleted.v1", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+  var toggleAction = (key, action) => {
+    // Pour une action utilisateur (a.id présent) : passer au statut terminé = déplacer
+    if (action && action.id) {
+      completeAction(action);
+      return;
+    }
     setDoneActions(prev => {
       var next = {
         ...prev,
@@ -34,27 +80,97 @@ var ClientPage = () => {
       return next;
     });
   };
-  var addAction = () => {
-    var title = prompt("Nouvelle action à mener :");
-    if (!title) return;
-    var due = prompt("Échéance (texte libre, ex. 'Demain · 10h00') :", "Demain");
+  // Modal "Nouvelle action à mener"
+  var [addActionOpen, setAddActionOpen] = React.useState(false);
+  var [editOpen, setEditOpen] = React.useState(false);
+  var [editDraft, setEditDraft] = React.useState({});
+  var ownerListE = [{
+    name: "Nadia Lefèvre",
+    role: "AE Senior · EMEA",
+    color: "#a855f7"
+  }, {
+    name: "Karim Ben Salah",
+    role: "AE Senior · Cyber",
+    color: "#6366f1"
+  }, {
+    name: "Tom Verdier",
+    role: "AE Hub",
+    color: "#f59e0b"
+  }, {
+    name: "Émilie Garnier",
+    role: "AE BENELUX",
+    color: "#10b981"
+  }];
+  var [actionMenuKey, setActionMenuKey] = React.useState(null);
+  var [reschedule, setReschedule] = React.useState(null); // { id, date, time, title }
+  React.useEffect(() => {
+    if (!actionMenuKey) return;
+    var close = () => setActionMenuKey(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [actionMenuKey]);
+  var [newAction, setNewAction] = React.useState({
+    type: "email",
+    title: "",
+    date: "",
+    time: "",
+    priority: "moyenne",
+    assigned: "",
+    tag: "",
+    meta: ""
+  });
+  var openAddAction = () => {
+    setNewAction({
+      type: "email",
+      title: "",
+      date: "",
+      time: "",
+      priority: "moyenne",
+      assigned: "",
+      tag: "",
+      meta: ""
+    });
+    setAddActionOpen(true);
+  };
+  var submitNewAction = () => {
+    if (!newAction.title.trim()) {
+      alert("Le titre est obligatoire");
+      return;
+    }
+    var iconMap = {
+      email: "✉",
+      call: "📞",
+      visio: "💻",
+      rdv: "📅",
+      task: "✓",
+      note: "✎"
+    };
+    var dueText = newAction.date ? new Date(newAction.date).toLocaleDateString("fr-FR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short"
+    }) + (newAction.time ? " · " + newAction.time : "") : "Date à définir";
     var next = [{
       id: "EX-" + Date.now(),
-      title,
-      due: due || "—",
-      priority: "moyenne",
-      icon: "•",
-      meta: "Ajoutée manuellement",
-      assigned: "Vous",
+      client_id: urlId || "ACC-0184",
+      type: newAction.type,
+      title: newAction.title.trim(),
+      due: dueText,
+      priority: newAction.priority,
+      icon: iconMap[newAction.type] || "•",
+      meta: newAction.meta || "",
+      assigned: newAction.assigned || "Vous",
       assignedColor: "#3730a3",
-      tag: "Manuel",
+      tag: newAction.tag || (newAction.type === "email" ? "Email" : newAction.type === "call" ? "Appel" : newAction.type === "visio" ? "Visio" : newAction.type === "rdv" ? "RDV" : newAction.type === "task" ? "Tâche" : "Note"),
       tagColor: "#475569"
     }, ...extraActions];
     setExtraActions(next);
     try {
       localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
     } catch (e) {}
+    setAddActionOpen(false);
   };
+  var addAction = () => openAddAction();
   var removeAction = id => {
     var next = extraActions.filter(a => a.id !== id);
     setExtraActions(next);
@@ -214,44 +330,7 @@ var ClientPage = () => {
   }, [urlId]);
 
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
-  var defaultContacts = [{
-    name: "Émilie Roux",
-    role: "VP Innovation",
-    email: "e.roux@axa-im.fr",
-    phone: "+33 1 40 76 00",
-    color: "#a855f7",
-    champion: true,
-    last: "il y a 2 h"
-  }, {
-    name: "Antoine Mercier",
-    role: "CISO",
-    email: "a.mercier@axa-im.fr",
-    phone: "+33 1 40 76 01",
-    color: "#dc2626",
-    last: "il y a 8 h"
-  }, {
-    name: "Julien Pasquier",
-    role: "CFO",
-    email: "j.pasquier@axa-im.fr",
-    phone: "+33 1 40 76 02",
-    color: "#0ea5e9",
-    last: "il y a 4 j"
-  }, {
-    name: "Marie Lopez",
-    role: "Head of Ops",
-    email: "m.lopez@axa-im.fr",
-    phone: "+33 1 40 76 03",
-    color: "#f59e0b",
-    last: "il y a 1 sem."
-  }, {
-    name: "Sébastien Roy",
-    role: "Procurement",
-    email: "s.roy@axa-im.fr",
-    phone: "+33 1 40 76 04",
-    color: "#10b981",
-    coldZone: true,
-    last: "il y a 3 sem."
-  }];
+  var defaultContacts = [];
   var [customContacts, setCustomContacts] = React.useState([]);
   React.useEffect(() => {
     try {
@@ -260,22 +339,38 @@ var ClientPage = () => {
   }, []);
 
   // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
+  // Vide par défaut pour un nouveau prospect tant que rien n'est renseigné (pas de carte vide).
   var allContacts = (() => {
-    var localForThis = customContacts.filter(c => c.client_id === (urlId || "ACC-0184")).map(c => ({
-      ...c,
+    var localForThis = customContacts.filter(cc => cc.client_id === (urlId || "ACC-0184")).map(cc => ({
+      ...cc,
       _custom: true
     }));
     if (isCustom) {
-      var principal = display.contactPrincipal ? [{
-        name: ((display.contactPrincipal.prenom || "") + " " + (display.contactPrincipal.nom || "")).trim(),
-        role: display.contactPrincipal.fonction || "—",
-        email: display.contactPrincipal.email || "",
-        phone: display.contactPrincipal.phone || "",
+      var cp = c.contact_principal || display.contactPrincipal;
+      var fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
+      var principal = fullName || cp && cp.email || cp && cp.phone ? [{
+        name: fullName || cp && cp.email || "Contact principal",
+        role: cp && cp.fonction || "—",
+        email: cp && cp.email || "",
+        phone: cp && cp.phone || "",
+        linkedin: cp && cp.linkedin || "",
         color: "#a855f7",
-        champion: true,
-        last: "Contact principal"
+        champion: Array.isArray(c.roles) && c.roles.includes("Champion"),
+        decisionRoles: Array.isArray(c.roles) ? c.roles : [],
+        hierarchie: c.fonction || "",
+        last: "Contact principal · ajouté à la création"
       }] : [];
-      return [...principal, ...localForThis];
+      var additionnels = (c.contacts_additionnels || []).filter(x => (x.prenom || x.nom || x.email || x.phone || "").toString().trim()) // ignore les contacts entièrement vides
+      .map((x, i) => ({
+        name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || x.phone || "Contact",
+        role: x.fonction || "—",
+        email: x.email || "",
+        phone: x.phone || "",
+        linkedin: x.linkedin || "",
+        color: ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"][i % 5],
+        last: "Co-contact · ajouté à la création"
+      }));
+      return [...principal, ...additionnels, ...localForThis];
     }
     return [...defaultContacts, ...localForThis];
   })();
@@ -310,35 +405,8 @@ var ClientPage = () => {
   };
   var [pastShowAll, setPastShowAll] = React.useState(false);
   var addContract = () => {
-    var name = prompt("Intitulé du contrat :");
-    if (!name) return;
-    var amount = prompt("Montant (ex. 48 k€ / an) :", "0 €");
-    var type = prompt("Type (Licence SaaS / Maintenance / Avenant / Autre) :", "Licence SaaS");
-    var newCt = {
-      id: "CTR-" + Date.now().toString().slice(-7),
-      client_id: urlId || display.id,
-      name,
-      product: "",
-      type: type || "—",
-      amount: amount || "0 €",
-      start: new Date().toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }),
-      end: new Date(Date.now() + 365 * 24 * 3600 * 1000).toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }),
-      status: "active"
-    };
-    var next = [newCt, ...contractsList];
-    setContractsList(next);
-    try {
-      var all = JSON.parse(localStorage.getItem("hubAstorya.contracts.v1") || "[]");
-      localStorage.setItem("hubAstorya.contracts.v1", JSON.stringify([newCt, ...all]));
-    } catch (e) {}
+    var cid = urlId || display.id || "";
+    window.location.href = "/nouveau-contrat" + (cid ? "?client=" + encodeURIComponent(cid) : "");
   };
 
   // ───── Récupère le client à afficher selon l'ID dans l'URL
@@ -376,27 +444,171 @@ var ClientPage = () => {
 
   // Mapping unifié vers les champs d'affichage
   var c = loadedClient || {};
-  var isCustom = !!loadedClient;
+  // isCustom = true dès qu'on a un ?id= dans l'URL (même avant que le fetch
+  // ait peuplé loadedClient) → empêche le flash des défauts AXA sur la fiche
+  // d'un prospect Astorya pendant le chargement.
+  var isCustom = !!urlId || !!loadedClient;
+  // Si on a un ?id= mais pas encore de loadedClient, on évite TOUT fallback AXA
+  // (sinon flash visuel du nom/secteur AXA pendant le fetch).
+  var empty = isCustom && !loadedClient;
   var display = {
-    id: c.id || "ACC-0184",
-    name: c.raison_sociale || c.name || "AXA Wealth France",
-    sector: c.secteur || c.industry || "Asset Management",
-    size: c.effectif ? `Effectif ${c.effectif}` : "12 000 employés",
-    city: c.ville || c.city || "Paris · La Défense",
-    web: c.site_web || c.website || "axa-im.fr",
+    id: c.id || (empty ? urlId || "—" : "ACC-0184"),
+    name: c.raison_sociale || c.name || (empty ? "Chargement…" : "AXA Wealth France"),
+    sector: c.secteur || c.industry || (empty ? "—" : "Asset Management"),
+    size: c.effectif ? `Effectif ${c.effectif}` : empty ? "—" : "12 000 employés",
+    city: c.ville || c.city || (empty ? "—" : "Paris · La Défense"),
+    web: c.site_web || c.website || (empty ? "" : "axa-im.fr"),
     since: c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", {
       month: "short",
       year: "numeric"
     })}` : c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", {
       month: "short",
       year: "numeric"
-    })}` : "Client depuis mars 2024",
-    desc: c.notes || (isCustom ? `Compte ${c.tier ? `tier ${c.tier}` : ""} — créé via le formulaire prospect.` : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
-    logo: (c.raison_sociale || c.name || "AX").slice(0, 2).toUpperCase(),
+    })}` : empty ? "" : "Client depuis mars 2024",
+    desc: c.notes || c.besoin || (isCustom ? c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : empty ? "" : "Compte créé via le formulaire prospect." : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
+    logo: (c.raison_sociale || c.name || (empty ? "?" : "AX")).slice(0, 2).toUpperCase(),
     arr: isCustom ? "—" : "184 k€",
     pipe: isCustom ? "0" : "355 k€",
     health: isCustom ? "—" : "78",
-    contactPrincipal: c.contact_principal || null
+    contactPrincipal: c.contact_principal || null,
+    owner: c.owner || (isCustom ? "—" : "Nadia Lefèvre"),
+    ownerColor: c.owner_color || (isCustom ? "#64748b" : "#a855f7"),
+    coowner: c.coowner || (isCustom ? "—" : "Karim Ben Salah"),
+    coownerColor: c.coowner_color || (isCustom ? "#64748b" : "#6366f1"),
+    source: c.source || (isCustom ? "—" : "Salon Finovate Paris"),
+    concurrent: c.concurrent || (isCustom ? "—" : "Salesforce · Pega"),
+    concurrentEnd: c.concurrent_end || "",
+    concurrentAmount: c.concurrent_amount || "",
+    contactDate: c.contact_date || "",
+    projectDate: c.project_date || "",
+    clientSince: c.client_since ? new Date(c.client_since).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }) : c.created_at ? new Date(c.created_at).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }) : isCustom ? "—" : "14 mars 2024",
+    renewal: c.renewal || (isCustom ? "—" : "01 mars 2026 ✓"),
+    activeContracts: c.active_contracts || (isCustom ? "—" : "1 (Suite 2024-2026)"),
+    address: c.adresse || (isCustom ? "—" : "Tour Majunga"),
+    cp: c.code_postal || (isCustom ? "" : "92800"),
+    addressCity: c.ville || c.city || (isCustom ? "" : "Puteaux"),
+    siren: c.siren || (isCustom ? "" : "487 921 304"),
+    naf: c.naf || (isCustom ? "" : "6420Z"),
+    sousSecteur: c.sous_secteur || "",
+    tier: c.tier || (isCustom ? "" : ""),
+    ca: c.ca_meur || "",
+    linkedin: c.linkedin_entreprise || "",
+    tva: c.tva || "",
+    fonction: c.fonction || "",
+    action: c.action || "",
+    besoin: c.besoin || ""
+  };
+  var openEdit = () => {
+    var cp = c.contact_principal || {};
+    setEditDraft({
+      // Entreprise
+      raison_sociale: c.raison_sociale || c.name || "",
+      siren: display.siren || "",
+      naf: display.naf || "",
+      tva: display.tva || "",
+      sector: display.sector === "—" ? "" : display.sector,
+      sousSecteur: display.sousSecteur || "",
+      effectif: c.effectif || "",
+      tier: display.tier || "",
+      address: display.address === "—" ? "" : display.address,
+      cp: display.cp || "",
+      addressCity: display.addressCity || "",
+      web: display.web || "",
+      linkedin: display.linkedin || "",
+      // Équipe Astorya
+      owner: display.owner === "—" ? "" : display.owner,
+      coowner: display.coowner === "—" ? "" : display.coowner,
+      // Contact principal
+      cp_prenom: cp.prenom || "",
+      cp_nom: cp.nom || "",
+      cp_fonction: cp.fonction || "",
+      cp_email: cp.email || "",
+      cp_phone: cp.phone || "",
+      cp_linkedin: cp.linkedin || "",
+      fonction: display.fonction || "",
+      roles: Array.isArray(c.roles) ? c.roles : [],
+      // Qualification
+      source: display.source === "—" ? "" : display.source,
+      concurrent: display.concurrent === "—" ? "" : display.concurrent,
+      concurrentAmount: display.concurrentAmount || "",
+      projectDate: display.projectDate || "",
+      besoin: display.besoin || c.besoin || "",
+      action: display.action || "",
+      desc: c.notes || ""
+    });
+    setEditOpen(true);
+  };
+  var saveEdit = () => {
+    if (!urlId) {
+      alert("Édition uniquement disponible pour les prospects créés");
+      return;
+    }
+    var ownerObj = ownerListE.find(o => o.name === editDraft.owner);
+    var coownerObj = ownerListE.find(o => o.name === editDraft.coowner);
+    var patch = {
+      raison_sociale: editDraft.raison_sociale || null,
+      name: editDraft.raison_sociale || null,
+      owner: editDraft.owner || null,
+      owner_role: ownerObj ? ownerObj.role : null,
+      owner_color: ownerObj ? ownerObj.color : null,
+      coowner: editDraft.coowner || null,
+      coowner_color: coownerObj ? coownerObj.color : null,
+      secteur: editDraft.sector || null,
+      sous_secteur: editDraft.sousSecteur || null,
+      effectif: editDraft.effectif || null,
+      source: editDraft.source || null,
+      concurrent: editDraft.concurrent || null,
+      concurrent_amount: editDraft.concurrentAmount || null,
+      project_date: editDraft.projectDate || null,
+      tier: editDraft.tier || null,
+      adresse: editDraft.address || null,
+      code_postal: editDraft.cp || null,
+      ville: editDraft.addressCity || null,
+      site_web: editDraft.web || null,
+      linkedin_entreprise: editDraft.linkedin || null,
+      siren: editDraft.siren || null,
+      naf: editDraft.naf || null,
+      tva: editDraft.tva || null,
+      besoin: editDraft.besoin || null,
+      action: editDraft.action || null,
+      fonction: editDraft.fonction || null,
+      roles: Array.isArray(editDraft.roles) ? editDraft.roles : [],
+      contact_principal: {
+        prenom: editDraft.cp_prenom || "",
+        nom: editDraft.cp_nom || "",
+        fonction: editDraft.cp_fonction || "",
+        email: editDraft.cp_email || "",
+        phone: editDraft.cp_phone || "",
+        linkedin: editDraft.cp_linkedin || ""
+      },
+      notes: editDraft.desc || null
+    };
+    try {
+      var all = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
+      var idx = all.findIndex(p => p.id === urlId);
+      if (idx >= 0) {
+        all[idx] = {
+          ...all[idx],
+          ...patch
+        };
+        localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(all));
+        setLoadedClient({
+          ...(loadedClient || {}),
+          ...patch
+        });
+      } else {
+        alert("Prospect introuvable en local — modification non sauvée");
+      }
+    } catch (e) {}
+    setEditOpen(false);
   };
   var Avatar = ({
     name,
@@ -459,7 +671,7 @@ var ClientPage = () => {
     label: "Signé",
     color: "#10b981"
   }];
-  var opportunities = [{
+  var defaultOpps = [{
     name: "Astorya Suite — 750 sièges",
     amount: "215 000 €",
     stage: "propo",
@@ -503,6 +715,31 @@ var ClientPage = () => {
     won: true,
     ref: "OPP-2698"
   }];
+
+  // ── Opportunités créées via /nouvelle-opportunite, filtrées sur ce client
+  var [storedOpps, setStoredOpps] = React.useState([]);
+  React.useEffect(() => {
+    try {
+      var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+      var cid = urlId || "ACC-0184";
+      var mine = all.filter(o => o.client_id === cid).map(o => ({
+        ref: o.ref || o.id,
+        name: o.name,
+        amount: o.amount ? String(o.amount).match(/€/) ? o.amount : o.amount + " €" : "—",
+        stage: o.stage || "qualif",
+        proba: o.proba || 20,
+        owner: o.owner || "Vous",
+        ownerColor: "#0ea5e9",
+        close: o.close || o.target_date || "—",
+        days: 0,
+        isNew: true
+      }));
+      setStoredOpps(mine);
+    } catch (e) {}
+  }, [urlId]);
+
+  // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
+  var opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
 
   // ── Actions menées (passé, dernières)
   var past = [{
@@ -622,8 +859,13 @@ var ClientPage = () => {
     at: "Q1 2026",
     meta: "Mise à jour automatique"
   });
+  // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
+  // Actions terminées par l'utilisateur, filtrées sur ce client
+  var completedForThis = completedActions.filter(x => x.client_id === (urlId || "ACC-0184"));
   var pastAll = past.concat(pastExtras);
-  var pastShown = pastShowAll ? pastAll : past;
+  // Custom prospect : on n'affiche QUE les actions terminées par l'utilisateur. AXA : démo + customs en tête.
+  var pastShown = isCustom ? completedForThis : [...completedForThis, ...(pastShowAll ? pastAll : past)];
+  var pastTotal = isCustom ? completedForThis.length : pastAll.length + completedForThis.length;
 
   // ── Actions à mener (futur, à faire)
   var future = [{
@@ -1199,7 +1441,7 @@ var ClientPage = () => {
       rows.push(["Health score", "78 / 100"]);
       rows.push([]);
       rows.push(["Opportunités"]);
-      rows.push(["Ref", "Nom", "Étape", "Montant", "Owner", "Clôture"]);
+      rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
       opportunities.forEach(o => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
       var csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
       var a = document.createElement("a");
@@ -1290,31 +1532,30 @@ var ClientPage = () => {
   }, opportunities.map((o, i) => {
     var edited = oppEdits[o.ref] || {};
     var currentStage = edited.stage || o.stage;
-    var stageLabels = {
-      qualif: "Qualification",
-      discovery: "Discovery",
-      propo: "Proposition",
-      nego: "Négociation",
-      won: "Signé / Gagné"
-    };
     var openOpp = () => {
-      var choice = prompt(`${o.ref} — ${o.name}\n\nMontant : ${o.amount}\nOwner : ${o.owner}\nClôture : ${o.close}\n\n──────────────────\nChanger l'étape ?\n  1. Qualification\n  2. Discovery\n  3. Proposition\n  4. Négociation\n  5. Signé / Gagné ✓\n  0. Annuler\n\nTapez le numéro :`, "0");
-      var map = {
-        "1": "qualif",
-        "2": "discovery",
-        "3": "propo",
-        "4": "nego",
-        "5": "won"
+      var cid = urlId || display.id || "";
+      var amountNum = parseInt((edited.amount || o.amount || "").replace(/\D/g, ""), 10) || 0;
+      var oppForStore = {
+        ref: o.ref,
+        name: o.name,
+        client_name: display.name,
+        stage: edited.stage || o.stage,
+        amount: amountNum,
+        proba: edited.proba || o.proba,
+        owner: edited.owner || o.owner,
+        close: edited.close || o.close,
+        hot: o.hot
       };
-      var newStage = map[choice];
-      if (!newStage) return;
-      updateOppField(o.ref, "stage", newStage);
-      if (newStage === "won" && isCustom) {
-        var promoted = promoteToClient(display.id, o.name);
-        if (promoted) alert(`✓ ${o.name} signée !\n\n${display.name} passe de prospect à client.\nRechargez la page pour voir la mise à jour.`);else alert(`✓ Opportunité « ${o.name} » signée — statut mis à jour.`);
-      } else {
-        alert(`✓ Étape mise à jour : ${stageLabels[newStage]}`);
-      }
+      try {
+        var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
+        var idx = all.findIndex(x => x.ref === o.ref);
+        if (idx >= 0) all[idx] = {
+          ...all[idx],
+          ...oppForStore
+        };else all.unshift(oppForStore);
+        localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(all));
+      } catch (e) {}
+      window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
     };
     var stage = pipeStages.find(s => s.k === o.stage);
     return /*#__PURE__*/React.createElement("div", {
@@ -1460,7 +1701,7 @@ var ClientPage = () => {
     }
   }, "\u2192"), " Actions \xE0 mener ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.blockCount
-  }, future.length)), /*#__PURE__*/React.createElement("p", {
+  }, extraActions.length + (isCustom ? 0 : future.length))), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
   }, "T\xE2ches, relances et \xE9v\xE9nements planifi\xE9s")), /*#__PURE__*/React.createElement("button", {
     onClick: addAction,
@@ -1470,7 +1711,17 @@ var ClientPage = () => {
     }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsList
-  }, [...extraActions, ...future].map((a, i) => {
+  }, [...extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "24px 14px",
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc"
+    }
+  }, "Aucune action planifi\xE9e. Cliquez sur ", /*#__PURE__*/React.createElement("b", null, "+ Ajouter"), " pour en cr\xE9er une."), [...extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].map((a, i) => {
     var p = prioMeta[a.priority] || prioMeta.basse;
     var key = a.id || "d-" + i;
     var done = !!doneActions[key];
@@ -1490,7 +1741,7 @@ var ClientPage = () => {
         cursor: "pointer"
       },
       checked: done,
-      onChange: () => toggleAction(key)
+      onChange: () => toggleAction(key, a)
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         ...cliStyles.actionIcon,
@@ -1581,16 +1832,83 @@ var ClientPage = () => {
     }, /*#__PURE__*/React.createElement(Avatar, {
       name: n,
       size: 18
-    }))))))), /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        var choice = prompt(`Action « ${a.title} »\n\n1. Marquer comme ${done ? "à faire" : "terminée"}\n2. Supprimer (action manuelle uniquement)\n3. Annuler\n\nTapez 1, 2 ou 3 :`, "1");
-        if (choice === "1") toggleAction(key);else if (choice === "2" && a.id) removeAction(a.id);
+    }))))))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        setActionMenuKey(actionMenuKey === key ? null : key);
       },
       style: {
         ...cliStyles.actionMenu,
         cursor: "pointer"
       }
-    }, "\u22EF"));
+    }, "\u22EF"), actionMenuKey === key && /*#__PURE__*/React.createElement("div", {
+      onClick: e => e.stopPropagation(),
+      style: {
+        position: "absolute",
+        top: "100%",
+        right: 0,
+        marginTop: 4,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 8,
+        boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+        zIndex: 1000,
+        minWidth: 200,
+        padding: 4
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        toggleAction(key, a);
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem
+    }, done ? "↺ Marquer à faire" : "✓ Marquer terminée"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var newTitle = prompt("Nouveau titre :", a.title);
+        if (newTitle && a.id) {
+          setExtraActions(arr => arr.map(x => x.id === a.id ? {
+            ...x,
+            title: newTitle
+          } : x));
+        }
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem,
+      disabled: !a.id
+    }, "\u270E Renommer"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (!a.id) return;
+        setReschedule({
+          id: a.id,
+          title: a.title,
+          date: "",
+          time: ""
+        });
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem,
+      disabled: !a.id
+    }, "\uD83D\uDCC5 Replanifier"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 1,
+        background: "#eef1f5",
+        margin: "4px 0"
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (a.id && confirm("Supprimer cette action ?")) removeAction(a.id);
+        setActionMenuKey(null);
+      },
+      style: {
+        ...cliStyles.menuItem,
+        color: a.id ? "#dc2626" : "#cbd5e1"
+      },
+      disabled: !a.id
+    }, "\uD83D\uDDD1 Supprimer", !a.id && " (action démo)"))));
   }))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsCol
   }, /*#__PURE__*/React.createElement("div", {
@@ -1615,7 +1933,18 @@ var ClientPage = () => {
     style: cliStyles.pastList
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.pastSpine
-  }), pastShown.map((a, i) => /*#__PURE__*/React.createElement("div", {
+  }), pastShown.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "24px 14px",
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc",
+      marginLeft: 18
+    }
+  }, "Aucune action enregistr\xE9e pour ce client."), pastShown.map((a, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     onClick: () => alert(`${a.title}\n\n${a.who || ""}\n${a.at || ""}\n\n${a.meta || ""}`),
     style: {
@@ -1699,7 +2028,27 @@ var ClientPage = () => {
     }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.contactsGrid
-  }, allContacts.map(p => /*#__PURE__*/React.createElement("div", {
+  }, allContacts.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1",
+      padding: "24px 16px",
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc",
+      lineHeight: 1.6
+    }
+  }, "Aucun contact renseign\xE9 pour ce client.", /*#__PURE__*/React.createElement("br", null), "Cliquez sur ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#4f46e5"
+    }
+  }, "\xC9diter"), " dans le panneau Informations compte pour ajouter le contact principal, ou sur ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#4f46e5"
+    }
+  }, "+ Ajouter"), " ci-dessus pour un contact secondaire."), allContacts.map(p => /*#__PURE__*/React.createElement("div", {
     key: p.name,
     style: cliStyles.contactCard
   }, /*#__PURE__*/React.createElement("div", {
@@ -1740,7 +2089,36 @@ var ClientPage = () => {
       color: "#64748b",
       marginTop: 1
     }
-  }, p.role), /*#__PURE__*/React.createElement("div", {
+  }, p.role, p.hierarchie && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 6,
+      fontSize: 10,
+      padding: "1px 5px",
+      borderRadius: 3,
+      background: "#eef2ff",
+      color: "#3730a3",
+      fontWeight: 700
+    }
+  }, p.hierarchie)), Array.isArray(p.decisionRoles) && p.decisionRoles.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      flexWrap: "wrap",
+      marginTop: 4
+    }
+  }, p.decisionRoles.map(r => /*#__PURE__*/React.createElement("span", {
+    key: r,
+    style: {
+      fontSize: 10,
+      padding: "1px 6px",
+      borderRadius: 3,
+      fontWeight: 700,
+      letterSpacing: 0.3,
+      background: r === "Champion" ? "#fffbeb" : r === "Bloqueur" ? "#fdecec" : r === "Décideur" ? "#eef2ff" : "#f1f5f9",
+      color: r === "Champion" ? "#a65f00" : r === "Bloqueur" ? "#dc2626" : r === "Décideur" ? "#4338ca" : "#475569",
+      border: r === "Champion" ? "1px solid #fde68a" : "none"
+    }
+  }, r))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#475569",
@@ -1802,67 +2180,119 @@ var ClientPage = () => {
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
     style: cliStyles.h2
   }, "Informations compte")), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.filterPill
+    onClick: openEdit,
+    style: {
+      ...cliStyles.filterPill,
+      cursor: "pointer"
+    }
   }, "\xC9diter")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 4
     }
   }, /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Owner",
-    value: /*#__PURE__*/React.createElement("div", {
+    label: "Commercial",
+    value: display.owner === "—" ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#94a3b8"
+      }
+    }, "\u2014") : /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         gap: 7
       }
     }, /*#__PURE__*/React.createElement(Avatar, {
-      name: "Nadia Lef\xE8vre",
+      name: display.owner,
       size: 22,
-      color: "#a855f7"
+      color: display.ownerColor
     }), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
         fontWeight: 500
       }
-    }, "Nadia Lef\xE8vre"))
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Co-owner",
-    value: /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 7
-      }
-    }, /*#__PURE__*/React.createElement(Avatar, {
-      name: "Karim Ben Salah",
-      size: 22,
-      color: "#6366f1"
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 500
-      }
-    }, "Karim Ben Salah"))
+    }, display.owner))
+  }), display.size && display.size !== "—" && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Effectif",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, display.size)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Secteur",
     value: /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, "Asset Management")
+    }, display.sector)
+  }), display.sousSecteur && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Sous-secteur",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, display.sousSecteur)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Source",
     value: /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, "Salon Finovate Paris")
+    }, display.source)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Concurrent",
-    value: /*#__PURE__*/React.createElement("span", {
+    value: /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
         color: "#475569"
       }
-    }, "Salesforce \xB7 Pega")
+    }, display.concurrent), (display.concurrentEnd || display.concurrentAmount) && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#94a3b8",
+        marginTop: 2
+      }
+    }, display.concurrentEnd && `Fin : ${new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}`, display.concurrentEnd && display.concurrentAmount && " · ", display.concurrentAmount && `${display.concurrentAmount} k€/an`))
+  }), display.contactDate && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "1er contact",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#0f172a",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, new Date(display.contactDate).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }))
+  }), display.projectDate && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "\xC9ch\xE9ance projet",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#0f172a",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, new Date(display.projectDate).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }))
+  }), display.besoin && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Besoin identifi\xE9",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        lineHeight: 1.4
+      }
+    }, display.besoin)
+  }), display.action && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "1\xE8re action",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, {
+      email: "📧 Email d'intro",
+      call: "📞 Cold call",
+      in: "in LinkedIn",
+      wait: "⏸ Attendre"
+    }[display.action] || display.action)
   }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Client depuis",
+    label: isCustom ? "Prospect depuis" : "Client depuis",
     value: /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
@@ -1870,8 +2300,8 @@ var ClientPage = () => {
         color: "#0f172a",
         fontWeight: 600
       }
-    }, "14 mars 2024")
-  }), /*#__PURE__*/React.createElement(DetailRow, {
+    }, display.clientSince)
+  }), !isCustom && /*#__PURE__*/React.createElement(DetailRow, {
     label: "Renouvellement",
     value: /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1879,7 +2309,7 @@ var ClientPage = () => {
         color: "#0e7a55",
         fontWeight: 600
       }
-    }, "01 mars 2026 \u2713")
+    }, display.renewal)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Contrats actifs",
     value: /*#__PURE__*/React.createElement("span", {
@@ -1887,7 +2317,58 @@ var ClientPage = () => {
         fontSize: 12.5,
         fontWeight: 600
       }
-    }, "1 (Suite 2024-2026)")
+    }, contractsList.length > 0 ? `${contractsList.length} (${contractsList.map(x => x.name).slice(0, 2).join(", ")}${contractsList.length > 2 ? "…" : ""})` : isCustom ? "Aucun" : display.activeContracts)
+  }), display.siren && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "SIREN",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, display.siren)
+  }), display.naf && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "NAF",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, display.naf)
+  }), display.tva && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "TVA intra.",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, display.tva)
+  }), display.ca && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "CA annuel",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600
+      }
+    }, display.ca, " M\u20AC")
+  }), display.tier && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Tier",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, "Tier ", display.tier)
+  }), display.linkedin && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "LinkedIn",
+    value: /*#__PURE__*/React.createElement("a", {
+      href: display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin,
+      target: "_blank",
+      rel: "noopener",
+      style: {
+        fontSize: 12,
+        color: "#3730a3"
+      }
+    }, display.linkedin.replace(/^https?:\/\//, ""), " \u2197")
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Adresse",
     value: /*#__PURE__*/React.createElement("span", {
@@ -1896,7 +2377,7 @@ var ClientPage = () => {
         color: "#475569",
         lineHeight: 1.4
       }
-    }, "Tour Majunga", /*#__PURE__*/React.createElement("br", null), "6 place de la Pyramide", /*#__PURE__*/React.createElement("br", null), "92800 Puteaux")
+    }, display.address, display.cp || display.addressCity ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), display.cp, " ", display.addressCity) : null)
   }))))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
@@ -2142,7 +2623,875 @@ var ClientPage = () => {
       name: "AXA Wealth France"
     },
     onClose: () => setAssetsOpen(false)
-  }));
+  }), reschedule && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setReschedule(null),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.45)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      width: "100%",
+      maxWidth: 420,
+      boxShadow: "0 20px 50px rgba(15,23,42,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px 22px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCC5 Replanifier l'action"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 2,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, reschedule.title)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReschedule(null),
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 20,
+      color: "#94a3b8",
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    autoFocus: true,
+    value: reschedule.date,
+    onChange: e => setReschedule({
+      ...reschedule,
+      date: e.target.value
+    }),
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Heure"), /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: reschedule.time,
+    onChange: e => setReschedule({
+      ...reschedule,
+      time: e.target.value
+    }),
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReschedule(null),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (!reschedule.date) {
+        alert("Sélectionnez une date");
+        return;
+      }
+      var newDue = new Date(reschedule.date).toLocaleDateString("fr-FR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short"
+      }) + (reschedule.time ? " · " + reschedule.time : "");
+      setExtraActions(arr => arr.map(x => x.id === reschedule.id ? {
+        ...x,
+        due: newDue
+      } : x));
+      setReschedule(null);
+    },
+    style: {
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Confirmer")))), editOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setEditOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.45)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      width: "100%",
+      maxWidth: 640,
+      maxHeight: "90vh",
+      overflow: "auto",
+      boxShadow: "0 20px 50px rgba(15,23,42,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px 22px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\xC9diter les informations compte"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, display.name)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditOpen(false),
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 20,
+      color: "#94a3b8",
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "01 \xB7 Entreprise"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Raison sociale"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.raison_sociale || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      raison_sociale: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "SIREN"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.siren || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      siren: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "NAF"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.naf || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      naf: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "TVA intra."), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.tva || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      tva: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Secteur d'activit\xE9"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.sector || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      sector: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 S\xE9lectionner \u2014"), ["Agriculture, sylviculture et pêche", "Industries extractives", "Industrie manufacturière", "Production et distribution d'électricité", "Eau, déchets et dépollution", "Construction & BTP", "Commerce", "Transports et entreposage", "Hébergement et restauration", "Information et communication", "Banque, finance & assurance", "Activités immobilières", "Activités spécialisées, scientifiques et techniques", "Services administratifs et de soutien", "Administration publique", "Enseignement", "Santé et action sociale", "Arts, spectacles et activités récréatives", "Autres activités de services", "Activités des ménages", "Activités extra-territoriales"].map(s => /*#__PURE__*/React.createElement("option", {
+    key: s,
+    value: s
+  }, s)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Sous-secteur"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.sousSecteur || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      sousSecteur: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Effectif"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.effectif || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      effectif: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", null, "1-50"), /*#__PURE__*/React.createElement("option", null, "51-250"), /*#__PURE__*/React.createElement("option", null, "251-1k"), /*#__PURE__*/React.createElement("option", null, "1k-5k"), /*#__PURE__*/React.createElement("option", null, "5k+"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Tier prospect"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.tier || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      tier: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "A"
+  }, "Tier A \u2014 Grand compte"), /*#__PURE__*/React.createElement("option", {
+    value: "B"
+  }, "Tier B \u2014 Compte secondaire"), /*#__PURE__*/React.createElement("option", {
+    value: "C"
+  }, "Tier C \u2014 Tactique")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Adresse"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.address || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      address: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 2fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Code postal"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Ville"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.addressCity || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      addressCity: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Site web"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.web || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      web: e.target.value
+    }),
+    placeholder: "www.\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "LinkedIn entreprise"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.linkedin || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      linkedin: e.target.value
+    }),
+    placeholder: "linkedin.com/company/\u2026",
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "02 \xB7 Contact principal"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Pr\xE9nom"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_prenom || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_prenom: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Nom"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_nom || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_nom: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Fonction (intitul\xE9)"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_fonction || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_fonction: e.target.value
+    }),
+    placeholder: "Ex. CFO, DSI\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: editDraft.cp_email || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_email: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "T\xE9l\xE9phone"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_phone || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_phone: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "LinkedIn profil"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_linkedin || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_linkedin: e.target.value
+    }),
+    placeholder: "linkedin.com/in/\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Niveau hi\xE9rarchique"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.fonction || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      fonction: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "Op\xE9r."
+  }, "Op\xE9rationnel"), /*#__PURE__*/React.createElement("option", {
+    value: "Mgr"
+  }, "Manager"), /*#__PURE__*/React.createElement("option", {
+    value: "Dir."
+  }, "Directeur"), /*#__PURE__*/React.createElement("option", {
+    value: "C-level"
+  }, "C-level"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "R\xF4les d\xE9cision"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      paddingTop: 4
+    }
+  }, ["Décideur", "Prescripteur", "Utilisateur", "Acheteur"].map(r => {
+    var on = (editDraft.roles || []).includes(r);
+    return /*#__PURE__*/React.createElement("button", {
+      key: r,
+      type: "button",
+      onClick: () => setEditDraft({
+        ...editDraft,
+        roles: on ? editDraft.roles.filter(x => x !== r) : [...(editDraft.roles || []), r]
+      }),
+      style: {
+        padding: "4px 10px",
+        border: on ? "1px solid #4f46e5" : "1px solid #e2e8f0",
+        background: on ? "#eef2ff" : "#fff",
+        borderRadius: 999,
+        fontSize: 11.5,
+        color: on ? "#3730a3" : "#475569",
+        cursor: "pointer",
+        fontWeight: on ? 600 : 500
+      }
+    }, r);
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "03 \xB7 Commercial Astorya"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Commercial attribu\xE9"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.owner || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      owner: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o.name,
+    value: o.name
+  }, o.name, " \xB7 ", o.role)))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "04 \xB7 Qualification"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Besoin exprim\xE9"), /*#__PURE__*/React.createElement("textarea", {
+    value: editDraft.besoin || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      besoin: e.target.value
+    }),
+    rows: 2,
+    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026",
+    style: {
+      ...editInput,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Concurrent actuel"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.concurrent || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      concurrent: e.target.value
+    }),
+    placeholder: "Ex. Salesforce, Pega\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Montant concurrent (k\u20AC/an)"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.concurrentAmount || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      concurrentAmount: e.target.value
+    }),
+    placeholder: "0",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: editDraft.projectDate || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      projectDate: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "05 \xB7 Origine & prochaines \xE9tapes"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Source du prospect"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.source || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      source: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir \u2014"), /*#__PURE__*/React.createElement("option", null, "Radar fin de contrat concurrent"), /*#__PURE__*/React.createElement("option", null, "LinkedIn / Sales Navigator"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Recommandation client"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Demande de devis"), /*#__PURE__*/React.createElement("option", null, "Cold call sortant"), /*#__PURE__*/React.createElement("option", null, "Cold email sortant"), /*#__PURE__*/React.createElement("option", null, "Webinar / \xE9v\xE9nement Astorya"), /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rencement (Google, Bing)"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau partenaires"), /*#__PURE__*/React.createElement("option", null, "Article de presse"), /*#__PURE__*/React.createElement("option", null, "Autre"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Premi\xE8re action"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.action || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      action: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "email"
+  }, "\uD83D\uDCE7 Email d'introduction"), /*#__PURE__*/React.createElement("option", {
+    value: "call"
+  }, "\uD83D\uDCDE Cold call"), /*#__PURE__*/React.createElement("option", {
+    value: "in"
+  }, "in LinkedIn"), /*#__PURE__*/React.createElement("option", {
+    value: "wait"
+  }, "\uD83D\uDCC5 Inviter \xE0 un \xE9v\xE9nement")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Notes internes"), /*#__PURE__*/React.createElement("textarea", {
+    value: editDraft.desc || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      desc: e.target.value
+    }),
+    rows: 3,
+    placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026",
+    style: {
+      ...editInput,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditOpen(false),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: saveEdit,
+    style: {
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Enregistrer")))), addActionOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setAddActionOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.45)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      width: "100%",
+      maxWidth: 560,
+      maxHeight: "90vh",
+      overflow: "auto",
+      boxShadow: "0 20px 50px rgba(15,23,42,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px 22px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "Nouvelle action \xE0 mener"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, "Planifier une t\xE2che, un appel, un rendez-vous\u2026")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAddActionOpen(false),
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 20,
+      color: "#94a3b8",
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Type"), /*#__PURE__*/React.createElement("select", {
+    value: newAction.type,
+    onChange: e => setNewAction({
+      ...newAction,
+      type: e.target.value
+    }),
+    style: modalInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "email"
+  }, "\u2709 Email"), /*#__PURE__*/React.createElement("option", {
+    value: "call"
+  }, "\uD83D\uDCDE Appel"), /*#__PURE__*/React.createElement("option", {
+    value: "visio"
+  }, "\uD83D\uDCF9 Visio"), /*#__PURE__*/React.createElement("option", {
+    value: "rdv"
+  }, "\uD83E\uDD1D Rendez-vous"), /*#__PURE__*/React.createElement("option", {
+    value: "task"
+  }, "\u2705 T\xE2che"), /*#__PURE__*/React.createElement("option", {
+    value: "note"
+  }, "\uD83D\uDCDD Note"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Titre *"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: newAction.title,
+    onChange: e => setNewAction({
+      ...newAction,
+      title: e.target.value
+    }),
+    placeholder: "Ex. Relance proposition commerciale",
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: newAction.date,
+    onChange: e => setNewAction({
+      ...newAction,
+      date: e.target.value
+    }),
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Heure"), /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: newAction.time,
+    onChange: e => setNewAction({
+      ...newAction,
+      time: e.target.value
+    }),
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Priorit\xE9"), /*#__PURE__*/React.createElement("select", {
+    value: newAction.priority,
+    onChange: e => setNewAction({
+      ...newAction,
+      priority: e.target.value
+    }),
+    style: modalInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "haute"
+  }, "\uD83D\uDD34 Haute"), /*#__PURE__*/React.createElement("option", {
+    value: "moyenne"
+  }, "\uD83D\uDFE0 Moyenne"), /*#__PURE__*/React.createElement("option", {
+    value: "basse"
+  }, "\uD83D\uDFE2 Basse"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Assign\xE9 \xE0"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: newAction.assigned,
+    onChange: e => setNewAction({
+      ...newAction,
+      assigned: e.target.value
+    }),
+    placeholder: "Vous",
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Tag / R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: newAction.tag,
+    onChange: e => setNewAction({
+      ...newAction,
+      tag: e.target.value
+    }),
+    placeholder: "Ex. OPP-2026-001",
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Description / Notes"), /*#__PURE__*/React.createElement("textarea", {
+    value: newAction.meta,
+    onChange: e => setNewAction({
+      ...newAction,
+      meta: e.target.value
+    }),
+    rows: 3,
+    placeholder: "Contexte, points \xE0 aborder\u2026",
+    style: {
+      ...modalInput,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAddActionOpen(false),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: submitNewAction,
+    style: {
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Cr\xE9er l'action")))));
+};
+var modalLabel = {
+  display: "block",
+  fontSize: 11.5,
+  fontWeight: 600,
+  color: "#475569",
+  marginBottom: 5,
+  textTransform: "uppercase",
+  letterSpacing: 0.3
+};
+var modalInput = {
+  width: "100%",
+  padding: "9px 11px",
+  border: "1px solid #e2e8f0",
+  borderRadius: 7,
+  fontSize: 13,
+  color: "#0f172a",
+  background: "#fff",
+  boxSizing: "border-box",
+  outline: "none"
+};
+var editLabel = modalLabel;
+var editInput = modalInput;
+var editSection = {
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#4f46e5",
+  textTransform: "uppercase",
+  letterSpacing: 0.5,
+  padding: "8px 0 4px",
+  borderBottom: "1px solid #eef1f5",
+  marginTop: 4
 };
 var DetailRow = ({
   label,
@@ -2747,6 +4096,19 @@ var cliStyles = {
     cursor: "pointer",
     fontSize: 14,
     borderRadius: 4
+  },
+  menuItem: {
+    display: "block",
+    width: "100%",
+    padding: "8px 12px",
+    border: "none",
+    background: "transparent",
+    color: "#0f172a",
+    fontSize: 12.5,
+    fontWeight: 500,
+    textAlign: "left",
+    cursor: "pointer",
+    borderRadius: 5
   },
   // Menées
   pastList: {

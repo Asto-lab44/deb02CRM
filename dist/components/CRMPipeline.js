@@ -980,7 +980,7 @@ var CRMPipeline = () => {
     style: crmStyles.filterPill
   }, "+ Montant"), /*#__PURE__*/React.createElement("button", {
     style: crmStyles.filterPill
-  }, "+ Owner"), /*#__PURE__*/React.createElement("button", {
+  }, "+ Commercial"), /*#__PURE__*/React.createElement("button", {
     style: crmStyles.filterPill
   }, "+ Date close"), /*#__PURE__*/React.createElement("span", {
     style: crmStyles.divider

@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hub Astorya — Nouveau prospect</title>
+  <title>Hub Astorya — Nouveau contrat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #f3f5f8; font-family: 'Inter', system-ui, sans-serif; }
-    #root { height: 100vh; }
+    html, body { margin: 0; padding: 0; height: 100%; background: #fafbfc; font-family: 'Inter', system-ui, sans-serif; }
+    #root { min-height: 100vh; }
   </style>
 
   <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -19,16 +19,17 @@
   <div id="root"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
-  <script src="components/supabase-config.js?v=202605281500"></script>
-  <script src="components/supabase-client.js?v=202605281500"></script>
-  <script src="components/hub-data.js?v=202605281500"></script>
-  <script src="components/hub-nav.js?v=202605281500"></script>
-  <script defer src="dist/design-canvas.js?v=202605281500"></script>
-  <script defer src="dist/components/NewProspect.js?v=202605281500"></script>
+  <script src="components/supabase-config.js?v=202605281445"></script>
+  <script src="components/supabase-client.js?v=202605281445"></script>
+  <script src="components/access-store.js?v=202605281445"></script>
+  <script src="components/hub-data.js?v=202605281445"></script>
+  <script src="components/hub-nav.js?v=202605281445"></script>
+  <script defer src="dist/design-canvas.js?v=202605281445"></script>
+  <script defer src="dist/components/NewContract.js?v=202605281445"></script>
 
   <script defer>
-    window.addEventListener("DOMContentLoaded", function () {
-      var App = function () { return React.createElement(NewProspect); };
+    window.addEventListener("DOMContentLoaded", function() {
+      var App = function() { return React.createElement(NewContract); };
       ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
     });
   </script>

@@ -6,7 +6,7 @@ const NewProspect = () => {
   const [tier,       setTier]       = React.useState(null);
   const [fonction,   setFonction]   = React.useState(null);
   const [roles,      setRoles]      = React.useState([]);
-  const [action,     setAction]     = React.useState(null);
+  const [action,     setAction]     = React.useState("email");
   const [ca,         setCa]         = React.useState("");
   const [contactPrenom, setContactPrenom] = React.useState("");
   const [contactNom,    setContactNom]    = React.useState("");
@@ -314,8 +314,8 @@ const NewProspect = () => {
       } catch (e) { /* tolère l'échec, le local survit */ }
     }
 
-    showFlash("✓ Prospect créé — redirection vers Comptes & Contacts…");
-    setTimeout(() => { window.location.href = "/crm#comptes"; }, 900);
+    showFlash("✓ Prospect créé — ouverture de sa fiche…");
+    setTimeout(() => { window.location.href = "/fiche-client?id=" + encodeURIComponent(payload.id); }, 900);
   };
 
   const Avatar = ({ name, size = 22, color }) => {
@@ -715,7 +715,7 @@ const NewProspect = () => {
               </FormRow>
             </div>
 
-            <FormRow label="Owner attribué" required>
+            <FormRow label="Commercial attribué" required>
               <div style={{ position: "relative" }}>
                 <div style={npStyles.linkedCardMini}>
                   <Avatar name={owner.name} size={26} color={owner.color} />

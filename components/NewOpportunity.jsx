@@ -473,10 +473,10 @@ const NewOpportunity = () => {
 
               {/* SECTION 4 — Équipe & concurrence */}
               <section style={noStyles.section}>
-                <SectionHead num="04" title="Équipe & concurrence" subtitle="Owner, co-owner et environnement compétitif" />
+                <SectionHead num="04" title="Équipe & concurrence" subtitle="Commercial attribué et environnement compétitif" />
 
                 <div style={noStyles.formGrid2}>
-                  <FormRow label="Owner" required>
+                  <FormRow label="Commercial" required>
                     <div style={noStyles.linkedCardMini}>
                       <Avatar name="Nadia Lefèvre" size={24} color="#a855f7" />
                       <div style={{ flex: 1 }}>
@@ -634,7 +634,7 @@ const NewOpportunity = () => {
                 <ChecklistRow done label="Nom & description" />
                 <ChecklistRow done label="Montant & durée" />
                 <ChecklistRow done label="Date de clôture" />
-                <ChecklistRow active label="Owner & équipe" />
+                <ChecklistRow active label="Commercial & équipe" />
                 <ChecklistRow label="Produits & pricing détaillé" />
                 <ChecklistRow label="Validation finale" />
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #eef1f5" }}>

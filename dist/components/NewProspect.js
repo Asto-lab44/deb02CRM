@@ -6,7 +6,7 @@ var NewProspect = () => {
   var [tier, setTier] = React.useState(null);
   var [fonction, setFonction] = React.useState(null);
   var [roles, setRoles] = React.useState([]);
-  var [action, setAction] = React.useState(null);
+  var [action, setAction] = React.useState("email");
   var [ca, setCa] = React.useState("");
   var [contactPrenom, setContactPrenom] = React.useState("");
   var [contactNom, setContactNom] = React.useState("");
@@ -374,9 +374,9 @@ var NewProspect = () => {
         }
       } catch (e) {/* tolère l'échec, le local survit */}
     }
-    showFlash("✓ Prospect créé — redirection vers Comptes & Contacts…");
+    showFlash("✓ Prospect créé — ouverture de sa fiche…");
     setTimeout(() => {
-      window.location.href = "/crm#comptes";
+      window.location.href = "/fiche-client?id=" + encodeURIComponent(payload.id);
     }, 900);
   };
   var Avatar = ({
@@ -1104,7 +1104,7 @@ var NewProspect = () => {
   }, "\u2014 Choisir une source \u2014"), /*#__PURE__*/React.createElement("option", null, "Radar fin de contrat concurrent"), /*#__PURE__*/React.createElement("option", null, "LinkedIn / Sales Navigator"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Recommandation client"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Demande de devis"), /*#__PURE__*/React.createElement("option", null, "Cold call sortant"), /*#__PURE__*/React.createElement("option", null, "Cold email sortant"), /*#__PURE__*/React.createElement("option", null, "Webinar / \xE9v\xE9nement Astorya"), /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rencement (Google, Bing)"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau partenaires"), /*#__PURE__*/React.createElement("option", null, "Article de presse"), /*#__PURE__*/React.createElement("option", null, "Autre")), source && /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
   }, "Source enregistr\xE9e : ", source))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Owner attribu\xE9",
+    label: "Commercial attribu\xE9",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: {

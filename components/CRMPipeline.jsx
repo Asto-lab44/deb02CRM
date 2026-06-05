@@ -341,7 +341,7 @@ const CRMPipeline = () => {
           <div style={{ display: "flex", gap: 6 }}>
             <button style={crmStyles.filterPill}>+ Produit</button>
             <button style={crmStyles.filterPill}>+ Montant</button>
-            <button style={crmStyles.filterPill}>+ Owner</button>
+            <button style={crmStyles.filterPill}>+ Commercial</button>
             <button style={crmStyles.filterPill}>+ Date close</button>
             <span style={crmStyles.divider} />
             <button style={crmStyles.filterPill}>↕ Montant</button>

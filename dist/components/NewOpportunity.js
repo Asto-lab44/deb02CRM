@@ -838,11 +838,11 @@ var NewOpportunity = () => {
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "04",
     title: "\xC9quipe & concurrence",
-    subtitle: "Owner, co-owner et environnement comp\xE9titif"
+    subtitle: "Commercial attribu\xE9 et environnement comp\xE9titif"
   }), /*#__PURE__*/React.createElement("div", {
     style: noStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
-    label: "Owner",
+    label: "Commercial",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.linkedCardMini
@@ -1301,7 +1301,7 @@ var NewOpportunity = () => {
     label: "Date de cl\xF4ture"
   }), /*#__PURE__*/React.createElement(ChecklistRow, {
     active: true,
-    label: "Owner & \xE9quipe"
+    label: "Commercial & \xE9quipe"
   }), /*#__PURE__*/React.createElement(ChecklistRow, {
     label: "Produits & pricing d\xE9taill\xE9"
   }), /*#__PURE__*/React.createElement(ChecklistRow, {

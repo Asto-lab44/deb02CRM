@@ -507,28 +507,42 @@ var ClientPage = () => {
     besoin: c.besoin || ""
   };
   var openEdit = () => {
+    var cp = c.contact_principal || {};
     setEditDraft({
-      owner: display.owner === "—" ? "" : display.owner,
-      coowner: display.coowner === "—" ? "" : display.coowner,
+      // Entreprise
+      raison_sociale: c.raison_sociale || c.name || "",
+      siren: display.siren || "",
+      naf: display.naf || "",
+      tva: display.tva || "",
       sector: display.sector === "—" ? "" : display.sector,
       sousSecteur: display.sousSecteur || "",
-      source: display.source === "—" ? "" : display.source,
-      concurrent: display.concurrent === "—" ? "" : display.concurrent,
-      concurrentEnd: display.concurrentEnd || "",
-      concurrentAmount: display.concurrentAmount || "",
-      contactDate: display.contactDate || "",
-      projectDate: display.projectDate || "",
+      effectif: c.effectif || "",
       tier: display.tier || "",
-      ca: display.ca || "",
       address: display.address === "—" ? "" : display.address,
       cp: display.cp || "",
       addressCity: display.addressCity || "",
       web: display.web || "",
       linkedin: display.linkedin || "",
-      siren: display.siren || "",
-      naf: display.naf || "",
-      tva: display.tva || "",
-      desc: c.notes || c.besoin || ""
+      // Équipe Astorya
+      owner: display.owner === "—" ? "" : display.owner,
+      coowner: display.coowner === "—" ? "" : display.coowner,
+      // Contact principal
+      cp_prenom: cp.prenom || "",
+      cp_nom: cp.nom || "",
+      cp_fonction: cp.fonction || "",
+      cp_email: cp.email || "",
+      cp_phone: cp.phone || "",
+      cp_linkedin: cp.linkedin || "",
+      fonction: display.fonction || "",
+      roles: Array.isArray(c.roles) ? c.roles : [],
+      // Qualification
+      source: display.source === "—" ? "" : display.source,
+      concurrent: display.concurrent === "—" ? "" : display.concurrent,
+      concurrentAmount: display.concurrentAmount || "",
+      projectDate: display.projectDate || "",
+      besoin: display.besoin || c.besoin || "",
+      action: display.action || "",
+      desc: c.notes || ""
     });
     setEditOpen(true);
   };
@@ -540,6 +554,8 @@ var ClientPage = () => {
     var ownerObj = ownerListE.find(o => o.name === editDraft.owner);
     var coownerObj = ownerListE.find(o => o.name === editDraft.coowner);
     var patch = {
+      raison_sociale: editDraft.raison_sociale || null,
+      name: editDraft.raison_sociale || null,
       owner: editDraft.owner || null,
       owner_role: ownerObj ? ownerObj.role : null,
       owner_color: ownerObj ? ownerObj.color : null,
@@ -547,14 +563,12 @@ var ClientPage = () => {
       coowner_color: coownerObj ? coownerObj.color : null,
       secteur: editDraft.sector || null,
       sous_secteur: editDraft.sousSecteur || null,
+      effectif: editDraft.effectif || null,
       source: editDraft.source || null,
       concurrent: editDraft.concurrent || null,
-      concurrent_end: editDraft.concurrentEnd || null,
       concurrent_amount: editDraft.concurrentAmount || null,
-      contact_date: editDraft.contactDate || null,
       project_date: editDraft.projectDate || null,
       tier: editDraft.tier || null,
-      ca_meur: editDraft.ca || null,
       adresse: editDraft.address || null,
       code_postal: editDraft.cp || null,
       ville: editDraft.addressCity || null,
@@ -563,6 +577,18 @@ var ClientPage = () => {
       siren: editDraft.siren || null,
       naf: editDraft.naf || null,
       tva: editDraft.tva || null,
+      besoin: editDraft.besoin || null,
+      action: editDraft.action || null,
+      fonction: editDraft.fonction || null,
+      roles: Array.isArray(editDraft.roles) ? editDraft.roles : [],
+      contact_principal: {
+        prenom: editDraft.cp_prenom || "",
+        nom: editDraft.cp_nom || "",
+        fonction: editDraft.cp_fonction || "",
+        email: editDraft.cp_email || "",
+        phone: editDraft.cp_phone || "",
+        linkedin: editDraft.cp_linkedin || ""
+      },
       notes: editDraft.desc || null
     };
     try {
@@ -1415,7 +1441,7 @@ var ClientPage = () => {
       rows.push(["Health score", "78 / 100"]);
       rows.push([]);
       rows.push(["Opportunités"]);
-      rows.push(["Ref", "Nom", "Étape", "Montant", "Owner", "Clôture"]);
+      rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
       opportunities.forEach(o => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
       var csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
       var a = document.createElement("a");
@@ -2002,7 +2028,27 @@ var ClientPage = () => {
     }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.contactsGrid
-  }, allContacts.map(p => /*#__PURE__*/React.createElement("div", {
+  }, allContacts.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1",
+      padding: "24px 16px",
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc",
+      lineHeight: 1.6
+    }
+  }, "Aucun contact renseign\xE9 pour ce client.", /*#__PURE__*/React.createElement("br", null), "Cliquez sur ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#4f46e5"
+    }
+  }, "\xC9diter"), " dans le panneau Informations compte pour ajouter le contact principal, ou sur ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#4f46e5"
+    }
+  }, "+ Ajouter"), " ci-dessus pour un contact secondaire."), allContacts.map(p => /*#__PURE__*/React.createElement("div", {
     key: p.name,
     style: cliStyles.contactCard
   }, /*#__PURE__*/React.createElement("div", {
@@ -2144,7 +2190,7 @@ var ClientPage = () => {
       padding: 4
     }
   }, /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Owner",
+    label: "Commercial",
     value: display.owner === "—" ? /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
@@ -2166,29 +2212,11 @@ var ClientPage = () => {
         fontWeight: 500
       }
     }, display.owner))
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Co-owner",
-    value: display.coowner === "—" ? /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        color: "#94a3b8"
-      }
-    }, "\u2014") : /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 7
-      }
-    }, /*#__PURE__*/React.createElement(Avatar, {
-      name: display.coowner,
-      size: 22,
-      color: display.coownerColor
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 500
-      }
-    }, display.coowner))
+  }), display.size && display.size !== "—" && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Effectif",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, display.size)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: "Secteur",
     value: /*#__PURE__*/React.createElement("span", {
@@ -2781,174 +2809,23 @@ var ClientPage = () => {
       gap: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editSection
+  }, "01 \xB7 Entreprise"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
-  }, "Owner"), /*#__PURE__*/React.createElement("select", {
-    value: editDraft.owner || "",
+  }, "Raison sociale"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.raison_sociale || "",
     onChange: e => setEditDraft({
       ...editDraft,
-      owner: e.target.value
+      raison_sociale: e.target.value
     }),
     style: editInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
-    key: o.name,
-    value: o.name
-  }, o.name, " \xB7 ", o.role)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Co-owner"), /*#__PURE__*/React.createElement("select", {
-    value: editDraft.coowner || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      coowner: e.target.value
-    }),
-    style: editInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
-    key: o.name,
-    value: o.name
-  }, o.name, " \xB7 ", o.role))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Secteur d'activit\xE9"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.sector || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      sector: e.target.value
-    }),
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Sous-secteur"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.sousSecteur || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      sousSecteur: e.target.value
-    }),
-    style: editInput
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Source"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.source || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      source: e.target.value
-    }),
-    placeholder: "Ex. LinkedIn, salon\u2026",
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Concurrent"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.concurrent || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      concurrent: e.target.value
-    }),
-    placeholder: "Ex. Salesforce",
-    style: editInput
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Fin contrat concurrent"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: editDraft.concurrentEnd || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      concurrentEnd: e.target.value
-    }),
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Montant concurrent (k\u20AC/an)"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.concurrentAmount || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      concurrentAmount: e.target.value
-    }),
-    placeholder: "0",
-    style: editInput
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Date 1er contact"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: editDraft.contactDate || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      contactDate: e.target.value
-    }),
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: editDraft.projectDate || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      projectDate: e.target.value
-    }),
-    style: editInput
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr 1fr",
       gap: 12
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Tier"), /*#__PURE__*/React.createElement("select", {
-    value: editDraft.tier || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      tier: e.target.value
-    }),
-    style: editInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
-    value: "A"
-  }, "Tier A"), /*#__PURE__*/React.createElement("option", {
-    value: "B"
-  }, "Tier B"), /*#__PURE__*/React.createElement("option", {
-    value: "C"
-  }, "Tier C"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "CA (M\u20AC)"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.ca || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      ca: e.target.value
-    }),
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
   }, "SIREN"), /*#__PURE__*/React.createElement("input", {
     value: editDraft.siren || "",
@@ -2957,13 +2834,7 @@ var ClientPage = () => {
       siren: e.target.value
     }),
     style: editInput
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
   }, "NAF"), /*#__PURE__*/React.createElement("input", {
     value: editDraft.naf || "",
@@ -2981,7 +2852,70 @@ var ClientPage = () => {
       tva: e.target.value
     }),
     style: editInput
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Secteur d'activit\xE9"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.sector || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      sector: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 S\xE9lectionner \u2014"), ["Agriculture, sylviculture et pêche", "Industries extractives", "Industrie manufacturière", "Production et distribution d'électricité", "Eau, déchets et dépollution", "Construction & BTP", "Commerce", "Transports et entreposage", "Hébergement et restauration", "Information et communication", "Banque, finance & assurance", "Activités immobilières", "Activités spécialisées, scientifiques et techniques", "Services administratifs et de soutien", "Administration publique", "Enseignement", "Santé et action sociale", "Arts, spectacles et activités récréatives", "Autres activités de services", "Activités des ménages", "Activités extra-territoriales"].map(s => /*#__PURE__*/React.createElement("option", {
+    key: s,
+    value: s
+  }, s)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Sous-secteur"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.sousSecteur || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      sousSecteur: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Effectif"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.effectif || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      effectif: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", null, "1-50"), /*#__PURE__*/React.createElement("option", null, "51-250"), /*#__PURE__*/React.createElement("option", null, "251-1k"), /*#__PURE__*/React.createElement("option", null, "1k-5k"), /*#__PURE__*/React.createElement("option", null, "5k+"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Tier prospect"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.tier || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      tier: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "A"
+  }, "Tier A \u2014 Grand compte"), /*#__PURE__*/React.createElement("option", {
+    value: "B"
+  }, "Tier B \u2014 Compte secondaire"), /*#__PURE__*/React.createElement("option", {
+    value: "C"
+  }, "Tier C \u2014 Tactique")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
   }, "Adresse"), /*#__PURE__*/React.createElement("input", {
     value: editDraft.address || "",
@@ -3032,7 +2966,7 @@ var ClientPage = () => {
     style: editInput
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
-  }, "LinkedIn"), /*#__PURE__*/React.createElement("input", {
+  }, "LinkedIn entreprise"), /*#__PURE__*/React.createElement("input", {
     value: editDraft.linkedin || "",
     onChange: e => setEditDraft({
       ...editDraft,
@@ -3040,15 +2974,248 @@ var ClientPage = () => {
     }),
     placeholder: "linkedin.com/company/\u2026",
     style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "02 \xB7 Contact principal"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Pr\xE9nom"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_prenom || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_prenom: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Nom"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_nom || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_nom: e.target.value
+    }),
+    style: editInput
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
-  }, "Description / Notes"), /*#__PURE__*/React.createElement("textarea", {
+  }, "Fonction (intitul\xE9)"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_fonction || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_fonction: e.target.value
+    }),
+    placeholder: "Ex. CFO, DSI\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: editDraft.cp_email || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_email: e.target.value
+    }),
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "T\xE9l\xE9phone"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_phone || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_phone: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "LinkedIn profil"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.cp_linkedin || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      cp_linkedin: e.target.value
+    }),
+    placeholder: "linkedin.com/in/\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Niveau hi\xE9rarchique"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.fonction || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      fonction: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "Op\xE9r."
+  }, "Op\xE9rationnel"), /*#__PURE__*/React.createElement("option", {
+    value: "Mgr"
+  }, "Manager"), /*#__PURE__*/React.createElement("option", {
+    value: "Dir."
+  }, "Directeur"), /*#__PURE__*/React.createElement("option", {
+    value: "C-level"
+  }, "C-level"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "R\xF4les d\xE9cision"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      paddingTop: 4
+    }
+  }, ["Décideur", "Prescripteur", "Utilisateur", "Acheteur"].map(r => {
+    var on = (editDraft.roles || []).includes(r);
+    return /*#__PURE__*/React.createElement("button", {
+      key: r,
+      type: "button",
+      onClick: () => setEditDraft({
+        ...editDraft,
+        roles: on ? editDraft.roles.filter(x => x !== r) : [...(editDraft.roles || []), r]
+      }),
+      style: {
+        padding: "4px 10px",
+        border: on ? "1px solid #4f46e5" : "1px solid #e2e8f0",
+        background: on ? "#eef2ff" : "#fff",
+        borderRadius: 999,
+        fontSize: 11.5,
+        color: on ? "#3730a3" : "#475569",
+        cursor: "pointer",
+        fontWeight: on ? 600 : 500
+      }
+    }, r);
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "03 \xB7 Commercial Astorya"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Commercial attribu\xE9"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.owner || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      owner: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o.name,
+    value: o.name
+  }, o.name, " \xB7 ", o.role)))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "04 \xB7 Qualification"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Besoin exprim\xE9"), /*#__PURE__*/React.createElement("textarea", {
+    value: editDraft.besoin || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      besoin: e.target.value
+    }),
+    rows: 2,
+    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026",
+    style: {
+      ...editInput,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Concurrent actuel"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.concurrent || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      concurrent: e.target.value
+    }),
+    placeholder: "Ex. Salesforce, Pega\u2026",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Montant concurrent (k\u20AC/an)"), /*#__PURE__*/React.createElement("input", {
+    value: editDraft.concurrentAmount || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      concurrentAmount: e.target.value
+    }),
+    placeholder: "0",
+    style: editInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: editDraft.projectDate || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      projectDate: e.target.value
+    }),
+    style: editInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: editSection
+  }, "05 \xB7 Origine & prochaines \xE9tapes"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Source du prospect"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.source || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      source: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir \u2014"), /*#__PURE__*/React.createElement("option", null, "Radar fin de contrat concurrent"), /*#__PURE__*/React.createElement("option", null, "LinkedIn / Sales Navigator"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Recommandation client"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Demande de devis"), /*#__PURE__*/React.createElement("option", null, "Cold call sortant"), /*#__PURE__*/React.createElement("option", null, "Cold email sortant"), /*#__PURE__*/React.createElement("option", null, "Webinar / \xE9v\xE9nement Astorya"), /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rencement (Google, Bing)"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau partenaires"), /*#__PURE__*/React.createElement("option", null, "Article de presse"), /*#__PURE__*/React.createElement("option", null, "Autre"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Premi\xE8re action"), /*#__PURE__*/React.createElement("select", {
+    value: editDraft.action || "",
+    onChange: e => setEditDraft({
+      ...editDraft,
+      action: e.target.value
+    }),
+    style: editInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "email"
+  }, "\uD83D\uDCE7 Email d'introduction"), /*#__PURE__*/React.createElement("option", {
+    value: "call"
+  }, "\uD83D\uDCDE Cold call"), /*#__PURE__*/React.createElement("option", {
+    value: "in"
+  }, "in LinkedIn"), /*#__PURE__*/React.createElement("option", {
+    value: "wait"
+  }, "\uD83D\uDCC5 Inviter \xE0 un \xE9v\xE9nement")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: editLabel
+  }, "Notes internes"), /*#__PURE__*/React.createElement("textarea", {
     value: editDraft.desc || "",
     onChange: e => setEditDraft({
       ...editDraft,
       desc: e.target.value
     }),
     rows: 3,
+    placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026",
     style: {
       ...editInput,
       resize: "vertical",
@@ -3316,6 +3483,16 @@ var modalInput = {
 };
 var editLabel = modalLabel;
 var editInput = modalInput;
+var editSection = {
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#4f46e5",
+  textTransform: "uppercase",
+  letterSpacing: 0.5,
+  padding: "8px 0 4px",
+  borderBottom: "1px solid #eef1f5",
+  marginTop: 4
+};
 var DetailRow = ({
   label,
   value

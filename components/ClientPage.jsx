@@ -325,37 +325,54 @@ const ClientPage = () => {
   };
 
   const openEdit = () => {
+    const cp = c.contact_principal || {};
     setEditDraft({
-      owner: display.owner === "—" ? "" : display.owner,
-      coowner: display.coowner === "—" ? "" : display.coowner,
+      // Entreprise
+      raison_sociale: c.raison_sociale || c.name || "",
+      siren: display.siren || "",
+      naf: display.naf || "",
+      tva: display.tva || "",
       sector: display.sector === "—" ? "" : display.sector,
       sousSecteur: display.sousSecteur || "",
-      source: display.source === "—" ? "" : display.source,
-      concurrent: display.concurrent === "—" ? "" : display.concurrent,
-      concurrentEnd: display.concurrentEnd || "",
-      concurrentAmount: display.concurrentAmount || "",
-      contactDate: display.contactDate || "",
-      projectDate: display.projectDate || "",
+      effectif: c.effectif || "",
       tier: display.tier || "",
-      ca: display.ca || "",
       address: display.address === "—" ? "" : display.address,
       cp: display.cp || "",
       addressCity: display.addressCity || "",
       web: display.web || "",
       linkedin: display.linkedin || "",
-      siren: display.siren || "",
-      naf: display.naf || "",
-      tva: display.tva || "",
-      desc: c.notes || c.besoin || "",
+      // Équipe Astorya
+      owner: display.owner === "—" ? "" : display.owner,
+      coowner: display.coowner === "—" ? "" : display.coowner,
+      // Contact principal
+      cp_prenom: cp.prenom || "",
+      cp_nom: cp.nom || "",
+      cp_fonction: cp.fonction || "",
+      cp_email: cp.email || "",
+      cp_phone: cp.phone || "",
+      cp_linkedin: cp.linkedin || "",
+      fonction: display.fonction || "",
+      roles: Array.isArray(c.roles) ? c.roles : [],
+      // Qualification
+      source: display.source === "—" ? "" : display.source,
+      concurrent: display.concurrent === "—" ? "" : display.concurrent,
+      concurrentAmount: display.concurrentAmount || "",
+      projectDate: display.projectDate || "",
+      besoin: display.besoin || c.besoin || "",
+      action: display.action || "",
+      desc: c.notes || "",
     });
     setEditOpen(true);
   };
+
 
   const saveEdit = () => {
     if (!urlId) { alert("Édition uniquement disponible pour les prospects créés"); return; }
     const ownerObj = ownerListE.find((o) => o.name === editDraft.owner);
     const coownerObj = ownerListE.find((o) => o.name === editDraft.coowner);
     const patch = {
+      raison_sociale: editDraft.raison_sociale || null,
+      name: editDraft.raison_sociale || null,
       owner: editDraft.owner || null,
       owner_role: ownerObj ? ownerObj.role : null,
       owner_color: ownerObj ? ownerObj.color : null,
@@ -363,14 +380,12 @@ const ClientPage = () => {
       coowner_color: coownerObj ? coownerObj.color : null,
       secteur: editDraft.sector || null,
       sous_secteur: editDraft.sousSecteur || null,
+      effectif: editDraft.effectif || null,
       source: editDraft.source || null,
       concurrent: editDraft.concurrent || null,
-      concurrent_end: editDraft.concurrentEnd || null,
       concurrent_amount: editDraft.concurrentAmount || null,
-      contact_date: editDraft.contactDate || null,
       project_date: editDraft.projectDate || null,
       tier: editDraft.tier || null,
-      ca_meur: editDraft.ca || null,
       adresse: editDraft.address || null,
       code_postal: editDraft.cp || null,
       ville: editDraft.addressCity || null,
@@ -379,6 +394,18 @@ const ClientPage = () => {
       siren: editDraft.siren || null,
       naf: editDraft.naf || null,
       tva: editDraft.tva || null,
+      besoin: editDraft.besoin || null,
+      action: editDraft.action || null,
+      fonction: editDraft.fonction || null,
+      roles: Array.isArray(editDraft.roles) ? editDraft.roles : [],
+      contact_principal: {
+        prenom: editDraft.cp_prenom || "",
+        nom: editDraft.cp_nom || "",
+        fonction: editDraft.cp_fonction || "",
+        email: editDraft.cp_email || "",
+        phone: editDraft.cp_phone || "",
+        linkedin: editDraft.cp_linkedin || "",
+      },
       notes: editDraft.desc || null,
     };
     try {
@@ -717,7 +744,7 @@ const ClientPage = () => {
                 rows.push(["Health score", "78 / 100"]);
                 rows.push([]);
                 rows.push(["Opportunités"]);
-                rows.push(["Ref", "Nom", "Étape", "Montant", "Owner", "Clôture"]);
+                rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
                 opportunities.forEach((o) => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
                 const csv = rows.map((r) => r.map((c) => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
                 const a = document.createElement("a");
@@ -1034,6 +1061,12 @@ const ClientPage = () => {
                   <button onClick={addContact} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>+ Ajouter</button>
                 </div>
                 <div style={cliStyles.contactsGrid}>
+                  {allContacts.length === 0 && (
+                    <div style={{ gridColumn: "1 / -1", padding: "24px 16px", textAlign: "center", fontSize: 12.5, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc", lineHeight: 1.6 }}>
+                      Aucun contact renseigné pour ce client.<br/>
+                      Cliquez sur <strong style={{ color: "#4f46e5" }}>Éditer</strong> dans le panneau Informations compte pour ajouter le contact principal, ou sur <strong style={{ color: "#4f46e5" }}>+ Ajouter</strong> ci-dessus pour un contact secondaire.
+                    </div>
+                  )}
                   {allContacts.map((p) => (
                     <div key={p.name} style={cliStyles.contactCard}>
                       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -1087,7 +1120,7 @@ const ClientPage = () => {
                   <button onClick={openEdit} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>Éditer</button>
                 </div>
                 <div style={{ padding: 4 }}>
-                  <DetailRow label="Owner" value={
+                  <DetailRow label="Commercial" value={
                     display.owner === "—" ? <span style={{ fontSize: 12.5, color: "#94a3b8" }}>—</span> : (
                       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                         <Avatar name={display.owner} size={22} color={display.ownerColor} />
@@ -1095,14 +1128,7 @@ const ClientPage = () => {
                       </div>
                     )
                   } />
-                  <DetailRow label="Co-owner" value={
-                    display.coowner === "—" ? <span style={{ fontSize: 12.5, color: "#94a3b8" }}>—</span> : (
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <Avatar name={display.coowner} size={22} color={display.coownerColor} />
-                        <span style={{ fontSize: 12.5, fontWeight: 500 }}>{display.coowner}</span>
-                      </div>
-                    )
-                  } />
+                  {display.size && display.size !== "—" && <DetailRow label="Effectif" value={<span style={cliStyles.fieldChip}>{display.size}</span>} />}
                   <DetailRow label="Secteur" value={<span style={cliStyles.fieldChip}>{display.sector}</span>} />
                   {display.sousSecteur && <DetailRow label="Sous-secteur" value={<span style={cliStyles.fieldChip}>{display.sousSecteur}</span>} />}
                   <DetailRow label="Source" value={<span style={cliStyles.fieldChip}>{display.source}</span>} />
@@ -1278,88 +1304,17 @@ const ClientPage = () => {
             </div>
 
             <div style={{ padding: 22, display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Owner</label>
-                  <select value={editDraft.owner || ""} onChange={(e) => setEditDraft({ ...editDraft, owner: e.target.value })} style={editInput}>
-                    <option value="">— Aucun —</option>
-                    {ownerListE.map((o) => <option key={o.name} value={o.name}>{o.name} · {o.role}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={editLabel}>Co-owner</label>
-                  <select value={editDraft.coowner || ""} onChange={(e) => setEditDraft({ ...editDraft, coowner: e.target.value })} style={editInput}>
-                    <option value="">— Aucun —</option>
-                    {ownerListE.map((o) => <option key={o.name} value={o.name}>{o.name} · {o.role}</option>)}
-                  </select>
-                </div>
+              {/* ENTREPRISE */}
+              <div style={editSection}>01 · Entreprise</div>
+              <div>
+                <label style={editLabel}>Raison sociale</label>
+                <input value={editDraft.raison_sociale || ""} onChange={(e) => setEditDraft({ ...editDraft, raison_sociale: e.target.value })} style={editInput} />
               </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Secteur d'activité</label>
-                  <input value={editDraft.sector || ""} onChange={(e) => setEditDraft({ ...editDraft, sector: e.target.value })} style={editInput} />
-                </div>
-                <div>
-                  <label style={editLabel}>Sous-secteur</label>
-                  <input value={editDraft.sousSecteur || ""} onChange={(e) => setEditDraft({ ...editDraft, sousSecteur: e.target.value })} style={editInput} />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Source</label>
-                  <input value={editDraft.source || ""} onChange={(e) => setEditDraft({ ...editDraft, source: e.target.value })} placeholder="Ex. LinkedIn, salon…" style={editInput} />
-                </div>
-                <div>
-                  <label style={editLabel}>Concurrent</label>
-                  <input value={editDraft.concurrent || ""} onChange={(e) => setEditDraft({ ...editDraft, concurrent: e.target.value })} placeholder="Ex. Salesforce" style={editInput} />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Fin contrat concurrent</label>
-                  <input type="date" value={editDraft.concurrentEnd || ""} onChange={(e) => setEditDraft({ ...editDraft, concurrentEnd: e.target.value })} style={editInput} />
-                </div>
-                <div>
-                  <label style={editLabel}>Montant concurrent (k€/an)</label>
-                  <input value={editDraft.concurrentAmount || ""} onChange={(e) => setEditDraft({ ...editDraft, concurrentAmount: e.target.value })} placeholder="0" style={editInput} />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Date 1er contact</label>
-                  <input type="date" value={editDraft.contactDate || ""} onChange={(e) => setEditDraft({ ...editDraft, contactDate: e.target.value })} style={editInput} />
-                </div>
-                <div>
-                  <label style={editLabel}>Échéance projet</label>
-                  <input type="date" value={editDraft.projectDate || ""} onChange={(e) => setEditDraft({ ...editDraft, projectDate: e.target.value })} style={editInput} />
-                </div>
-              </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Tier</label>
-                  <select value={editDraft.tier || ""} onChange={(e) => setEditDraft({ ...editDraft, tier: e.target.value })} style={editInput}>
-                    <option value="">—</option>
-                    <option value="A">Tier A</option>
-                    <option value="B">Tier B</option>
-                    <option value="C">Tier C</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={editLabel}>CA (M€)</label>
-                  <input value={editDraft.ca || ""} onChange={(e) => setEditDraft({ ...editDraft, ca: e.target.value })} style={editInput} />
-                </div>
                 <div>
                   <label style={editLabel}>SIREN</label>
                   <input value={editDraft.siren || ""} onChange={(e) => setEditDraft({ ...editDraft, siren: e.target.value })} style={editInput} />
                 </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={editLabel}>NAF</label>
                   <input value={editDraft.naf || ""} onChange={(e) => setEditDraft({ ...editDraft, naf: e.target.value })} style={editInput} />
@@ -1369,12 +1324,43 @@ const ClientPage = () => {
                   <input value={editDraft.tva || ""} onChange={(e) => setEditDraft({ ...editDraft, tva: e.target.value })} style={editInput} />
                 </div>
               </div>
-
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={editLabel}>Secteur d'activité</label>
+                  <select value={editDraft.sector || ""} onChange={(e) => setEditDraft({ ...editDraft, sector: e.target.value })} style={editInput}>
+                    <option value="">— Sélectionner —</option>
+                    {["Agriculture, sylviculture et pêche","Industries extractives","Industrie manufacturière","Production et distribution d'électricité","Eau, déchets et dépollution","Construction & BTP","Commerce","Transports et entreposage","Hébergement et restauration","Information et communication","Banque, finance & assurance","Activités immobilières","Activités spécialisées, scientifiques et techniques","Services administratifs et de soutien","Administration publique","Enseignement","Santé et action sociale","Arts, spectacles et activités récréatives","Autres activités de services","Activités des ménages","Activités extra-territoriales"].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={editLabel}>Sous-secteur</label>
+                  <input value={editDraft.sousSecteur || ""} onChange={(e) => setEditDraft({ ...editDraft, sousSecteur: e.target.value })} style={editInput} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={editLabel}>Effectif</label>
+                  <select value={editDraft.effectif || ""} onChange={(e) => setEditDraft({ ...editDraft, effectif: e.target.value })} style={editInput}>
+                    <option value="">—</option>
+                    <option>1-50</option><option>51-250</option><option>251-1k</option><option>1k-5k</option><option>5k+</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={editLabel}>Tier prospect</label>
+                  <select value={editDraft.tier || ""} onChange={(e) => setEditDraft({ ...editDraft, tier: e.target.value })} style={editInput}>
+                    <option value="">—</option>
+                    <option value="A">Tier A — Grand compte</option>
+                    <option value="B">Tier B — Compte secondaire</option>
+                    <option value="C">Tier C — Tactique</option>
+                  </select>
+                </div>
+              </div>
               <div>
                 <label style={editLabel}>Adresse</label>
                 <input value={editDraft.address || ""} onChange={(e) => setEditDraft({ ...editDraft, address: e.target.value })} style={editInput} />
               </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
                 <div>
                   <label style={editLabel}>Code postal</label>
@@ -1385,21 +1371,144 @@ const ClientPage = () => {
                   <input value={editDraft.addressCity || ""} onChange={(e) => setEditDraft({ ...editDraft, addressCity: e.target.value })} style={editInput} />
                 </div>
               </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={editLabel}>Site web</label>
                   <input value={editDraft.web || ""} onChange={(e) => setEditDraft({ ...editDraft, web: e.target.value })} placeholder="www.…" style={editInput} />
                 </div>
                 <div>
-                  <label style={editLabel}>LinkedIn</label>
+                  <label style={editLabel}>LinkedIn entreprise</label>
                   <input value={editDraft.linkedin || ""} onChange={(e) => setEditDraft({ ...editDraft, linkedin: e.target.value })} placeholder="linkedin.com/company/…" style={editInput} />
                 </div>
               </div>
 
+              {/* CONTACT PRINCIPAL */}
+              <div style={editSection}>02 · Contact principal</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={editLabel}>Prénom</label>
+                  <input value={editDraft.cp_prenom || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_prenom: e.target.value })} style={editInput} />
+                </div>
+                <div>
+                  <label style={editLabel}>Nom</label>
+                  <input value={editDraft.cp_nom || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_nom: e.target.value })} style={editInput} />
+                </div>
+              </div>
               <div>
-                <label style={editLabel}>Description / Notes</label>
-                <textarea value={editDraft.desc || ""} onChange={(e) => setEditDraft({ ...editDraft, desc: e.target.value })} rows={3} style={{ ...editInput, resize: "vertical", fontFamily: "inherit" }} />
+                <label style={editLabel}>Fonction (intitulé)</label>
+                <input value={editDraft.cp_fonction || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_fonction: e.target.value })} placeholder="Ex. CFO, DSI…" style={editInput} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={editLabel}>Email</label>
+                  <input type="email" value={editDraft.cp_email || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_email: e.target.value })} style={editInput} />
+                </div>
+                <div>
+                  <label style={editLabel}>Téléphone</label>
+                  <input value={editDraft.cp_phone || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_phone: e.target.value })} style={editInput} />
+                </div>
+              </div>
+              <div>
+                <label style={editLabel}>LinkedIn profil</label>
+                <input value={editDraft.cp_linkedin || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_linkedin: e.target.value })} placeholder="linkedin.com/in/…" style={editInput} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={editLabel}>Niveau hiérarchique</label>
+                  <select value={editDraft.fonction || ""} onChange={(e) => setEditDraft({ ...editDraft, fonction: e.target.value })} style={editInput}>
+                    <option value="">—</option>
+                    <option value="Opér.">Opérationnel</option>
+                    <option value="Mgr">Manager</option>
+                    <option value="Dir.">Directeur</option>
+                    <option value="C-level">C-level</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={editLabel}>Rôles décision</label>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 4 }}>
+                    {["Décideur", "Prescripteur", "Utilisateur", "Acheteur"].map((r) => {
+                      const on = (editDraft.roles || []).includes(r);
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setEditDraft({ ...editDraft, roles: on ? editDraft.roles.filter((x) => x !== r) : [...(editDraft.roles || []), r] })}
+                          style={{ padding: "4px 10px", border: on ? "1px solid #4f46e5" : "1px solid #e2e8f0", background: on ? "#eef2ff" : "#fff", borderRadius: 999, fontSize: 11.5, color: on ? "#3730a3" : "#475569", cursor: "pointer", fontWeight: on ? 600 : 500 }}
+                        >{r}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* COMMERCIAL */}
+              <div style={editSection}>03 · Commercial Astorya</div>
+              <div>
+                <label style={editLabel}>Commercial attribué</label>
+                <select value={editDraft.owner || ""} onChange={(e) => setEditDraft({ ...editDraft, owner: e.target.value })} style={editInput}>
+                  <option value="">— Aucun —</option>
+                  {ownerListE.map((o) => <option key={o.name} value={o.name}>{o.name} · {o.role}</option>)}
+                </select>
+              </div>
+
+              {/* QUALIFICATION */}
+              <div style={editSection}>04 · Qualification</div>
+              <div>
+                <label style={editLabel}>Besoin exprimé</label>
+                <textarea value={editDraft.besoin || ""} onChange={(e) => setEditDraft({ ...editDraft, besoin: e.target.value })} rows={2} placeholder="Modernisation, contraintes, contexte concurrentiel…" style={{ ...editInput, resize: "vertical", fontFamily: "inherit" }} />
+              </div>
+              <div>
+                <label style={editLabel}>Concurrent actuel</label>
+                <input value={editDraft.concurrent || ""} onChange={(e) => setEditDraft({ ...editDraft, concurrent: e.target.value })} placeholder="Ex. Salesforce, Pega…" style={editInput} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={editLabel}>Montant concurrent (k€/an)</label>
+                  <input value={editDraft.concurrentAmount || ""} onChange={(e) => setEditDraft({ ...editDraft, concurrentAmount: e.target.value })} placeholder="0" style={editInput} />
+                </div>
+                <div>
+                  <label style={editLabel}>Échéance projet</label>
+                  <input type="date" value={editDraft.projectDate || ""} onChange={(e) => setEditDraft({ ...editDraft, projectDate: e.target.value })} style={editInput} />
+                </div>
+              </div>
+
+              {/* ORIGINE & ACTION */}
+              <div style={editSection}>05 · Origine & prochaines étapes</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={editLabel}>Source du prospect</label>
+                  <select value={editDraft.source || ""} onChange={(e) => setEditDraft({ ...editDraft, source: e.target.value })} style={editInput}>
+                    <option value="">— Choisir —</option>
+                    <option>Radar fin de contrat concurrent</option>
+                    <option>LinkedIn / Sales Navigator</option>
+                    <option>Salon professionnel</option>
+                    <option>Recommandation client</option>
+                    <option>Inbound site web</option>
+                    <option>Demande de devis</option>
+                    <option>Cold call sortant</option>
+                    <option>Cold email sortant</option>
+                    <option>Webinar / événement Astorya</option>
+                    <option>Référencement (Google, Bing)</option>
+                    <option>Réseau partenaires</option>
+                    <option>Article de presse</option>
+                    <option>Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={editLabel}>Première action</label>
+                  <select value={editDraft.action || ""} onChange={(e) => setEditDraft({ ...editDraft, action: e.target.value })} style={editInput}>
+                    <option value="">—</option>
+                    <option value="email">📧 Email d'introduction</option>
+                    <option value="call">📞 Cold call</option>
+                    <option value="in">in LinkedIn</option>
+                    <option value="wait">📅 Inviter à un événement</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={editLabel}>Notes internes</label>
+                <textarea value={editDraft.desc || ""} onChange={(e) => setEditDraft({ ...editDraft, desc: e.target.value })} rows={3} placeholder="Contexte additionnel, contacts mutuels, anecdotes…" style={{ ...editInput, resize: "vertical", fontFamily: "inherit" }} />
               </div>
             </div>
 
@@ -1540,6 +1649,7 @@ const modalLabel = { display: "block", fontSize: 11.5, fontWeight: 600, color: "
 const modalInput = { width: "100%", padding: "9px 11px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, color: "#0f172a", background: "#fff", boxSizing: "border-box", outline: "none" };
 const editLabel = modalLabel;
 const editInput = modalInput;
+const editSection = { fontSize: 12, fontWeight: 700, color: "#4f46e5", textTransform: "uppercase", letterSpacing: 0.5, padding: "8px 0 4px", borderBottom: "1px solid #eef1f5", marginTop: 4 };
 
 const DetailRow = ({ label, value }) => (
   <div style={{ display: "flex", alignItems: "flex-start", padding: "8px 4px", gap: 10, minHeight: 32, borderBottom: "1px solid #f1f5f9" }}>

@@ -20,7 +20,6 @@ const NewProspect = () => {
   const [contactDate,   setContactDate]   = React.useState("");
   const [projectDate,   setProjectDate]   = React.useState("");
   const [concurrent,    setConcurrent]    = React.useState("");
-  const [concurrentEnd, setConcurrentEnd] = React.useState("");
   const [concurrentAmount, setConcurrentAmount] = React.useState("");
   const [owner,         setOwner]         = React.useState({ name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" });
   const [ownerMenu,     setOwnerMenu]     = React.useState(false);
@@ -232,7 +231,6 @@ const NewProspect = () => {
     contacts_additionnels: extraContactList,
     source, project_date: projectDate,
     concurrent,
-    concurrent_end: concurrentEnd,
     concurrent_amount: concurrentAmount,
     besoin, notes,
     owner: owner.name,
@@ -259,15 +257,60 @@ const NewProspect = () => {
       localStorage.removeItem("hubAstorya.prospectDraft.v1");
     } catch (e) {}
 
-    // 2. Insertion Supabase si configuré (best-effort)
+    // 1.b — Si une "Première action à mener" a été choisie, l'ajouter à hubAstorya.actionsExtra.v1
+    // pour qu'elle apparaisse dans la section "Actions à mener" de la fiche client
+    if (action) {
+      try {
+        const actionMeta = {
+          email: { title: "Email d'introduction personnalisé", icon: "✉", tag: "Email",   tagColor: "#a855f7", meta: "Brouillon IA pré-rempli — premier contact" },
+          call:  { title: "Cold call programmé",                icon: "📞", tag: "Appel",   tagColor: "#10b981", meta: "Script généré · créneau à confirmer" },
+          in:    { title: "Demande de connexion LinkedIn",      icon: "in", tag: "LinkedIn",tagColor: "#0a66c2", meta: "Via Sales Navigator" },
+          wait:  { title: "Inviter à un événement / webinar",  icon: "📅", tag: "Event",   tagColor: "#f59e0b", meta: "Sélectionner l'événement adapté" },
+        }[action] || null;
+        if (actionMeta) {
+          const newAct = {
+            id: "EX-" + Date.now(),
+            client_id: payload.id,
+            type: action,
+            title: actionMeta.title,
+            due: "Sous 5 jours",
+            priority: "haute",
+            icon: actionMeta.icon,
+            meta: actionMeta.meta,
+            assigned: owner.name || "Vous",
+            assignedColor: owner.color || "#3730a3",
+            tag: actionMeta.tag,
+            tagColor: actionMeta.tagColor,
+          };
+          const existing = JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]");
+          localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify([newAct, ...existing]));
+        }
+      } catch (e) {}
+    }
+
+    // 2. Insertion Supabase si configuré (best-effort) — toutes les infos dans la colonne jsonb `data`
     if (window.HubData && window.HubData.enabled()) {
       try {
-        await window.HubSupabase.client.from("clients").insert({
-          id: payload.id, name: companyName,
+        const row = {
+          id: payload.id,
+          name: companyName,
           industry: companySector || null,
           city: companyCity || null,
           website: companyWeb || null,
-        });
+          client_since: payload.created_at,
+          data: payload, // toutes les autres infos (contact, owner, roles, concurrent, etc.)
+        };
+        const { error } = await window.HubSupabase.client.from("clients").insert(row);
+        if (error) {
+          // Fallback si la colonne `data` n'existe pas encore : insertion minimale
+          await window.HubSupabase.client.from("clients").insert({
+            id: payload.id, name: companyName,
+            industry: companySector || null,
+            city: companyCity || null,
+            website: companyWeb || null,
+          });
+          console.warn("[Astorya] colonne `data` manquante dans clients — ajoutez-la pour persister tous les champs : ALTER TABLE clients ADD COLUMN IF NOT EXISTS data jsonb DEFAULT '{}'::jsonb;");
+        }
       } catch (e) { /* tolère l'échec, le local survit */ }
     }
 
@@ -293,7 +336,6 @@ const NewProspect = () => {
           <span>CRM</span><span style={{ color: "#cbd5e1" }}>/</span>
           <span>Comptes & contacts</span><span style={{ color: "#cbd5e1" }}>/</span>
           <span style={{ color: "#0f172a", fontWeight: 600 }}>Nouveau prospect</span>
-          <span style={npStyles.refMono}>PRO-DRAFT</span>
           <span style={{ fontSize: 11, color: "#10b981", fontWeight: 500 }}>● Auto-save · il y a 4 sec</span>
         </a>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -301,7 +343,6 @@ const NewProspect = () => {
             <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6, background: flash.tone === "err" ? "#fee2e2" : "#dcfce7", color: flash.tone === "err" ? "#991b1b" : "#065f46" }}>{flash.msg}</span>
           )}
           <button onClick={cancel} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Annuler</button>
-          <button onClick={saveDraft} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Enregistrer brouillon</button>
           <button onClick={createProspect} style={{ ...npStyles.primaryBtn, cursor: "pointer" }}>Créer le prospect</button>
         </div>
       </header>
@@ -549,7 +590,7 @@ const NewProspect = () => {
 
             <FormRow label="Rôle dans le projet" subtitle="Quelle place dans la décision d'achat ?">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["Décideur", "Champion", "Prescripteur", "Utilisateur", "Acheteur", "Bloqueur"].map((r) => {
+                {["Décideur", "Prescripteur", "Utilisateur", "Acheteur"].map((r) => {
                   const on = roles.includes(r);
                   return (
                     <button key={r} onClick={() => toggleRole(r)}
@@ -605,65 +646,7 @@ const NewProspect = () => {
 
           {/* SECTION 3 — Qualification BANT */}
           <section style={npStyles.section}>
-            <SectionHead num="03" title="Qualification commerciale" subtitle="Méthode BANT — Budget · Authority · Need · Timeline" status="todo" />
-
-            <div style={npStyles.bantGrid}>
-              <div style={npStyles.bantCard}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={npStyles.bantLetter}>B</span>
-                  <span style={{ fontSize: 10.5, padding: "1px 6px", borderRadius: 3, background: "#e8f8f1", color: "#0e7a55", fontWeight: 700 }}>Confirmé</span>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Budget</div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>200-300 k€ alloués Q3 2026 (interview presse CIO)</div>
-                <div style={npStyles.bantRating}>
-                  {[1,2,3,4,5].map(n => (
-                    <span key={n} style={{ ...npStyles.bantDot, background: n <= 4 ? "#10b981" : "#eef1f5" }} />
-                  ))}
-                </div>
-              </div>
-
-              <div style={npStyles.bantCard}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={npStyles.bantLetter}>A</span>
-                  <span style={{ fontSize: 10.5, padding: "1px 6px", borderRadius: 3, background: "#e8f8f1", color: "#0e7a55", fontWeight: 700 }}>Confirmé</span>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Authority</div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>Laurent Mercier (DSI) — décideur direct sur ce périmètre</div>
-                <div style={npStyles.bantRating}>
-                  {[1,2,3,4,5].map(n => (
-                    <span key={n} style={{ ...npStyles.bantDot, background: n <= 5 ? "#10b981" : "#eef1f5" }} />
-                  ))}
-                </div>
-              </div>
-
-              <div style={npStyles.bantCard}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={npStyles.bantLetter}>N</span>
-                  <span style={{ fontSize: 10.5, padding: "1px 6px", borderRadius: 3, background: "#fff6e6", color: "#a65f00", fontWeight: 700 }}>À explorer</span>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Need</div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>Insatisfaction Pega exprimée publiquement · modernisation SI évoquée</div>
-                <div style={npStyles.bantRating}>
-                  {[1,2,3,4,5].map(n => (
-                    <span key={n} style={{ ...npStyles.bantDot, background: n <= 3 ? "#f59e0b" : "#eef1f5" }} />
-                  ))}
-                </div>
-              </div>
-
-              <div style={npStyles.bantCard}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={npStyles.bantLetter}>T</span>
-                  <span style={{ fontSize: 10.5, padding: "1px 6px", borderRadius: 3, background: "#fdecec", color: "#dc2626", fontWeight: 700 }}>Urgent</span>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Timeline</div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>Contrat Pega arrive à échéance 30 juin 2026 (dans 35 j)</div>
-                <div style={npStyles.bantRating}>
-                  {[1,2,3,4,5].map(n => (
-                    <span key={n} style={{ ...npStyles.bantDot, background: n <= 5 ? "#dc2626" : "#eef1f5" }} />
-                  ))}
-                </div>
-              </div>
-            </div>
+            <SectionHead num="03" title="Qualification commerciale" subtitle="Besoin identifié, concurrent et échéance du projet" status="todo" />
 
             <FormRow label="Besoin exprimé / problème à résoudre">
               <textarea
@@ -683,30 +666,17 @@ const NewProspect = () => {
                   onChange={(e) => setConcurrent(e.target.value)}
                   placeholder="Ex. Salesforce, Pega, HubSpot…"
                 />
-                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <div style={{ ...npStyles.inputWithSuffix, marginTop: 6 }}>
                   <input
-                    type="date"
-                    style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", flex: 1 }}
-                    value={concurrentEnd}
-                    onChange={(e) => setConcurrentEnd(e.target.value)}
-                    title="Fin de contrat concurrent"
+                    style={{ ...npStyles.input, border: "none", padding: "0 4px" }}
+                    value={concurrentAmount}
+                    onChange={(e) => setConcurrentAmount(e.target.value)}
+                    placeholder="Montant"
                   />
-                  <div style={{ ...npStyles.inputWithSuffix, flex: 1 }}>
-                    <input
-                      style={{ ...npStyles.input, border: "none", padding: "0 4px" }}
-                      value={concurrentAmount}
-                      onChange={(e) => setConcurrentAmount(e.target.value)}
-                      placeholder="Montant"
-                    />
-                    <span style={npStyles.suffix}>k€/an</span>
-                  </div>
+                  <span style={npStyles.suffix}>k€/an</span>
                 </div>
-                {(concurrentEnd || concurrentAmount) && (
-                  <div style={npStyles.inputHelp}>
-                    {concurrentEnd && `Fin de contrat : ${new Date(concurrentEnd).toLocaleDateString("fr-FR")}`}
-                    {concurrentEnd && concurrentAmount && " · "}
-                    {concurrentAmount && `${concurrentAmount} k€/an`}
-                  </div>
+                {concurrentAmount && (
+                  <div style={npStyles.inputHelp}>{concurrentAmount} k€/an</div>
                 )}
               </FormRow>
               <FormRow label="Échéance estimée du projet">
@@ -844,7 +814,6 @@ const NewProspect = () => {
               {flash && (
                 <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6, background: flash.tone === "err" ? "#fee2e2" : "#dcfce7", color: flash.tone === "err" ? "#991b1b" : "#065f46" }}>{flash.msg}</span>
               )}
-              <button onClick={saveDraft} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Enregistrer brouillon</button>
               <button onClick={() => { addExtraContact(); showFlash("✓ Contact additionnel ajouté"); }} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>+ Ajouter un autre contact{extraContactList.length > 0 && ` (${extraContactList.length})`}</button>
               <button onClick={createProspect} style={{ ...npStyles.primaryBtn, cursor: "pointer" }}>✓ Créer le prospect</button>
             </div>
@@ -853,56 +822,6 @@ const NewProspect = () => {
 
         {/* RIGHT — preview & IA */}
         <aside style={npStyles.previewCol}>
-
-          {/* Preview card */}
-          <div style={npStyles.previewBlock}>
-            <div style={npStyles.previewHead}>
-              <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase" }}>Aperçu fiche</span>
-              <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 3, background: "#10b981", color: "#fff", fontWeight: 700, letterSpacing: 0.4 }}>● LIVE</span>
-            </div>
-
-            <div style={npStyles.previewCard}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <div style={npStyles.previewLogo}>BM</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Banque Méridionale</span>
-                    <span style={{ ...npStyles.tierBadge, background: "#fef3c7", color: "#a16207", border: "1px solid #fde68a" }}>★ A</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Banque privée · 1 200 emp.</div>
-                  <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 1 }}>📍 Marseille · CA 142 M€</div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
-                <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Contact principal</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Avatar name="Laurent Mercier" size={28} color="#dc2626" />
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Laurent Mercier <span style={{ fontSize: 9, padding: "0 4px", background: "#fdecec", color: "#dc2626", borderRadius: 3, fontWeight: 700, marginLeft: 4 }}>★ DÉCIDEUR</span></div>
-                    <div style={{ fontSize: 11, color: "#64748b" }}>DSI · C-level</div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
-                <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>Score qualification</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <span style={{ fontSize: 28, fontWeight: 700, color: "#10b981", letterSpacing: -0.6 }}>87</span>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>/ 100</span>
-                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "#e8f8f1", color: "#0e7a55", fontWeight: 700, marginLeft: "auto" }}>HOT</span>
-                </div>
-                <div style={{ width: "100%", height: 4, background: "#eef1f5", borderRadius: 999, marginTop: 6, overflow: "hidden" }}>
-                  <div style={{ width: "87%", height: "100%", background: "linear-gradient(90deg, #4f46e5, #10b981)", borderRadius: 999 }} />
-                </div>
-              </div>
-
-              <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 6 }}>
-                <Avatar name={owner.name} size={20} color={owner.color} />
-                <span style={{ fontSize: 11, color: "#475569" }}>Owner : <strong>{owner.name}</strong></span>
-              </div>
-            </div>
-          </div>
 
           {/* AI Enrichment */}
           <div style={npStyles.previewBlock}>

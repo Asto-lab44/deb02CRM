@@ -32,19 +32,28 @@
     return { data: cache.groups, error };
   }
 
+  // Étale le contenu de la colonne jsonb `data` au niveau supérieur, sans écraser les colonnes existantes
+  function flattenClient(c) {
+    if (!c) return c;
+    const extras = c.data && typeof c.data === "object" ? c.data : {};
+    const out = { ...extras, ...c };
+    delete out.data;
+    return out;
+  }
+
   async function fetchClients() {
     if (!supa) return { data: null, error: null };
     if (cache.clients) return { data: cache.clients, error: null };
     const { data, error } = await supa.from("clients")
       .select("*, contracts(*)");
-    if (data) cache.clients = data;
+    if (data) cache.clients = data.map(flattenClient);
     return { data: cache.clients, error };
   }
 
   async function fetchClientById(id) {
     if (!supa) return { data: null, error: null };
     const { data, error } = await supa.from("clients").select("*, contracts(*), assets(*)").eq("id", id).single();
-    return { data, error };
+    return { data: flattenClient(data), error };
   }
 
   async function fetchTickets({ limit = 50 } = {}) {

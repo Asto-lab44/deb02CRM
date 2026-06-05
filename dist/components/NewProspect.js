@@ -20,7 +20,6 @@ var NewProspect = () => {
   var [contactDate, setContactDate] = React.useState("");
   var [projectDate, setProjectDate] = React.useState("");
   var [concurrent, setConcurrent] = React.useState("");
-  var [concurrentEnd, setConcurrentEnd] = React.useState("");
   var [concurrentAmount, setConcurrentAmount] = React.useState("");
   var [owner, setOwner] = React.useState({
     name: "Karim Ben Salah",
@@ -262,7 +261,6 @@ var NewProspect = () => {
     source,
     project_date: projectDate,
     concurrent,
-    concurrent_end: concurrentEnd,
     concurrent_amount: concurrentAmount,
     besoin,
     notes,
@@ -293,16 +291,87 @@ var NewProspect = () => {
       localStorage.removeItem("hubAstorya.prospectDraft.v1");
     } catch (e) {}
 
-    // 2. Insertion Supabase si configuré (best-effort)
+    // 1.b — Si une "Première action à mener" a été choisie, l'ajouter à hubAstorya.actionsExtra.v1
+    // pour qu'elle apparaisse dans la section "Actions à mener" de la fiche client
+    if (action) {
+      try {
+        var actionMeta = {
+          email: {
+            title: "Email d'introduction personnalisé",
+            icon: "✉",
+            tag: "Email",
+            tagColor: "#a855f7",
+            meta: "Brouillon IA pré-rempli — premier contact"
+          },
+          call: {
+            title: "Cold call programmé",
+            icon: "📞",
+            tag: "Appel",
+            tagColor: "#10b981",
+            meta: "Script généré · créneau à confirmer"
+          },
+          in: {
+            title: "Demande de connexion LinkedIn",
+            icon: "in",
+            tag: "LinkedIn",
+            tagColor: "#0a66c2",
+            meta: "Via Sales Navigator"
+          },
+          wait: {
+            title: "Inviter à un événement / webinar",
+            icon: "📅",
+            tag: "Event",
+            tagColor: "#f59e0b",
+            meta: "Sélectionner l'événement adapté"
+          }
+        }[action] || null;
+        if (actionMeta) {
+          var newAct = {
+            id: "EX-" + Date.now(),
+            client_id: payload.id,
+            type: action,
+            title: actionMeta.title,
+            due: "Sous 5 jours",
+            priority: "haute",
+            icon: actionMeta.icon,
+            meta: actionMeta.meta,
+            assigned: owner.name || "Vous",
+            assignedColor: owner.color || "#3730a3",
+            tag: actionMeta.tag,
+            tagColor: actionMeta.tagColor
+          };
+          var _existing = JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]");
+          localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify([newAct, ..._existing]));
+        }
+      } catch (e) {}
+    }
+
+    // 2. Insertion Supabase si configuré (best-effort) — toutes les infos dans la colonne jsonb `data`
     if (window.HubData && window.HubData.enabled()) {
       try {
-        await window.HubSupabase.client.from("clients").insert({
+        var row = {
           id: payload.id,
           name: companyName,
           industry: companySector || null,
           city: companyCity || null,
-          website: companyWeb || null
-        });
+          website: companyWeb || null,
+          client_since: payload.created_at,
+          data: payload // toutes les autres infos (contact, owner, roles, concurrent, etc.)
+        };
+        var {
+          error
+        } = await window.HubSupabase.client.from("clients").insert(row);
+        if (error) {
+          // Fallback si la colonne `data` n'existe pas encore : insertion minimale
+          await window.HubSupabase.client.from("clients").insert({
+            id: payload.id,
+            name: companyName,
+            industry: companySector || null,
+            city: companyCity || null,
+            website: companyWeb || null
+          });
+          console.warn("[Astorya] colonne `data` manquante dans clients — ajoutez-la pour persister tous les champs : ALTER TABLE clients ADD COLUMN IF NOT EXISTS data jsonb DEFAULT '{}'::jsonb;");
+        }
       } catch (e) {/* tolère l'échec, le local survit */}
     }
     showFlash("✓ Prospect créé — redirection vers Comptes & Contacts…");
@@ -371,8 +440,6 @@ var NewProspect = () => {
       fontWeight: 600
     }
   }, "Nouveau prospect"), /*#__PURE__*/React.createElement("span", {
-    style: npStyles.refMono
-  }, "PRO-DRAFT"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       color: "#10b981",
@@ -400,12 +467,6 @@ var NewProspect = () => {
       cursor: "pointer"
     }
   }, "Annuler"), /*#__PURE__*/React.createElement("button", {
-    onClick: saveDraft,
-    style: {
-      ...npStyles.ghostBtn,
-      cursor: "pointer"
-    }
-  }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
     onClick: createProspect,
     style: {
       ...npStyles.primaryBtn,
@@ -856,7 +917,7 @@ var NewProspect = () => {
       gap: 6,
       flexWrap: "wrap"
     }
-  }, ["Décideur", "Champion", "Prescripteur", "Utilisateur", "Acheteur", "Bloqueur"].map(r => {
+  }, ["Décideur", "Prescripteur", "Utilisateur", "Acheteur"].map(r => {
     var on = roles.includes(r);
     return /*#__PURE__*/React.createElement("button", {
       key: r,
@@ -967,175 +1028,9 @@ var NewProspect = () => {
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
     title: "Qualification commerciale",
-    subtitle: "M\xE9thode BANT \u2014 Budget \xB7 Authority \xB7 Need \xB7 Timeline",
+    subtitle: "Besoin identifi\xE9, concurrent et \xE9ch\xE9ance du projet",
     status: "todo"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantGrid
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantCard
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: npStyles.bantLetter
-  }, "B"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10.5,
-      padding: "1px 6px",
-      borderRadius: 3,
-      background: "#e8f8f1",
-      color: "#0e7a55",
-      fontWeight: 700
-    }
-  }, "Confirm\xE9")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Budget"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.4
-    }
-  }, "200-300 k\u20AC allou\xE9s Q3 2026 (interview presse CIO)"), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantRating
-  }, [1, 2, 3, 4, 5].map(n => /*#__PURE__*/React.createElement("span", {
-    key: n,
-    style: {
-      ...npStyles.bantDot,
-      background: n <= 4 ? "#10b981" : "#eef1f5"
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantCard
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: npStyles.bantLetter
-  }, "A"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10.5,
-      padding: "1px 6px",
-      borderRadius: 3,
-      background: "#e8f8f1",
-      color: "#0e7a55",
-      fontWeight: 700
-    }
-  }, "Confirm\xE9")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Authority"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.4
-    }
-  }, "Laurent Mercier (DSI) \u2014 d\xE9cideur direct sur ce p\xE9rim\xE8tre"), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantRating
-  }, [1, 2, 3, 4, 5].map(n => /*#__PURE__*/React.createElement("span", {
-    key: n,
-    style: {
-      ...npStyles.bantDot,
-      background: n <= 5 ? "#10b981" : "#eef1f5"
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantCard
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: npStyles.bantLetter
-  }, "N"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10.5,
-      padding: "1px 6px",
-      borderRadius: 3,
-      background: "#fff6e6",
-      color: "#a65f00",
-      fontWeight: 700
-    }
-  }, "\xC0 explorer")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Need"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.4
-    }
-  }, "Insatisfaction Pega exprim\xE9e publiquement \xB7 modernisation SI \xE9voqu\xE9e"), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantRating
-  }, [1, 2, 3, 4, 5].map(n => /*#__PURE__*/React.createElement("span", {
-    key: n,
-    style: {
-      ...npStyles.bantDot,
-      background: n <= 3 ? "#f59e0b" : "#eef1f5"
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantCard
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: npStyles.bantLetter
-  }, "T"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10.5,
-      padding: "1px 6px",
-      borderRadius: 3,
-      background: "#fdecec",
-      color: "#dc2626",
-      fontWeight: 700
-    }
-  }, "Urgent")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Timeline"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.4
-    }
-  }, "Contrat Pega arrive \xE0 \xE9ch\xE9ance 30 juin 2026 (dans 35 j)"), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.bantRating
-  }, [1, 2, 3, 4, 5].map(n => /*#__PURE__*/React.createElement("span", {
-    key: n,
-    style: {
-      ...npStyles.bantDot,
-      background: n <= 5 ? "#dc2626" : "#eef1f5"
-    }
-  }))))), /*#__PURE__*/React.createElement(FormRow, {
+  }), /*#__PURE__*/React.createElement(FormRow, {
     label: "Besoin exprim\xE9 / probl\xE8me \xE0 r\xE9soudre"
   }, /*#__PURE__*/React.createElement("textarea", {
     style: npStyles.textarea,
@@ -1154,24 +1049,8 @@ var NewProspect = () => {
     placeholder: "Ex. Salesforce, Pega, HubSpot\u2026"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 6
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    style: {
-      ...npStyles.input,
-      fontFamily: "'JetBrains Mono', monospace",
-      flex: 1
-    },
-    value: concurrentEnd,
-    onChange: e => setConcurrentEnd(e.target.value),
-    title: "Fin de contrat concurrent"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
       ...npStyles.inputWithSuffix,
-      flex: 1
+      marginTop: 6
     }
   }, /*#__PURE__*/React.createElement("input", {
     style: {
@@ -1184,9 +1063,9 @@ var NewProspect = () => {
     placeholder: "Montant"
   }), /*#__PURE__*/React.createElement("span", {
     style: npStyles.suffix
-  }, "k\u20AC/an"))), (concurrentEnd || concurrentAmount) && /*#__PURE__*/React.createElement("div", {
+  }, "k\u20AC/an")), concurrentAmount && /*#__PURE__*/React.createElement("div", {
     style: npStyles.inputHelp
-  }, concurrentEnd && `Fin de contrat : ${new Date(concurrentEnd).toLocaleDateString("fr-FR")}`, concurrentEnd && concurrentAmount && " · ", concurrentAmount && `${concurrentAmount} k€/an`)), /*#__PURE__*/React.createElement(FormRow, {
+  }, concurrentAmount, " k\u20AC/an")), /*#__PURE__*/React.createElement(FormRow, {
     label: "\xC9ch\xE9ance estim\xE9e du projet"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.dateInput
@@ -1426,12 +1305,6 @@ var NewProspect = () => {
       color: flash.tone === "err" ? "#991b1b" : "#065f46"
     }
   }, flash.msg), /*#__PURE__*/React.createElement("button", {
-    onClick: saveDraft,
-    style: {
-      ...npStyles.ghostBtn,
-      cursor: "pointer"
-    }
-  }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       addExtraContact();
       showFlash("✓ Contact additionnel ajouté");
@@ -1449,198 +1322,6 @@ var NewProspect = () => {
   }, "\u2713 Cr\xE9er le prospect")))), /*#__PURE__*/React.createElement("aside", {
     style: npStyles.previewCol
   }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.previewBlock
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.previewHead
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      color: "#94a3b8",
-      fontWeight: 700,
-      letterSpacing: 0.6,
-      textTransform: "uppercase"
-    }
-  }, "Aper\xE7u fiche"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      padding: "1px 6px",
-      borderRadius: 3,
-      background: "#10b981",
-      color: "#fff",
-      fontWeight: 700,
-      letterSpacing: 0.4
-    }
-  }, "\u25CF LIVE")), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.previewCard
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "flex-start",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.previewLogo
-  }, "BM"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 5,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#0f172a"
-    }
-  }, "Banque M\xE9ridionale"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...npStyles.tierBadge,
-      background: "#fef3c7",
-      color: "#a16207",
-      border: "1px solid #fde68a"
-    }
-  }, "\u2605 A")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2
-    }
-  }, "Banque priv\xE9e \xB7 1 200 emp."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#94a3b8",
-      marginTop: 1
-    }
-  }, "\uD83D\uDCCD Marseille \xB7 CA 142 M\u20AC"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      paddingTop: 10,
-      borderTop: "1px solid #f1f5f9"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#94a3b8",
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: 0.4,
-      marginBottom: 6
-    }
-  }, "Contact principal"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Laurent Mercier",
-    size: 28,
-    color: "#dc2626"
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Laurent Mercier ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9,
-      padding: "0 4px",
-      background: "#fdecec",
-      color: "#dc2626",
-      borderRadius: 3,
-      fontWeight: 700,
-      marginLeft: 4
-    }
-  }, "\u2605 D\xC9CIDEUR")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "DSI \xB7 C-level")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      paddingTop: 10,
-      borderTop: "1px solid #f1f5f9"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#94a3b8",
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: 0.4,
-      marginBottom: 4
-    }
-  }, "Score qualification"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 28,
-      fontWeight: 700,
-      color: "#10b981",
-      letterSpacing: -0.6
-    }
-  }, "87"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#64748b"
-    }
-  }, "/ 100"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      padding: "1px 6px",
-      borderRadius: 999,
-      background: "#e8f8f1",
-      color: "#0e7a55",
-      fontWeight: 700,
-      marginLeft: "auto"
-    }
-  }, "HOT")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "100%",
-      height: 4,
-      background: "#eef1f5",
-      borderRadius: 999,
-      marginTop: 6,
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "87%",
-      height: "100%",
-      background: "linear-gradient(90deg, #4f46e5, #10b981)",
-      borderRadius: 999
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: "1px solid #f1f5f9",
-      display: "flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: owner.name,
-    size: 20,
-    color: owner.color
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#475569"
-    }
-  }, "Owner : ", /*#__PURE__*/React.createElement("strong", null, owner.name))))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.previewBlock
   }, /*#__PURE__*/React.createElement("div", {
     style: {

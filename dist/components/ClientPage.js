@@ -357,10 +357,12 @@ var ClientPage = () => {
         color: "#a855f7",
         champion: Array.isArray(c.roles) && c.roles.includes("Champion"),
         decisionRoles: Array.isArray(c.roles) ? c.roles : [],
+        hierarchie: c.fonction || "",
         last: "Contact principal · ajouté à la création"
       }] : [];
-      var additionnels = (c.contacts_additionnels || []).map((x, i) => ({
-        name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact",
+      var additionnels = (c.contacts_additionnels || []).filter(x => (x.prenom || x.nom || x.email || x.phone || "").toString().trim()) // ignore les contacts entièrement vides
+      .map((x, i) => ({
+        name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || x.phone || "Contact",
         role: x.fonction || "—",
         email: x.email || "",
         phone: x.phone || "",
@@ -499,7 +501,10 @@ var ClientPage = () => {
     tier: c.tier || (isCustom ? "" : ""),
     ca: c.ca_meur || "",
     linkedin: c.linkedin_entreprise || "",
-    tva: c.tva || ""
+    tva: c.tva || "",
+    fonction: c.fonction || "",
+    action: c.action || "",
+    besoin: c.besoin || ""
   };
   var openEdit = () => {
     setEditDraft({
@@ -2038,7 +2043,17 @@ var ClientPage = () => {
       color: "#64748b",
       marginTop: 1
     }
-  }, p.role), Array.isArray(p.decisionRoles) && p.decisionRoles.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, p.role, p.hierarchie && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 6,
+      fontSize: 10,
+      padding: "1px 5px",
+      borderRadius: 3,
+      background: "#eef2ff",
+      color: "#3730a3",
+      fontWeight: 700
+    }
+  }, p.hierarchie)), Array.isArray(p.decisionRoles) && p.decisionRoles.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 4,
@@ -2229,6 +2244,25 @@ var ClientPage = () => {
       month: "long",
       year: "numeric"
     }))
+  }), display.besoin && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "Besoin identifi\xE9",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        lineHeight: 1.4
+      }
+    }, display.besoin)
+  }), display.action && /*#__PURE__*/React.createElement(DetailRow, {
+    label: "1\xE8re action",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, {
+      email: "📧 Email d'intro",
+      call: "📞 Cold call",
+      in: "in LinkedIn",
+      wait: "⏸ Attendre"
+    }[display.action] || display.action)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     label: isCustom ? "Prospect depuis" : "Client depuis",
     value: /*#__PURE__*/React.createElement("span", {

@@ -31,8 +31,11 @@ const TicketList = () => {
   }, []);
   const openNewTicket = () => setNewTicketOpen(true);
 
-  // ───── Sélection d'un ticket : ouvre la fiche détail
-  const [selectedTicketId, setSelectedTicketId] = React.useState(null);
+  // ───── Sélection d'un ticket : ouvre la fiche détail (auto-ouvre si ?id= dans l'URL)
+  const [selectedTicketId, setSelectedTicketId] = React.useState(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("id") || null;
+  });
 
   // ───── Filtre actif sur la liste : { kind, value }
   // Lu depuis l'URL au montage (ex. /ticketing?status=open ou ?assignee=me)

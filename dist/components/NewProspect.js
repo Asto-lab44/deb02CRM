@@ -76,6 +76,8 @@ var NewProspect = () => {
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
   var [companyName, setCompanyName] = React.useState("");
   var [companySiren, setCompanySiren] = React.useState("");
+  // Résultat du check BODACC procédure collective (persisté en clients.data)
+  var [procedureCheck, setProcedureCheck] = React.useState(null);
   // Computed : doublons potentiels
   var duplicates = React.useMemo(() => {
     if (!allClients || allClients.length === 0) return [];
@@ -288,6 +290,8 @@ var NewProspect = () => {
     besoin,
     notes,
     tags,
+    // Statut BODACC procédure collective (auto-checké au moment de la création)
+    procedure_collective: procedureCheck,
     owner: owner.name,
     owner_role: owner.role,
     owner_color: owner.color,
@@ -688,7 +692,16 @@ var NewProspect = () => {
       }
     }), sirenErr && /*#__PURE__*/React.createElement("div", {
       style: V.errorMsgStyle(sirenErr)
-    }, sirenErr.message)), /*#__PURE__*/React.createElement(FormRow, {
+    }, sirenErr.message), window.ProcedureBadge && !sirenErr && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
+      }
+    }, /*#__PURE__*/React.createElement(ProcedureBadge, {
+      siren: companySiren,
+      autoCheck: true,
+      onChange: r => setProcedureCheck(r),
+      compact: false
+    }))), /*#__PURE__*/React.createElement(FormRow, {
       label: "Code NAF"
     }, /*#__PURE__*/React.createElement("input", {
       style: {

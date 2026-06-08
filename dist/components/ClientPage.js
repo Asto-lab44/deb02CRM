@@ -1185,7 +1185,33 @@ var ClientPage = () => {
     style: cliStyles.metaChip
   }, "Grand compte"), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.metaChip
-  }, display.size), /*#__PURE__*/React.createElement("span", {
+  }, display.size), display.siren && window.ProcedureBadge && /*#__PURE__*/React.createElement(ProcedureBadge, {
+    siren: display.siren,
+    stored: c.procedure_collective || c.data && c.data.procedure_collective || null,
+    autoCheck: true,
+    onChange: async r => {
+      // Persiste le résultat dans clients.data
+      if (!urlId || !window.api || !window.api.clients) return;
+      try {
+        await window.api.clients.update(urlId, {
+          procedure_collective: r
+        });
+        // Notification si on vient de détecter un nouveau passage en procédure
+        var before = c.procedure_collective || c.data && c.data.procedure_collective;
+        if (window.HubToast && r.status === "warn" && (!before || before.status === "ok")) {
+          window.HubToast.warn("⚠ " + display.name + " est passé en procédure collective depuis le dernier check (" + (r.announcement?.type || "") + ")", {
+            duration: 10000
+          });
+        } else if (window.HubToast && r.status === "danger" && (!before || before.status !== "danger")) {
+          window.HubToast.error("🔴 " + display.name + " — " + (r.announcement?.type || "Liquidation"), {
+            duration: 12000
+          });
+        }
+      } catch (e) {
+        console.warn("[ClientPage] persist BODACC:", e);
+      }
+    }
+  }), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.dot
   }), /*#__PURE__*/React.createElement("span", {
     style: {

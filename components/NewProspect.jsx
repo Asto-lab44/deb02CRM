@@ -58,6 +58,8 @@ const NewProspect = () => {
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
   const [companyName,    setCompanyName]    = React.useState("");
   const [companySiren,   setCompanySiren]   = React.useState("");
+  // Résultat du check BODACC procédure collective (persisté en clients.data)
+  const [procedureCheck, setProcedureCheck] = React.useState(null);
   // Computed : doublons potentiels
   const duplicates = React.useMemo(() => {
     if (!allClients || allClients.length === 0) return [];
@@ -262,6 +264,8 @@ const NewProspect = () => {
     concurrent,
     concurrent_amount: concurrentAmount,
     besoin, notes, tags,
+    // Statut BODACC procédure collective (auto-checké au moment de la création)
+    procedure_collective: procedureCheck,
     owner: owner.name,
     owner_role: owner.role,
     owner_color: owner.color,
@@ -452,6 +456,17 @@ const NewProspect = () => {
                        placeholder="9 chiffres"
                        onChange={(e) => { setCompanySiren(e.target.value); const t = computeTva(e.target.value); if (t) setCompanyTva(t); }} />
                 {sirenErr && <div style={V.errorMsgStyle(sirenErr)}>{sirenErr.message}</div>}
+                {/* Badge BODACC procédure collective — auto-check dès qu'on a un SIREN à 9 chiffres */}
+                {window.ProcedureBadge && !sirenErr && (
+                  <div style={{ marginTop: 8 }}>
+                    <ProcedureBadge
+                      siren={companySiren}
+                      autoCheck={true}
+                      onChange={(r) => setProcedureCheck(r)}
+                      compact={false}
+                    />
+                  </div>
+                )}
               </FormRow>
               <FormRow label="Code NAF">
                 <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }} value={companyNaf} onChange={(e) => setCompanyNaf(e.target.value)} />

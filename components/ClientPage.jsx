@@ -759,6 +759,28 @@ const ClientPage = () => {
                   <span style={cliStyles.industryChip}>{display.sector}</span>
                   <span style={cliStyles.metaChip}>Grand compte</span>
                   <span style={cliStyles.metaChip}>{display.size}</span>
+                  {/* Badge BODACC — affiché dès qu'on a un SIREN, auto-check 7j */}
+                  {display.siren && window.ProcedureBadge && (
+                    <ProcedureBadge
+                      siren={display.siren}
+                      stored={c.procedure_collective || (c.data && c.data.procedure_collective) || null}
+                      autoCheck={true}
+                      onChange={async (r) => {
+                        // Persiste le résultat dans clients.data
+                        if (!urlId || !window.api || !window.api.clients) return;
+                        try {
+                          await window.api.clients.update(urlId, { procedure_collective: r });
+                          // Notification si on vient de détecter un nouveau passage en procédure
+                          const before = c.procedure_collective || (c.data && c.data.procedure_collective);
+                          if (window.HubToast && r.status === "warn" && (!before || before.status === "ok")) {
+                            window.HubToast.warn("⚠ " + display.name + " est passé en procédure collective depuis le dernier check (" + (r.announcement?.type || "") + ")", { duration: 10000 });
+                          } else if (window.HubToast && r.status === "danger" && (!before || before.status !== "danger")) {
+                            window.HubToast.error("🔴 " + display.name + " — " + (r.announcement?.type || "Liquidation"), { duration: 12000 });
+                          }
+                        } catch (e) { console.warn("[ClientPage] persist BODACC:", e); }
+                      }}
+                    />
+                  )}
                   <span style={cliStyles.dot} />
                   <span style={{ fontSize: 12, color: "#64748b" }}>📍 {display.city}</span>
                   <span style={cliStyles.dot} />

@@ -30,6 +30,23 @@ const ERPHome = () => {
   };
 
   // ───── modules organisés par catégorie
+  // Stats live CRM (depuis Supabase) injectées dans la tuile CRM
+  const [crmStats, setCrmStats] = React.useState({ clients: 0, opps: 0, won: 0 });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([
+      window.api.clients.list(),
+      window.api.opportunities.list(),
+    ]).then(([clients, opps]) => {
+      const won = (opps || []).filter((o) => o.stage === "won").length;
+      setCrmStats({
+        clients: (clients || []).length,
+        opps: (opps || []).length,
+        won,
+      });
+    }).catch(() => {});
+  }, []);
+
   const modules = [
     // COMMERCIAL
     {
@@ -40,7 +57,11 @@ const ERPHome = () => {
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 17l4-4 4 4 5-7"/></svg>,
       color: "#4f46e5",
       bg: "#eef2ff",
-      stats: [],
+      stats: [
+        { k: "Comptes", v: String(crmStats.clients) },
+        { k: "Opportunités", v: String(crmStats.opps) },
+        { k: "Signées", v: String(crmStats.won) },
+      ],
       trendUp: true,
     },
     {
@@ -331,7 +352,7 @@ const ERPHome = () => {
         <header style={erpStyles.topbar}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ fontSize: 12.5, color: "#0f172a", fontWeight: 600 }}>Accueil</div>
-            <span style={erpStyles.todayChip}>mardi 26 mai 2026 · 09:42</span>
+            <span style={erpStyles.todayChip}>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })} · {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <a href="/administration-utilisateurs" style={{ ...erpStyles.iconBtn, textDecoration: "none", color: "inherit" }} title="Administration">⚙</a>
@@ -344,9 +365,9 @@ const ERPHome = () => {
           <div style={erpStyles.heroGlow2} />
 
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 6, fontWeight: 500 }}>Bonjour {currentUser ? currentUser.name.split(" ")[0] : "Claire"} — voici votre tableau de bord</div>
-            <h1 style={erpStyles.heroH1}>Bonne matinée<span style={{ color: "#a78bfa" }}>.</span></h1>
-            <p style={erpStyles.heroSub}>5 notifications en attente · 3 tickets urgents · 1 réunion à venir dans 18 minutes</p>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 6, fontWeight: 500 }}>Bonjour {currentUser ? currentUser.name.split(" ")[0].split("@")[0] : ""} — voici votre tableau de bord</div>
+            <h1 style={erpStyles.heroH1}>{(() => { const h = new Date().getHours(); return h < 12 ? "Bonne matinée" : h < 18 ? "Bon après-midi" : "Bonne soirée"; })()}<span style={{ color: "#a78bfa" }}>.</span></h1>
+            <p style={erpStyles.heroSub}>{crmStats.opps} opportunité{crmStats.opps > 1 ? "s" : ""} en cours · {crmStats.clients} compte{crmStats.clients > 1 ? "s" : ""} en base</p>
 
             <div style={erpStyles.quickActions}>
               <button style={{ ...erpStyles.quickBtn, ...erpStyles.quickBtnPrimary }}>+ Nouvelle opportunité</button>
@@ -363,23 +384,19 @@ const ERPHome = () => {
         <section style={erpStyles.pulseRow}>
           <div style={erpStyles.pulseHead}>
             <h2 style={erpStyles.h2}>Pouls du jour</h2>
-            <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>● Mis à jour il y a 2 min</span>
+            <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>● Live</span>
           </div>
           <div style={erpStyles.pulseGrid}>
             {[
-              { k: "Chiffre d'affaires jour", v: "12 480 €", delta: "+8 %", color: "#10b981", spark: [3, 4, 5, 4, 6, 7, 8] },
-              { k: "Nouveaux deals", v: "3", delta: "vs 2 hier", color: "#4f46e5", spark: [1, 2, 2, 3, 2, 4, 3] },
-              { k: "Tickets ouverts", v: "47", delta: "↑ 4 depuis hier", color: "#0ea5e9", spark: [40, 42, 44, 43, 45, 46, 47] },
-              { k: "Encours impayés", v: "18,4 k€", delta: "3 relances dues", color: "#f59e0b", spark: [22, 21, 20, 19, 18, 19, 18] },
-              { k: "Trésorerie", v: "1,24 M€", delta: "+62 k€ semaine", color: "#0e7a55", spark: [1.18, 1.20, 1.21, 1.22, 1.21, 1.23, 1.24] },
+              { k: "Comptes", v: String(crmStats.clients), color: "#4f46e5" },
+              { k: "Opportunités", v: String(crmStats.opps), color: "#a855f7" },
+              { k: "Signées", v: String(crmStats.won), color: "#10b981" },
             ].map((p) => (
               <div key={p.k} style={erpStyles.pulse}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>{p.k}</span>
-                  <MiniSparkline data={p.spark} color={p.color} />
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", letterSpacing: -0.4, marginTop: 4 }}>{p.v}</div>
-                <div style={{ fontSize: 11, color: p.color, fontWeight: 600, marginTop: 2 }}>{p.delta}</div>
               </div>
             ))}
           </div>

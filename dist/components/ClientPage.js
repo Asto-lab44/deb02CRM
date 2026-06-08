@@ -170,9 +170,13 @@ var ClientPage = () => {
       day: "2-digit",
       month: "short"
     }) + (newAction.time ? " · " + newAction.time : "") : "Date à définir";
+    if (!urlId) {
+      alert("Aucun client sélectionné — impossible de créer l'action.");
+      return;
+    }
     try {
       await window.api.actions.create({
-        client_id: urlId || "ACC-0184",
+        client_id: urlId,
         type: newAction.type,
         title: newAction.title.trim(),
         due: dueText,
@@ -249,65 +253,28 @@ var ClientPage = () => {
   var openOppDetail = i => setOppDetailIdx(i);
   var closeOppDetail = () => setOppDetailIdx(null);
 
-  // ───── Contrats du client : localStorage + démo selon contexte
+  // ───── Contrats du client — depuis api.contracts.list (Supabase)
   var [contractsList, setContractsList] = React.useState([]);
   React.useEffect(() => {
-    var key = "hubAstorya.contracts.v1";
-    var all = [];
-    try {
-      all = JSON.parse(localStorage.getItem(key) || "[]");
-    } catch (e) {}
-    var stored = all.filter(c => c.client_id === (urlId || "ACC-0184"));
-    if (stored.length > 0) {
-      setContractsList(stored);
+    if (!window.api || !urlId) {
+      setContractsList([]);
       return;
     }
-    // Démo AXA si pas d'ID custom
-    if (!urlId) {
-      setContractsList([{
-        id: "CTR-0184-01",
-        client_id: "ACC-0184",
-        name: "Astorya Suite — 750 sièges",
-        product: "Astorya Suite v3 · Licence annuelle",
-        type: "Licence SaaS",
-        amount: "184 k€ / an",
-        start: "01 mars 2024",
-        end: "28 fév. 2027",
-        status: "active"
-      }, {
-        id: "CTR-0184-02",
-        client_id: "ACC-0184",
-        name: "Support Premium 24/7",
-        product: "Maintenance et SLA hotline",
-        type: "Maintenance",
-        amount: "48 k€ / an",
-        start: "01 mars 2024",
-        end: "28 fév. 2027",
-        status: "active"
-      }, {
-        id: "CTR-0184-03",
-        client_id: "ACC-0184",
-        name: "Module Cyber — extension",
-        product: "Cyber Add-on (POC 50 utilisateurs)",
-        type: "Licence module",
-        amount: "12 k€ / an",
-        start: "15 sept. 2025",
-        end: "14 sept. 2026",
-        status: "expiring"
-      }, {
-        id: "CTR-0184-04",
-        client_id: "ACC-0184",
-        name: "Renouvellement Suite 2024",
-        product: "Avenant renouvellement triennal",
-        type: "Avenant",
-        amount: "184 k€",
-        start: "01 mars 2023",
-        end: "28 fév. 2024",
-        status: "expired"
-      }]);
-    } else {
-      setContractsList([]);
-    }
+    window.api.contracts.list({
+      client_id: urlId
+    }).then(list => {
+      setContractsList((list || []).map(c => ({
+        id: c.id,
+        client_id: c.client_id,
+        name: c.name,
+        product: c.data && c.data.products ? "Multi-produits" : "—",
+        type: c.data && c.data.type || "Contrat",
+        amount: c.monthly_eur ? Math.round(c.monthly_eur * 12 / 1000) + " k€ / an" : c.total_ht_y1 ? Math.round(c.total_ht_y1 / 1000) + " k€ / an" : "—",
+        start: c.start_date || c.data && c.data.start || "",
+        end: c.end_date || c.data && c.data.end || "",
+        status: c.status || "active"
+      })));
+    }).catch(() => {});
   }, [urlId]);
 
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
@@ -415,9 +382,13 @@ var ClientPage = () => {
       alert("Remplissez au moins un champ");
       return;
     }
+    if (!urlId) {
+      alert("Aucun client sélectionné.");
+      return;
+    }
     try {
       await window.api.contacts.create({
-        client_id: urlId || "ACC-0184",
+        client_id: urlId,
         prenom: f.prenom,
         nom: f.nom,
         fonction: f.fonction,

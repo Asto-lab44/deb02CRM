@@ -151,8 +151,12 @@ const AssetInventoryModal = ({ open, client, onClose }) => {
             <div style={S.sub}>{totalAssets} équipements · {activeAssets} actifs · valeur estimée {totalValue}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button style={S.btnGhost} title="Exporter au format CSV">↓ CSV</button>
-            <button style={S.btnGhost} title="Exporter au format PDF">↓ PDF</button>
+            <button onClick={() => {
+              if (window.HubToast) window.HubToast.info("Export CSV — connexion à la table assets en cours d'implémentation");
+            }} style={{ ...S.btnGhost, cursor: "pointer" }} title="Exporter au format CSV">↓ CSV</button>
+            <button onClick={() => {
+              if (window.HubToast) window.HubToast.info("Export PDF — génération côté serveur prévue (WeasyPrint / Puppeteer)");
+            }} style={{ ...S.btnGhost, cursor: "pointer" }} title="Exporter au format PDF">↓ PDF</button>
             <button onClick={onClose} style={S.close} aria-label="Fermer">×</button>
           </div>
         </div>
@@ -285,7 +289,9 @@ const AssetInventoryModal = ({ open, client, onClose }) => {
           </span>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={S.btnGhost} onClick={onClose}>Fermer</button>
-            <button style={S.btnPrimary}>Générer rapport audit →</button>
+            <button onClick={() => {
+              if (window.HubToast) window.HubToast.info("Rapport audit — génération PDF côté serveur prévue (à connecter via fonction Edge Supabase)");
+            }} style={{ ...S.btnPrimary, cursor: "pointer" }}>Générer rapport audit →</button>
           </div>
         </div>
       </div>

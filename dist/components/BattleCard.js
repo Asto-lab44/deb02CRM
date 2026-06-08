@@ -195,12 +195,22 @@ var BattleCard = () => {
   }, "Objections fr\xE9quentes & reformulations"), /*#__PURE__*/React.createElement("p", {
     style: bcStyles.h3sub
   }, "R\xE9ponses valid\xE9es \xE9quipe \xE0 utiliser en RDV")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var obj = prompt("Nouvelle objection client :");
+    onClick: async () => {
+      var obj = window.HubModal ? await window.HubModal.prompt({
+        title: "Ajouter une objection",
+        label: "Objection client",
+        placeholder: "ex : Salesforce a déjà nos workflows…",
+        multiline: true
+      }) : prompt("Nouvelle objection client :");
       if (!obj || !obj.trim()) return;
-      var ans = prompt("Réponse validée à donner :");
+      var ans = window.HubModal ? await window.HubModal.prompt({
+        title: "Réponse à l'objection",
+        label: "Réponse validée équipe",
+        placeholder: "Différenciants Astorya à mettre en avant…",
+        multiline: true,
+        okLabel: "Sauvegarder"
+      }) : prompt("Réponse validée à donner :");
       if (!ans || !ans.trim()) return;
-      // Stocke en localStorage pour l'instant (objections par battlecard)
       try {
         var key = "hubAstorya.battlecard.objections.v1";
         var arr = JSON.parse(localStorage.getItem(key) || "[]");
@@ -210,8 +220,8 @@ var BattleCard = () => {
           at: new Date().toISOString()
         });
         localStorage.setItem(key, JSON.stringify(arr));
-        alert("✓ Objection ajoutée (sauvée localement)");
-        window.location.reload();
+        if (window.HubToast) window.HubToast.success("✓ Objection ajoutée");
+        setTimeout(() => window.location.reload(), 800);
       } catch (e) {
         alert("Erreur : " + e.message);
       }

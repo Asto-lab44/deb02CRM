@@ -145,9 +145,11 @@ const AdvanceOpportunity = () => {
   React.useEffect(() => { setCriteria(defaultCriteria[current.k] || []); }, [current.k]);
 
   const toggleCriterion = (i) => setCriteria((cs) => cs.map((c, idx) => idx === i ? { ...c, done: !c.done } : c));
-  const addCriterion = () => {
-    const label = prompt("Nouveau critère :");
-    if (label) setCriteria((cs) => [...cs, { label, done: false, todo: true }]);
+  const addCriterion = async () => {
+    const label = window.HubModal
+      ? await window.HubModal.prompt({ title: "Ajouter un critère de sortie", label: "Libellé du critère", placeholder: "ex : Budget validé par CFO" })
+      : prompt("Nouveau critère :");
+    if (label && label.trim()) setCriteria((cs) => [...cs, { label: label.trim(), done: false, todo: true }]);
   };
 
   const passed = criteria.filter((c) => c.done).length;
@@ -184,10 +186,12 @@ const AdvanceOpportunity = () => {
   const [tasks, setTasks] = React.useState(defaultTasks[target.k] || []);
   React.useEffect(() => { setTasks(defaultTasks[target.k] || []); }, [target.k]);
   const toggleTask = (i) => setTasks((ts) => ts.map((t, idx) => idx === i ? { ...t, check: !t.check } : t));
-  const addTask = () => {
-    const title = prompt("Titre de la tâche :");
-    if (!title) return;
-    setTasks((ts) => [...ts, { check: false, p: "moyenne", title, due: "À planifier", who: "Owner", icon: "✅" }]);
+  const addTask = async () => {
+    const title = window.HubModal
+      ? await window.HubModal.prompt({ title: "Ajouter une tâche", label: "Intitulé", placeholder: "ex : Préparer présentation DORA" })
+      : prompt("Titre de la tâche :");
+    if (!title || !title.trim()) return;
+    setTasks((ts) => [...ts, { check: false, p: "moyenne", title: title.trim(), due: "À planifier", who: "Owner", icon: "✅" }]);
   };
 
   // Forecast impact
@@ -203,10 +207,13 @@ const AdvanceOpportunity = () => {
     // Avertissement souple si on avance malgré des critères non cochés
     const incomplete = criteria.filter((c) => c.todo && !c.done).length;
     if (!asLost && incomplete > 0) {
-      const proceed = confirm(
-        "Il reste " + incomplete + " critère(s) de sortie non validé(s) pour passer en " + target.label + ".\n\n" +
-        "Continuer malgré tout ?"
-      );
+      const proceed = window.HubModal
+        ? await window.HubModal.confirm({
+            title: "Avancer en " + target.label + " ?",
+            message: "Il reste " + incomplete + " critère" + (incomplete > 1 ? "s" : "") + " de sortie non validé" + (incomplete > 1 ? "s" : "") + ".",
+            okLabel: "Avancer malgré tout",
+          })
+        : confirm("Il reste " + incomplete + " critère(s) non validé(s). Continuer ?");
       if (!proceed) return;
     }
 
@@ -608,7 +615,12 @@ const AdvanceOpportunity = () => {
           </span>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => { if (confirm("Marquer cette opportunité comme perdue ?")) confirmAdvance(true); }} style={aoStyles.dangerGhostBtn}>Marquer comme perdu</button>
+          <button onClick={async () => {
+            const ok = window.HubModal
+              ? await window.HubModal.confirm({ title: "Marquer comme perdue ?", message: "L'opportunité passera au statut Lost et sortira du pipeline actif.", okLabel: "Confirmer la perte", okStyle: "danger" })
+              : confirm("Marquer cette opportunité comme perdue ?");
+            if (ok) confirmAdvance(true);
+          }} style={aoStyles.dangerGhostBtn}>Marquer comme perdu</button>
           <button onClick={() => confirmAdvance(false)} style={aoStyles.primaryBtnBig}>
             ✓ Confirmer le passage en {target.label}
           </button>

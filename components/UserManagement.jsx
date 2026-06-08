@@ -155,7 +155,9 @@ const UserManagement = () => {
         </a>
         <button
           onClick={async () => {
-            const email = prompt("Email du nouvel utilisateur Astorya :");
+            const email = window.HubModal
+              ? await window.HubModal.prompt({ title: "Inviter un utilisateur", label: "Email professionnel", placeholder: "prenom.nom@astorya.fr", okLabel: "Envoyer l'invitation" })
+              : prompt("Email du nouvel utilisateur Astorya :");
             if (!email || !email.trim()) return;
             const V = window.HubValidators;
             const err = V && V.email(email.trim());
@@ -283,7 +285,12 @@ const UserManagement = () => {
                 style={{ ...S.btnGhost, borderColor: "#fecaca", color: "#dc2626", cursor: "pointer" }}
                 title="Supprimer toutes les données métier (clients, opps, contacts, actions, contrats)"
               >🗑 Reset données</button>
-              <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinit. groupes</button>
+              <button onClick={async () => {
+                const ok = window.HubModal
+                  ? await window.HubModal.confirm({ title: "Réinitialiser les groupes ?", message: "Tous les groupes et leurs accès aux modules ERP reviendront aux valeurs par défaut.", okLabel: "Réinitialiser", okStyle: "danger" })
+                  : confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?");
+                if (ok) { window.HubAccess.resetAll(); flash("Réinitialisé"); }
+              }} style={S.btnGhost}>⟲ Réinit. groupes</button>
               <a
                 href="https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/providers"
                 target="_blank"
@@ -292,8 +299,10 @@ const UserManagement = () => {
                 title="Configurer SAML / OAuth / SSO dans Supabase"
               >🔗 Configurer SSO →</a>
               <button
-                onClick={() => {
-                  const label = prompt("Nom du nouveau groupe :");
+                onClick={async () => {
+                  const label = window.HubModal
+                    ? await window.HubModal.prompt({ title: "Créer un groupe d'accès", label: "Nom du groupe", placeholder: "ex: Commercial DACH", okLabel: "Créer" })
+                    : prompt("Nom du nouveau groupe :");
                   if (!label || !label.trim()) return;
                   const id = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || ("group-" + Date.now());
                   if (persistedGroups.find((g) => g.id === id)) { alert("Un groupe avec cet identifiant existe déjà"); return; }

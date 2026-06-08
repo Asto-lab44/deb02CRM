@@ -587,10 +587,22 @@ var AssetInventoryModal = ({
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    style: S.btnGhost,
+    onClick: () => {
+      if (window.HubToast) window.HubToast.info("Export CSV — connexion à la table assets en cours d'implémentation");
+    },
+    style: {
+      ...S.btnGhost,
+      cursor: "pointer"
+    },
     title: "Exporter au format CSV"
   }, "\u2193 CSV"), /*#__PURE__*/React.createElement("button", {
-    style: S.btnGhost,
+    onClick: () => {
+      if (window.HubToast) window.HubToast.info("Export PDF — génération côté serveur prévue (WeasyPrint / Puppeteer)");
+    },
+    style: {
+      ...S.btnGhost,
+      cursor: "pointer"
+    },
     title: "Exporter au format PDF"
   }, "\u2193 PDF"), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
@@ -878,7 +890,13 @@ var AssetInventoryModal = ({
     style: S.btnGhost,
     onClick: onClose
   }, "Fermer"), /*#__PURE__*/React.createElement("button", {
-    style: S.btnPrimary
+    onClick: () => {
+      if (window.HubToast) window.HubToast.info("Rapport audit — génération PDF côté serveur prévue (à connecter via fonction Edge Supabase)");
+    },
+    style: {
+      ...S.btnPrimary,
+      cursor: "pointer"
+    }
   }, "G\xE9n\xE9rer rapport audit \u2192")))));
   return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
 };

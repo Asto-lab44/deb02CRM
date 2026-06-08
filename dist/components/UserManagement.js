@@ -316,7 +316,12 @@ var UserManagement = () => {
     }
   }, "Administration"))), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
-      var email = prompt("Email du nouvel utilisateur Astorya :");
+      var email = window.HubModal ? await window.HubModal.prompt({
+        title: "Inviter un utilisateur",
+        label: "Email professionnel",
+        placeholder: "prenom.nom@astorya.fr",
+        okLabel: "Envoyer l'invitation"
+      }) : prompt("Email du nouvel utilisateur Astorya :");
       if (!email || !email.trim()) return;
       var V = window.HubValidators;
       var err = V && V.email(email.trim());
@@ -679,8 +684,14 @@ var UserManagement = () => {
     },
     title: "Supprimer toutes les donn\xE9es m\xE9tier (clients, opps, contacts, actions, contrats)"
   }, "\uD83D\uDDD1 Reset donn\xE9es"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) {
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Réinitialiser les groupes ?",
+        message: "Tous les groupes et leurs accès aux modules ERP reviendront aux valeurs par défaut.",
+        okLabel: "Réinitialiser",
+        okStyle: "danger"
+      }) : confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?");
+      if (ok) {
         window.HubAccess.resetAll();
         flash("Réinitialisé");
       }
@@ -699,8 +710,13 @@ var UserManagement = () => {
     },
     title: "Configurer SAML / OAuth / SSO dans Supabase"
   }, "\uD83D\uDD17 Configurer SSO \u2192"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var label = prompt("Nom du nouveau groupe :");
+    onClick: async () => {
+      var label = window.HubModal ? await window.HubModal.prompt({
+        title: "Créer un groupe d'accès",
+        label: "Nom du groupe",
+        placeholder: "ex: Commercial DACH",
+        okLabel: "Créer"
+      }) : prompt("Nom du nouveau groupe :");
       if (!label || !label.trim()) return;
       var id = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "group-" + Date.now();
       if (persistedGroups.find(g => g.id === id)) {

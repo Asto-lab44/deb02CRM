@@ -131,7 +131,12 @@ var TicketList = () => {
   // ───── Menu utilisateur (pied de sidebar)
   var [userMenuOpen, setUserMenuOpen] = React.useState(false);
   var handleLogout = async () => {
-    if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return;
+    var ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Se déconnecter ?",
+      message: "Tu reviendras sur la page de connexion.",
+      okLabel: "Déconnexion"
+    }) : confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
+    if (!ok) return;
     if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
     if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
     window.location.href = "/login";

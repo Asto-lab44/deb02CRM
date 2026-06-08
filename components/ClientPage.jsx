@@ -723,12 +723,21 @@ const ClientPage = () => {
                   <button
                     onClick={async () => {
                       if (!urlId) return;
-                      if (!confirm("Supprimer définitivement " + display.name + " ?\n\n(Soft-delete : la donnée reste en BDD, juste marquée supprimée)")) return;
+                      const ok = window.HubModal
+                        ? await window.HubModal.confirm({
+                            title: "Supprimer " + display.name + " ?",
+                            message: "Soft-delete : la donnée reste en BDD, juste marquée supprimée. Elle peut être restaurée par un admin.",
+                            okLabel: "Supprimer",
+                            okStyle: "danger",
+                          })
+                        : confirm("Supprimer définitivement " + display.name + " ?");
+                      if (!ok) return;
                       try {
                         await window.api.clients.remove(urlId);
+                        if (window.HubToast) window.HubToast.success("✓ Client supprimé");
                         window.location.href = "/crm";
                       } catch (err) {
-                        alert("Suppression échouée : " + (err && err.message || err) + "\n\nLa donnée reste accessible.");
+                        alert("Suppression échouée : " + (err && err.message || err));
                       }
                     }}
                     style={{ ...cliStyles.menuItem, color: "#dc2626" }}

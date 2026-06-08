@@ -389,40 +389,48 @@ var NewContract = () => {
     ...patch
   } : p));
   var removeProduct = id => setProducts(ps => ps.filter(p => p.id !== id));
+  // addProduct : ajoute une ligne directement avec valeurs par défaut, l'user
+  // édite ensuite les champs inline (prix/qty/périodicité) — UX plus rapide
+  // qu'une suite de prompts.
   var addProduct = () => {
-    var name = prompt("Nom du produit / article :");
-    if (!name) return;
-    var unit = parseFloat(prompt("Prix unitaire HT (€) :", "0")) || 0;
-    var qty = parseFloat(prompt("Quantité :", "1")) || 1;
-    var periodicity = (prompt("Périodicité (annual / oneshot) :", "annual") || "annual").trim();
     var palette = ["#a855f7", "#dc2626", "#0ea5e9", "#10b981", "#f59e0b", "#6366f1"];
     setProducts(ps => [...ps, {
       id: "p" + Date.now(),
-      name,
+      name: "Nouveau produit",
       sku: "—",
       desc: "",
-      unit,
-      qty,
+      unit: 0,
+      qty: 1,
       discount: 0,
-      periodicity,
+      periodicity: "annual",
       color: palette[ps.length % palette.length]
     }]);
+    if (window.HubToast) window.HubToast.info("Ligne ajoutée — éditez les champs ci-dessus");
   };
   var removeAnnexe = id => setAnnexes(a => a.filter(x => x.id !== id));
-  var addAnnexe = () => {
-    var l = prompt("Intitulé de l'annexe :");
-    if (l) setAnnexes(a => [...a, {
+  var addAnnexe = async () => {
+    var l = window.HubModal ? await window.HubModal.prompt({
+      title: "Nouvelle annexe",
+      label: "Intitulé",
+      placeholder: "ex : RIB Astorya"
+    }) : prompt("Intitulé de l'annexe :");
+    if (l && l.trim()) setAnnexes(a => [...a, {
       id: "a" + Date.now(),
-      label: l
+      label: l.trim()
     }]);
   };
   var removeClause = id => setClauses(a => a.filter(x => x.id !== id));
-  var addClause = () => {
-    var l = prompt("Clause spécifique :");
-    if (l) setClauses(a => [...a, {
+  var addClause = async () => {
+    var l = window.HubModal ? await window.HubModal.prompt({
+      title: "Clause spécifique",
+      label: "Texte de la clause",
+      multiline: true,
+      placeholder: "Description de la clause négociée…"
+    }) : prompt("Clause spécifique :");
+    if (l && l.trim()) setClauses(a => [...a, {
       id: "c" + Date.now(),
       tag: "NÉGOCIÉ",
-      text: l
+      text: l.trim()
     }]);
   };
 

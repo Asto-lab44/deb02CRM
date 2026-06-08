@@ -168,19 +168,38 @@ const NewContract = () => {
   // ── Mutations
   const updateProduct = (id, patch) => setProducts((ps) => ps.map((p) => p.id === id ? { ...p, ...patch } : p));
   const removeProduct = (id) => setProducts((ps) => ps.filter((p) => p.id !== id));
+  // addProduct : ajoute une ligne directement avec valeurs par défaut, l'user
+  // édite ensuite les champs inline (prix/qty/périodicité) — UX plus rapide
+  // qu'une suite de prompts.
   const addProduct = () => {
-    const name = prompt("Nom du produit / article :");
-    if (!name) return;
-    const unit = parseFloat(prompt("Prix unitaire HT (€) :", "0")) || 0;
-    const qty = parseFloat(prompt("Quantité :", "1")) || 1;
-    const periodicity = (prompt("Périodicité (annual / oneshot) :", "annual") || "annual").trim();
     const palette = ["#a855f7", "#dc2626", "#0ea5e9", "#10b981", "#f59e0b", "#6366f1"];
-    setProducts((ps) => [...ps, { id: "p" + Date.now(), name, sku: "—", desc: "", unit, qty, discount: 0, periodicity, color: palette[ps.length % palette.length] }]);
+    setProducts((ps) => [...ps, {
+      id: "p" + Date.now(),
+      name: "Nouveau produit",
+      sku: "—",
+      desc: "",
+      unit: 0,
+      qty: 1,
+      discount: 0,
+      periodicity: "annual",
+      color: palette[ps.length % palette.length]
+    }]);
+    if (window.HubToast) window.HubToast.info("Ligne ajoutée — éditez les champs ci-dessus");
   };
   const removeAnnexe = (id) => setAnnexes((a) => a.filter((x) => x.id !== id));
-  const addAnnexe = () => { const l = prompt("Intitulé de l'annexe :"); if (l) setAnnexes((a) => [...a, { id: "a" + Date.now(), label: l }]); };
+  const addAnnexe = async () => {
+    const l = window.HubModal
+      ? await window.HubModal.prompt({ title: "Nouvelle annexe", label: "Intitulé", placeholder: "ex : RIB Astorya" })
+      : prompt("Intitulé de l'annexe :");
+    if (l && l.trim()) setAnnexes((a) => [...a, { id: "a" + Date.now(), label: l.trim() }]);
+  };
   const removeClause = (id) => setClauses((a) => a.filter((x) => x.id !== id));
-  const addClause = () => { const l = prompt("Clause spécifique :"); if (l) setClauses((a) => [...a, { id: "c" + Date.now(), tag: "NÉGOCIÉ", text: l }]); };
+  const addClause = async () => {
+    const l = window.HubModal
+      ? await window.HubModal.prompt({ title: "Clause spécifique", label: "Texte de la clause", multiline: true, placeholder: "Description de la clause négociée…" })
+      : prompt("Clause spécifique :");
+    if (l && l.trim()) setClauses((a) => [...a, { id: "c" + Date.now(), tag: "NÉGOCIÉ", text: l.trim() }]);
+  };
 
   // ── Submit
   const submitContract = async (action) => {

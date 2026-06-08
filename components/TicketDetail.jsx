@@ -101,7 +101,9 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
 
   const resolveTicket = async () => {
     if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
-    const note = prompt("Note de résolution (visible client) :", "");
+    const note = window.HubModal
+      ? await window.HubModal.prompt({ title: "Marquer comme résolu", label: "Note de résolution (visible client)", placeholder: "Action effectuée pour résoudre…", multiline: true, okLabel: "Valider la résolution" })
+      : prompt("Note de résolution (visible client) :", "");
     if (note === null) return; // cancel
     const { error } = await window.HubData.updateTicket(TICKET_ID, {
       status: "resolved",
@@ -138,11 +140,23 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
         { id: null, name: "Augustin Morin", team: "Direction" },
       ];
     }
-    const list = users.map((u, i) => `${i + 1}. ${u.name} · ${u.team}`).join("\n");
-    const choice = prompt("Assigner à :\n\n" + list + "\n\nTapez le numéro :", "1");
-    const idx = parseInt(choice, 10) - 1;
-    if (isNaN(idx) || idx < 0 || idx >= users.length) return;
-    const target = users[idx];
+    // Modal choice moderne au lieu d'un prompt() avec numéros
+    let targetIdx;
+    if (window.HubModal) {
+      const chosen = await window.HubModal.choice({
+        title: "Assigner ce ticket",
+        message: "Choisissez l'agent à qui transférer le ticket.",
+        options: users.map((u, i) => ({ value: String(i), label: u.name, sub: u.team })),
+      });
+      if (chosen == null) return;
+      targetIdx = parseInt(chosen, 10);
+    } else {
+      const list = users.map((u, i) => `${i + 1}. ${u.name} · ${u.team}`).join("\n");
+      const choice = prompt("Assigner à :\n\n" + list + "\n\nTapez le numéro :", "1");
+      targetIdx = parseInt(choice, 10) - 1;
+    }
+    if (isNaN(targetIdx) || targetIdx < 0 || targetIdx >= users.length) return;
+    const target = users[targetIdx];
     const { error } = await window.HubData.updateTicket(TICKET_ID, {
       assignee_id: target.id,
       assignee_team: target.team,
@@ -154,7 +168,10 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
 
   const closeTicket = async () => {
     if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
-    if (!confirm("Fermer définitivement ce ticket ? Le client ne pourra plus y répondre.")) return;
+    const ok = window.HubModal
+      ? await window.HubModal.confirm({ title: "Fermer ce ticket ?", message: "Le client ne pourra plus y répondre une fois fermé.", okLabel: "Fermer définitivement", okStyle: "danger" })
+      : confirm("Fermer définitivement ce ticket ? Le client ne pourra plus y répondre.");
+    if (!ok) return;
     const { error } = await window.HubData.updateTicket(TICKET_ID, {
       status: "closed",
       closed_at: new Date().toISOString(),
@@ -165,7 +182,9 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
 
   const escalateTicket = async () => {
     if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
-    const reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
+    const reason = window.HubModal
+      ? await window.HubModal.prompt({ title: "Escalader au groupe Supervision", label: "Motif de l'escalade", default: "Demande arbitrage Supervision", multiline: true, okLabel: "Escalader" })
+      : prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason) return;
     const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
     const { error } = await window.HubData.escalateTicket(TICKET_ID, {

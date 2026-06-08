@@ -1335,8 +1335,13 @@ var NewProspect = () => {
       marginLeft: 2
     }
   }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var v = prompt("Nouvelle étiquette :");
+    onClick: async () => {
+      var v = window.HubModal ? await window.HubModal.prompt({
+        title: "Nouvelle étiquette",
+        label: "Tag",
+        placeholder: "ex : Hot prospect Q2",
+        okLabel: "Ajouter"
+      }) : prompt("Nouvelle étiquette :");
       if (v && v.trim()) setTags(arr => [...arr, v.trim()]);
     },
     style: {

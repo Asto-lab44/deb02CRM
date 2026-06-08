@@ -96,19 +96,22 @@ const BattleCard = () => {
             <h3 style={bcStyles.h3}>Objections fréquentes & reformulations</h3>
             <p style={bcStyles.h3sub}>Réponses validées équipe à utiliser en RDV</p>
           </div>
-          <button onClick={() => {
-            const obj = prompt("Nouvelle objection client :");
+          <button onClick={async () => {
+            const obj = window.HubModal
+              ? await window.HubModal.prompt({ title: "Ajouter une objection", label: "Objection client", placeholder: "ex : Salesforce a déjà nos workflows…", multiline: true })
+              : prompt("Nouvelle objection client :");
             if (!obj || !obj.trim()) return;
-            const ans = prompt("Réponse validée à donner :");
+            const ans = window.HubModal
+              ? await window.HubModal.prompt({ title: "Réponse à l'objection", label: "Réponse validée équipe", placeholder: "Différenciants Astorya à mettre en avant…", multiline: true, okLabel: "Sauvegarder" })
+              : prompt("Réponse validée à donner :");
             if (!ans || !ans.trim()) return;
-            // Stocke en localStorage pour l'instant (objections par battlecard)
             try {
               const key = "hubAstorya.battlecard.objections.v1";
               const arr = JSON.parse(localStorage.getItem(key) || "[]");
               arr.push({ obj: obj.trim(), ans: ans.trim(), at: new Date().toISOString() });
               localStorage.setItem(key, JSON.stringify(arr));
-              alert("✓ Objection ajoutée (sauvée localement)");
-              window.location.reload();
+              if (window.HubToast) window.HubToast.success("✓ Objection ajoutée");
+              setTimeout(() => window.location.reload(), 800);
             } catch (e) { alert("Erreur : " + e.message); }
           }} style={{ ...bcStyles.smBtn, cursor: "pointer" }}>+ Ajouter</button>
         </div>

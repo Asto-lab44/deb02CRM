@@ -356,10 +356,14 @@ var AdvanceOpportunity = () => {
     ...c,
     done: !c.done
   } : c));
-  var addCriterion = () => {
-    var label = prompt("Nouveau critère :");
-    if (label) setCriteria(cs => [...cs, {
-      label,
+  var addCriterion = async () => {
+    var label = window.HubModal ? await window.HubModal.prompt({
+      title: "Ajouter un critère de sortie",
+      label: "Libellé du critère",
+      placeholder: "ex : Budget validé par CFO"
+    }) : prompt("Nouveau critère :");
+    if (label && label.trim()) setCriteria(cs => [...cs, {
+      label: label.trim(),
       done: false,
       todo: true
     }]);
@@ -446,13 +450,17 @@ var AdvanceOpportunity = () => {
     ...t,
     check: !t.check
   } : t));
-  var addTask = () => {
-    var title = prompt("Titre de la tâche :");
-    if (!title) return;
+  var addTask = async () => {
+    var title = window.HubModal ? await window.HubModal.prompt({
+      title: "Ajouter une tâche",
+      label: "Intitulé",
+      placeholder: "ex : Préparer présentation DORA"
+    }) : prompt("Titre de la tâche :");
+    if (!title || !title.trim()) return;
     setTasks(ts => [...ts, {
       check: false,
       p: "moyenne",
-      title,
+      title: title.trim(),
       due: "À planifier",
       who: "Owner",
       icon: "✅"
@@ -472,7 +480,11 @@ var AdvanceOpportunity = () => {
     // Avertissement souple si on avance malgré des critères non cochés
     var incomplete = criteria.filter(c => c.todo && !c.done).length;
     if (!asLost && incomplete > 0) {
-      var proceed = confirm("Il reste " + incomplete + " critère(s) de sortie non validé(s) pour passer en " + target.label + ".\n\n" + "Continuer malgré tout ?");
+      var proceed = window.HubModal ? await window.HubModal.confirm({
+        title: "Avancer en " + target.label + " ?",
+        message: "Il reste " + incomplete + " critère" + (incomplete > 1 ? "s" : "") + " de sortie non validé" + (incomplete > 1 ? "s" : "") + ".",
+        okLabel: "Avancer malgré tout"
+      }) : confirm("Il reste " + incomplete + " critère(s) non validé(s). Continuer ?");
       if (!proceed) return;
     }
     try {
@@ -1323,8 +1335,14 @@ var AdvanceOpportunity = () => {
       flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (confirm("Marquer cette opportunité comme perdue ?")) confirmAdvance(true);
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Marquer comme perdue ?",
+        message: "L'opportunité passera au statut Lost et sortira du pipeline actif.",
+        okLabel: "Confirmer la perte",
+        okStyle: "danger"
+      }) : confirm("Marquer cette opportunité comme perdue ?");
+      if (ok) confirmAdvance(true);
     },
     style: aoStyles.dangerGhostBtn
   }, "Marquer comme perdu"), /*#__PURE__*/React.createElement("button", {

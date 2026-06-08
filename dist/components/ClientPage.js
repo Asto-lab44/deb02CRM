@@ -948,9 +948,33 @@ var ClientPage = () => {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.iconBtn
+    onClick: () => {
+      var idx = recents.findIndex(r => r.id === urlId);
+      if (idx > 0) window.location.href = "/fiche-client?id=" + encodeURIComponent(recents[idx - 1].id);
+    },
+    disabled: (() => {
+      var i = recents.findIndex(r => r.id === urlId);
+      return i <= 0;
+    })(),
+    style: {
+      ...cliStyles.iconBtn,
+      cursor: "pointer"
+    },
+    title: "Client pr\xE9c\xE9dent"
   }, "\u2039"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.iconBtn
+    onClick: () => {
+      var idx = recents.findIndex(r => r.id === urlId);
+      if (idx >= 0 && idx < recents.length - 1) window.location.href = "/fiche-client?id=" + encodeURIComponent(recents[idx + 1].id);
+    },
+    disabled: (() => {
+      var i = recents.findIndex(r => r.id === urlId);
+      return i < 0 || i >= recents.length - 1;
+    })(),
+    style: {
+      ...cliStyles.iconBtn,
+      cursor: "pointer"
+    },
+    title: "Client suivant"
   }, "\u203A"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       var key = "hubAstorya.followed.v1";
@@ -974,7 +998,33 @@ var ClientPage = () => {
       cursor: "pointer"
     }
   }, "\u2605 Suivre"), /*#__PURE__*/React.createElement("button", {
-    style: cliStyles.iconBtn
+    onClick: async () => {
+      if (!urlId) return;
+      var choice = prompt(`${display.name}\n\n1. Convertir en client\n2. Archiver\n3. Supprimer définitivement\n\nTapez 1, 2 ou 3 :`, "");
+      if (choice === "1") {
+        await window.api.clients.update(urlId, {
+          status: "client",
+          client_since: new Date().toISOString()
+        });
+        alert("Converti en client.");
+        window.location.reload();
+      } else if (choice === "2") {
+        await window.api.clients.update(urlId, {
+          status: "archived"
+        });
+        alert("Archivé.");
+        window.location.href = "/crm";
+      } else if (choice === "3" && confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) {
+        await window.api.clients.remove(urlId);
+        alert("Supprimé.");
+        window.location.href = "/crm";
+      }
+    },
+    style: {
+      ...cliStyles.iconBtn,
+      cursor: "pointer"
+    },
+    title: "Plus d'actions"
   }, "\u22EF"))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.scroll
   }, /*#__PURE__*/React.createElement("section", {

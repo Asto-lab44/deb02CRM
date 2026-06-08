@@ -604,8 +604,24 @@ const ClientPage = () => {
             <span style={cliStyles.healthChip}>● Compte sain</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={cliStyles.iconBtn}>‹</button>
-            <button style={cliStyles.iconBtn}>›</button>
+            <button
+              onClick={() => {
+                const idx = recents.findIndex((r) => r.id === urlId);
+                if (idx > 0) window.location.href = "/fiche-client?id=" + encodeURIComponent(recents[idx - 1].id);
+              }}
+              disabled={(() => { const i = recents.findIndex((r) => r.id === urlId); return i <= 0; })()}
+              style={{ ...cliStyles.iconBtn, cursor: "pointer" }}
+              title="Client précédent"
+            >‹</button>
+            <button
+              onClick={() => {
+                const idx = recents.findIndex((r) => r.id === urlId);
+                if (idx >= 0 && idx < recents.length - 1) window.location.href = "/fiche-client?id=" + encodeURIComponent(recents[idx + 1].id);
+              }}
+              disabled={(() => { const i = recents.findIndex((r) => r.id === urlId); return i < 0 || i >= recents.length - 1; })()}
+              style={{ ...cliStyles.iconBtn, cursor: "pointer" }}
+              title="Client suivant"
+            >›</button>
             <button onClick={() => {
               const key = "hubAstorya.followed.v1";
               let list = []; try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) {}
@@ -620,7 +636,27 @@ const ClientPage = () => {
                 alert("✓ Vous suivez " + display.name);
               }
             }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
-            <button style={cliStyles.iconBtn}>⋯</button>
+            <button
+              onClick={async () => {
+                if (!urlId) return;
+                const choice = prompt(`${display.name}\n\n1. Convertir en client\n2. Archiver\n3. Supprimer définitivement\n\nTapez 1, 2 ou 3 :`, "");
+                if (choice === "1") {
+                  await window.api.clients.update(urlId, { status: "client", client_since: new Date().toISOString() });
+                  alert("Converti en client.");
+                  window.location.reload();
+                } else if (choice === "2") {
+                  await window.api.clients.update(urlId, { status: "archived" });
+                  alert("Archivé.");
+                  window.location.href = "/crm";
+                } else if (choice === "3" && confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) {
+                  await window.api.clients.remove(urlId);
+                  alert("Supprimé.");
+                  window.location.href = "/crm";
+                }
+              }}
+              style={{ ...cliStyles.iconBtn, cursor: "pointer" }}
+              title="Plus d'actions"
+            >⋯</button>
           </div>
         </header>
 

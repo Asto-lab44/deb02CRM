@@ -174,6 +174,15 @@ const ClientPage = () => {
   const openOppDetail = (i) => setOppDetailIdx(i);
   const closeOppDetail = () => setOppDetailIdx(null);
 
+  // ───── Tickets du client — depuis hub-data.fetchTickets filtré sur ce client
+  const [clientTickets, setClientTickets] = React.useState([]);
+  React.useEffect(() => {
+    if (!urlId || !window.HubData || !window.HubData.enabled || !window.HubData.enabled()) { setClientTickets([]); return; }
+    window.HubData.fetchTickets({ client_id: urlId, limit: 50 }).then(({ data }) => {
+      setClientTickets((data || []).filter((t) => t.client_id === urlId));
+    }).catch(() => {});
+  }, [urlId]);
+
   // ───── Contrats du client — depuis api.contracts.list (Supabase)
   const [contractsList, setContractsList] = React.useState([]);
   React.useEffect(() => {
@@ -1224,6 +1233,51 @@ const ClientPage = () => {
                               style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 16, cursor: "pointer", padding: "4px 8px" }}
                             >⋯</button>
                           </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          {/* TICKETS DU CLIENT */}
+          <section style={cliStyles.block}>
+            <div style={cliStyles.actionsHead}>
+              <div>
+                <h2 style={cliStyles.h2}>🎫 Tickets <span style={cliStyles.blockCount}>{clientTickets.length}</span></h2>
+                <p style={cliStyles.h2sub}>Support technique et demandes en cours</p>
+              </div>
+              <a href={"/ticketing?client=" + encodeURIComponent(urlId || "")} style={{ ...cliStyles.primaryBtnSm, textDecoration: "none", cursor: "pointer" }}>+ Nouveau ticket</a>
+            </div>
+            {clientTickets.length === 0 ? (
+              <div style={{ padding: "20px 14px", textAlign: "center", fontSize: 12.5, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc" }}>
+                Aucun ticket pour ce client.
+              </div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ background: "#fafbfc" }}>
+                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #eef1f5" }}>Ref</th>
+                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #eef1f5" }}>Titre</th>
+                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #eef1f5" }}>Statut</th>
+                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #eef1f5" }}>Priorité</th>
+                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #eef1f5" }}>Ouvert</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientTickets.map((t) => {
+                      const sCol = { open: "#3b82f6", in_progress: "#f59e0b", waiting: "#94a3b8", resolved: "#10b981", closed: "#64748b" }[t.status] || "#64748b";
+                      const pCol = { critique: "#dc2626", haute: "#ea580c", normale: "#64748b", basse: "#94a3b8" }[t.priority] || "#64748b";
+                      return (
+                        <tr key={t.id} onClick={() => window.location.href = "/ticketing?id=" + encodeURIComponent(t.id)} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}>
+                          <td style={{ padding: "10px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#475569" }}>{t.id}</td>
+                          <td style={{ padding: "10px", fontWeight: 500, color: "#0f172a" }}>{t.title}</td>
+                          <td style={{ padding: "10px" }}><span style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4, background: sCol + "20", color: sCol, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{t.status}</span></td>
+                          <td style={{ padding: "10px" }}><span style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4, background: pCol + "20", color: pCol, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{t.priority}</span></td>
+                          <td style={{ padding: "10px", fontSize: 11.5, color: "#64748b" }}>{t.opened_at ? new Date(t.opened_at).toLocaleDateString("fr-FR") : "—"}</td>
                         </tr>
                       );
                     })}

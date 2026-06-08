@@ -387,10 +387,27 @@ var SalesTeam = () => {
   }, "Trimestre"), /*#__PURE__*/React.createElement("button", {
     style: teamStyles.segBtn
   }, "Ann\xE9e")), /*#__PURE__*/React.createElement("button", {
-    style: teamStyles.ghostBtn
-  }, "Exporter"), /*#__PURE__*/React.createElement("button", {
-    style: teamStyles.primaryBtn
-  }, "+ Affecter territoire"))), /*#__PURE__*/React.createElement("div", {
+    onClick: () => {
+      var rows = [["Nom", "Rôle", "Deals", "Pipe (k€)", "Won (k€)", "Win rate %"]];
+      reps.forEach(r => rows.push([r.name, r.role, r.deals, r.pipe, r.won, r.winRate]));
+      var csv = rows.map(r => r.map(c => `"${String(c || "")}"`).join(",")).join("\n");
+      var blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;"
+      });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "equipe-commerciale.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+    style: {
+      ...teamStyles.ghostBtn,
+      cursor: "pointer"
+    }
+  }, "Exporter CSV"))), /*#__PURE__*/React.createElement("div", {
     style: teamStyles.kpiStrip
   }, /*#__PURE__*/React.createElement("div", {
     style: {

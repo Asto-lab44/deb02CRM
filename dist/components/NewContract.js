@@ -579,9 +579,6 @@ var NewContract = () => {
     onClick: () => history.back(),
     style: ncStyles.ghostBtn
   }, "Annuler"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Import depuis devis — à venir"),
-    style: ncStyles.ghostBtn
-  }, "\u2193 Importer depuis devis"), /*#__PURE__*/React.createElement("button", {
     onClick: () => submitContract("send"),
     style: ncStyles.primaryBtn
   }, "Cr\xE9er & envoyer pour signature"))), /*#__PURE__*/React.createElement("div", {
@@ -779,16 +776,16 @@ var NewContract = () => {
       color: "#0f172a",
       marginTop: 3
     }
-  }, clientName))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Sélection d'opportunité — à venir"),
-    style: ncStyles.changeBtn
-  }, "Changer")) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Rattacher une opportunité — à venir"),
+  }, clientName)))) : /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (clientId) window.location.href = "/nouvelle-opportunite?client=" + encodeURIComponent(clientId);
+    },
     style: {
       ...ncStyles.addChip,
-      padding: "8px 14px"
+      padding: "8px 14px",
+      cursor: "pointer"
     }
-  }, "+ Rattacher une opportunit\xE9"))), /*#__PURE__*/React.createElement("section", {
+  }, "+ Cr\xE9er une opportunit\xE9"))), /*#__PURE__*/React.createElement("section", {
     style: ncStyles.section
   }, /*#__PURE__*/React.createElement(NCSectionHead, {
     num: "02",
@@ -1295,10 +1292,7 @@ var NewContract = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Mise \xE0 jour ", fmtDateFR(new Date().toISOString()), " \xB7 DORA-compliant")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Choix du modèle — à venir"),
-    style: ncStyles.changeBtn
-  }, "Changer"))), /*#__PURE__*/React.createElement(NCFormRow, {
+  }, "Mise \xE0 jour ", fmtDateFR(new Date().toISOString()), " \xB7 DORA-compliant")))), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Annexes"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1453,9 +1447,6 @@ var NewContract = () => {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Aperçu PDF — à venir"),
-    style: ncStyles.ghostBtn
-  }, "\uD83D\uDC41 Pr\xE9visualiser PDF"), /*#__PURE__*/React.createElement("button", {
     onClick: () => submitContract("draft"),
     style: ncStyles.ghostBtn
   }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {

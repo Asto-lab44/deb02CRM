@@ -261,7 +261,6 @@ const NewContract = () => {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => history.back()} style={ncStyles.ghostBtn}>Annuler</button>
-          <button onClick={() => alert("Import depuis devis — à venir")} style={ncStyles.ghostBtn}>↓ Importer depuis devis</button>
           <button onClick={() => submitContract("send")} style={ncStyles.primaryBtn}>Créer & envoyer pour signature</button>
         </div>
       </header>
@@ -370,10 +369,9 @@ const NewContract = () => {
                         <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginTop: 3 }}>{clientName}</div>
                       </div>
                     </div>
-                    <button onClick={() => alert("Sélection d'opportunité — à venir")} style={ncStyles.changeBtn}>Changer</button>
                   </div>
                 ) : (
-                  <button onClick={() => alert("Rattacher une opportunité — à venir")} style={{ ...ncStyles.addChip, padding: "8px 14px" }}>+ Rattacher une opportunité</button>
+                  <button onClick={() => { if (clientId) window.location.href = "/nouvelle-opportunite?client=" + encodeURIComponent(clientId); }} style={{ ...ncStyles.addChip, padding: "8px 14px", cursor: "pointer" }}>+ Créer une opportunité</button>
                 )}
               </NCFormRow>
             </section>
@@ -613,7 +611,6 @@ const NewContract = () => {
                       <div style={{ fontSize: 12.5, fontWeight: 600 }}>CGV Astorya Suite v4.2 — FR</div>
                       <div style={{ fontSize: 11, color: "#64748b" }}>Mise à jour {fmtDateFR(new Date().toISOString())} · DORA-compliant</div>
                     </div>
-                    <button onClick={() => alert("Choix du modèle — à venir")} style={ncStyles.changeBtn}>Changer</button>
                   </div>
                 </NCFormRow>
                 <NCFormRow label="Annexes">
@@ -679,7 +676,6 @@ const NewContract = () => {
             <div style={ncStyles.actionsRow}>
               <button onClick={() => history.back()} style={ncStyles.ghostBtn}>← Précédent</button>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => alert("Aperçu PDF — à venir")} style={ncStyles.ghostBtn}>👁 Prévisualiser PDF</button>
                 <button onClick={() => submitContract("draft")} style={ncStyles.ghostBtn}>Enregistrer brouillon</button>
                 <button onClick={() => submitContract("send")} style={ncStyles.primaryBtn}>Continuer → Envoi signature</button>
               </div>

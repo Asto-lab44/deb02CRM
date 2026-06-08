@@ -151,8 +151,20 @@ const SalesTeam = () => {
               <button style={{ ...teamStyles.segBtn, ...teamStyles.segBtnActive }}>Trimestre</button>
               <button style={teamStyles.segBtn}>Année</button>
             </div>
-            <button style={teamStyles.ghostBtn}>Exporter</button>
-            <button style={teamStyles.primaryBtn}>+ Affecter territoire</button>
+            <button
+              onClick={() => {
+                const rows = [["Nom", "Rôle", "Deals", "Pipe (k€)", "Won (k€)", "Win rate %"]];
+                reps.forEach((r) => rows.push([r.name, r.role, r.deals, r.pipe, r.won, r.winRate]));
+                const csv = rows.map((r) => r.map((c) => `"${String(c || "")}"`).join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = "equipe-commerciale.csv";
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+              style={{ ...teamStyles.ghostBtn, cursor: "pointer" }}
+            >Exporter CSV</button>
           </div>
         </div>
 

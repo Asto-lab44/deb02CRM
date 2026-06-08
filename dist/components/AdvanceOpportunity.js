@@ -192,14 +192,23 @@ var AdvanceOpportunity = () => {
     proba: 100
   }];
 
-  // Load opp from localStorage if available
+  // Load opp from API
   var [oppData, setOppData] = React.useState(null);
   React.useEffect(() => {
-    try {
-      var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-      var hit = all.find(o => o.ref === oppRef || o.id === oppRef);
-      if (hit) setOppData(hit);
-    } catch (e) {}
+    if (!window.api) return;
+    window.api.opportunities.getById(oppRef).then(data => {
+      if (data) setOppData({
+        ...data,
+        ref: data.id || data.ref,
+        amount: data.amount_eur != null ? data.amount_eur : data.amount,
+        close: data.close_date ? new Date(data.close_date).toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric"
+        }) : data.close || "",
+        client_name: data.client_name || data.data && data.data.client_name || ""
+      });
+    }).catch(e => console.warn("[AdvanceOpp] getById:", e));
   }, [oppRef]);
   var opp = oppData || {
     ref: oppRef,
@@ -415,31 +424,20 @@ var AdvanceOpportunity = () => {
   var gain = ponderedAfter - ponderedBefore;
 
   // Confirm advance
-  var confirmAdvance = asLost => {
+  var confirmAdvance = async asLost => {
     var newStage = asLost ? "lost" : target.k;
-    var updated = {
-      ...opp,
-      stage: newStage,
-      proba: asLost ? 0 : target.proba,
-      amount: newAmount,
-      close: newClose
-    };
+    var amountNum = parseFloat(String(newAmount || "0").replace(/[^\d.]/g, "")) || 0;
     try {
-      var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-      var idx = all.findIndex(o => o.ref === opp.ref || o.id === opp.ref);
-      if (idx >= 0) all[idx] = updated;else all.unshift(updated);
-      localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(all));
-      var edits = JSON.parse(localStorage.getItem("hubAstorya.oppEdits.v1") || "{}");
-      edits[opp.ref] = {
-        ...(edits[opp.ref] || {}),
+      await window.api.opportunities.update(opp.ref, {
         stage: newStage,
-        proba: updated.proba,
-        amount: updated.amount,
-        close: updated.close,
-        notes: comment
-      };
-      localStorage.setItem("hubAstorya.oppEdits.v1", JSON.stringify(edits));
-    } catch (e) {}
+        proba: asLost ? 0 : target.proba,
+        amount_eur: amountNum,
+        close_date: newClose || null,
+        notes: comment || null
+      });
+    } catch (e) {
+      console.warn("confirmAdvance:", e);
+    }
     alert(asLost ? "Opportunité marquée comme perdue" : "Opportunité passée en " + target.label);
     if (clientId) window.location.href = "/fiche-client?id=" + encodeURIComponent(clientId);else window.location.href = "/crm";
   };

@@ -283,51 +283,90 @@ var NewProspect = () => {
     }
     var payload = buildPayload();
 
-    // 1. Append au localStorage "hubAstorya.prospects.v1" (liste partagée avec la vue Comptes)
+    // 1. Sauve le client (Supabase si dispo, sinon localStorage)
+    var saved;
     try {
-      var existing = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
-      existing.unshift(payload);
-      localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(existing));
-      localStorage.removeItem("hubAstorya.prospectDraft.v1");
-    } catch (e) {}
+      saved = await window.api.clients.create(payload);
+    } catch (err) {
+      console.warn("[NewProspect] api.clients.create failed:", err);
+      showFlash("Erreur de sauvegarde — réessayez", "err");
+      return;
+    }
 
-    // 1.b — Si une "Première action à mener" a été choisie, l'ajouter à hubAstorya.actionsExtra.v1
-    // pour qu'elle apparaisse dans la section "Actions à mener" de la fiche client
-    if (action) {
+    // 2. Sauve le contact principal comme une entrée dédiée (si rempli)
+    if (contactPrenom || contactNom || contactEmail || contactPhone) {
       try {
-        var actionMeta = {
-          email: {
-            title: "Email d'introduction personnalisé",
-            icon: "✉",
-            tag: "Email",
-            tagColor: "#a855f7",
-            meta: "Brouillon IA pré-rempli — premier contact"
-          },
-          call: {
-            title: "Cold call programmé",
-            icon: "📞",
-            tag: "Appel",
-            tagColor: "#10b981",
-            meta: "Script généré · créneau à confirmer"
-          },
-          in: {
-            title: "Demande de connexion LinkedIn",
-            icon: "in",
-            tag: "LinkedIn",
-            tagColor: "#0a66c2",
-            meta: "Via Sales Navigator"
-          },
-          wait: {
-            title: "Inviter à un événement / webinar",
-            icon: "📅",
-            tag: "Event",
-            tagColor: "#f59e0b",
-            meta: "Sélectionner l'événement adapté"
-          }
-        }[action] || null;
-        if (actionMeta) {
-          var newAct = {
-            id: "EX-" + Date.now(),
+        await window.api.contacts.create({
+          client_id: payload.id,
+          prenom: contactPrenom,
+          nom: contactNom,
+          fonction: contactRole,
+          email: contactEmail,
+          phone: contactPhone,
+          linkedin: contactLi,
+          is_principal: true,
+          roles,
+          hierarchie: fonction
+        });
+      } catch (err) {
+        console.warn("[NewProspect] contacts.create principal:", err);
+      }
+    }
+
+    // 3. Sauve les co-contacts
+    for (var x of extraContactList) {
+      if (!(x.prenom || x.nom || x.email || x.phone)) continue;
+      try {
+        await window.api.contacts.create({
+          client_id: payload.id,
+          prenom: x.prenom,
+          nom: x.nom,
+          fonction: x.fonction,
+          email: x.email,
+          phone: x.phone,
+          linkedin: x.linkedin,
+          is_principal: false
+        });
+      } catch (err) {
+        console.warn("[NewProspect] contacts.create extra:", err);
+      }
+    }
+
+    // 4. Première action à mener
+    if (action) {
+      var actionMeta = {
+        email: {
+          title: "Email d'introduction personnalisé",
+          icon: "✉",
+          tag: "Email",
+          tagColor: "#a855f7",
+          meta: "Brouillon IA pré-rempli — premier contact"
+        },
+        call: {
+          title: "Cold call programmé",
+          icon: "📞",
+          tag: "Appel",
+          tagColor: "#10b981",
+          meta: "Script généré · créneau à confirmer"
+        },
+        in: {
+          title: "Demande de connexion LinkedIn",
+          icon: "in",
+          tag: "LinkedIn",
+          tagColor: "#0a66c2",
+          meta: "Via Sales Navigator"
+        },
+        wait: {
+          title: "Inviter à un événement / webinar",
+          icon: "📅",
+          tag: "Event",
+          tagColor: "#f59e0b",
+          meta: "Sélectionner l'événement adapté"
+        }
+      }[action];
+      if (actionMeta) {
+        try {
+          await window.api.actions.create({
             client_id: payload.id,
             type: action,
             title: actionMeta.title,
@@ -336,44 +375,17 @@ var NewProspect = () => {
             icon: actionMeta.icon,
             meta: actionMeta.meta,
             assigned: owner.name || "Vous",
-            assignedColor: owner.color || "#3730a3",
             tag: actionMeta.tag,
             tagColor: actionMeta.tagColor
-          };
-          var _existing = JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]");
-          localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify([newAct, ..._existing]));
-        }
-      } catch (e) {}
-    }
-
-    // 2. Insertion Supabase si configuré (best-effort) — toutes les infos dans la colonne jsonb `data`
-    if (window.HubData && window.HubData.enabled()) {
-      try {
-        var row = {
-          id: payload.id,
-          name: companyName,
-          industry: companySector || null,
-          city: companyCity || null,
-          website: companyWeb || null,
-          client_since: payload.created_at,
-          data: payload // toutes les autres infos (contact, owner, roles, concurrent, etc.)
-        };
-        var {
-          error
-        } = await window.HubSupabase.client.from("clients").insert(row);
-        if (error) {
-          // Fallback si la colonne `data` n'existe pas encore : insertion minimale
-          await window.HubSupabase.client.from("clients").insert({
-            id: payload.id,
-            name: companyName,
-            industry: companySector || null,
-            city: companyCity || null,
-            website: companyWeb || null
           });
-          console.warn("[Astorya] colonne `data` manquante dans clients — ajoutez-la pour persister tous les champs : ALTER TABLE clients ADD COLUMN IF NOT EXISTS data jsonb DEFAULT '{}'::jsonb;");
+        } catch (err) {
+          console.warn("[NewProspect] actions.create:", err);
         }
-      } catch (e) {/* tolère l'échec, le local survit */}
+      }
     }
+    try {
+      localStorage.removeItem("hubAstorya.prospectDraft.v1");
+    } catch (e) {}
     showFlash("✓ Prospect créé — ouverture de sa fiche…");
     setTimeout(() => {
       window.location.href = "/fiche-client?id=" + encodeURIComponent(payload.id);

@@ -13,36 +13,67 @@ const ClientPage = () => {
 
   React.useEffect(() => {
     try { setDoneActions(JSON.parse(localStorage.getItem("hubAstorya.actionsDone.v1") || "{}")); } catch (e) {}
-    try { setExtraActions(JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]")); } catch (e) {}
-    try { setCompletedActions(JSON.parse(localStorage.getItem("hubAstorya.actionsCompleted.v1") || "[]")); } catch (e) {}
     try { setOppEdits(JSON.parse(localStorage.getItem("hubAstorya.oppEdits.v1") || "{}")); } catch (e) {}
   }, []);
+
+  // Recharge actions/contacts/opps depuis l'API quand l'URL change
+  const reloadAllForClient = React.useCallback(async () => {
+    const cid = (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") : null);
+    if (!window.api) return;
+    try {
+      const [acts, conts, opps] = await Promise.all([
+        window.api.actions.list({ client_id: cid }),
+        window.api.contacts.list({ client_id: cid }),
+        window.api.opportunities.list({ client_id: cid }),
+      ]);
+      const todo = (acts || []).filter((a) => a.status !== "done").map((a) => ({
+        ...a,
+        due: a.due || a.due_text || "Date à définir",
+        assigned: a.assigned || a.assigned_to || "Vous",
+        tag: a.tag || null,
+        tagColor: a.tagColor || a.tag_color || "#475569",
+        icon: a.icon || "•",
+      }));
+      const done = (acts || []).filter((a) => a.status === "done").map((a) => ({
+        ...a,
+        icon: a.icon || (a.type === "call" ? "☎" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : a.type === "note" ? "✎" : "✓"),
+        color: "#10b981",
+        who: a.assigned_to || a.assigned || "—",
+        at: a.completed_at
+          ? new Date(a.completed_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) + " · " + new Date(a.completed_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+          : "",
+      }));
+      setExtraActions(todo);
+      setCompletedActions(done);
+      setCustomContacts(conts || []);
+      setStoredOpps((opps || []).map((o) => ({
+        ref: o.id || o.ref,
+        name: o.name,
+        amount: o.amount_eur != null
+          ? Math.round(o.amount_eur).toLocaleString("fr-FR").replace(/,/g, " ") + " €"
+          : (o.amount || "—"),
+        stage: o.stage || "qualif",
+        proba: o.proba || 20,
+        owner: o.owner || "Vous",
+        ownerColor: "#0ea5e9",
+        close: o.close_date
+          ? new Date(o.close_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
+          : (o.close || "—"),
+        days: 0,
+        isNew: o.stage === "qualif",
+      })));
+    } catch (e) { console.warn("[ClientPage] reload:", e); }
+  }, []);
+  React.useEffect(() => { reloadAllForClient(); }, [reloadAllForClient]);
+
   const [completedActions, setCompletedActions] = React.useState([]);
 
   // Complète une action utilisateur : la sort de extraActions et la pose dans completedActions
-  const completeAction = (a) => {
-    const completedEntry = {
-      id: a.id,
-      client_id: a.client_id || null,
-      type: a.type || (a.icon === "📞" ? "call" : a.icon === "✉" ? "email" : a.icon === "👥" ? "meeting" : a.icon === "📅" ? "rdv" : "task"),
-      icon: a.icon || "✓",
-      color: "#10b981",
-      title: a.title,
-      who: a.assigned ? `Réalisé par ${a.assigned}` : "Terminée",
-      at: new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) + " · " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-      meta: a.meta || null,
-      completed_at: new Date().toISOString(),
-    };
-    setExtraActions((arr) => {
-      const next = arr.filter((x) => x.id !== a.id);
-      try { localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next)); } catch (e) {}
-      return next;
-    });
-    setCompletedActions((arr) => {
-      const next = [completedEntry, ...arr];
-      try { localStorage.setItem("hubAstorya.actionsCompleted.v1", JSON.stringify(next)); } catch (e) {}
-      return next;
-    });
+  const completeAction = async (a) => {
+    try {
+      await window.api.actions.complete(a.id);
+      reloadAllForClient();
+    } catch (e) { console.warn("completeAction:", e); }
   };
 
   const toggleAction = (key, action) => {
@@ -77,35 +108,32 @@ const ClientPage = () => {
   }, [actionMenuKey]);
   const [newAction, setNewAction] = React.useState({ type: "email", title: "", date: "", time: "", priority: "moyenne", assigned: "", tag: "", meta: "" });
   const openAddAction = () => { setNewAction({ type: "email", title: "", date: "", time: "", priority: "moyenne", assigned: "", tag: "", meta: "" }); setAddActionOpen(true); };
-  const submitNewAction = () => {
+  const submitNewAction = async () => {
     if (!newAction.title.trim()) { alert("Le titre est obligatoire"); return; }
     const iconMap = { email: "✉", call: "📞", visio: "💻", rdv: "📅", task: "✓", note: "✎" };
     const dueText = newAction.date
       ? new Date(newAction.date).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" }) + (newAction.time ? " · " + newAction.time : "")
       : "Date à définir";
-    const next = [{
-      id: "EX-" + Date.now(),
-      client_id: urlId || "ACC-0184",
-      type: newAction.type,
-      title: newAction.title.trim(),
-      due: dueText,
-      priority: newAction.priority,
-      icon: iconMap[newAction.type] || "•",
-      meta: newAction.meta || "",
-      assigned: newAction.assigned || "Vous",
-      assignedColor: "#3730a3",
-      tag: newAction.tag || (newAction.type === "email" ? "Email" : newAction.type === "call" ? "Appel" : newAction.type === "visio" ? "Visio" : newAction.type === "rdv" ? "RDV" : newAction.type === "task" ? "Tâche" : "Note"),
-      tagColor: "#475569",
-    }, ...extraActions];
-    setExtraActions(next);
-    try { localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next)); } catch (e) {}
-    setAddActionOpen(false);
+    try {
+      await window.api.actions.create({
+        client_id: urlId || "ACC-0184",
+        type: newAction.type,
+        title: newAction.title.trim(),
+        due: dueText,
+        priority: newAction.priority,
+        icon: iconMap[newAction.type] || "•",
+        meta: newAction.meta || "",
+        assigned: newAction.assigned || "Vous",
+        tag: newAction.tag || (newAction.type === "email" ? "Email" : newAction.type === "call" ? "Appel" : newAction.type === "visio" ? "Visio" : newAction.type === "rdv" ? "RDV" : newAction.type === "task" ? "Tâche" : "Note"),
+        tagColor: "#475569",
+      });
+      setAddActionOpen(false);
+      reloadAllForClient();
+    } catch (e) { alert("Erreur : " + (e.message || e)); }
   };
   const addAction = () => openAddAction();
-  const removeAction = (id) => {
-    const next = extraActions.filter((a) => a.id !== id);
-    setExtraActions(next);
-    try { localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next)); } catch (e) {}
+  const removeAction = async (id) => {
+    try { await window.api.actions.remove(id); reloadAllForClient(); } catch (e) {}
   };
   const updateOppField = (ref, field, value) => {
     setOppEdits((prev) => {
@@ -178,67 +206,70 @@ const ClientPage = () => {
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
   const defaultContacts = [];
   const [customContacts, setCustomContacts] = React.useState([]);
-  React.useEffect(() => {
-    try { setCustomContacts(JSON.parse(localStorage.getItem("hubAstorya.contacts.v1") || "[]")); } catch (e) {}
-  }, []);
 
-  // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
-  // Vide par défaut pour un nouveau prospect tant que rien n'est renseigné (pas de carte vide).
-  const allContacts = (() => {
-    const localForThis = customContacts.filter((cc) => cc.client_id === (urlId || "ACC-0184")).map((cc) => ({ ...cc, _custom: true }));
-    if (isCustom) {
-      const cp = c.contact_principal || display.contactPrincipal;
-      const fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
-      const principal = (fullName || (cp && cp.email) || (cp && cp.phone)) ? [{
-        name: fullName || (cp && cp.email) || "Contact principal",
-        role: (cp && cp.fonction) || "—",
-        email: (cp && cp.email) || "",
-        phone: (cp && cp.phone) || "",
-        linkedin: (cp && cp.linkedin) || "",
-        color: "#a855f7",
-        champion: Array.isArray(c.roles) && c.roles.includes("Champion"),
-        decisionRoles: Array.isArray(c.roles) ? c.roles : [],
-        hierarchie: c.fonction || "",
-        last: "Contact principal · ajouté à la création",
-      }] : [];
-      const additionnels = (c.contacts_additionnels || [])
-        .filter((x) => (x.prenom || x.nom || x.email || x.phone || "").toString().trim()) // ignore les contacts entièrement vides
-        .map((x, i) => ({
-          name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || x.phone || "Contact",
-          role: x.fonction || "—",
-          email: x.email || "",
-          phone: x.phone || "",
-          linkedin: x.linkedin || "",
-          color: ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"][i % 5],
-          last: "Co-contact · ajouté à la création",
-        }));
-      return [...principal, ...additionnels, ...localForThis];
-    }
-    return [...defaultContacts, ...localForThis];
-  })();
+  // Composition unifiée : customContacts vient de api.contacts.list({client_id})
+  // qui contient à la fois le contact principal (is_principal=true) et les co-contacts.
+  const allContacts = React.useMemo(() => {
+    const colors = ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"];
+    let coIdx = 0;
+    return (customContacts || [])
+      .filter((cc) => (cc.prenom || cc.nom || cc.email || cc.phone || "").toString().trim())
+      .map((cc) => {
+        const fullName = ((cc.prenom || "") + " " + (cc.nom || "")).trim() || cc.email || cc.phone || "Contact";
+        if (cc.is_principal) {
+          return {
+            id: cc.id,
+            name: fullName,
+            role: cc.fonction || "—",
+            email: cc.email || "",
+            phone: cc.phone || "",
+            linkedin: cc.linkedin || "",
+            color: "#a855f7",
+            champion: Array.isArray(cc.roles) && cc.roles.includes("Champion"),
+            decisionRoles: Array.isArray(cc.roles) ? cc.roles : [],
+            hierarchie: cc.hierarchie || "",
+            last: "Contact principal",
+            _custom: true,
+          };
+        }
+        const color = colors[coIdx++ % colors.length];
+        return {
+          id: cc.id,
+          name: fullName,
+          role: cc.fonction || "—",
+          email: cc.email || "",
+          phone: cc.phone || "",
+          linkedin: cc.linkedin || "",
+          color,
+          last: "Co-contact",
+          _custom: true,
+        };
+      });
+  }, [customContacts]);
+
+  const [addContactOpen, setAddContactOpen] = React.useState(false);
+  const [newContactForm, setNewContactForm] = React.useState({ prenom: "", nom: "", fonction: "", email: "", phone: "", linkedin: "" });
 
   const addContact = () => {
-    const fullName = prompt("Nom complet du contact :");
-    if (!fullName) return;
-    const role = prompt("Fonction :", "—");
-    const email = prompt("Email :", "");
-    const phone = prompt("Téléphone :", "");
-    const newContact = {
-      id: "CT-" + Date.now().toString().slice(-7),
-      client_id: urlId || "ACC-0184",
-      name: fullName, role: role || "—",
-      email: email || "", phone: phone || "",
-      color: ["#a855f7", "#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"][Math.floor(Math.random() * 6)],
-      last: "à l'instant",
-    };
-    const next = [newContact, ...customContacts];
-    setCustomContacts(next);
-    try { localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next)); } catch (e) {}
+    setNewContactForm({ prenom: "", nom: "", fonction: "", email: "", phone: "", linkedin: "" });
+    setAddContactOpen(true);
   };
-  const removeContact = (id) => {
-    const next = customContacts.filter((c) => c.id !== id);
-    setCustomContacts(next);
-    try { localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next)); } catch (e) {}
+  const submitNewContact = async () => {
+    const f = newContactForm;
+    if (!(f.prenom || f.nom || f.email || f.phone)) { alert("Remplissez au moins un champ"); return; }
+    try {
+      await window.api.contacts.create({
+        client_id: urlId || "ACC-0184",
+        prenom: f.prenom, nom: f.nom, fonction: f.fonction,
+        email: f.email, phone: f.phone, linkedin: f.linkedin,
+        is_principal: false,
+      });
+      setAddContactOpen(false);
+      reloadAllForClient();
+    } catch (e) { alert("Erreur : " + (e.message || e)); }
+  };
+  const removeContact = async (id) => {
+    try { await window.api.contacts.remove(id); reloadAllForClient(); } catch (e) {}
   };
 
   const [pastShowAll, setPastShowAll] = React.useState(false);
@@ -257,15 +288,10 @@ const ClientPage = () => {
 
   React.useEffect(() => {
     if (!urlId) { setLoadedClient(null); return; }
-    // 1. cherche dans localStorage
-    try {
-      const local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
-      const hit = local.find((p) => p.id === urlId);
-      if (hit) { setLoadedClient(hit); return; }
-    } catch (e) {}
-    // 2. cherche dans Supabase
-    if (window.HubData && window.HubData.enabled() && window.HubData.fetchClientById) {
-      window.HubData.fetchClientById(urlId).then(({ data }) => { if (data) setLoadedClient({ ...data, _source: "supabase" }); });
+    if (window.api && window.api.clients) {
+      window.api.clients.getById(urlId).then((data) => {
+        if (data) setLoadedClient(data);
+      }).catch((e) => console.warn("[ClientPage] getById:", e));
     }
   }, [urlId]);
 
@@ -366,7 +392,7 @@ const ClientPage = () => {
   };
 
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!urlId) { alert("Édition uniquement disponible pour les prospects créés"); return; }
     const ownerObj = ownerListE.find((o) => o.name === editDraft.owner);
     const coownerObj = ownerListE.find((o) => o.name === editDraft.coowner);
@@ -409,16 +435,36 @@ const ClientPage = () => {
       notes: editDraft.desc || null,
     };
     try {
-      const all = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
-      const idx = all.findIndex((p) => p.id === urlId);
-      if (idx >= 0) {
-        all[idx] = { ...all[idx], ...patch };
-        localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(all));
-        setLoadedClient({ ...(loadedClient || {}), ...patch });
-      } else {
-        alert("Prospect introuvable en local — modification non sauvée");
+      const updated = await window.api.clients.update(urlId, patch);
+      if (updated) setLoadedClient(updated);
+      // Si contact_principal a été modifié, on met aussi à jour la table contacts
+      if (patch.contact_principal && (patch.contact_principal.prenom || patch.contact_principal.nom || patch.contact_principal.email)) {
+        // Cherche s'il existe déjà un contact_principal pour ce client
+        const existing = (await window.api.contacts.list({ client_id: urlId })) || [];
+        const principal = existing.find((x) => x.is_principal);
+        if (principal) {
+          await window.api.contacts.update(principal.id, {
+            prenom: patch.contact_principal.prenom,
+            nom: patch.contact_principal.nom,
+            fonction: patch.contact_principal.fonction,
+            email: patch.contact_principal.email,
+            phone: patch.contact_principal.phone,
+            linkedin: patch.contact_principal.linkedin,
+            roles: patch.roles,
+            hierarchie: patch.fonction,
+          });
+        } else {
+          await window.api.contacts.create({
+            client_id: urlId,
+            ...patch.contact_principal,
+            roles: patch.roles,
+            hierarchie: patch.fonction,
+            is_principal: true,
+          });
+        }
+        reloadAllForClient();
       }
-    } catch (e) {}
+    } catch (e) { console.warn("saveEdit:", e); }
     setEditOpen(false);
   };
 
@@ -452,29 +498,8 @@ const ClientPage = () => {
     { name: "Renouvellement Suite 2024-2026", amount: "184 000 €", stage: "won", proba: 100, owner: "Nadia Lefèvre", ownerColor: "#a855f7", close: "01 mars 2026", days: 0, won: true, ref: "OPP-2698" },
   ];
 
-  // ── Opportunités créées via /nouvelle-opportunite, filtrées sur ce client
+  // ── Opportunités chargées par reloadAllForClient (via api.opportunities.list)
   const [storedOpps, setStoredOpps] = React.useState([]);
-  React.useEffect(() => {
-    try {
-      const all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-      const cid = urlId || "ACC-0184";
-      const mine = all
-        .filter((o) => o.client_id === cid)
-        .map((o) => ({
-          ref: o.ref || o.id,
-          name: o.name,
-          amount: o.amount ? (String(o.amount).match(/€/) ? o.amount : o.amount + " €") : "—",
-          stage: o.stage || "qualif",
-          proba: o.proba || 20,
-          owner: o.owner || "Vous",
-          ownerColor: "#0ea5e9",
-          close: o.close || o.target_date || "—",
-          days: 0,
-          isNew: true,
-        }));
-      setStoredOpps(mine);
-    } catch (e) {}
-  }, [urlId]);
 
   // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
   const opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
@@ -502,7 +527,7 @@ const ClientPage = () => {
   for (let i = 0; i < 34; i++) pastExtras.push({ type: "stage", icon: "•", color: "#94a3b8", title: `Synchronisation CRM #${i + 1}`, who: "Système", at: "Q1 2026", meta: "Mise à jour automatique" });
   // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
   // Actions terminées par l'utilisateur, filtrées sur ce client
-  const completedForThis = completedActions.filter((x) => x.client_id === (urlId || "ACC-0184"));
+  const completedForThis = completedActions;
   const pastAll = past.concat(pastExtras);
   // Custom prospect : on n'affiche QUE les actions terminées par l'utilisateur. AXA : démo + customs en tête.
   const pastShown = isCustom
@@ -710,11 +735,11 @@ const ClientPage = () => {
             {/* Action bar */}
             <div style={cliStyles.actionBar}>
               <a href={"/nouvelle-opportunite?client=" + encodeURIComponent(display.id)} style={{ ...cliStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
-              <button onClick={() => { const to = prompt("Destinataire (email) :", "e.roux@axa-im.fr"); if (!to) return; const subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite"); if (subj) { window.location.href = `mailto:${to}?subject=${encodeURIComponent(subj)}`; } }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✉ Email</button>
-              <button onClick={() => alert("Planifier un RDV avec AXA Wealth France\n\n(Sera connecté à Google Calendar / Outlook via /api/calendar-event)")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📅 RDV</button>
-              <button onClick={() => { const num = prompt("Numéro à appeler :", "+33 1 42 86 74 21"); if (num) window.location.href = `tel:${num}`; }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📞 Appel</button>
-              <button onClick={() => { const txt = prompt("Nouvelle tâche pour AXA Wealth France :"); if (txt) alert("✓ Tâche créée : " + txt + "\n\n(Sera persistée dans la table tasks.)"); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✓ Tâche</button>
-              <button onClick={() => { const txt = prompt("Nouvelle note privée :"); if (txt) alert("✓ Note enregistrée : " + txt + "\n\n(Sera persistée dans la timeline activities.)"); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✎ Note</button>
+              <button onClick={() => { setNewAction({ type: "email", title: "Email — " + display.name, date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "Email", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✉ Email</button>
+              <button onClick={() => { setNewAction({ type: "rdv", title: "RDV — " + display.name, date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "RDV", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📅 RDV</button>
+              <button onClick={() => { setNewAction({ type: "call", title: "Appel — " + display.name, date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "Appel", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📞 Appel</button>
+              <button onClick={() => { setNewAction({ type: "task", title: "", date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "Tâche", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✓ Tâche</button>
+              <button onClick={() => { setNewAction({ type: "note", title: "", date: "", time: "", priority: "basse", assigned: "Vous", tag: "Note", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✎ Note</button>
               <button
                 onClick={() => setStatsOpen(true)}
                 style={{ ...cliStyles.ghostBtn, background: "#eef2ff", borderColor: "#c7d2fe", color: "#3730a3", fontWeight: 600 }}
@@ -798,25 +823,6 @@ const ClientPage = () => {
                 const currentStage = edited.stage || o.stage;
                 const openOpp = () => {
                   const cid = urlId || display.id || "";
-                  const amountNum = parseInt((edited.amount || o.amount || "").replace(/\D/g, ""), 10) || 0;
-                  const oppForStore = {
-                    ref: o.ref,
-                    name: o.name,
-                    client_name: display.name,
-                    stage: edited.stage || o.stage,
-                    amount: amountNum,
-                    proba: edited.proba || o.proba,
-                    owner: edited.owner || o.owner,
-                    close: edited.close || o.close,
-                    hot: o.hot,
-                  };
-                  try {
-                    const all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-                    const idx = all.findIndex((x) => x.ref === o.ref);
-                    if (idx >= 0) all[idx] = { ...all[idx], ...oppForStore };
-                    else all.unshift(oppForStore);
-                    localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(all));
-                  } catch (e) {}
                   window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
                 };
                 const stage = pipeStages.find(s => s.k === o.stage);
@@ -885,12 +891,12 @@ const ClientPage = () => {
                 </div>
 
                 <div style={cliStyles.actionsList}>
-                  {([...extraActions.filter((x) => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].length === 0) && (
+                  {([...extraActions, ...(isCustom ? [] : future)].length === 0) && (
                     <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 12.5, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc" }}>
                       Aucune action planifiée. Cliquez sur <b>+ Ajouter</b> pour en créer une.
                     </div>
                   )}
-                  {[...extraActions.filter((x) => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].map((a, i) => {
+                  {[...extraActions, ...(isCustom ? [] : future)].map((a, i) => {
                     const p = prioMeta[a.priority] || prioMeta.basse;
                     const key = a.id || ("d-" + i);
                     const done = !!doneActions[key];
@@ -1515,6 +1521,57 @@ const ClientPage = () => {
             <div style={{ padding: "14px 22px", borderTop: "1px solid #eef1f5", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => setEditOpen(false)} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Annuler</button>
               <button onClick={saveEdit} style={{ padding: "8px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addContactOpen && (
+        <div
+          onClick={() => setAddContactOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 480, boxShadow: "0 20px 50px rgba(15,23,42,0.25)" }}
+          >
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #eef1f5", display: "flex", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>+ Ajouter un contact</div>
+              <button onClick={() => setAddContactOpen(false)} style={{ border: "none", background: "transparent", fontSize: 20, color: "#94a3b8", cursor: "pointer" }}>×</button>
+            </div>
+            <div style={{ padding: 22, display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={modalLabel}>Prénom</label>
+                  <input value={newContactForm.prenom} onChange={(e) => setNewContactForm({ ...newContactForm, prenom: e.target.value })} style={modalInput} />
+                </div>
+                <div>
+                  <label style={modalLabel}>Nom</label>
+                  <input value={newContactForm.nom} onChange={(e) => setNewContactForm({ ...newContactForm, nom: e.target.value })} style={modalInput} />
+                </div>
+              </div>
+              <div>
+                <label style={modalLabel}>Fonction</label>
+                <input value={newContactForm.fonction} onChange={(e) => setNewContactForm({ ...newContactForm, fonction: e.target.value })} placeholder="Ex. CFO, DSI…" style={modalInput} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={modalLabel}>Email</label>
+                  <input type="email" value={newContactForm.email} onChange={(e) => setNewContactForm({ ...newContactForm, email: e.target.value })} style={modalInput} />
+                </div>
+                <div>
+                  <label style={modalLabel}>Téléphone</label>
+                  <input value={newContactForm.phone} onChange={(e) => setNewContactForm({ ...newContactForm, phone: e.target.value })} style={modalInput} />
+                </div>
+              </div>
+              <div>
+                <label style={modalLabel}>LinkedIn</label>
+                <input value={newContactForm.linkedin} onChange={(e) => setNewContactForm({ ...newContactForm, linkedin: e.target.value })} placeholder="linkedin.com/in/…" style={modalInput} />
+              </div>
+            </div>
+            <div style={{ padding: "14px 22px", borderTop: "1px solid #eef1f5", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setAddContactOpen(false)} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Annuler</button>
+              <button onClick={submitNewContact} style={{ padding: "8px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Ajouter</button>
             </div>
           </div>
         </div>

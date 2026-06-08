@@ -212,6 +212,9 @@ const UserManagement = () => {
           <div onClick={() => setActiveTab("templates")} style={{ ...S.navItem, ...(activeTab === "templates" ? S.navItemActive : {}), cursor: "pointer" }}>
             <span style={S.bullet}>📄</span><span style={{ flex: 1 }}>Modèles de contrat</span>
           </div>
+          <div onClick={() => setActiveTab("integrations")} style={{ ...S.navItem, ...(activeTab === "integrations" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>🔌</span><span style={{ flex: 1 }}>Intégrations API</span>
+          </div>
           <div onClick={() => setActiveTab("audit")} style={{ ...S.navItem, ...(activeTab === "audit" ? S.navItemActive : {}), cursor: "pointer" }}>
             <span style={S.bullet}>◨</span><span style={{ flex: 1 }}>Audit & journal</span>
           </div>
@@ -528,6 +531,7 @@ const UserManagement = () => {
         )}
 
         {activeTab === "templates" && <ContractTemplatesPanel />}
+        {activeTab === "integrations" && <IntegrationsPanel />}
 
         {activeTab === "audit" && (
           <section style={{ ...S.splitRow, gridTemplateColumns: "1fr" }}>
@@ -733,6 +737,163 @@ const S = {
   tableFoot: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#64748b" },
   pageBtn: { padding: "4px 10px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" },
   pageBtnActive: { background: "#3730a3", borderColor: "#3730a3", color: "#fff", fontWeight: 700 },
+};
+
+// ════════════════════════════════════════════════════════════════════
+// IntegrationsPanel — sous-composant tab "Intégrations API"
+// ════════════════════════════════════════════════════════════════════
+const IntegrationsPanel = () => {
+  const TOKEN_KEY = "hubAstorya.pappers.token";
+  const [pappersToken, setPappersToken] = React.useState("");
+  const [savedToken, setSavedToken] = React.useState("");
+  const [testing, setTesting] = React.useState(false);
+  const [testResult, setTestResult] = React.useState(null);
+
+  React.useEffect(() => {
+    try {
+      const t = localStorage.getItem(TOKEN_KEY) || "";
+      setPappersToken(t);
+      setSavedToken(t);
+    } catch (e) {}
+  }, []);
+
+  const save = () => {
+    try {
+      const cleaned = pappersToken.trim();
+      if (cleaned) localStorage.setItem(TOKEN_KEY, cleaned);
+      else localStorage.removeItem(TOKEN_KEY);
+      setSavedToken(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Token Pappers enregistré" : "✓ Token Pappers retiré");
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + e.message); }
+  };
+
+  const test = async () => {
+    if (!pappersToken.trim()) { if (window.HubToast) window.HubToast.warn("Colle d'abord un token avant de tester"); return; }
+    // Sauvegarde + teste sur un SIREN connu (Astorya / un test)
+    save();
+    setTesting(true);
+    setTestResult(null);
+    try {
+      // SIREN INPI (test public) : 13002526500013 (3 plus 9 = juste 9 pour SIREN)
+      // On utilise un SIREN simple connu : 552120222 (L'OREAL) — toujours actif
+      const r = await window.HubPappers.checkSiren("552120222");
+      setTestResult(r);
+      if (r.status === "error") {
+        if (window.HubToast) window.HubToast.error("Échec test : " + (r.error || "erreur"));
+      } else if (r.source === "pappers" && r.company && r.company.denomination) {
+        if (window.HubToast) window.HubToast.success("✓ Pappers OK — " + r.company.denomination + " trouvé");
+      } else if (r.source === "bodacc") {
+        if (window.HubToast) window.HubToast.warn("Token invalide — fallback BODACC actif");
+      }
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur réseau : " + e.message);
+    } finally { setTesting(false); }
+  };
+
+  const remove = () => {
+    setPappersToken("");
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+    setSavedToken("");
+    if (window.HubToast) window.HubToast.info("Token Pappers retiré — l'app retombe sur BODACC (gratuit, sans clé)");
+  };
+
+  return (
+    <section style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 24 }}>
+      <header style={{ marginBottom: 18 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>🔌 Intégrations API tierces</h2>
+        <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
+          Configure les sources de données externes utilisées par Hub Astorya pour enrichir les fiches client.
+        </p>
+      </header>
+
+      {/* ─── Pappers ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, #4f46e5, #a855f7)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>P</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>Pappers</h3>
+              {savedToken ? (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ACTIF</span>
+              ) : (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#fef3c7", color: "#92400e", borderRadius: 999, fontWeight: 700 }}>○ INACTIF (fallback BODACC)</span>
+              )}
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Base entreprises FR : procédures collectives, état administratif, capital, effectif, dirigeants, NAF, siège.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>📋 Étapes pour obtenir un token</div>
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#475569", lineHeight: 1.7 }}>
+            <li>Ouvre <a href="https://www.pappers.fr/api" target="_blank" rel="noopener" style={{ color: "#3730a3", fontWeight: 600 }}>pappers.fr/api ↗</a> et inscris-toi (gratuit)</li>
+            <li>Connecte-toi, va dans ton tableau de bord → onglet <strong>Mon API</strong></li>
+            <li>Copie ton <strong>API Token</strong> (au format UUID, ex : <code style={{ background: "#f1f5f9", padding: "1px 4px", borderRadius: 3 }}>1a2b3c4d-5e6f-7890-abcd-...</code>)</li>
+            <li>Colle-le dans le champ ci-dessous + clique « Enregistrer »</li>
+          </ol>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Token API Pappers</label>
+        <input
+          type="text"
+          value={pappersToken}
+          onChange={(e) => setPappersToken(e.target.value)}
+          placeholder="Colle ton token ici (ex : 1a2b3c4d-5e6f-7890-abcd-ef1234567890)"
+          spellCheck={false}
+          autoComplete="off"
+          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
+        />
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <button onClick={save} disabled={pappersToken === savedToken} style={{ padding: "8px 16px", background: pappersToken === savedToken ? "#cbd5e1" : "#0f172a", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: pappersToken === savedToken ? "default" : "pointer" }}>
+            💾 Enregistrer
+          </button>
+          <button onClick={test} disabled={testing || !pappersToken.trim()} style={{ padding: "8px 16px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: testing || !pappersToken.trim() ? "wait" : "pointer" }}>
+            {testing ? "⏳ Test en cours…" : "🧪 Tester le token"}
+          </button>
+          {savedToken && (
+            <button onClick={remove} style={{ padding: "8px 16px", background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", marginLeft: "auto" }}>
+              🗑 Retirer le token
+            </button>
+          )}
+        </div>
+
+        {testResult && (
+          <div style={{ marginTop: 14, padding: 12, background: testResult.status === "error" ? "#fef2f2" : "#ecfdf5", border: "1px solid " + (testResult.status === "error" ? "#fca5a5" : "#86efac"), borderRadius: 8, fontSize: 12.5 }}>
+            <div style={{ fontWeight: 700, color: testResult.status === "error" ? "#9b1c1c" : "#065f46", marginBottom: 4 }}>
+              {testResult.status === "error" ? "❌ Échec" : "✅ Test réussi"} · source : {testResult.source}
+            </div>
+            <div style={{ fontSize: 11.5, color: "#64748b" }}>
+              {testResult.company && testResult.company.denomination ? "Entreprise testée : " + testResult.company.denomination : (testResult.error || "")}
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+          💡 Plan gratuit : 1000 requêtes/mois — largement suffisant avec le cache 7 jours intégré.<br/>
+          ⚠ Le token est stocké en localStorage et envoyé depuis le navigateur. Pour un cloisonnement renforcé, voir doc de migration vers une fonction Edge Supabase.
+        </div>
+      </div>
+
+      {/* ─── BODACC (toujours actif, gratuit) ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "#0f172a", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>B</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>BODACC</h3>
+              <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ALWAYS ON</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Source officielle FR (Bulletin Officiel des Annonces). Pas de clé requise. Utilisée en fallback si Pappers indisponible.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 };
 
 // ════════════════════════════════════════════════════════════════════

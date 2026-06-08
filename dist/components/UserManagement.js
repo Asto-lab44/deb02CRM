@@ -488,6 +488,19 @@ var UserManagement = () => {
       flex: 1
     }
   }, "Mod\xE8les de contrat")), /*#__PURE__*/React.createElement("div", {
+    onClick: () => setActiveTab("integrations"),
+    style: {
+      ...S.navItem,
+      ...(activeTab === "integrations" ? S.navItemActive : {}),
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: S.bullet
+  }, "\uD83D\uDD0C"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Int\xE9grations API")), /*#__PURE__*/React.createElement("div", {
     onClick: () => setActiveTab("audit"),
     style: {
       ...S.navItem,
@@ -1196,7 +1209,7 @@ var UserManagement = () => {
       fontSize: 13,
       fontWeight: 600
     }
-  }, "+ Inviter dans Supabase \u2192"))), activeTab === "templates" && /*#__PURE__*/React.createElement(ContractTemplatesPanel, null), activeTab === "audit" && /*#__PURE__*/React.createElement("section", {
+  }, "+ Inviter dans Supabase \u2192"))), activeTab === "templates" && /*#__PURE__*/React.createElement(ContractTemplatesPanel, null), activeTab === "integrations" && /*#__PURE__*/React.createElement(IntegrationsPanel, null), activeTab === "audit" && /*#__PURE__*/React.createElement("section", {
     style: {
       ...S.splitRow,
       gridTemplateColumns: "1fr"
@@ -1861,6 +1874,358 @@ var S = {
     color: "#fff",
     fontWeight: 700
   }
+};
+
+// ════════════════════════════════════════════════════════════════════
+// IntegrationsPanel — sous-composant tab "Intégrations API"
+// ════════════════════════════════════════════════════════════════════
+var IntegrationsPanel = () => {
+  var TOKEN_KEY = "hubAstorya.pappers.token";
+  var [pappersToken, setPappersToken] = React.useState("");
+  var [savedToken, setSavedToken] = React.useState("");
+  var [testing, setTesting] = React.useState(false);
+  var [testResult, setTestResult] = React.useState(null);
+  React.useEffect(() => {
+    try {
+      var t = localStorage.getItem(TOKEN_KEY) || "";
+      setPappersToken(t);
+      setSavedToken(t);
+    } catch (e) {}
+  }, []);
+  var save = () => {
+    try {
+      var cleaned = pappersToken.trim();
+      if (cleaned) localStorage.setItem(TOKEN_KEY, cleaned);else localStorage.removeItem(TOKEN_KEY);
+      setSavedToken(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Token Pappers enregistré" : "✓ Token Pappers retiré");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + e.message);
+    }
+  };
+  var test = async () => {
+    if (!pappersToken.trim()) {
+      if (window.HubToast) window.HubToast.warn("Colle d'abord un token avant de tester");
+      return;
+    }
+    // Sauvegarde + teste sur un SIREN connu (Astorya / un test)
+    save();
+    setTesting(true);
+    setTestResult(null);
+    try {
+      // SIREN INPI (test public) : 13002526500013 (3 plus 9 = juste 9 pour SIREN)
+      // On utilise un SIREN simple connu : 552120222 (L'OREAL) — toujours actif
+      var r = await window.HubPappers.checkSiren("552120222");
+      setTestResult(r);
+      if (r.status === "error") {
+        if (window.HubToast) window.HubToast.error("Échec test : " + (r.error || "erreur"));
+      } else if (r.source === "pappers" && r.company && r.company.denomination) {
+        if (window.HubToast) window.HubToast.success("✓ Pappers OK — " + r.company.denomination + " trouvé");
+      } else if (r.source === "bodacc") {
+        if (window.HubToast) window.HubToast.warn("Token invalide — fallback BODACC actif");
+      }
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur réseau : " + e.message);
+    } finally {
+      setTesting(false);
+    }
+  };
+  var remove = () => {
+    setPappersToken("");
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch (e) {}
+    setSavedToken("");
+    if (window.HubToast) window.HubToast.info("Token Pappers retiré — l'app retombe sur BODACC (gratuit, sans clé)");
+  };
+  return /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    style: {
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "\uD83D\uDD0C Int\xE9grations API tierces"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Configure les sources de donn\xE9es externes utilis\xE9es par Hub Astorya pour enrichir les fiches client.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "linear-gradient(135deg, #4f46e5, #a855f7)",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "P"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "Pappers"), savedToken ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ACTIF") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#fef3c7",
+      color: "#92400e",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CB INACTIF (fallback BODACC)")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Base entreprises FR : proc\xE9dures collectives, \xE9tat administratif, capital, effectif, dirigeants, NAF, si\xE8ge."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCCB \xC9tapes pour obtenir un token"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      margin: 0,
+      paddingLeft: 18,
+      fontSize: 12.5,
+      color: "#475569",
+      lineHeight: 1.7
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Ouvre ", /*#__PURE__*/React.createElement("a", {
+    href: "https://www.pappers.fr/api",
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "pappers.fr/api \u2197"), " et inscris-toi (gratuit)"), /*#__PURE__*/React.createElement("li", null, "Connecte-toi, va dans ton tableau de bord \u2192 onglet ", /*#__PURE__*/React.createElement("strong", null, "Mon API")), /*#__PURE__*/React.createElement("li", null, "Copie ton ", /*#__PURE__*/React.createElement("strong", null, "API Token"), " (au format UUID, ex : ", /*#__PURE__*/React.createElement("code", {
+    style: {
+      background: "#f1f5f9",
+      padding: "1px 4px",
+      borderRadius: 3
+    }
+  }, "1a2b3c4d-5e6f-7890-abcd-..."), ")"), /*#__PURE__*/React.createElement("li", null, "Colle-le dans le champ ci-dessous + clique \xAB Enregistrer \xBB"))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "Token API Pappers"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: pappersToken,
+    onChange: e => setPappersToken(e.target.value),
+    placeholder: "Colle ton token ici (ex : 1a2b3c4d-5e6f-7890-abcd-ef1234567890)",
+    spellCheck: false,
+    autoComplete: "off",
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 13,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      outline: "none",
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 12,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: save,
+    disabled: pappersToken === savedToken,
+    style: {
+      padding: "8px 16px",
+      background: pappersToken === savedToken ? "#cbd5e1" : "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: pappersToken === savedToken ? "default" : "pointer"
+    }
+  }, "\uD83D\uDCBE Enregistrer"), /*#__PURE__*/React.createElement("button", {
+    onClick: test,
+    disabled: testing || !pappersToken.trim(),
+    style: {
+      padding: "8px 16px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: testing || !pappersToken.trim() ? "wait" : "pointer"
+    }
+  }, testing ? "⏳ Test en cours…" : "🧪 Tester le token"), savedToken && /*#__PURE__*/React.createElement("button", {
+    onClick: remove,
+    style: {
+      padding: "8px 16px",
+      background: "transparent",
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      marginLeft: "auto"
+    }
+  }, "\uD83D\uDDD1 Retirer le token")), testResult && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      padding: 12,
+      background: testResult.status === "error" ? "#fef2f2" : "#ecfdf5",
+      border: "1px solid " + (testResult.status === "error" ? "#fca5a5" : "#86efac"),
+      borderRadius: 8,
+      fontSize: 12.5
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      color: testResult.status === "error" ? "#9b1c1c" : "#065f46",
+      marginBottom: 4
+    }
+  }, testResult.status === "error" ? "❌ Échec" : "✅ Test réussi", " \xB7 source : ", testResult.source), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b"
+    }
+  }, testResult.company && testResult.company.denomination ? "Entreprise testée : " + testResult.company.denomination : testResult.error || "")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDCA1 Plan gratuit : 1000 requ\xEAtes/mois \u2014 largement suffisant avec le cache 7 jours int\xE9gr\xE9.", /*#__PURE__*/React.createElement("br", null), "\u26A0 Le token est stock\xE9 en localStorage et envoy\xE9 depuis le navigateur. Pour un cloisonnement renforc\xE9, voir doc de migration vers une fonction Edge Supabase.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "#0f172a",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "BODACC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ALWAYS ON")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Source officielle FR (Bulletin Officiel des Annonces). Pas de cl\xE9 requise. Utilis\xE9e en fallback si Pappers indisponible.")))));
 };
 
 // ════════════════════════════════════════════════════════════════════

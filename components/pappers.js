@@ -51,7 +51,10 @@
       return { status: "unknown", error: "SIREN invalide", checked_at: new Date().toISOString() };
     }
 
-    const token = window.HubPappersToken || (window.HubSupabaseConfig && window.HubSupabaseConfig.PAPPERS_TOKEN);
+    // Priorité : 1) localStorage (configurable depuis l'admin), 2) window
+    let token = "";
+    try { token = localStorage.getItem("hubAstorya.pappers.token") || ""; } catch (e) {}
+    if (!token) token = window.HubPappersToken || (window.HubSupabaseConfig && window.HubSupabaseConfig.PAPPERS_TOKEN) || "";
     if (!token) {
       // Fallback automatique sur BODACC si pas de token Pappers
       if (window.HubBodacc && window.HubBodacc.checkSiren) {

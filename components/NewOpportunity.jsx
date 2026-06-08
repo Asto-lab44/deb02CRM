@@ -144,8 +144,7 @@ const NewOpportunity = () => {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button style={noStyles.iconBtn} title="Plein écran">⤢</button>
-            <button style={noStyles.iconBtn} title="Fermer">×</button>
+            <button onClick={() => history.back()} style={{ ...noStyles.iconBtn, cursor: "pointer" }} title="Fermer">×</button>
           </div>
         </header>
 

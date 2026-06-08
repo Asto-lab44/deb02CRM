@@ -219,10 +219,11 @@ var NewOpportunity = () => {
       alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("button", {
-    style: noStyles.iconBtn,
-    title: "Plein \xE9cran"
-  }, "\u2922"), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.iconBtn,
+    onClick: () => history.back(),
+    style: {
+      ...noStyles.iconBtn,
+      cursor: "pointer"
+    },
     title: "Fermer"
   }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
     style: noStyles.stepper

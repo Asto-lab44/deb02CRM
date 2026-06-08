@@ -2567,12 +2567,50 @@ var ClientPage = () => {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: async () => {
-        var choice = prompt(`Contrat ${ct.name}\n\n1. Voir détails\n2. Renouveler\n3. Supprimer\n\nTapez 1, 2 ou 3 :`, "1");
-        if (choice === "1") alert(`${ct.name}\n\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}`);else if (choice === "2") window.location.href = "/nouveau-contrat?client=" + encodeURIComponent(urlId || "");else if (choice === "3" && confirm("Supprimer ce contrat ?")) {
-          setContractsList(arr => arr.filter(x => x.id !== ct.id));
+        var choice;
+        if (window.HubModal) {
+          choice = await window.HubModal.choice({
+            title: ct.name,
+            message: ct.type + " · " + ct.amount + " · " + (ct.status || "actif"),
+            options: [{
+              value: "1",
+              label: "Voir détails",
+              sub: "Afficher le récapitulatif complet"
+            }, {
+              value: "2",
+              label: "Renouveler",
+              sub: "Créer un nouveau contrat lié à ce client"
+            }, {
+              value: "3",
+              label: "Supprimer",
+              sub: "Soft-delete : la donnée reste en BDD"
+            }]
+          });
+        } else {
+          choice = prompt("Contrat " + ct.name + "\n\n1. Voir détails\n2. Renouveler\n3. Supprimer\n\nTapez 1, 2 ou 3 :", "1");
+        }
+        if (!choice) return;
+        if (choice === "1") {
+          if (window.HubToast) window.HubToast.info(ct.name + "\nType : " + ct.type + "\nMontant : " + ct.amount + "\nDébut : " + ct.start + "\nFin : " + ct.end + "\nStatut : " + ct.status, {
+            duration: 8000
+          });else alert(ct.name + "\n\nType : " + ct.type + "\nMontant : " + ct.amount);
+        } else if (choice === "2") {
+          window.location.href = "/nouveau-contrat?client=" + encodeURIComponent(urlId || "");
+        } else if (choice === "3") {
+          var ok = window.HubModal ? await window.HubModal.confirm({
+            title: "Supprimer ce contrat ?",
+            message: "Le contrat sera marqué supprimé (soft-delete). Il peut être restauré par un admin.",
+            okLabel: "Supprimer",
+            okStyle: "danger"
+          }) : confirm("Supprimer ce contrat ?");
+          if (!ok) return;
           try {
-            (await window.api.contracts) && window.api.contracts.remove && window.api.contracts.remove(ct.id);
-          } catch (e) {}
+            await window.api.contracts.remove(ct.id);
+            setContractsList(arr => arr.filter(x => x.id !== ct.id));
+            if (window.HubToast) window.HubToast.success("✓ Contrat supprimé");
+          } catch (e) {
+            if (window.HubToast) window.HubToast.error("Suppression échouée : " + (e.message || e));
+          }
         }
       },
       style: {
@@ -2582,7 +2620,8 @@ var ClientPage = () => {
         fontSize: 16,
         cursor: "pointer",
         padding: "4px 8px"
-      }
+      },
+      title: "Actions sur ce contrat"
     }, "\u22EF")));
   }))))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block

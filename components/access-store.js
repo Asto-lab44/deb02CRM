@@ -73,6 +73,10 @@
   // Comptes de démonstration — mot de passe en clair, JAMAIS utiliser en prod.
   // Le login factice ne sert qu'à pré-positionner l'identité active.
   const USERS = [
+    // Comptes réels Astorya (super admin, accès complet)
+    { email: "r.daviaud@astorya.fr",   password: "demo", name: "Romain Daviaud",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
+    { email: "achat@astorya.fr",       password: "demo", name: "Romain Daviaud",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
+    { email: "a.morin@astorya.fr",     password: "demo", name: "Augustin Morin",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
     { email: "n.lefevre@astorya.fr",   password: "demo", name: "Nadia Lefèvre",      role: "Directrice technique",   groups: ["admin", "direction"] },
     { email: "h.bertrand@astorya.fr",  password: "demo", name: "Hugo Bertrand",      role: "IT Manager",             groups: ["admin", "finance"] },
     { email: "c.marchand@astorya.fr",  password: "demo", name: "Catherine Marchand", role: "CEO",                    groups: ["direction"] },

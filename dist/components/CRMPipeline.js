@@ -20,47 +20,23 @@ var CRMPipeline = () => {
   var [searchClients, setSearchClients] = React.useState([]);
   var [searchOpen, setSearchOpen] = React.useState(false);
   React.useEffect(() => {
-    var local = (() => {
-      try {
-        return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
-      } catch (e) {
-        return [];
-      }
-    })();
-    var fromLocal = local.map(p => ({
-      id: p.id,
-      name: p.raison_sociale || p.name,
-      sector: p.secteur,
-      city: p.ville,
-      siren: p.siren,
-      contact: p.contact_principal,
-      source: "local"
-    }));
-    if (window.HubData && window.HubData.enabled()) {
-      window.HubData.fetchClients().then(({
-        data
-      }) => {
-        var fromSupa = (data || []).map(c => ({
-          id: c.id,
-          name: c.name,
-          sector: c.industry,
-          city: c.city,
-          source: "supabase"
-        }));
-        var seen = new Set();
-        setSearchClients([...fromLocal, ...fromSupa].filter(c => seen.has(c.id) ? false : (seen.add(c.id), true)));
-      });
-    } else {
-      setSearchClients(fromLocal);
-    }
+    if (!window.api) return;
+    window.api.clients.list().then(list => {
+      setSearchClients((list || []).map(p => ({
+        id: p.id,
+        name: p.raison_sociale || p.name,
+        sector: p.secteur || p.industry,
+        city: p.ville || p.city,
+        siren: p.siren,
+        contact: p.contact_principal,
+        source: p.status === "client" ? "supabase" : "local"
+      })));
+    }).catch(() => {});
   }, []);
-
-  // Inclut aussi les opportunités locales
   var [searchOpps, setSearchOpps] = React.useState([]);
   React.useEffect(() => {
-    try {
-      setSearchOpps(JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]"));
-    } catch (e) {}
+    if (!window.api) return;
+    window.api.opportunities.list().then(list => setSearchOpps(list || [])).catch(() => {});
   }, []);
   var gq = globalSearch.trim().toLowerCase();
   var globalResults = gq.length >= 2 ? {
@@ -1628,20 +1604,13 @@ var CRMAccountsList = () => {
   var [localProspects, setLocalProspects] = React.useState([]);
   var [supaClients, setSupaClients] = React.useState([]);
   React.useEffect(() => {
-    // Charge les prospects créés localement
-    try {
-      setLocalProspects(JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]"));
-    } catch (e) {
-      setLocalProspects([]);
-    }
-    // Charge les clients depuis Supabase si dispo
-    if (window.HubData && window.HubData.enabled()) {
-      window.HubData.fetchClients().then(({
-        data
-      }) => {
-        if (data) setSupaClients(data);
-      });
-    }
+    if (!window.api) return;
+    window.api.clients.list().then(list => {
+      var prospects = (list || []).filter(p => (p.status || "prospect") === "prospect");
+      var clients = (list || []).filter(p => p.status === "client");
+      setLocalProspects(prospects);
+      setSupaClients(clients);
+    }).catch(() => {});
   }, []);
 
   // Auto-scroll vers la section si URL contient #comptes

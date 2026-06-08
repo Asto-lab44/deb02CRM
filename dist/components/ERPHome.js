@@ -75,20 +75,7 @@ var ERPHome = () => {
     })),
     color: "#4f46e5",
     bg: "#eef2ff",
-    stats: [{
-      k: "Pipeline",
-      v: "1,75 M€"
-    }, {
-      k: "Deals",
-      v: "32"
-    }, {
-      k: "Win rate",
-      v: "57 %"
-    }],
-    badge: {
-      label: "3 SLA risk",
-      tone: "danger"
-    },
+    stats: [],
     trendUp: true
   }, {
     cat: "Commercial",
@@ -113,20 +100,7 @@ var ERPHome = () => {
     })),
     color: "#dc2626",
     bg: "#fdecec",
-    stats: [{
-      k: "Comptes radar",
-      v: "24"
-    }, {
-      k: "≤ 90 j",
-      v: "5"
-    }, {
-      k: "Hot leads",
-      v: "8"
-    }],
-    badge: {
-      label: "Nouveau",
-      tone: "new"
-    }
+    stats: []
   }, {
     cat: "Commercial",
     key: "marketing",

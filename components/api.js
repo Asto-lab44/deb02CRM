@@ -36,7 +36,10 @@
   }
 
   function genId(prefix) {
-    return prefix + "-" + Math.floor(Math.random() * 9000 + 1000) + Date.now().toString().slice(-4);
+    // Format: PREFIX-{timestamp_base36}{6 random chars} — collision-résistant
+    const ts = Date.now().toString(36);
+    const rand = Math.random().toString(36).slice(2, 8);
+    return prefix + "-" + ts + rand;
   }
 
   function flattenClient(row) {
@@ -73,20 +76,25 @@
   const clients = {
     async list(filter = {}) {
       const s = supa();
-      const supaResult = [];
       if (s) {
         let q = s.from("clients").select("*");
         if (filter.status) q = q.eq("status", filter.status);
+        // Filtre les soft-deleted
+        q = q.is("deleted_at", null);
         const { data, error } = await q.order("created_at", { ascending: false });
-        if (error) console.warn("[api.clients.list]", error.message);
-        (data || []).forEach((r) => supaResult.push(flattenClient(r)));
+        if (error) {
+          console.warn("[api.clients.list]", error.message);
+          // Fallback localStorage uniquement si Supabase fail
+          let arr = lsGet("prospects");
+          if (filter.status) arr = arr.filter((c) => c.status === filter.status);
+          return arr;
+        }
+        return (data || []).map(flattenClient);
       }
-      // Toujours fusionner avec localStorage (clients créés en fallback)
+      // Pas de Supabase configuré → localStorage seul
       let arr = lsGet("prospects");
       if (filter.status) arr = arr.filter((c) => c.status === filter.status);
-      const seen = new Set(supaResult.map((c) => c.id));
-      arr.forEach((c) => { if (!seen.has(c.id)) supaResult.push(c); });
-      return supaResult;
+      return arr;
     },
 
     async getById(id) {

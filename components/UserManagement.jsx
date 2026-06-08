@@ -179,7 +179,37 @@ const UserManagement = () => {
               <a href="./" style={{ color: "#3730a3", fontWeight: 600, textDecoration: "none" }}>Ouvrir →</a>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinitialiser</button>
+              <button
+                onClick={async () => {
+                  if (!confirm("⚠ DANGER : Supprimer DÉFINITIVEMENT toutes les données métier ?\n\n• Tous les clients/prospects\n• Toutes les opportunités\n• Tous les contacts\n• Toutes les actions\n• Tous les contrats\n• localStorage entier\n\n(Les comptes Romain + Augustin restent dans Auth)")) return;
+                  if (!confirm("Vraiment sûr ? Cette action est irréversible.")) return;
+                  let report = [];
+                  // Supabase
+                  if (window.HubSupabase && window.HubSupabase.enabled && window.HubSupabase.client) {
+                    const s = window.HubSupabase.client;
+                    for (const t of ["actions", "contacts", "contracts", "opportunities", "clients"]) {
+                      try {
+                        const { error } = await s.from(t).delete().not("id", "is", null);
+                        report.push((error ? "✗ " : "✓ ") + t + (error ? " — " + error.message : ""));
+                      } catch (e) { report.push("✗ " + t + " — " + e.message); }
+                    }
+                  } else {
+                    report.push("ℹ Supabase non configuré, skip");
+                  }
+                  // localStorage
+                  try {
+                    const keys = Object.keys(localStorage).filter((k) => k.startsWith("hubAstorya."));
+                    keys.forEach((k) => localStorage.removeItem(k));
+                    report.push("✓ localStorage : " + keys.length + " clés supprimées");
+                  } catch (e) { report.push("✗ localStorage — " + e.message); }
+                  alert("Reset terminé :\n\n" + report.join("\n"));
+                  flash("✓ Base vidée");
+                  setTimeout(() => { window.location.reload(); }, 500);
+                }}
+                style={{ ...S.btnGhost, borderColor: "#fecaca", color: "#dc2626", cursor: "pointer" }}
+                title="Supprimer toutes les données métier (clients, opps, contacts, actions, contrats)"
+              >🗑 Reset données</button>
+              <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinit. groupes</button>
               <button
                 onClick={() => { flash("⟳ Synchronisation SSO lancée — 0 changement détecté"); }}
                 style={{ ...S.btnGhost, cursor: "pointer" }}

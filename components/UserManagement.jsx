@@ -2,23 +2,11 @@
 // Les groupes et l'identité active sont persistés via window.HubAccess (localStorage).
 
 const UserManagement = () => {
-  // Garde-fou : si HubAccess pas encore chargé, on ne crash pas
-  const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
-  const noopSub = React.useCallback(() => () => {}, []);
   // Données partagées avec l'Accueil ERP
-  const subscribeStore = React.useCallback((fn) => HA ? HA.subscribe(fn) : (() => {}), [HA]);
-  const persistedGroups = React.useSyncExternalStore(
-    HA ? subscribeStore : noopSub,
-    () => (HA && HA.loadGroups ? HA.loadGroups() : []) || []
-  );
-  const activeGroupId = React.useSyncExternalStore(
-    HA ? subscribeStore : noopSub,
-    () => (HA && HA.getActiveGroupId ? HA.getActiveGroupId() : "admin")
-  );
-  const currentUser = React.useSyncExternalStore(
-    HA ? subscribeStore : noopSub,
-    () => HA && HA.getCurrentUser ? HA.getCurrentUser() : null
-  );
+  const subscribeStore = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
+  const persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
+  const activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
+  const currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
 
   const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
   const [activeTab, setActiveTab] = React.useState("groups");

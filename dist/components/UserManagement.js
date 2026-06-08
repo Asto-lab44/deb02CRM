@@ -262,10 +262,21 @@ var UserManagement = () => {
       color: "#64748b"
     }
   }, "Administration"))), /*#__PURE__*/React.createElement("button", {
-    style: S.newBtn
-  }, "+ Inviter un utilisateur ", /*#__PURE__*/React.createElement("span", {
-    style: S.kbd
-  }, "I")), /*#__PURE__*/React.createElement("div", {
+    onClick: async () => {
+      var email = prompt("Email du nouvel utilisateur Astorya :");
+      if (!email || !email.trim()) return;
+      if (!window.HubSupabase || !window.HubSupabase.enabled) {
+        alert("Supabase non configuré — invitation impossible. Crée le compte directement dans le dashboard Supabase (Authentication → Users → Add user).");
+        return;
+      }
+      alert("ℹ Pour des raisons de sécurité, l'invitation se fait depuis le dashboard Supabase :\n\nhttps://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users\n\nClique « Add user » → " + email);
+      window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+    },
+    style: {
+      ...S.newBtn,
+      cursor: "pointer"
+    }
+  }, "+ Inviter un utilisateur"), /*#__PURE__*/React.createElement("div", {
     style: S.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: S.navLabel

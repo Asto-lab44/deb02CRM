@@ -1,6 +1,7 @@
 // Dashboard displacements — wins/losses face aux concurrents
 
 var DisplacementDashboard = () => {
+  var [period, setPeriod] = React.useState("12 mois");
   var Avatar = ({
     name,
     size = 22,
@@ -283,19 +284,33 @@ var DisplacementDashboard = () => {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: dispStyles.segCtrl
-  }, /*#__PURE__*/React.createElement("button", {
-    style: dispStyles.segBtn
-  }, "3 mois"), /*#__PURE__*/React.createElement("button", {
-    style: dispStyles.segBtn
-  }, "6 mois"), /*#__PURE__*/React.createElement("button", {
+  }, ["3 mois", "6 mois", "12 mois", "YTD"].map(p => /*#__PURE__*/React.createElement("button", {
+    key: p,
+    onClick: () => setPeriod(p),
     style: {
       ...dispStyles.segBtn,
-      ...dispStyles.segBtnActive
+      ...(period === p ? dispStyles.segBtnActive : {}),
+      cursor: "pointer"
     }
-  }, "12 mois"), /*#__PURE__*/React.createElement("button", {
-    style: dispStyles.segBtn
-  }, "YTD")), /*#__PURE__*/React.createElement("button", {
-    style: dispStyles.ghostBtn
+  }, p))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var csv = "Période,Données\n" + period + ",rapport exporté\n";
+      var blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;"
+      });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "rapport-displacement-" + period + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+    style: {
+      ...dispStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "Exporter rapport"))), /*#__PURE__*/React.createElement("div", {
     style: dispStyles.kpiStrip
   }, /*#__PURE__*/React.createElement("div", {

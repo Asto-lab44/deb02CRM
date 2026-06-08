@@ -96,7 +96,7 @@ const BattleCard = () => {
             <h3 style={bcStyles.h3}>Objections fréquentes & reformulations</h3>
             <p style={bcStyles.h3sub}>Réponses validées équipe à utiliser en RDV</p>
           </div>
-          <button style={bcStyles.smBtn}>+ Ajouter</button>
+          <button onClick={() => alert("Ajouter une objection : sera persistée dans Supabase prochainement.")} style={{ ...bcStyles.smBtn, cursor: "pointer" }}>+ Ajouter</button>
         </div>
         <div style={bcStyles.objList}>
           {[

@@ -309,10 +309,8 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
             )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={tdStyles.iconBtn} onClick={onBack} title="Retour à la liste">‹</button>
-            <button style={tdStyles.iconBtn} title="Suivant">›</button>
+            <button style={{ ...tdStyles.iconBtn, cursor: "pointer" }} onClick={onBack} title="Retour à la liste">‹</button>
             <button onClick={() => showFlash("✓ Vous suivez ce ticket — notifications activées")} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
-            <button style={tdStyles.iconBtn} title="Plus d'actions">⋯</button>
           </div>
         </header>
 

@@ -195,7 +195,11 @@ var BattleCard = () => {
   }, "Objections fr\xE9quentes & reformulations"), /*#__PURE__*/React.createElement("p", {
     style: bcStyles.h3sub
   }, "R\xE9ponses valid\xE9es \xE9quipe \xE0 utiliser en RDV")), /*#__PURE__*/React.createElement("button", {
-    style: bcStyles.smBtn
+    onClick: () => alert("Ajouter une objection : sera persistée dans Supabase prochainement."),
+    style: {
+      ...bcStyles.smBtn,
+      cursor: "pointer"
+    }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: bcStyles.objList
   }, [{

@@ -1,6 +1,7 @@
 // Dashboard displacements — wins/losses face aux concurrents
 
 const DisplacementDashboard = () => {
+  const [period, setPeriod] = React.useState("12 mois");
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -68,12 +69,26 @@ const DisplacementDashboard = () => {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <div style={dispStyles.segCtrl}>
-            <button style={dispStyles.segBtn}>3 mois</button>
-            <button style={dispStyles.segBtn}>6 mois</button>
-            <button style={{ ...dispStyles.segBtn, ...dispStyles.segBtnActive }}>12 mois</button>
-            <button style={dispStyles.segBtn}>YTD</button>
+            {["3 mois", "6 mois", "12 mois", "YTD"].map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                style={{ ...dispStyles.segBtn, ...(period === p ? dispStyles.segBtnActive : {}), cursor: "pointer" }}
+              >{p}</button>
+            ))}
           </div>
-          <button style={dispStyles.ghostBtn}>Exporter rapport</button>
+          <button
+            onClick={() => {
+              const csv = "Période,Données\n" + period + ",rapport exporté\n";
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = "rapport-displacement-" + period + ".csv";
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }}
+            style={{ ...dispStyles.ghostBtn, cursor: "pointer" }}
+          >Exporter rapport</button>
         </div>
       </div>
 

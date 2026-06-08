@@ -122,7 +122,14 @@ var ClientPage = () => {
     color: "#10b981"
   }];
   var [actionMenuKey, setActionMenuKey] = React.useState(null);
-  var [reschedule, setReschedule] = React.useState(null); // { id, date, time, title }
+  var [reschedule, setReschedule] = React.useState(null);
+  var [moreMenuOpen, setMoreMenuOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!moreMenuOpen) return;
+    var close = () => setMoreMenuOpen(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [moreMenuOpen]);
   React.useEffect(() => {
     if (!actionMenuKey) return;
     var close = () => setActionMenuKey(null);
@@ -1014,35 +1021,73 @@ var ClientPage = () => {
       ...cliStyles.ghostBtn,
       cursor: "pointer"
     }
-  }, "\u2605 Suivre"), /*#__PURE__*/React.createElement("button", {
-    onClick: async () => {
-      if (!urlId) return;
-      var choice = prompt(`${display.name}\n\n1. Convertir en client\n2. Archiver\n3. Supprimer définitivement\n\nTapez 1, 2 ou 3 :`, "");
-      if (choice === "1") {
-        await window.api.clients.update(urlId, {
-          status: "client",
-          client_since: new Date().toISOString()
-        });
-        alert("Converti en client.");
-        window.location.reload();
-      } else if (choice === "2") {
-        await window.api.clients.update(urlId, {
-          status: "archived"
-        });
-        alert("Archivé.");
-        window.location.href = "/crm";
-      } else if (choice === "3" && confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) {
-        await window.api.clients.remove(urlId);
-        alert("Supprimé.");
-        window.location.href = "/crm";
-      }
+  }, "\u2605 Suivre"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setMoreMenuOpen(v => !v);
     },
     style: {
       ...cliStyles.iconBtn,
       cursor: "pointer"
     },
     title: "Plus d'actions"
-  }, "\u22EF"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u22EF"), moreMenuOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "absolute",
+      top: "100%",
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+      zIndex: 1000,
+      minWidth: 220,
+      padding: 4
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!urlId) return;
+      await window.api.clients.update(urlId, {
+        status: "client",
+        client_since: new Date().toISOString()
+      });
+      window.location.reload();
+    },
+    style: cliStyles.menuItem
+  }, "\u2713 Convertir en client"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!urlId) return;
+      await window.api.clients.update(urlId, {
+        status: "archived"
+      });
+      window.location.href = "/crm";
+    },
+    style: cliStyles.menuItem
+  }, "\uD83D\uDCE6 Archiver"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "#eef1f5",
+      margin: "4px 0"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!urlId) return;
+      if (confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) {
+        await window.api.clients.remove(urlId);
+        window.location.href = "/crm";
+      }
+    },
+    style: {
+      ...cliStyles.menuItem,
+      color: "#dc2626"
+    }
+  }, "\uD83D\uDDD1 Supprimer d\xE9finitivement"))))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.scroll
   }, /*#__PURE__*/React.createElement("section", {
     style: cliStyles.hero

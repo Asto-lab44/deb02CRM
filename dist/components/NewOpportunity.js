@@ -37,6 +37,20 @@ var NewOpportunity = () => {
   var [oppSource, setOppSource] = React.useState("Référence client existant");
   var [oppDuration, setOppDuration] = React.useState("3 ans");
   var [oppStage, setOppStage] = React.useState("qualif");
+  var [oppOwner, setOppOwner] = React.useState("Romain Daviaud");
+  var [oppTags, setOppTags] = React.useState([]);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then(u => {
+      if (!u) return;
+      if (u.email === "a.morin@astorya.fr") setOppOwner("Augustin Morin");else if (u.email === "achat@astorya.fr") setOppOwner("Romain Daviaud");
+    }).catch(() => {});
+  }, []);
+  // Stage pré-sélectionné via ?stage=
+  React.useEffect(() => {
+    var s = new URLSearchParams(window.location.search).get("stage");
+    if (s) setOppStage(s);
+  }, []);
   var [flash, setFlash] = React.useState(null);
 
   // Résolution du dossier prospect complet (pour récupérer contact_principal + contacts_additionnels)
@@ -97,7 +111,8 @@ var NewOpportunity = () => {
       duration: oppDuration,
       stage: oppStage,
       proba,
-      owner: "Vous"
+      owner: oppOwner,
+      tags: oppTags
     };
     try {
       await window.api.opportunities.create(opp);
@@ -807,111 +822,57 @@ var NewOpportunity = () => {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "04",
-    title: "\xC9quipe & concurrence",
-    subtitle: "Commercial attribu\xE9 et environnement comp\xE9titif"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.formGrid2
-  }, /*#__PURE__*/React.createElement(FormRow, {
+    title: "Commercial & \xE9tiquettes",
+    subtitle: "Qui pilote l'opportunit\xE9 et comment la classer"
+  }), /*#__PURE__*/React.createElement(FormRow, {
     label: "Commercial",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: noStyles.linkedCardMini
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Nadia Lef\xE8vre",
-    size: 24,
-    color: "#a855f7"
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("select", {
+    value: oppOwner,
+    onChange: e => setOppOwner(e.target.value),
     style: {
-      flex: 1
+      ...noStyles.input,
+      padding: "8px 12px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 600
-    }
-  }, "Nadia Lef\xE8vre"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "AE Senior \xB7 EMEA")), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.changeBtn
-  }, "Changer"))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Co-owner"
-  }, /*#__PURE__*/React.createElement("button", {
-    style: noStyles.addBtn
-  }, "+ Ajouter un co-owner"))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Concurrents identifi\xE9s",
-    subtitle: "Solutions actuelles ou pressenties chez le prospect"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "Romain Daviaud"
+  }, "Romain Daviaud \xB7 Direction \xB7 Achat"), /*#__PURE__*/React.createElement("option", {
+    value: "Augustin Morin"
+  }, "Augustin Morin \xB7 Direction \xB7 Commercial"))), /*#__PURE__*/React.createElement(FormRow, {
+    label: "\xC9tiquettes",
+    subtitle: "Tags libres pour cat\xE9goriser cette opportunit\xE9"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "center"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, oppTags.map((tag, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
     style: {
-      ...noStyles.compChip,
-      background: "#e0f4fc",
-      borderColor: "#00A1E0",
-      color: "#00A1E0"
+      ...noStyles.tag,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, "# ", tag, /*#__PURE__*/React.createElement("span", {
+    onClick: () => setOppTags(arr => arr.filter((_, j) => j !== i)),
     style: {
-      fontSize: 9,
-      fontWeight: 700,
-      padding: "1px 4px",
-      background: "#00A1E0",
-      color: "#fff",
-      borderRadius: 3
+      cursor: "pointer",
+      color: "#cbd5e1",
+      fontSize: 13
     }
-  }, "SF"), /*#__PURE__*/React.createElement("span", {
+  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var t = prompt("Nouvelle étiquette :");
+      if (t && t.trim()) setOppTags(arr => [...arr, t.trim()]);
+    },
     style: {
-      fontWeight: 600
+      ...noStyles.addChip,
+      cursor: "pointer"
     }
-  }, "Salesforce"), /*#__PURE__*/React.createElement("span", {
-    style: noStyles.removeChip
-  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...noStyles.compChip,
-      background: "#fdecec",
-      borderColor: "#dc2626",
-      color: "#dc2626"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9,
-      fontWeight: 700,
-      padding: "1px 4px",
-      background: "#dc2626",
-      color: "#fff",
-      borderRadius: 3
-    }
-  }, "GW"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 600
-    }
-  }, "Guidewire"), /*#__PURE__*/React.createElement("span", {
-    style: noStyles.removeChip
-  }, "\xD7")), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.addChip
-  }, "+ Ajouter"))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "\xC9tiquettes"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.tag
-  }, "# Extension"), /*#__PURE__*/React.createElement("span", {
-    style: noStyles.tag
-  }, "# BENELUX"), /*#__PURE__*/React.createElement("span", {
-    style: noStyles.tag
-  }, "# Q3 2026"), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.addChip
-  }, "+")))), /*#__PURE__*/React.createElement("div", {
+  }, "+ Ajouter")))), /*#__PURE__*/React.createElement("div", {
     style: noStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => {
@@ -924,9 +885,6 @@ var NewOpportunity = () => {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: createOpp,
-    style: noStyles.ghostBtn
-  }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
     onClick: createOpp,
     style: noStyles.primaryBtn
   }, "Cr\xE9er l'opportunit\xE9 \u2192"))), flash && /*#__PURE__*/React.createElement("div", {

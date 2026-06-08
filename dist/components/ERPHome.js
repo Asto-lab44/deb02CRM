@@ -7,7 +7,19 @@ var ERPHome = () => {
   var activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
   var allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
   var allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
-  var currentUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  var localUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  // Identité Supabase réelle si dispo, sinon fallback access-store
+  var [supaUser, setSupaUser] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then(u => {
+      if (u) setSupaUser(u);
+    }).catch(() => {});
+  }, []);
+  var currentUser = supaUser ? {
+    name: supaUser.email,
+    role: "Astorya"
+  } : localUser;
   var [loginOpen, setLoginOpen] = React.useState(false);
   var Avatar = ({
     name,
@@ -745,7 +757,11 @@ var ERPHome = () => {
       whiteSpace: "nowrap"
     }
   }, currentUser.role)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => window.HubAccess.logout(),
+    onClick: async () => {
+      if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
+      if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
+      window.location.href = "/login";
+    },
     title: "Se d\xE9connecter",
     style: {
       background: "transparent",
@@ -755,8 +771,8 @@ var ERPHome = () => {
       cursor: "pointer",
       padding: 4
     }
-  }, "\u23FB")) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => setLoginOpen(true),
+  }, "\u23FB")) : /*#__PURE__*/React.createElement("a", {
+    href: "/login",
     style: {
       display: "flex",
       alignItems: "center",
@@ -769,7 +785,8 @@ var ERPHome = () => {
       color: "#fff",
       fontSize: 12.5,
       fontWeight: 600,
-      cursor: "pointer"
+      cursor: "pointer",
+      textDecoration: "none"
     }
   }, "\u2192 Se connecter")), /*#__PURE__*/React.createElement(LoginModal, {
     open: loginOpen,

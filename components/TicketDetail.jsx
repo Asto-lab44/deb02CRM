@@ -61,7 +61,10 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
               (t.client && t.client.maintenance ? { status: t.client.maintenance, name: t.client.contract } : null),
     requester: t.requester_name || "Camille Dufour",
     escalated: t.escalated_at ? { at: t.escalated_at, group: t.escalated_group, reason: t.escalated_reason } : (t.escalated || null),
+    sla_due_at: t.sla_due_at || null,
+    opened_at: t.opened_at || null,
   };
+  const ticket = t;
   const statusMap   = { open: { label: "Ouvert", color: "#3b82f6", soft: "#eff4ff", text: "#1d4ed8" }, in_progress: { label: "En cours", color: "#a855f7", soft: "#f5efff", text: "#7e22ce" }, waiting: { label: "En attente", color: "#f59e0b", soft: "#fff6e6", text: "#a65f00" }, resolved: { label: "Résolu", color: "#10b981", soft: "#e8f8f1", text: "#0e7a55" }, closed: { label: "Fermé", color: "#94a3b8", soft: "#f1f3f6", text: "#475569" } };
   const priorityMap = { critique: { label: "Critique", color: "#dc2626", soft: "#fdecec", arrow: "▲" }, haute: { label: "Haute", color: "#ea580c", soft: "#fef0e6", arrow: "▲" }, normale: { label: "Normale", color: "#475569", soft: "#eef1f5", arrow: "" }, basse: { label: "Basse", color: "#64748b", soft: "#f1f3f6", arrow: "" } };
   const sMeta = statusMap[display.status] || statusMap.in_progress;
@@ -74,12 +77,58 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
 
   const resolveTicket = async () => {
     if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    const note = prompt("Note de résolution (visible client) :", "");
+    if (note === null) return; // cancel
     const { error } = await window.HubData.updateTicket(TICKET_ID, {
       status: "resolved",
       closed_at: new Date().toISOString(),
     });
+    if (error) { showFlash("Erreur : " + error.message, "err"); return; }
+    if (note && note.trim() && window.HubData.createComment) {
+      await window.HubData.createComment({ ticket_id: TICKET_ID, body: "✓ Résolu — " + note.trim(), author_id: null });
+    }
+    showFlash("✓ Ticket marqué comme résolu");
+  };
+
+  const assignTicket = async () => {
+    if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    // Liste des utilisateurs depuis Supabase profiles (fallback : Romain + Augustin)
+    let users = [];
+    try {
+      if (window.HubData.fetchProfiles) {
+        const { data } = await window.HubData.fetchProfiles();
+        users = (data || []).map((p) => ({ id: p.id, name: p.name || p.email, team: p.team || "Astorya" }));
+      }
+    } catch (e) {}
+    if (!users.length) {
+      users = [
+        { id: null, name: "Romain Daviaud", team: "Direction" },
+        { id: null, name: "Augustin Morin", team: "Direction" },
+      ];
+    }
+    const list = users.map((u, i) => `${i + 1}. ${u.name} · ${u.team}`).join("\n");
+    const choice = prompt("Assigner à :\n\n" + list + "\n\nTapez le numéro :", "1");
+    const idx = parseInt(choice, 10) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= users.length) return;
+    const target = users[idx];
+    const { error } = await window.HubData.updateTicket(TICKET_ID, {
+      assignee_id: target.id,
+      assignee_team: target.team,
+      status: "in_progress",
+    });
     if (error) showFlash("Erreur : " + error.message, "err");
-    else showFlash("✓ Ticket marqué comme résolu");
+    else showFlash("✓ Ticket assigné à " + target.name);
+  };
+
+  const closeTicket = async () => {
+    if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    if (!confirm("Fermer définitivement ce ticket ? Le client ne pourra plus y répondre.")) return;
+    const { error } = await window.HubData.updateTicket(TICKET_ID, {
+      status: "closed",
+      closed_at: new Date().toISOString(),
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");
+    else showFlash("✓ Ticket fermé");
   };
 
   const escalateTicket = async () => {
@@ -364,24 +413,55 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                 Ticket <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{TICKET_ID}</span> · Demandeur {display.requester} · {(t.msgs != null ? t.msgs : 11)} messages
               </p>
 
-              {/* SLA strip */}
-              <div style={tdStyles.slaStrip}>
-                <div style={tdStyles.slaBlock}>
-                  <div style={tdStyles.slaLabel}>Première réponse</div>
-                  <div style={tdStyles.slaValueOk}>✓ Respectée — 48 min</div>
-                </div>
-                <div style={tdStyles.slaSep} />
-                <div style={tdStyles.slaBlock}>
-                  <div style={tdStyles.slaLabel}>Résolution cible</div>
-                  <div style={tdStyles.slaValueDanger}>⏱ 22 min restantes</div>
-                  <div style={tdStyles.slaBar}><div style={{ width: "92%", height: "100%", background: "#dc2626", borderRadius: 999 }} /></div>
-                </div>
-                <div style={tdStyles.slaSep} />
-                <div style={tdStyles.slaBlock}>
-                  <div style={tdStyles.slaLabel}>Articles suggérés</div>
-                  <div style={tdStyles.kbLink}>📘 VPN — diagnostic Wi-Fi</div>
-                </div>
-              </div>
+              {/* SLA strip — calculé depuis sla_due_at + opened_at */}
+              {(() => {
+                const dueIso = (ticket && ticket.sla_due_at) || display.sla_due_at;
+                const openedIso = (ticket && ticket.opened_at) || display.opened_at;
+                if (!dueIso || !openedIso) {
+                  return (
+                    <div style={tdStyles.slaStrip}>
+                      <div style={tdStyles.slaBlock}>
+                        <div style={tdStyles.slaLabel}>SLA</div>
+                        <div style={tdStyles.slaValueOk}>—</div>
+                      </div>
+                    </div>
+                  );
+                }
+                const now = Date.now();
+                const due = new Date(dueIso).getTime();
+                const opened = new Date(openedIso).getTime();
+                const totalMs = due - opened;
+                const remainingMs = due - now;
+                const pct = totalMs > 0 ? Math.max(0, Math.min(100, ((totalMs - remainingMs) / totalMs) * 100)) : 100;
+                const overdue = remainingMs < 0;
+                const fmtRem = (ms) => {
+                  const abs = Math.abs(ms);
+                  const h = Math.floor(abs / 3600000);
+                  const m = Math.floor((abs % 3600000) / 60000);
+                  return h >= 24 ? Math.floor(h / 24) + " j " + (h % 24) + " h" : h + " h " + String(m).padStart(2, "0");
+                };
+                const color = overdue ? "#dc2626" : remainingMs < 3600000 ? "#dc2626" : remainingMs < 6 * 3600000 ? "#f59e0b" : "#10b981";
+                const label = overdue ? "Dépassée de " + fmtRem(remainingMs) : fmtRem(remainingMs) + " restantes";
+                return (
+                  <div style={tdStyles.slaStrip}>
+                    <div style={tdStyles.slaBlock}>
+                      <div style={tdStyles.slaLabel}>Ouvert le</div>
+                      <div style={tdStyles.slaValueOk}>{new Date(openedIso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</div>
+                    </div>
+                    <div style={tdStyles.slaSep} />
+                    <div style={tdStyles.slaBlock}>
+                      <div style={tdStyles.slaLabel}>SLA résolution</div>
+                      <div style={{ ...tdStyles.slaValueOk, color }}>{overdue ? "⚠ " : "⏱ "}{label}</div>
+                      <div style={tdStyles.slaBar}><div style={{ width: pct + "%", height: "100%", background: color, borderRadius: 999 }} /></div>
+                    </div>
+                    <div style={tdStyles.slaSep} />
+                    <div style={tdStyles.slaBlock}>
+                      <div style={tdStyles.slaLabel}>Échéance</div>
+                      <div style={tdStyles.slaValueOk}>{new Date(dueIso).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Conversation thread */}
@@ -559,8 +639,10 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                       {flash.msg}
                     </span>
                   )}
+                  <button onClick={assignTicket} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }} title="Assigner à un technicien">⇄ Assigner</button>
                   <button onClick={escalateTicket} style={{ ...tdStyles.ghostBtn, color: "#5b21b6", borderColor: "#c4b5fd", background: "#f5f3ff", fontWeight: 600, cursor: "pointer" }} title="Remonter le ticket au groupe Administrateur · Supervision">↑ Escalader</button>
-                  <button onClick={resolveTicket} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>Marquer comme résolu</button>
+                  <button onClick={resolveTicket} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>✓ Résoudre</button>
+                  <button onClick={closeTicket} style={{ ...tdStyles.ghostBtn, color: "#64748b", cursor: "pointer" }} title="Fermer définitivement le ticket">✕ Fermer</button>
                   <button onClick={sendReply} style={{ ...tdStyles.primaryBtn, cursor: "pointer" }}>Envoyer ↵</button>
                 </div>
               </div>

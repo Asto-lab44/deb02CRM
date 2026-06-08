@@ -83,8 +83,11 @@ var TicketDetail = ({
       at: t.escalated_at,
       group: t.escalated_group,
       reason: t.escalated_reason
-    } : t.escalated || null
+    } : t.escalated || null,
+    sla_due_at: t.sla_due_at || null,
+    opened_at: t.opened_at || null
   };
+  var ticket = t;
   var statusMap = {
     open: {
       label: "Ouvert",
@@ -157,13 +160,84 @@ var TicketDetail = ({
       showFlash("Mode démo — branchement DB nécessaire", "warn");
       return;
     }
+    var note = prompt("Note de résolution (visible client) :", "");
+    if (note === null) return; // cancel
     var {
       error
     } = await window.HubData.updateTicket(TICKET_ID, {
       status: "resolved",
       closed_at: new Date().toISOString()
     });
-    if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket marqué comme résolu");
+    if (error) {
+      showFlash("Erreur : " + error.message, "err");
+      return;
+    }
+    if (note && note.trim() && window.HubData.createComment) {
+      await window.HubData.createComment({
+        ticket_id: TICKET_ID,
+        body: "✓ Résolu — " + note.trim(),
+        author_id: null
+      });
+    }
+    showFlash("✓ Ticket marqué comme résolu");
+  };
+  var assignTicket = async () => {
+    if (!dataOn) {
+      showFlash("Mode démo — branchement DB nécessaire", "warn");
+      return;
+    }
+    // Liste des utilisateurs depuis Supabase profiles (fallback : Romain + Augustin)
+    var users = [];
+    try {
+      if (window.HubData.fetchProfiles) {
+        var {
+          data
+        } = await window.HubData.fetchProfiles();
+        users = (data || []).map(p => ({
+          id: p.id,
+          name: p.name || p.email,
+          team: p.team || "Astorya"
+        }));
+      }
+    } catch (e) {}
+    if (!users.length) {
+      users = [{
+        id: null,
+        name: "Romain Daviaud",
+        team: "Direction"
+      }, {
+        id: null,
+        name: "Augustin Morin",
+        team: "Direction"
+      }];
+    }
+    var list = users.map((u, i) => `${i + 1}. ${u.name} · ${u.team}`).join("\n");
+    var choice = prompt("Assigner à :\n\n" + list + "\n\nTapez le numéro :", "1");
+    var idx = parseInt(choice, 10) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= users.length) return;
+    var target = users[idx];
+    var {
+      error
+    } = await window.HubData.updateTicket(TICKET_ID, {
+      assignee_id: target.id,
+      assignee_team: target.team,
+      status: "in_progress"
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket assigné à " + target.name);
+  };
+  var closeTicket = async () => {
+    if (!dataOn) {
+      showFlash("Mode démo — branchement DB nécessaire", "warn");
+      return;
+    }
+    if (!confirm("Fermer définitivement ce ticket ? Le client ne pourra plus y répondre.")) return;
+    var {
+      error
+    } = await window.HubData.updateTicket(TICKET_ID, {
+      status: "closed",
+      closed_at: new Date().toISOString()
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket fermé");
   };
   var escalateTicket = async () => {
     if (!dataOn) {
@@ -788,40 +862,82 @@ var TicketDetail = ({
       fontFamily: "'JetBrains Mono', monospace",
       color: "#475569"
     }
-  }, TICKET_ID), " \xB7 Demandeur ", display.requester, " \xB7 ", t.msgs != null ? t.msgs : 11, " messages"), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaStrip
-  }, /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaBlock
-  }, /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaLabel
-  }, "Premi\xE8re r\xE9ponse"), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaValueOk
-  }, "\u2713 Respect\xE9e \u2014 48 min")), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaSep
-  }), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaBlock
-  }, /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaLabel
-  }, "R\xE9solution cible"), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaValueDanger
-  }, "\u23F1 22 min restantes"), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaBar
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "92%",
-      height: "100%",
-      background: "#dc2626",
-      borderRadius: 999
+  }, TICKET_ID), " \xB7 Demandeur ", display.requester, " \xB7 ", t.msgs != null ? t.msgs : 11, " messages"), (() => {
+    var dueIso = ticket && ticket.sla_due_at || display.sla_due_at;
+    var openedIso = ticket && ticket.opened_at || display.opened_at;
+    if (!dueIso || !openedIso) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: tdStyles.slaStrip
+      }, /*#__PURE__*/React.createElement("div", {
+        style: tdStyles.slaBlock
+      }, /*#__PURE__*/React.createElement("div", {
+        style: tdStyles.slaLabel
+      }, "SLA"), /*#__PURE__*/React.createElement("div", {
+        style: tdStyles.slaValueOk
+      }, "\u2014")));
     }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaSep
-  }), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaBlock
-  }, /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.slaLabel
-  }, "Articles sugg\xE9r\xE9s"), /*#__PURE__*/React.createElement("div", {
-    style: tdStyles.kbLink
-  }, "\uD83D\uDCD8 VPN \u2014 diagnostic Wi-Fi")))), /*#__PURE__*/React.createElement("div", {
+    var now = Date.now();
+    var due = new Date(dueIso).getTime();
+    var opened = new Date(openedIso).getTime();
+    var totalMs = due - opened;
+    var remainingMs = due - now;
+    var pct = totalMs > 0 ? Math.max(0, Math.min(100, (totalMs - remainingMs) / totalMs * 100)) : 100;
+    var overdue = remainingMs < 0;
+    var fmtRem = ms => {
+      var abs = Math.abs(ms);
+      var h = Math.floor(abs / 3600000);
+      var m = Math.floor(abs % 3600000 / 60000);
+      return h >= 24 ? Math.floor(h / 24) + " j " + h % 24 + " h" : h + " h " + String(m).padStart(2, "0");
+    };
+    var color = overdue ? "#dc2626" : remainingMs < 3600000 ? "#dc2626" : remainingMs < 6 * 3600000 ? "#f59e0b" : "#10b981";
+    var label = overdue ? "Dépassée de " + fmtRem(remainingMs) : fmtRem(remainingMs) + " restantes";
+    return /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaStrip
+    }, /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaBlock
+    }, /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaLabel
+    }, "Ouvert le"), /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaValueOk
+    }, new Date(openedIso).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaSep
+    }), /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaBlock
+    }, /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaLabel
+    }, "SLA r\xE9solution"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...tdStyles.slaValueOk,
+        color
+      }
+    }, overdue ? "⚠ " : "⏱ ", label), /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaBar
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: pct + "%",
+        height: "100%",
+        background: color,
+        borderRadius: 999
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaSep
+    }), /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaBlock
+    }, /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaLabel
+    }, "\xC9ch\xE9ance"), /*#__PURE__*/React.createElement("div", {
+      style: tdStyles.slaValueOk
+    }, new Date(dueIso).toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    }))));
+  })()), /*#__PURE__*/React.createElement("div", {
     style: tdStyles.thread
   }, [...events, ...addedMessages].map((e, i) => {
     if (e.type === "escalation") {
@@ -1238,6 +1354,13 @@ var TicketDetail = ({
       color: flash.tone === "err" ? "#991b1b" : flash.tone === "warn" ? "#78350f" : "#065f46"
     }
   }, flash.msg), /*#__PURE__*/React.createElement("button", {
+    onClick: assignTicket,
+    style: {
+      ...tdStyles.ghostBtn,
+      cursor: "pointer"
+    },
+    title: "Assigner \xE0 un technicien"
+  }, "\u21C4 Assigner"), /*#__PURE__*/React.createElement("button", {
     onClick: escalateTicket,
     style: {
       ...tdStyles.ghostBtn,
@@ -1254,7 +1377,15 @@ var TicketDetail = ({
       ...tdStyles.ghostBtn,
       cursor: "pointer"
     }
-  }, "Marquer comme r\xE9solu"), /*#__PURE__*/React.createElement("button", {
+  }, "\u2713 R\xE9soudre"), /*#__PURE__*/React.createElement("button", {
+    onClick: closeTicket,
+    style: {
+      ...tdStyles.ghostBtn,
+      color: "#64748b",
+      cursor: "pointer"
+    },
+    title: "Fermer d\xE9finitivement le ticket"
+  }, "\u2715 Fermer"), /*#__PURE__*/React.createElement("button", {
     onClick: sendReply,
     style: {
       ...tdStyles.primaryBtn,

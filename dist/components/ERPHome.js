@@ -58,15 +58,61 @@ var ERPHome = () => {
     opps: 0,
     won: 0
   });
+  var [actionsTodo, setActionsTodo] = React.useState([]);
+  var [searchQ, setSearchQ] = React.useState("");
+  var [searchData, setSearchData] = React.useState({
+    clients: [],
+    opps: []
+  });
   React.useEffect(() => {
     if (!window.api) return;
-    Promise.all([window.api.clients.list(), window.api.opportunities.list()]).then(([clients, opps]) => {
+    Promise.all([window.api.clients.list(), window.api.opportunities.list()]).then(([cl, op]) => setSearchData({
+      clients: cl || [],
+      opps: op || []
+    })).catch(() => {});
+  }, []);
+  var searchResults = React.useMemo(() => {
+    var q = searchQ.trim().toLowerCase();
+    if (q.length < 2) return [];
+    var results = [];
+    searchData.clients.forEach(c => {
+      var name = c.raison_sociale || c.name || "";
+      if (name.toLowerCase().includes(q) || (c.siren || "").includes(q)) {
+        results.push({
+          kind: "client",
+          id: c.id,
+          label: name,
+          sub: (c.status === "client" ? "Client" : "Prospect") + " · " + (c.ville || c.city || "—"),
+          href: "/fiche-client?id=" + encodeURIComponent(c.id)
+        });
+      }
+    });
+    searchData.opps.forEach(o => {
+      var name = o.name || "";
+      if (name.toLowerCase().includes(q) || (o.id || "").toLowerCase().includes(q)) {
+        results.push({
+          kind: "opp",
+          id: o.id,
+          label: name,
+          sub: "Opportunité · " + (o.stage || "—"),
+          href: "/avancer-opportunite?opp=" + encodeURIComponent(o.id)
+        });
+      }
+    });
+    return results.slice(0, 10);
+  }, [searchQ, searchData]);
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([window.api.clients.list(), window.api.opportunities.list(), window.api.actions.list({
+      status: "todo"
+    })]).then(([clients, opps, todos]) => {
       var won = (opps || []).filter(o => o.stage === "won").length;
       setCrmStats({
         clients: (clients || []).length,
         opps: (opps || []).length,
         won
       });
+      setActionsTodo(todos || []);
     }).catch(() => {});
   }, []);
   var modules = [
@@ -554,15 +600,73 @@ var ERPHome = () => {
     style: {
       position: "relative"
     }
-  }, /*#__PURE__*/React.createElement("input", {
-    style: erpStyles.search,
-    placeholder: "Rechercher partout\u2026",
-    readOnly: true
-  }), /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.searchIcon
-  }, "\u2315"), /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.searchKbd
-  }, "\u2318K")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8"
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...erpStyles.search,
+      paddingLeft: 32
+    },
+    placeholder: "Rechercher client, opp, ticket\u2026",
+    value: searchQ,
+    onChange: e => setSearchQ(e.target.value)
+  }), searchQ.trim().length >= 2 && searchResults.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+      zIndex: 100,
+      maxHeight: 320,
+      overflowY: "auto"
+    }
+  }, searchResults.map(r => /*#__PURE__*/React.createElement("a", {
+    key: r.kind + "-" + r.id,
+    href: r.href,
+    style: {
+      display: "block",
+      padding: "8px 12px",
+      textDecoration: "none",
+      color: "#0f172a",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, r.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8"
+    }
+  }, r.sub)))), searchQ.trim().length >= 2 && searchResults.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      padding: "10px 12px",
+      fontSize: 12,
+      color: "#94a3b8",
+      boxShadow: "0 8px 24px rgba(15,23,42,0.12)"
+    }
+  }, "Aucun r\xE9sultat")), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.navLabel
@@ -577,40 +681,7 @@ var ERPHome = () => {
     style: {
       flex: 1
     }
-  }, "Accueil")), /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.bullet
-  }, "\u2605"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "Favoris"), /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.navCount
-  }, "6")), /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.bullet
-  }, "\u25F7"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "R\xE9cents")), /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.bullet
-  }, "\u25D4"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "Notifications"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...erpStyles.navCount,
-      background: "#dc2626",
-      color: "#fff",
-      fontWeight: 700
-    }
-  }, "5"))), /*#__PURE__*/React.createElement("div", {
+  }, "Accueil"))), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.navLabel
@@ -860,24 +931,7 @@ var ERPHome = () => {
     }
   }, ".")), /*#__PURE__*/React.createElement("p", {
     style: erpStyles.heroSub
-  }, crmStats.opps, " opportunit\xE9", crmStats.opps > 1 ? "s" : "", " en cours \xB7 ", crmStats.clients, " compte", crmStats.clients > 1 ? "s" : "", " en base"), /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.quickActions
-  }, /*#__PURE__*/React.createElement("button", {
-    style: {
-      ...erpStyles.quickBtn,
-      ...erpStyles.quickBtnPrimary
-    }
-  }, "+ Nouvelle opportunit\xE9"), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.quickBtn
-  }, "+ Facture"), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.quickBtn
-  }, "+ Ticket"), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.quickBtn
-  }, "+ Devis"), /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.quickSep
-  }), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.quickBtn
-  }, "\u2318K \xB7 Recherche globale")))), /*#__PURE__*/React.createElement("section", {
+  }, crmStats.opps, " opportunit\xE9", crmStats.opps > 1 ? "s" : "", " en cours \xB7 ", crmStats.clients, " compte", crmStats.clients > 1 ? "s" : "", " en base"))), /*#__PURE__*/React.createElement("section", {
     style: erpStyles.pulseRow
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.pulseHead
@@ -936,19 +990,7 @@ var ERPHome = () => {
     style: erpStyles.h2
   }, "Modules"), /*#__PURE__*/React.createElement("p", {
     style: erpStyles.h2sub
-  }, "Acc\xE9dez \xE0 vos espaces de travail \xB7 \xE9pinglez vos favoris en haut")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: {
-      ...erpStyles.viewBtn,
-      ...erpStyles.viewBtnActive
-    }
-  }, "\u25A6 Tuiles"), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.viewBtn
-  }, "\u2630 Liste"))), categories.map(cat => /*#__PURE__*/React.createElement("div", {
+  }, "Acc\xE9dez \xE0 vos espaces de travail \xB7 \xE9pinglez vos favoris en haut"))), categories.map(cat => /*#__PURE__*/React.createElement("div", {
     key: cat,
     style: {
       marginBottom: 22
@@ -1045,204 +1087,75 @@ var ERPHome = () => {
       ...erpStyles.tileArrow,
       color: m.color
     }
-  }, "\u2192")))), cat === "Pilotage" && /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.tileAdd
-  }, /*#__PURE__*/React.createElement("div", {
+  }, "\u2192")))))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      fontSize: 32,
-      color: "#cbd5e1",
-      marginBottom: 4
+      ...erpStyles.bottomGrid,
+      gridTemplateColumns: "1fr"
     }
-  }, "+"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#64748b",
-      fontWeight: 600
-    }
-  }, "Ajouter un module"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#94a3b8",
-      marginTop: 2,
-      textAlign: "center"
-    }
-  }, "Catalogue \xB7 int\xE9grations \xB7 sur-mesure")))))), /*#__PURE__*/React.createElement("section", {
-    style: erpStyles.bottomGrid
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.bottomPanel
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.panelHead
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
     style: erpStyles.h3
-  }, "Mes actions \xE0 mener ", /*#__PURE__*/React.createElement("span", {
+  }, "Actions \xE0 mener ", /*#__PURE__*/React.createElement("span", {
     style: erpStyles.count
-  }, "9")), /*#__PURE__*/React.createElement("p", {
+  }, actionsTodo.length)), /*#__PURE__*/React.createElement("p", {
     style: erpStyles.h3sub
-  }, "Toutes cat\xE9gories confondues")), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.smBtn
-  }, "Voir tout")), [{
-    p: "haute",
-    time: "Aujourd'hui · 14:00",
-    cat: "CRM",
-    catColor: "#4f46e5",
-    title: "Comité achats AXA — présentation Suite",
-    overdue: false
-  }, {
-    p: "haute",
-    time: "Aujourd'hui · 18:00",
-    cat: "CRM",
-    catColor: "#4f46e5",
-    title: "Répondre questions techniques Émilie Roux",
-    overdue: true
-  }, {
-    p: "moyenne",
-    time: "Demain",
-    cat: "Finance",
-    catColor: "#10b981",
-    title: "Valider relance impayés ≥ 30 j",
-    overdue: false
-  }, {
-    p: "moyenne",
-    time: "Ven. 29 mai",
-    cat: "Production",
-    catColor: "#0ea5e9",
-    title: "Revue ticket INC-2837 — VPN",
-    overdue: false
-  }, {
-    p: "basse",
-    time: "Sem. 23",
-    cat: "RH",
-    catColor: "#8b5cf6",
-    title: "Valider CRA mai (23 collaborateurs)",
-    overdue: false
-  }].map((a, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
+  }, "Toutes cat\xE9gories confondues")), /*#__PURE__*/React.createElement("a", {
+    href: "/crm",
     style: {
-      ...erpStyles.todoRow,
-      ...(a.overdue ? erpStyles.todoRowOverdue : {})
+      ...erpStyles.smBtn,
+      textDecoration: "none",
+      display: "inline-block",
+      cursor: "pointer"
     }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    style: erpStyles.checkbox,
-    readOnly: true
-  }), /*#__PURE__*/React.createElement("span", {
+  }, "Voir tout")), actionsTodo.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
-      ...erpStyles.catChip,
-      background: a.catColor + "15",
-      color: a.catColor
-    }
-  }, a.cat), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
+      padding: "24px 14px",
+      textAlign: "center",
       fontSize: 12.5,
-      color: "#0f172a",
-      fontWeight: 500
-    }
-  }, a.title), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: a.overdue ? "#dc2626" : "#64748b",
-      fontWeight: a.overdue ? 600 : 500,
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, a.overdue ? "⏰ " : "", a.time)))), /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.bottomPanel
-  }, /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.panelHead
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
-    style: erpStyles.h3
-  }, "Activit\xE9 de l'\xE9quipe"), /*#__PURE__*/React.createElement("p", {
-    style: erpStyles.h3sub
-  }, "Derni\xE8res actions notables"))), [{
-    who: "Nadia Lefèvre",
-    color: "#a855f7",
-    action: "a signé",
-    what: "Crédit Mutuel Océan",
-    value: "142 k€",
-    cat: "CRM",
-    time: "il y a 8 min"
-  }, {
-    who: "Karim Ben Salah",
-    color: "#6366f1",
-    action: "a envoyé",
-    what: "Proposition AXA Suite v2",
-    cat: "CRM",
-    time: "il y a 22 min"
-  }, {
-    who: "Sophie Aubry",
-    color: "#10b981",
-    action: "a clôturé",
-    what: "INC-2829 — Dock Dell",
-    cat: "Support",
-    time: "il y a 1 h"
-  }, {
-    who: "Tom Verdier",
-    color: "#f59e0b",
-    action: "a édité",
-    what: "Devis DEV-2042",
-    value: "32 k€",
-    cat: "Facturation",
-    time: "il y a 2 h"
-  }, {
-    who: "Hub Assistant",
-    color: "#0f172a",
-    action: "a détecté",
-    what: "Notice contrat échue chez Banque Méridionale",
-    cat: "Intelligence",
-    time: "il y a 3 h",
-    bot: true
-  }].map((e, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: erpStyles.activityRow
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: e.who,
-    size: 26,
-    color: e.color
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "#475569",
-      lineHeight: 1.4
-    }
-  }, /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: "#0f172a",
-      fontWeight: 600
-    }
-  }, e.who), e.bot && /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9,
-      padding: "1px 4px",
-      background: "#0f172a",
-      color: "#fff",
-      borderRadius: 3,
-      marginLeft: 4,
-      fontWeight: 700
-    }
-  }, "IA"), " ", e.action, " ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#0f172a",
-      fontWeight: 600
-    }
-  }, e.what), e.value && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#10b981",
-      fontWeight: 700,
-      marginLeft: 4,
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, "\xB7 ", e.value)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
       color: "#94a3b8",
-      marginTop: 2
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc"
     }
-  }, e.cat, " \xB7 ", e.time))))))));
+  }, "Aucune action planifi\xE9e. Cr\xE9ez-en une depuis une fiche client.") : actionsTodo.slice(0, 8).map(a => {
+    var dueIso = a.due_at;
+    var overdue = dueIso && new Date(dueIso).getTime() < Date.now();
+    var catColor = a.type === "email" ? "#a855f7" : a.type === "call" ? "#10b981" : a.type === "rdv" ? "#0ea5e9" : "#475569";
+    return /*#__PURE__*/React.createElement("div", {
+      key: a.id,
+      onClick: () => {
+        if (a.client_id) window.location.href = "/fiche-client?id=" + encodeURIComponent(a.client_id);
+      },
+      style: {
+        ...erpStyles.todoRow,
+        ...(overdue ? erpStyles.todoRowOverdue : {}),
+        cursor: a.client_id ? "pointer" : "default"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...erpStyles.catChip,
+        background: catColor + "15",
+        color: catColor
+      }
+    }, (a.type || "task").toUpperCase()), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        fontSize: 12.5,
+        color: "#0f172a",
+        fontWeight: 500
+      }
+    }, a.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: overdue ? "#dc2626" : "#64748b",
+        fontWeight: overdue ? 600 : 500,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, overdue ? "⏰ " : "", a.due_text || (dueIso ? new Date(dueIso).toLocaleDateString("fr-FR") : "—")));
+  })))));
 };
 var MiniSparkline = ({
   data,

@@ -32,18 +32,47 @@ const ERPHome = () => {
   // ───── modules organisés par catégorie
   // Stats live CRM (depuis Supabase) injectées dans la tuile CRM
   const [crmStats, setCrmStats] = React.useState({ clients: 0, opps: 0, won: 0 });
+  const [actionsTodo, setActionsTodo] = React.useState([]);
+  const [searchQ, setSearchQ] = React.useState("");
+  const [searchData, setSearchData] = React.useState({ clients: [], opps: [] });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([window.api.clients.list(), window.api.opportunities.list()])
+      .then(([cl, op]) => setSearchData({ clients: cl || [], opps: op || [] }))
+      .catch(() => {});
+  }, []);
+  const searchResults = React.useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const results = [];
+    searchData.clients.forEach((c) => {
+      const name = c.raison_sociale || c.name || "";
+      if (name.toLowerCase().includes(q) || (c.siren || "").includes(q)) {
+        results.push({ kind: "client", id: c.id, label: name, sub: (c.status === "client" ? "Client" : "Prospect") + " · " + (c.ville || c.city || "—"), href: "/fiche-client?id=" + encodeURIComponent(c.id) });
+      }
+    });
+    searchData.opps.forEach((o) => {
+      const name = o.name || "";
+      if (name.toLowerCase().includes(q) || (o.id || "").toLowerCase().includes(q)) {
+        results.push({ kind: "opp", id: o.id, label: name, sub: "Opportunité · " + (o.stage || "—"), href: "/avancer-opportunite?opp=" + encodeURIComponent(o.id) });
+      }
+    });
+    return results.slice(0, 10);
+  }, [searchQ, searchData]);
   React.useEffect(() => {
     if (!window.api) return;
     Promise.all([
       window.api.clients.list(),
       window.api.opportunities.list(),
-    ]).then(([clients, opps]) => {
+      window.api.actions.list({ status: "todo" }),
+    ]).then(([clients, opps, todos]) => {
       const won = (opps || []).filter((o) => o.stage === "won").length;
       setCrmStats({
         clients: (clients || []).length,
         opps: (opps || []).length,
         won,
       });
+      setActionsTodo(todos || []);
     }).catch(() => {});
   }, []);
 
@@ -263,17 +292,33 @@ const ERPHome = () => {
         </a>
 
         <div style={{ position: "relative" }}>
-          <input style={erpStyles.search} placeholder="Rechercher partout…" readOnly />
-          <span style={erpStyles.searchIcon}>⌕</span>
-          <span style={erpStyles.searchKbd}>⌘K</span>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
+          <input
+            style={{ ...erpStyles.search, paddingLeft: 32 }}
+            placeholder="Rechercher client, opp, ticket…"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+          />
+          {searchQ.trim().length >= 2 && searchResults.length > 0 && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", zIndex: 100, maxHeight: 320, overflowY: "auto" }}>
+              {searchResults.map((r) => (
+                <a key={r.kind + "-" + r.id} href={r.href} style={{ display: "block", padding: "8px 12px", textDecoration: "none", color: "#0f172a", borderBottom: "1px solid #f1f5f9" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>{r.label}</div>
+                  <div style={{ fontSize: 10.5, color: "#94a3b8" }}>{r.sub}</div>
+                </a>
+              ))}
+            </div>
+          )}
+          {searchQ.trim().length >= 2 && searchResults.length === 0 && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#94a3b8", boxShadow: "0 8px 24px rgba(15,23,42,0.12)" }}>
+              Aucun résultat
+            </div>
+          )}
         </div>
 
         <div style={erpStyles.navSection}>
           <div style={erpStyles.navLabel}>Navigation</div>
           <div style={{ ...erpStyles.navItem, ...erpStyles.navItemActive }}><span style={erpStyles.bullet}>⌂</span><span style={{ flex: 1 }}>Accueil</span></div>
-          <div style={erpStyles.navItem}><span style={erpStyles.bullet}>★</span><span style={{ flex: 1 }}>Favoris</span><span style={erpStyles.navCount}>6</span></div>
-          <div style={erpStyles.navItem}><span style={erpStyles.bullet}>◷</span><span style={{ flex: 1 }}>Récents</span></div>
-          <div style={erpStyles.navItem}><span style={erpStyles.bullet}>◔</span><span style={{ flex: 1 }}>Notifications</span><span style={{ ...erpStyles.navCount, background: "#dc2626", color: "#fff", fontWeight: 700 }}>5</span></div>
         </div>
 
         <div style={erpStyles.navSection}>
@@ -369,14 +414,6 @@ const ERPHome = () => {
             <h1 style={erpStyles.heroH1}>{(() => { const h = new Date().getHours(); return h < 12 ? "Bonne matinée" : h < 18 ? "Bon après-midi" : "Bonne soirée"; })()}<span style={{ color: "#a78bfa" }}>.</span></h1>
             <p style={erpStyles.heroSub}>{crmStats.opps} opportunité{crmStats.opps > 1 ? "s" : ""} en cours · {crmStats.clients} compte{crmStats.clients > 1 ? "s" : ""} en base</p>
 
-            <div style={erpStyles.quickActions}>
-              <button style={{ ...erpStyles.quickBtn, ...erpStyles.quickBtnPrimary }}>+ Nouvelle opportunité</button>
-              <button style={erpStyles.quickBtn}>+ Facture</button>
-              <button style={erpStyles.quickBtn}>+ Ticket</button>
-              <button style={erpStyles.quickBtn}>+ Devis</button>
-              <span style={erpStyles.quickSep} />
-              <button style={erpStyles.quickBtn}>⌘K · Recherche globale</button>
-            </div>
           </div>
         </section>
 
@@ -408,10 +445,6 @@ const ERPHome = () => {
             <div>
               <h2 style={erpStyles.h2}>Modules</h2>
               <p style={erpStyles.h2sub}>Accédez à vos espaces de travail · épinglez vos favoris en haut</p>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button style={{ ...erpStyles.viewBtn, ...erpStyles.viewBtnActive }}>▦ Tuiles</button>
-              <button style={erpStyles.viewBtn}>☰ Liste</button>
             </div>
           </div>
 
@@ -474,73 +507,37 @@ const ERPHome = () => {
                   </div>
                 ))}
 
-                {/* Add tile placeholder for last categorie row, or just one */}
-                {cat === "Pilotage" && (
-                  <div style={erpStyles.tileAdd}>
-                    <div style={{ fontSize: 32, color: "#cbd5e1", marginBottom: 4 }}>+</div>
-                    <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Ajouter un module</div>
-                    <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 2, textAlign: "center" }}>Catalogue · intégrations · sur-mesure</div>
-                  </div>
-                )}
               </div>
             </div>
           ))}
         </section>
 
-        {/* Recent activity row */}
-        <section style={erpStyles.bottomGrid}>
+        {/* Actions à mener — live depuis Supabase */}
+        <section style={{ ...erpStyles.bottomGrid, gridTemplateColumns: "1fr" }}>
           <div style={erpStyles.bottomPanel}>
             <div style={erpStyles.panelHead}>
               <div>
-                <h3 style={erpStyles.h3}>Mes actions à mener <span style={erpStyles.count}>9</span></h3>
+                <h3 style={erpStyles.h3}>Actions à mener <span style={erpStyles.count}>{actionsTodo.length}</span></h3>
                 <p style={erpStyles.h3sub}>Toutes catégories confondues</p>
               </div>
-              <button style={erpStyles.smBtn}>Voir tout</button>
+              <a href="/crm" style={{ ...erpStyles.smBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>Voir tout</a>
             </div>
-            {[
-              { p: "haute", time: "Aujourd'hui · 14:00", cat: "CRM", catColor: "#4f46e5", title: "Comité achats AXA — présentation Suite", overdue: false },
-              { p: "haute", time: "Aujourd'hui · 18:00", cat: "CRM", catColor: "#4f46e5", title: "Répondre questions techniques Émilie Roux", overdue: true },
-              { p: "moyenne", time: "Demain", cat: "Finance", catColor: "#10b981", title: "Valider relance impayés ≥ 30 j", overdue: false },
-              { p: "moyenne", time: "Ven. 29 mai", cat: "Production", catColor: "#0ea5e9", title: "Revue ticket INC-2837 — VPN", overdue: false },
-              { p: "basse", time: "Sem. 23", cat: "RH", catColor: "#8b5cf6", title: "Valider CRA mai (23 collaborateurs)", overdue: false },
-            ].map((a, i) => (
-              <div key={i} style={{ ...erpStyles.todoRow, ...(a.overdue ? erpStyles.todoRowOverdue : {}) }}>
-                <input type="checkbox" style={erpStyles.checkbox} readOnly />
-                <span style={{ ...erpStyles.catChip, background: a.catColor + "15", color: a.catColor }}>{a.cat}</span>
-                <span style={{ flex: 1, fontSize: 12.5, color: "#0f172a", fontWeight: 500 }}>{a.title}</span>
-                <span style={{ fontSize: 11, color: a.overdue ? "#dc2626" : "#64748b", fontWeight: a.overdue ? 600 : 500, fontFamily: "'JetBrains Mono', monospace" }}>{a.overdue ? "⏰ " : ""}{a.time}</span>
+            {actionsTodo.length === 0 ? (
+              <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 12.5, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc" }}>
+                Aucune action planifiée. Créez-en une depuis une fiche client.
               </div>
-            ))}
-          </div>
-
-          <div style={erpStyles.bottomPanel}>
-            <div style={erpStyles.panelHead}>
-              <div>
-                <h3 style={erpStyles.h3}>Activité de l'équipe</h3>
-                <p style={erpStyles.h3sub}>Dernières actions notables</p>
-              </div>
-            </div>
-            {[
-              { who: "Nadia Lefèvre", color: "#a855f7", action: "a signé", what: "Crédit Mutuel Océan", value: "142 k€", cat: "CRM", time: "il y a 8 min" },
-              { who: "Karim Ben Salah", color: "#6366f1", action: "a envoyé", what: "Proposition AXA Suite v2", cat: "CRM", time: "il y a 22 min" },
-              { who: "Sophie Aubry", color: "#10b981", action: "a clôturé", what: "INC-2829 — Dock Dell", cat: "Support", time: "il y a 1 h" },
-              { who: "Tom Verdier", color: "#f59e0b", action: "a édité", what: "Devis DEV-2042", value: "32 k€", cat: "Facturation", time: "il y a 2 h" },
-              { who: "Hub Assistant", color: "#0f172a", action: "a détecté", what: "Notice contrat échue chez Banque Méridionale", cat: "Intelligence", time: "il y a 3 h", bot: true },
-            ].map((e, i) => (
-              <div key={i} style={erpStyles.activityRow}>
-                <Avatar name={e.who} size={26} color={e.color} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.4 }}>
-                    <strong style={{ color: "#0f172a", fontWeight: 600 }}>{e.who}</strong>
-                    {e.bot && <span style={{ fontSize: 9, padding: "1px 4px", background: "#0f172a", color: "#fff", borderRadius: 3, marginLeft: 4, fontWeight: 700 }}>IA</span>}
-                    {" "}{e.action}{" "}
-                    <span style={{ color: "#0f172a", fontWeight: 600 }}>{e.what}</span>
-                    {e.value && <span style={{ color: "#10b981", fontWeight: 700, marginLeft: 4, fontFamily: "'JetBrains Mono', monospace" }}>· {e.value}</span>}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{e.cat} · {e.time}</div>
+            ) : actionsTodo.slice(0, 8).map((a) => {
+              const dueIso = a.due_at;
+              const overdue = dueIso && new Date(dueIso).getTime() < Date.now();
+              const catColor = a.type === "email" ? "#a855f7" : a.type === "call" ? "#10b981" : a.type === "rdv" ? "#0ea5e9" : "#475569";
+              return (
+                <div key={a.id} onClick={() => { if (a.client_id) window.location.href = "/fiche-client?id=" + encodeURIComponent(a.client_id); }} style={{ ...erpStyles.todoRow, ...(overdue ? erpStyles.todoRowOverdue : {}), cursor: a.client_id ? "pointer" : "default" }}>
+                  <span style={{ ...erpStyles.catChip, background: catColor + "15", color: catColor }}>{(a.type || "task").toUpperCase()}</span>
+                  <span style={{ flex: 1, fontSize: 12.5, color: "#0f172a", fontWeight: 500 }}>{a.title}</span>
+                  <span style={{ fontSize: 11, color: overdue ? "#dc2626" : "#64748b", fontWeight: overdue ? 600 : 500, fontFamily: "'JetBrains Mono', monospace" }}>{overdue ? "⏰ " : ""}{a.due_text || (dueIso ? new Date(dueIso).toLocaleDateString("fr-FR") : "—")}</span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </main>

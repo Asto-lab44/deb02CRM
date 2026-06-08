@@ -65,13 +65,28 @@ const TicketDetailModal = ({ ticketId, onClose }) => {
     const reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason || !ticket) return;
     setSaving(true);
+    const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
     const { error } = await window.HubData.escalateTicket(ticket.id, {
-      toUserId: null, groupId: "supervision", reason,
+      toUserId: currentUser?.id || null, groupId: "supervision", reason,
     });
     setSaving(false);
     if (error) { showFlash("Erreur : " + error.message, "err"); return; }
     setTicket({ ...ticket, escalated_at: new Date().toISOString(), escalated_group: "supervision", escalated_reason: reason });
     showFlash("✓ Ticket escaladé à Supervision");
+    setTimeout(() => { if (onClose) onClose(); }, 800);
+  };
+
+  const resolve = async () => {
+    if (!ticket) return;
+    await patch({ status: "resolved", closed_at: new Date().toISOString() });
+    setTimeout(() => { if (onClose) onClose(); }, 800);
+  };
+
+  const closeT = async () => {
+    if (!ticket) return;
+    if (!confirm("Fermer définitivement ce ticket ?")) return;
+    await patch({ status: "closed", closed_at: new Date().toISOString() });
+    setTimeout(() => { if (onClose) onClose(); }, 800);
   };
 
   const STATUS = [
@@ -130,7 +145,8 @@ const TicketDetailModal = ({ ticketId, onClose }) => {
               background: flash.tone === "err" ? "#fee2e2" : "#dcfce7",
               color:      flash.tone === "err" ? "#991b1b" : "#065f46" }}>{flash.msg}</span>}
             <button onClick={escalate} disabled={!dataOn || saving} style={D.btnEscalate} title="Remonter à la Supervision">↑ Escalader</button>
-            <button onClick={() => patch({ status: "resolved", closed_at: new Date().toISOString() })} disabled={!dataOn || saving} style={D.btnResolve}>✓ Marquer résolu</button>
+            <button onClick={resolve} disabled={!dataOn || saving} style={D.btnResolve}>✓ Marquer résolu</button>
+            <button onClick={closeT} disabled={!dataOn || saving} style={D.btnClose} title="Fermer définitivement le ticket">× Fermer</button>
             <button onClick={onClose} style={D.close}>×</button>
           </div>
         </div>
@@ -279,6 +295,7 @@ const D = {
   backBtn: { padding: "6px 12px", background: "#fff", color: "#334155", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
   btnEscalate: { padding: "7px 13px", background: "#f5f3ff", color: "#5b21b6", border: "1px solid #c4b5fd", borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
   btnResolve: { padding: "7px 13px", background: "#10b981", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
+  btnClose: { padding: "7px 13px", background: "#fff", color: "#475569", border: "1px solid #cbd5e1", borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
   close: { width: 32, height: 32, borderRadius: 8, background: "transparent", border: 0, fontSize: 22, color: "#94a3b8", cursor: "pointer" },
 
   empty: { padding: 60, textAlign: "center" },

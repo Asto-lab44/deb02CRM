@@ -45,8 +45,18 @@ const aoFmtEUR = (n) => {
 
 const AdvanceOpportunity = () => {
   const params = (typeof window !== "undefined") ? new URLSearchParams(window.location.search) : new URLSearchParams();
-  const oppRef = params.get("opp") || "OPP-2814";
+  const oppRef = params.get("opp") || null;
   const clientId = params.get("client") || "";
+
+  if (!oppRef) {
+    return (
+      <div style={{ padding: 40, fontFamily: "'Inter', system-ui, sans-serif", textAlign: "center", color: "#64748b" }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>Aucune opportunité sélectionnée</div>
+        <div style={{ fontSize: 13, marginBottom: 16 }}>Choisissez une opportunité dans le pipeline pour la faire avancer d'étape.</div>
+        <a href="/crm" style={{ padding: "8px 14px", background: "#0f172a", color: "#fff", textDecoration: "none", borderRadius: 7, fontSize: 13, fontWeight: 600 }}>← Voir le pipeline</a>
+      </div>
+    );
+  }
 
   const stages = [
     { k: "qualif",    label: "Qualification", color: "#94a3b8", proba: 20 },

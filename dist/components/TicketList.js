@@ -80,7 +80,11 @@ var TicketList = () => {
       value: null
     };
   })();
-  var [filter, setFilter] = React.useState(initialFilter);
+  var [filter, setFilterRaw] = React.useState(initialFilter);
+  var setFilter = f => {
+    setFilterRaw(f);
+    setPage(1);
+  };
   var isFilterActive = (kind, value) => filter.kind === kind && (value === undefined || filter.value === value);
   var setFilterIfDifferent = (kind, value) => {
     if (isFilterActive(kind, value)) setFilter({

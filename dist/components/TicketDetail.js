@@ -1,12 +1,47 @@
 // Écran 2 — Détail ticket + conversation (vue utilisateur final)
 
-var TICKET_ID_DEFAULT = "INC-2837";
 var TicketDetail = ({
   ticketId,
   ticketData,
   onBack
 } = {}) => {
-  var TICKET_ID = ticketId || TICKET_ID_DEFAULT;
+  if (!ticketId) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "60vh",
+        padding: 40,
+        color: "#64748b"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: "#0f172a",
+        marginBottom: 8
+      }
+    }, "Aucun ticket s\xE9lectionn\xE9"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        marginBottom: 16
+      }
+    }, "S\xE9lectionnez un ticket dans la liste pour voir le d\xE9tail."), /*#__PURE__*/React.createElement("a", {
+      href: "/ticketing",
+      style: {
+        padding: "8px 14px",
+        borderRadius: 8,
+        background: "#4f46e5",
+        color: "#fff",
+        textDecoration: "none",
+        fontSize: 13,
+        fontWeight: 600
+      }
+    }, "\u2190 Voir la liste des tickets"));
+  }
+  var TICKET_ID = ticketId;
   var [flash, setFlash] = React.useState(null);
   var [composerTabState, setComposerTabState] = React.useState("reply");
   var [replyText, setReplyText] = React.useState("");
@@ -194,10 +229,13 @@ var TicketDetail = ({
       return;
     }
     if (note && note.trim() && window.HubData.createComment) {
+      var currentUser = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
       await window.HubData.createComment({
         ticket_id: TICKET_ID,
         body: "✓ Résolu — " + note.trim(),
-        author_id: null
+        author_id: currentUser?.id || null,
+        author_name: currentUser?.name || null,
+        author_email: currentUser?.email || null
       });
     }
     showFlash("✓ Ticket marqué comme résolu");
@@ -274,11 +312,11 @@ var TicketDetail = ({
     }
     var reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason) return;
+    var currentUser = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
     var {
       error
     } = await window.HubData.escalateTicket(TICKET_ID, {
-      toUserId: null,
-      // à remplir avec l'ID du superviseur courant
+      toUserId: currentUser?.id || null,
       groupId: "supervision",
       reason
     });

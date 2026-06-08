@@ -131,6 +131,16 @@ const NewTicketModal = ({ open, onClose, onCreated, prefill }) => {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+              {(() => {
+                if (!form.client_id) return null;
+                const c = clients.find((x) => x.id === form.client_id);
+                if (!c) return null;
+                const activeContract = c.contracts && c.contracts.find && c.contracts.find((ct) => ct.status === "active");
+                if (activeContract) {
+                  return <div style={{ fontSize: 11, color: "#065f46", marginTop: 4, fontWeight: 600 }}>● Contrat de maintenance actif — intervention couverte</div>;
+                }
+                return <div style={{ fontSize: 11, color: "#991b1b", marginTop: 4, fontWeight: 600 }}>● Pas de contrat actif — prestation facturable</div>;
+              })()}
             </label>
             <label style={N.field}>
               <span style={N.fieldLabel}>Type</span>

@@ -163,8 +163,41 @@ var aoFmtEUR = n => {
 };
 var AdvanceOpportunity = () => {
   var params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
-  var oppRef = params.get("opp") || "OPP-2814";
+  var oppRef = params.get("opp") || null;
   var clientId = params.get("client") || "";
+  if (!oppRef) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 40,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        textAlign: "center",
+        color: "#64748b"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: "#0f172a",
+        marginBottom: 8
+      }
+    }, "Aucune opportunit\xE9 s\xE9lectionn\xE9e"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        marginBottom: 16
+      }
+    }, "Choisissez une opportunit\xE9 dans le pipeline pour la faire avancer d'\xE9tape."), /*#__PURE__*/React.createElement("a", {
+      href: "/crm",
+      style: {
+        padding: "8px 14px",
+        background: "#0f172a",
+        color: "#fff",
+        textDecoration: "none",
+        borderRadius: 7,
+        fontSize: 13,
+        fontWeight: 600
+      }
+    }, "\u2190 Voir le pipeline"));
+  }
   var stages = [{
     k: "qualif",
     label: "Qualification",

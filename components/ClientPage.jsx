@@ -214,6 +214,9 @@ const ClientPage = () => {
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
   const defaultContacts = [];
   const [customContacts, setCustomContacts] = React.useState([]);
+  // Déclaration de loadedClient ICI (avant useMemo allContacts) pour éviter
+  // que le useMemo ne lise une closure undefined lors du 1er rendu.
+  const [loadedClient, setLoadedClient] = React.useState(null);
 
   // Composition unifiée : customContacts vient de api.contacts.list({client_id})
   // qui contient à la fois le contact principal (is_principal=true) et les co-contacts.
@@ -242,10 +245,11 @@ const ClientPage = () => {
         };
       });
 
-    // Fallback legacy : si aucun contact principal en table mais c.contact_principal renseigné
+    // Fallback legacy : si aucun contact principal en table mais loadedClient.contact_principal renseigné
+    const lc = loadedClient || {};
     const hasPrincipal = fromTable.some((x) => x.color === "#a855f7");
-    if (!hasPrincipal && c.contact_principal) {
-      const cp = c.contact_principal;
+    if (!hasPrincipal && lc.contact_principal) {
+      const cp = lc.contact_principal;
       const fullName = ((cp.prenom || "") + " " + (cp.nom || "")).trim();
       if (fullName || cp.email || cp.phone) {
         fromTable.unshift({
@@ -253,16 +257,16 @@ const ClientPage = () => {
           role: cp.fonction || "—",
           email: cp.email || "", phone: cp.phone || "", linkedin: cp.linkedin || "",
           color: "#a855f7",
-          decisionRoles: Array.isArray(c.roles) ? c.roles : [],
-          hierarchie: c.fonction || "",
+          decisionRoles: Array.isArray(lc.roles) ? lc.roles : [],
+          hierarchie: lc.fonction || "",
           last: "Contact principal (legacy)",
         });
       }
     }
 
     // Fallback legacy : contacts_additionnels saisis directement dans clients.data
-    if (Array.isArray(c.contacts_additionnels)) {
-      c.contacts_additionnels.forEach((x) => {
+    if (Array.isArray(lc.contacts_additionnels)) {
+      lc.contacts_additionnels.forEach((x) => {
         if (!(x.prenom || x.nom || x.email || x.phone)) return;
         const fullName = ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || x.phone || "Contact";
         if (fromTable.find((t) => t.email === x.email && x.email)) return; // dédupe
@@ -275,7 +279,7 @@ const ClientPage = () => {
     }
 
     return fromTable;
-  }, [customContacts, c]);
+  }, [customContacts, loadedClient]);
 
   const [addContactOpen, setAddContactOpen] = React.useState(false);
   const [newContactForm, setNewContactForm] = React.useState({ prenom: "", nom: "", fonction: "", email: "", phone: "", linkedin: "" });
@@ -316,7 +320,6 @@ const ClientPage = () => {
   // - sinon Supabase clients
   // - sinon fallback démo AXA Wealth France
   const urlId = (typeof window !== "undefined") ? new URLSearchParams(window.location.search).get("id") : null;
-  const [loadedClient, setLoadedClient] = React.useState(null);
 
   React.useEffect(() => {
     if (!urlId) { setLoadedClient(null); return; }

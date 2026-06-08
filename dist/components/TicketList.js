@@ -1215,9 +1215,9 @@ var TicketList = () => {
     style: tlStyles.titleRow
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: tlStyles.h1
-  }, "Mes tickets"), /*#__PURE__*/React.createElement("p", {
+  }, filter.kind === "all" ? "Tous les tickets" : filter.kind === "status" ? statusMeta[filter.value]?.label || "Tickets" : filter.kind === "assignee" && filter.value === "__me__" ? "Mes tickets" : filter.kind === "assignee" && filter.value === "__unassigned__" ? "Tickets non assignés" : filter.kind === "escalated" ? "Tickets escaladés" : filter.kind === "billable" ? "Prestations facturables" : filter.kind === "lifecycle" ? filter.value === "onboarding" ? "Onboarding" : "Offboarding" : "Tickets"), /*#__PURE__*/React.createElement("p", {
     style: tlStyles.h1sub
-  }, "Suivez l'avancement de vos demandes aupr\xE8s du support IT.")), /*#__PURE__*/React.createElement("div", {
+  }, counts.all === 0 ? "Aucun ticket pour l'instant." : `${counts.all} ticket${counts.all > 1 ? "s" : ""} au total · ${counts.danger} SLA à risque · ${counts.escalated} escaladé${counts.escalated > 1 ? "s" : ""}`)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8

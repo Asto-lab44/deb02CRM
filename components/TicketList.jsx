@@ -441,8 +441,17 @@ const TicketList = () => {
         {/* Title row */}
         <div style={tlStyles.titleRow}>
           <div>
-            <h1 style={tlStyles.h1}>Mes tickets</h1>
-            <p style={tlStyles.h1sub}>Suivez l'avancement de vos demandes auprès du support IT.</p>
+            <h1 style={tlStyles.h1}>{
+              filter.kind === "all" ? "Tous les tickets"
+              : filter.kind === "status" ? statusMeta[filter.value]?.label || "Tickets"
+              : filter.kind === "assignee" && filter.value === "__me__" ? "Mes tickets"
+              : filter.kind === "assignee" && filter.value === "__unassigned__" ? "Tickets non assignés"
+              : filter.kind === "escalated" ? "Tickets escaladés"
+              : filter.kind === "billable" ? "Prestations facturables"
+              : filter.kind === "lifecycle" ? (filter.value === "onboarding" ? "Onboarding" : "Offboarding")
+              : "Tickets"
+            }</h1>
+            <p style={tlStyles.h1sub}>{counts.all === 0 ? "Aucun ticket pour l'instant." : `${counts.all} ticket${counts.all > 1 ? "s" : ""} au total · ${counts.danger} SLA à risque · ${counts.escalated} escaladé${counts.escalated > 1 ? "s" : ""}`}</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={exportCsv} style={tlStyles.ghostBtn} title="Télécharger CSV de tous les tickets">↓ Exporter</button>

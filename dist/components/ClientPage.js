@@ -117,6 +117,11 @@ var ClientPage = () => {
   }, []);
   React.useEffect(() => {
     reloadAllForClient();
+    // Realtime : tout changement BDD (autre onglet, autre user) relance le
+    // reload. Couvre actions/contacts/opps/contrats.
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reloadAllForClient);
+    }
   }, [reloadAllForClient]);
   var [completedActions, setCompletedActions] = React.useState([]);
 

@@ -397,7 +397,11 @@ const NewOpportunity = () => {
 
                 <div style={noStyles.formGrid2}>
                   <FormRow label="Montant estimé" required>
-                    <div style={noStyles.inputWithSuffix}>
+                    {(() => {
+                      const V = window.HubValidators;
+                      const amtErr = V && V.numberRange(oppAmount, 0, 100000000);
+                      return <>
+                    <div style={{ ...noStyles.inputWithSuffix, ...(amtErr ? V.errorStyle(amtErr) : {}) }}>
                       <input
                         style={{ ...noStyles.input, border: "none", padding: "0 4px", fontSize: 18, fontWeight: 600 }}
                         value={oppAmount}
@@ -406,7 +410,10 @@ const NewOpportunity = () => {
                       />
                       <span style={noStyles.suffix}>€ / an</span>
                     </div>
+                    {amtErr && <div style={V.errorMsgStyle(amtErr)}>{amtErr.message}</div>}
                     <div style={noStyles.inputHelp}>Récurrent annuel HT</div>
+                      </>;
+                    })()}
                   </FormRow>
 
                   <FormRow label="Durée contrat">

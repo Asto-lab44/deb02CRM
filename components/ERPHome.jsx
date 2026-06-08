@@ -94,21 +94,29 @@ const ERPHome = () => {
     });
     return results.slice(0, 10);
   }, [searchQ, searchData]);
+  // Stats + actions todo. Re-fetch automatique sur changement BDD (realtime
+  // multi-onglets) via HubData.subscribeChanges.
   React.useEffect(() => {
     if (!window.api) return;
-    Promise.all([
-      window.api.clients.list(),
-      window.api.opportunities.list(),
-      window.api.actions.list({ status: "todo" }),
-    ]).then(([clients, opps, todos]) => {
-      const won = (opps || []).filter((o) => o.stage === "won").length;
-      setCrmStats({
-        clients: (clients || []).length,
-        opps: (opps || []).length,
-        won,
-      });
-      setActionsTodo(todos || []);
-    }).catch(() => {});
+    const reload = () => {
+      Promise.all([
+        window.api.clients.list(),
+        window.api.opportunities.list(),
+        window.api.actions.list({ status: "todo" }),
+      ]).then(([clients, opps, todos]) => {
+        const won = (opps || []).filter((o) => o.stage === "won").length;
+        setCrmStats({
+          clients: (clients || []).length,
+          opps: (opps || []).length,
+          won,
+        });
+        setActionsTodo(todos || []);
+      }).catch(() => {});
+    };
+    reload();
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reload);
+    }
   }, []);
 
   const modules = [

@@ -74,9 +74,29 @@ var CRMPipeline = () => {
     }).catch(() => {});
   }, []);
   var [searchOpps, setSearchOpps] = React.useState([]);
+  // Charge initial + s'abonne aux changements realtime (multi-onglets).
   React.useEffect(() => {
     if (!window.api) return;
-    window.api.opportunities.list().then(list => setSearchOpps(list || [])).catch(() => {});
+    var reload = () => {
+      window.api.opportunities.list().then(list => setSearchOpps(list || [])).catch(() => {});
+      if (window.api.clients && window.api.contacts && window.api.actions) {
+        Promise.all([window.api.clients.list(), window.api.contacts.list(), window.api.actions.list({
+          status: "todo"
+        })]).then(([cl, co, ac]) => {
+          setSidebarCounts({
+            comptes: (cl || []).length,
+            contacts: (co || []).length,
+            activites: (ac || []).length
+          });
+        }).catch(() => {});
+      }
+    };
+    reload();
+    // Realtime : tout changement sur opportunities/clients/contacts/actions
+    // recharge automatiquement.
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reload);
+    }
   }, []);
   var gq = globalSearch.trim().toLowerCase();
   var globalResults = gq.length >= 2 ? {

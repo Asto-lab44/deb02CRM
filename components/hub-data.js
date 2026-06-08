@@ -209,16 +209,25 @@
   }
 
   // ─── Realtime (subscribe to changes) ──────────────────────────────
+  // Couvre tickets/comments (support) ET clients/opportunities/contacts/
+  // actions/contracts (CRM) → toute mutation côté serveur déclenche le
+  // callback `fn`, qui peut alors recharger les listes affichées.
   function subscribeChanges(fn) {
     listeners.add(fn);
     if (!supa) return () => listeners.delete(fn);
 
-    const channel = supa.channel("hub-data")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" },  () => invalidate("tickets"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, () => invalidate("tickets"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "groups" },   () => invalidate("groups"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "clients" },  () => invalidate("clients"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "assets" },   () => invalidate("assets"))
+    const channel = supa.channel("hub-data-" + Math.random().toString(36).slice(2, 8))
+      // Support
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" },       () => invalidate("tickets"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments" },      () => invalidate("tickets"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "groups" },        () => invalidate("groups"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "clients" },       () => invalidate("clients"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "assets" },        () => invalidate("assets"))
+      // CRM
+      .on("postgres_changes", { event: "*", schema: "public", table: "opportunities" }, () => notify())
+      .on("postgres_changes", { event: "*", schema: "public", table: "contacts" },      () => notify())
+      .on("postgres_changes", { event: "*", schema: "public", table: "actions" },       () => notify())
+      .on("postgres_changes", { event: "*", schema: "public", table: "contracts" },     () => notify())
       .subscribe();
     return () => {
       listeners.delete(fn);

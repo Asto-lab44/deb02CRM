@@ -657,24 +657,33 @@ var NewOpportunity = () => {
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Montant estim\xE9",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: noStyles.inputWithSuffix
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...noStyles.input,
-      border: "none",
-      padding: "0 4px",
-      fontSize: 18,
-      fontWeight: 600
-    },
-    value: oppAmount,
-    onChange: e => setOppAmount(e.target.value),
-    placeholder: "0"
-  }), /*#__PURE__*/React.createElement("span", {
-    style: noStyles.suffix
-  }, "\u20AC / an")), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.inputHelp
-  }, "R\xE9current annuel HT")), /*#__PURE__*/React.createElement(FormRow, {
+  }, (() => {
+    var V = window.HubValidators;
+    var amtErr = V && V.numberRange(oppAmount, 0, 100000000);
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...noStyles.inputWithSuffix,
+        ...(amtErr ? V.errorStyle(amtErr) : {})
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...noStyles.input,
+        border: "none",
+        padding: "0 4px",
+        fontSize: 18,
+        fontWeight: 600
+      },
+      value: oppAmount,
+      onChange: e => setOppAmount(e.target.value),
+      placeholder: "0"
+    }), /*#__PURE__*/React.createElement("span", {
+      style: noStyles.suffix
+    }, "\u20AC / an")), amtErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(amtErr)
+    }, amtErr.message), /*#__PURE__*/React.createElement("div", {
+      style: noStyles.inputHelp
+    }, "R\xE9current annuel HT"));
+  })()), /*#__PURE__*/React.createElement(FormRow, {
     label: "Dur\xE9e contrat"
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.segCtrl

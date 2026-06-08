@@ -181,8 +181,10 @@ var UserManagement = () => {
   var ALL = modules.map(m => m.key);
   var groups = persistedGroups;
 
-  // ───── utilisateurs réels Astorya
-  var users = [{
+  // ───── Utilisateurs : chargés depuis la table profiles Supabase
+  // Fallback : tableau de 2 admins en dur si Supabase n'est pas configuré
+  // ou si la table profiles est vide (premier RUN).
+  var [users, setUsers] = React.useState([{
     name: "Romain Daviaud",
     email: "achat@astorya.fr",
     role: "Direction",
@@ -196,7 +198,40 @@ var UserManagement = () => {
     groups: ["admin", "direction", "commercial"],
     status: "online",
     last: "à l'instant"
-  }];
+  }]);
+  React.useEffect(() => {
+    if (!window.HubData || !window.HubData.fetchProfiles) return;
+    var reload = async () => {
+      try {
+        var {
+          data
+        } = await window.HubData.fetchProfiles();
+        if (!data || !data.length) return; // garde le fallback hardcodé
+        // Pour chaque profile, on lit ses groupes via profile_groups (jointure côté Supabase)
+        var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+        var pg = [];
+        if (supa) {
+          var {
+            data: pgData
+          } = await supa.from("profile_groups").select("profile_id, group_id");
+          pg = pgData || [];
+        }
+        var next = data.map(p => ({
+          name: p.name || p.email,
+          email: p.email,
+          role: p.role || "—",
+          groups: pg.filter(x => x.profile_id === p.id).map(x => x.group_id),
+          status: p.status === "active" ? "online" : p.status === "inactive" ? "offline" : "away",
+          last: "—"
+        }));
+        setUsers(next);
+      } catch (e) {
+        console.warn("[UserManagement] fetchProfiles:", e);
+      }
+    };
+    reload();
+    if (window.HubData.subscribeChanges) return window.HubData.subscribeChanges(reload);
+  }, []);
   var selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
   var activeGroup = groups.find(g => g.id === activeGroupId) || groups[0];
   var statusColor = {

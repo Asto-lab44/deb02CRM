@@ -4,11 +4,28 @@ const TICKET_ID_DEFAULT = "INC-2837";
 
 const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
   const TICKET_ID = ticketId || TICKET_ID_DEFAULT;
-  // ───── Actions ticket (résolution, escalade, réponse) wired sur Supabase
   const [flash, setFlash] = React.useState(null);
   const [composerTabState, setComposerTabState] = React.useState("reply");
   const [replyText, setReplyText] = React.useState("");
   const dataOn = typeof window !== "undefined" && window.HubData && window.HubData.enabled();
+
+  // Si on a un ID mais pas de data complète (ouverture directe via URL ?id=…)
+  // on charge la fiche complète depuis Supabase.
+  const [loadedTicket, setLoadedTicket] = React.useState(null);
+  React.useEffect(() => {
+    if (!dataOn || !TICKET_ID || !window.HubData.fetchTicketById) return;
+    if (ticketData && ticketData.title && ticketData.client) return; // déjà complet
+    window.HubData.fetchTicketById(TICKET_ID).then(({ data }) => {
+      if (data) setLoadedTicket(data);
+    }).catch(() => {});
+  }, [dataOn, TICKET_ID, ticketData]);
+  const refreshTicket = React.useCallback(async () => {
+    if (!dataOn || !window.HubData.fetchTicketById) return;
+    try {
+      const { data } = await window.HubData.fetchTicketById(TICKET_ID);
+      if (data) setLoadedTicket(data);
+    } catch (e) {}
+  }, [dataOn, TICKET_ID]);
 
   // ───── Messages ajoutés par l'agent — Supabase si configuré, fallback localStorage.
   // En mode DB : lecture initiale + abonnement realtime pour la collaboration multi-agents.
@@ -49,7 +66,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
 
   // Données du ticket : prop si fournie (depuis TicketList), sinon valeurs par défaut
   // pour la maquette INC-2837 (Camille Dufour, VPN).
-  const t = ticketData || {};
+  const t = loadedTicket || ticketData || {};
   const display = {
     title:    t.title || "VPN se déconnecte toutes les 10 minutes",
     status:   t.status || "in_progress",
@@ -88,6 +105,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
       await window.HubData.createComment({ ticket_id: TICKET_ID, body: "✓ Résolu — " + note.trim(), author_id: null });
     }
     showFlash("✓ Ticket marqué comme résolu");
+    refreshTicket();
   };
 
   const assignTicket = async () => {
@@ -117,7 +135,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
       status: "in_progress",
     });
     if (error) showFlash("Erreur : " + error.message, "err");
-    else showFlash("✓ Ticket assigné à " + target.name);
+    else { showFlash("✓ Ticket assigné à " + target.name); refreshTicket(); }
   };
 
   const closeTicket = async () => {
@@ -128,7 +146,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
       closed_at: new Date().toISOString(),
     });
     if (error) showFlash("Erreur : " + error.message, "err");
-    else showFlash("✓ Ticket fermé");
+    else { showFlash("✓ Ticket fermé"); refreshTicket(); }
   };
 
   const escalateTicket = async () => {
@@ -141,7 +159,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
       reason,
     });
     if (error) showFlash("Erreur : " + error.message, "err");
-    else showFlash("✓ Ticket escaladé à Supervision");
+    else { showFlash("✓ Ticket escaladé à Supervision"); refreshTicket(); }
   };
 
   const sendReply = async () => {

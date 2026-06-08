@@ -287,6 +287,7 @@ const ClientPage = () => {
   };
 
   const [pastShowAll, setPastShowAll] = React.useState(false);
+  const [pipeView, setPipeView] = React.useState("kanban"); // "kanban" | "list"
 
   const addContract = () => {
     const cid = urlId || display.id || "";
@@ -630,13 +631,13 @@ const ClientPage = () => {
             <span style={cliStyles.bullet}>▦</span><span style={{ flex: 1 }}>Pipeline</span><span style={cliStyles.navCount}>32</span>
           </a>
           <div style={{ ...cliStyles.navItem, ...cliStyles.navItemActive }}><span style={cliStyles.bullet}>◰</span><span style={{ flex: 1 }}>Comptes</span><span style={cliStyles.navCount}>412</span></div>
-          <a onClick={() => alert("Carnet contacts — 1 184 fiches\n\n(Sera connecté à la table profiles + clients Supabase.)")}
-             style={{ ...cliStyles.navItem, cursor: "pointer" }}>
-            <span style={cliStyles.bullet}>◉</span><span style={{ flex: 1 }}>Contacts</span><span style={cliStyles.navCount}>1 184</span>
+          <a href="/crm#contacts"
+             style={{ ...cliStyles.navItem, textDecoration: "none", color: "inherit" }}>
+            <span style={cliStyles.bullet}>◉</span><span style={{ flex: 1 }}>Contacts</span>
           </a>
-          <a onClick={() => alert("Timeline activités client — Appels, emails, RDV, notes\n\n(Sera connectée à la table activities.)")}
-             style={{ ...cliStyles.navItem, cursor: "pointer" }}>
-            <span style={cliStyles.bullet}>✦</span><span style={{ flex: 1 }}>Activités</span><span style={cliStyles.navCount}>27</span>
+          <a href="/crm#actions"
+             style={{ ...cliStyles.navItem, textDecoration: "none", color: "inherit" }}>
+            <span style={cliStyles.bullet}>✦</span><span style={{ flex: 1 }}>Activités</span>
           </a>
         </div>
 
@@ -736,27 +737,46 @@ const ClientPage = () => {
                 </div>
               </div>
 
-              {/* Quick stats */}
-              <div style={cliStyles.heroStats}>
-                <div onClick={() => alert("ARR AXA Wealth France\n\n• 184 k€ actuel\n• +12 % YoY\n• Renouvellement Suite signé 01 mars 2026 — 184 k€\n\n(Détail facturation à connecter à la vue revenue.)")}
-                     style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
-                  <div style={cliStyles.heroStatK}>ARR actuel</div>
-                  <div style={cliStyles.heroStatV}>{display.arr}</div>
-                  <div style={{ fontSize: 10.5, color: "#0e7a55", marginTop: 2 }}>↑ +12 % YoY</div>
-                </div>
-                <div onClick={() => alert("Pipe ouvert AXA Wealth France\n\n• OPP-2814 Astorya Suite 750 sièges — 215 k€ (Proposition)\n• OPP-2841 Module Cyber POC — 48 k€ (Discovery)\n• OPP-2867 Extension Belgique — 92 k€ (Qualification)\n\nTotal pondéré : ~ 152 k€")}
-                     style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
-                  <div style={cliStyles.heroStatK}>Pipe ouvert</div>
-                  <div style={{ ...cliStyles.heroStatV, color: "#4f46e5" }}>{display.pipe}</div>
-                  <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>3 opportunités</div>
-                </div>
-                <div onClick={() => alert("Health score AXA Wealth France : 78/100\n\n+  Renouvellement signé +12 % (+20 pts)\n+  Champion identifié : Émilie Roux (+10 pts)\n+  3 opportunités actives (+15 pts)\n−  Délai paiement moyen 47 j (−5 pts)\n−  Pas de POC technique en cours (−10 pts)\n\nObjectif T2 2026 : 85/100")}
-                     style={{ ...cliStyles.heroStat, cursor: "pointer" }}>
-                  <div style={cliStyles.heroStatK}>Health score</div>
-                  <div style={{ ...cliStyles.heroStatV, color: "#10b981" }}>{display.health}<span style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>{display.health !== "—" ? " / 100" : ""}</span></div>
-                  <div style={cliStyles.miniBar}><div style={{ width: (display.health === "—" ? "0%" : display.health + "%"), height: "100%", background: "linear-gradient(90deg, #4f46e5, #10b981)", borderRadius: 999 }} /></div>
-                </div>
-              </div>
+              {/* Quick stats — calculées depuis les données réelles */}
+              {(() => {
+                const arrNum = contractsList.reduce((s, ct) => s + (parseFloat(String(ct.amount || "").replace(/[^\d.]/g, "")) || 0), 0);
+                const arrLabel = arrNum > 0 ? Math.round(arrNum / 1000) + " k€" : (isCustom ? "—" : display.arr);
+                const opps = storedOpps.filter((o) => o.stage !== "won" && o.stage !== "lost");
+                const pipeNum = opps.reduce((s, o) => {
+                  const amt = parseFloat(String(o.amount || "").replace(/[^\d.]/g, "")) || 0;
+                  return s + amt;
+                }, 0);
+                const pipeLabel = pipeNum > 0 ? Math.round(pipeNum / 1000) + " k€" : (isCustom ? "0" : display.pipe);
+                const oppCount = opps.length;
+                // Health = % critères basiques renseignés
+                const criteres = [
+                  !!c.contact_principal && (c.contact_principal.email || c.contact_principal.nom),
+                  !!c.siren, !!c.secteur, !!c.adresse, !!c.owner,
+                  contractsList.length > 0 || opps.length > 0,
+                ];
+                const filled = criteres.filter(Boolean).length;
+                const healthVal = Math.round((filled / criteres.length) * 100);
+                const healthLabel = isCustom ? healthVal : display.health;
+                return (
+                  <div style={cliStyles.heroStats}>
+                    <div style={cliStyles.heroStat}>
+                      <div style={cliStyles.heroStatK}>ARR actuel</div>
+                      <div style={cliStyles.heroStatV}>{arrLabel}</div>
+                      <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>{contractsList.length} contrat{contractsList.length > 1 ? "s" : ""}</div>
+                    </div>
+                    <div style={cliStyles.heroStat}>
+                      <div style={cliStyles.heroStatK}>Pipe ouvert</div>
+                      <div style={{ ...cliStyles.heroStatV, color: "#4f46e5" }}>{pipeLabel}</div>
+                      <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>{oppCount} opportunité{oppCount > 1 ? "s" : ""}</div>
+                    </div>
+                    <div style={cliStyles.heroStat} title="Score basé sur la complétude des informations (contact, SIREN, secteur, adresse, commercial, contrat/opp).">
+                      <div style={cliStyles.heroStatK}>Health score</div>
+                      <div style={{ ...cliStyles.heroStatV, color: healthVal >= 70 ? "#10b981" : healthVal >= 40 ? "#f59e0b" : "#dc2626" }}>{healthLabel}<span style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>{healthLabel !== "—" ? " / 100" : ""}</span></div>
+                      <div style={cliStyles.miniBar}><div style={{ width: (healthLabel === "—" ? "0%" : healthLabel + "%"), height: "100%", background: "linear-gradient(90deg, #4f46e5, #10b981)", borderRadius: 999 }} /></div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Action bar */}
@@ -815,13 +835,13 @@ const ClientPage = () => {
                 <p style={cliStyles.h2sub}>Vue d'ensemble des opportunités et contrats actifs pour ce client</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <a href="/crm" style={{ ...cliStyles.filterPill, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>Vue Kanban ▦</a>
-                <button onClick={() => alert("Vue Liste — affichage tabulaire des opportunités.\n\n(Bascule entre Kanban / Liste sera activée quand les deals seront persistés en DB.)")} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>Vue Liste ☰</button>
+                <button onClick={() => setPipeView("kanban")} style={{ ...cliStyles.filterPill, cursor: "pointer", ...(pipeView === "kanban" ? { background: "#0f172a", color: "#fff" } : {}) }}>Vue Kanban ▦</button>
+                <button onClick={() => setPipeView("list")} style={{ ...cliStyles.filterPill, cursor: "pointer", ...(pipeView === "list" ? { background: "#0f172a", color: "#fff" } : {}) }}>Vue Liste ☰</button>
               </div>
             </div>
 
             {/* Stage progression strip */}
-            <div style={cliStyles.stagesStrip}>
+            {pipeView === "kanban" && <div style={cliStyles.stagesStrip}>
               {pipeStages.map((s, i) => {
                 const opps = opportunities.filter(o => o.stage === s.k);
                 const sum = opps.reduce((acc, o) => acc + parseInt(o.amount.replace(/\s/g, "").replace(" €", "").replace(/[^\d]/g, "")), 0);
@@ -841,10 +861,10 @@ const ClientPage = () => {
                   </div>
                 );
               })}
-            </div>
+            </div>}
 
-            {/* Opp cards */}
-            <div style={cliStyles.oppGrid}>
+            {/* Opp cards / liste */}
+            <div style={pipeView === "list" ? { display: "flex", flexDirection: "column", gap: 6 } : cliStyles.oppGrid}>
               {opportunities.map((o, i) => {
                 const edited = oppEdits[o.ref] || {};
                 const currentStage = edited.stage || o.stage;
@@ -1237,7 +1257,18 @@ const ClientPage = () => {
                           <td style={{ padding: "10px 12px", fontSize: 11.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{ct.start}<br/>→ {ct.end}</td>
                           <td style={{ padding: "10px 12px" }}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: statusMeta.bg, color: statusMeta.color, fontWeight: 700 }}>{statusMeta.label}</span></td>
                           <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                            <button onClick={() => alert(`Contrat ${ct.id} — ${ct.name}\n\nIntitulé : ${ct.name}\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}\n\nProduit : ${ct.product || "—"}`)} style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 16, cursor: "pointer", padding: "4px 8px" }}>⋯</button>
+                            <button
+                              onClick={async () => {
+                                const choice = prompt(`Contrat ${ct.name}\n\n1. Voir détails\n2. Renouveler\n3. Supprimer\n\nTapez 1, 2 ou 3 :`, "1");
+                                if (choice === "1") alert(`${ct.name}\n\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}`);
+                                else if (choice === "2") window.location.href = "/nouveau-contrat?client=" + encodeURIComponent(urlId || "");
+                                else if (choice === "3" && confirm("Supprimer ce contrat ?")) {
+                                  setContractsList((arr) => arr.filter((x) => x.id !== ct.id));
+                                  try { await window.api.contracts && window.api.contracts.remove && window.api.contracts.remove(ct.id); } catch (e) {}
+                                }
+                              }}
+                              style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 16, cursor: "pointer", padding: "4px 8px" }}
+                            >⋯</button>
                           </td>
                         </tr>
                       );

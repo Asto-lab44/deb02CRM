@@ -373,33 +373,21 @@ var CRMPipeline = () => {
     style: crmStyles.navLabel
   }, "Espace de travail"), [{
     label: "Pipeline",
-    count: "32",
     icon: "▦",
     href: "/crm",
     active: isCrmActive("all")
   }, {
     label: "Comptes",
-    count: "412",
     icon: "◰",
-    href: "/fiche-client"
+    href: "/crm#comptes"
   }, {
     label: "Contacts",
-    count: "1 184",
     icon: "◉",
-    onClick: () => alert("Carnet contacts — 1 184 fiches\n(Sera connecté à la table profiles + clients de Supabase.)")
+    href: "/crm#contacts"
   }, {
     label: "Activités",
-    count: "27",
     icon: "✦",
-    onClick: () => alert("Activités — Appels, emails, RDV, tâches\n(Sera connecté à la timeline d'événements.)")
-  }, {
-    label: "Prévisions",
-    icon: "↗",
-    onClick: () => alert("Prévisions trimestrielles\n(Sera connecté au pipeline pondéré.)")
-  }, {
-    label: "Rapports",
-    icon: "▤",
-    onClick: () => alert("Rapports BI\n(Sera connecté à la vue stats Supabase.)")
+    href: "/crm#actions"
   }].map(n => {
     var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1823,89 +1811,30 @@ window.CRMAccountsList = CRMAccountsList;
 
 // ───── Sous-composant : Actions à mener (vue commerciale globale)
 var CRMActionsList = () => {
-  var actions = [{
-    priority: "haute",
-    overdue: true,
-    icon: "📧",
-    title: "Répondre aux 3 questions techniques d'Émilie Roux (AXA)",
-    due: "Aujourd'hui · 18:00",
-    assigned: "Nadia Lefèvre",
-    color: "#a855f7",
-    meta: "Brouillon IA prêt (citations p.12-14 proposition)",
-    tag: "OPP-2814"
-  }, {
-    priority: "haute",
-    icon: "📅",
-    title: "Comité achats AXA — présentation Astorya Suite",
-    due: "Jeu. 28 mai · 14h00 · 30 min",
-    assigned: "Nadia Lefèvre",
-    color: "#a855f7",
-    meta: "Visio Teams · 4 participants AXA",
-    tag: "OPP-2814"
-  }, {
-    priority: "haute",
-    icon: "📞",
-    title: "Cold call Banque Méridionale — prise de RDV",
-    due: "Demain · 10h30",
-    assigned: "Karim Ben Salah",
-    color: "#6366f1",
-    meta: "Script préparé · Laurent Mercier (DSI)",
-    tag: "Nouveau prospect"
-  }, {
-    priority: "moyenne",
-    icon: "📞",
-    title: "Appel cadrage POC Cyber avec Antoine Mercier",
-    due: "Ven. 29 mai · 10h00",
-    assigned: "Karim Ben Salah",
-    color: "#6366f1",
-    meta: "Préparer planning d'installation et plan de test",
-    tag: "OPP-2841"
-  }, {
-    priority: "moyenne",
-    icon: "✉",
-    title: "Envoyer proposition v3 Suite mise à jour (AXA)",
-    due: "Dim. 31 mai",
-    assigned: "Nadia Lefèvre",
-    color: "#a855f7",
-    meta: "Intégrer commentaires CFO sur le ROI 18 mois",
-    tag: "OPP-2814"
-  }, {
-    priority: "moyenne",
-    icon: "📧",
-    title: "Relance email MAIF — suite démo POC",
-    due: "Lun. 02 juin",
-    assigned: "Émilie Garnier",
-    color: "#0ea5e9",
-    meta: "Pas de réponse depuis 7 jours",
-    tag: "OPP-2702"
-  }, {
-    priority: "basse",
-    icon: "👥",
-    title: "RDV découverte filiale Belgique (AXA)",
-    due: "Sem. du 02 juin",
-    assigned: "Nadia Lefèvre",
-    color: "#a855f7",
-    meta: "Identifier interlocuteurs locaux à Bruxelles",
-    tag: "OPP-2867"
-  }, {
-    priority: "basse",
-    icon: "🔄",
-    title: "Préparer renouvellement Suite 2026-2028",
-    due: "Sept. 2026",
-    assigned: "Nadia Lefèvre",
-    color: "#a855f7",
-    meta: "Renouvellement auto en mars — anticiper négo",
-    tag: "Recurring"
-  }, {
-    priority: "ai",
-    icon: "★",
-    title: "Suggestion IA — Inviter Émilie Roux au user-group Astorya",
-    due: "Ce mois",
-    assigned: "IA Hub",
-    color: "#0f172a",
-    meta: "Émilie a téléchargé 3 white papers ce trimestre",
-    tag: "Insight"
-  }];
+  var [actions, setActions] = React.useState([]);
+  var load = React.useCallback(() => {
+    if (!window.api) return;
+    window.api.actions.list({
+      status: "todo"
+    }).then(rows => {
+      setActions((rows || []).map(a => ({
+        id: a.id,
+        client_id: a.client_id,
+        priority: a.priority || "moyenne",
+        overdue: false,
+        icon: a.icon || (a.type === "call" ? "📞" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : "✓"),
+        title: a.title || "",
+        due: a.due_text || a.due || "",
+        assigned: a.assigned_to || a.assigned || "Vous",
+        color: "#3730a3",
+        meta: a.meta || "",
+        tag: a.tag || ""
+      })));
+    }).catch(() => {});
+  }, []);
+  React.useEffect(() => {
+    load();
+  }, [load]);
   var prioMeta = {
     haute: {
       label: "Haute",
@@ -2101,7 +2030,13 @@ var CRMActionsList = () => {
         fontFamily: "'JetBrains Mono', monospace"
       }
     }, a.tag), /*#__PURE__*/React.createElement("button", {
-      onClick: () => alert("Action « " + a.title + " » marquée comme traitée"),
+      onClick: async () => {
+        if (!a.id) return;
+        try {
+          await window.api.actions.complete(a.id);
+          load();
+        } catch (e) {}
+      },
       style: {
         padding: "5px 9px",
         background: "#10b981",

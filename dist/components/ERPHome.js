@@ -849,6 +849,7 @@ var ERPHome = () => {
     }
   }, currentUser.role)), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
+      if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return;
       if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
       if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
       window.location.href = "/login";

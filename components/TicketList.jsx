@@ -80,9 +80,11 @@ const TicketList = () => {
 
   // ───── Menu utilisateur (pied de sidebar)
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return;
+    if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
     if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
-    setUserMenuOpen(false);
+    window.location.href = "/login";
   };
   const handleTicketCreated = (ticket) => {
     setLastCreated({

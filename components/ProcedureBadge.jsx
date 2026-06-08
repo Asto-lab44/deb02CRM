@@ -23,9 +23,17 @@ const ProcedureBadge = ({ siren, stored, autoCheck = true, onChange, compact = f
   const [showDetails, setShowDetails] = React.useState(false);
 
   const doCheck = React.useCallback(async () => {
-    if (!siren || !window.HubBodacc) return;
+    if (!siren) return;
     setLoading(true);
-    const r = await window.HubBodacc.checkSiren(siren);
+    // Préférence : Pappers (plus riche) → fallback automatique sur BODACC
+    let r;
+    if (window.HubPappers && window.HubPappers.checkSiren) {
+      r = await window.HubPappers.checkSiren(siren);
+    } else if (window.HubBodacc && window.HubBodacc.checkSiren) {
+      r = await window.HubBodacc.checkSiren(siren);
+    } else {
+      r = { status: "error", error: "Aucun module de check disponible", checked_at: new Date().toISOString() };
+    }
     setResult(r);
     setLoading(false);
     if (onChange) onChange(r);
@@ -34,9 +42,12 @@ const ProcedureBadge = ({ siren, stored, autoCheck = true, onChange, compact = f
   // Auto-check au mount si pas de stored OU si stale
   React.useEffect(() => {
     if (!autoCheck || !siren) return;
-    if (!result || window.HubBodacc.isStale(result, 7)) {
-      doCheck();
-    }
+    const stale = (window.HubPappers && window.HubPappers.isStale)
+      ? window.HubPappers.isStale(result, 7)
+      : (window.HubBodacc && window.HubBodacc.isStale)
+      ? window.HubBodacc.isStale(result, 7)
+      : true;
+    if (!result || stale) doCheck();
   }, [siren]); // déclenche quand siren change
 
   if (!siren) return null;
@@ -103,8 +114,40 @@ const ProcedureBadge = ({ siren, stored, autoCheck = true, onChange, compact = f
 
             {result.status === "ok" && (
               <p style={{ fontSize: 13, color: "#065f46", margin: "0 0 18px", lineHeight: 1.5 }}>
-                ✓ Aucune procédure collective publiée au BODACC. Le client n'est pas en sauvegarde, redressement ni liquidation au regard des annonces officielles.
+                ✓ Aucune procédure collective publiée. Le client n'est pas en sauvegarde, redressement ni liquidation au regard des données {result.source === "pappers" ? "Pappers" : "BODACC"}.
               </p>
+            )}
+
+            {/* Fiche entreprise (Pappers uniquement) */}
+            {result.company && (
+              <div style={{ background: "#fafbfc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 14, marginBottom: 18, fontSize: 12 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Fiche entreprise · source Pappers</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{result.company.denomination || "—"}</div>
+                <table style={{ width: "100%", fontSize: 12 }}>
+                  <tbody>
+                    {result.company.forme_juridique && <tr><td style={{ color: "#64748b", padding: "3px 0", width: "40%" }}>Forme juridique</td><td style={{ padding: "3px 0", fontWeight: 600 }}>{result.company.forme_juridique}</td></tr>}
+                    {result.company.etat_administratif && <tr><td style={{ color: "#64748b", padding: "3px 0" }}>État administratif</td><td style={{ padding: "3px 0", fontWeight: 700, color: result.company.etat_administratif === "Active" ? "#065f46" : "#9b1c1c" }}>{result.company.etat_administratif}</td></tr>}
+                    {result.company.date_creation && <tr><td style={{ color: "#64748b", padding: "3px 0" }}>Création</td><td style={{ padding: "3px 0" }}>{new Date(result.company.date_creation).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</td></tr>}
+                    {result.company.capital && <tr><td style={{ color: "#64748b", padding: "3px 0" }}>Capital</td><td style={{ padding: "3px 0", fontFamily: "'JetBrains Mono', monospace" }}>{Number(result.company.capital).toLocaleString("fr-FR")} €</td></tr>}
+                    {result.company.effectif && <tr><td style={{ color: "#64748b", padding: "3px 0" }}>Effectif</td><td style={{ padding: "3px 0" }}>{result.company.effectif}</td></tr>}
+                    {result.company.libelle_code_naf && <tr><td style={{ color: "#64748b", padding: "3px 0" }}>Activité (NAF)</td><td style={{ padding: "3px 0", fontSize: 11.5 }}>{result.company.libelle_code_naf}</td></tr>}
+                    {result.company.siege && (result.company.siege.adresse || result.company.siege.ville) && (
+                      <tr><td style={{ color: "#64748b", padding: "3px 0" }}>Siège</td><td style={{ padding: "3px 0", fontSize: 11.5 }}>{result.company.siege.adresse}{result.company.siege.cp ? ", " + result.company.siege.cp : ""} {result.company.siege.ville}</td></tr>
+                    )}
+                  </tbody>
+                </table>
+                {result.company.dirigeants && result.company.dirigeants.length > 0 && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Dirigeants</div>
+                    {result.company.dirigeants.map((d, i) => (
+                      <div key={i} style={{ fontSize: 12, padding: "3px 0" }}>
+                        <span style={{ fontWeight: 600, color: "#0f172a" }}>{d.nom}</span>
+                        {d.fonction && <span style={{ color: "#64748b", marginLeft: 6 }}>· {d.fonction}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {ann && (
@@ -148,7 +191,11 @@ const ProcedureBadge = ({ siren, stored, autoCheck = true, onChange, compact = f
               </div>
             </div>
             <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 12, fontStyle: "italic" }}>
-              Source : <a href={"https://bodacc-datadila.opendatasoft.com/explore/dataset/annonces-commerciales/?refine.familleavis_lib=Proc%C3%A9dure+collective&q=" + cleanSiren} target="_blank" rel="noopener" style={{ color: "#3730a3" }}>BODACC officiel ↗</a>
+              Source : {result.source === "pappers" ? (
+                <a href={"https://www.pappers.fr/entreprise/" + cleanSiren} target="_blank" rel="noopener" style={{ color: "#3730a3" }}>Pappers ↗</a>
+              ) : (
+                <a href={"https://bodacc-datadila.opendatasoft.com/explore/dataset/annonces-commerciales/?refine.familleavis_lib=Proc%C3%A9dure+collective&q=" + cleanSiren} target="_blank" rel="noopener" style={{ color: "#3730a3" }}>BODACC officiel ↗</a>
+              )}
             </div>
           </div>
         </div>

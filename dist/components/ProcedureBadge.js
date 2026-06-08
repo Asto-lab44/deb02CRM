@@ -28,9 +28,21 @@ var ProcedureBadge = ({
   var [loading, setLoading] = React.useState(false);
   var [showDetails, setShowDetails] = React.useState(false);
   var doCheck = React.useCallback(async () => {
-    if (!siren || !window.HubBodacc) return;
+    if (!siren) return;
     setLoading(true);
-    var r = await window.HubBodacc.checkSiren(siren);
+    // Préférence : Pappers (plus riche) → fallback automatique sur BODACC
+    var r;
+    if (window.HubPappers && window.HubPappers.checkSiren) {
+      r = await window.HubPappers.checkSiren(siren);
+    } else if (window.HubBodacc && window.HubBodacc.checkSiren) {
+      r = await window.HubBodacc.checkSiren(siren);
+    } else {
+      r = {
+        status: "error",
+        error: "Aucun module de check disponible",
+        checked_at: new Date().toISOString()
+      };
+    }
     setResult(r);
     setLoading(false);
     if (onChange) onChange(r);
@@ -39,9 +51,8 @@ var ProcedureBadge = ({
   // Auto-check au mount si pas de stored OU si stale
   React.useEffect(() => {
     if (!autoCheck || !siren) return;
-    if (!result || window.HubBodacc.isStale(result, 7)) {
-      doCheck();
-    }
+    var stale = window.HubPappers && window.HubPappers.isStale ? window.HubPappers.isStale(result, 7) : window.HubBodacc && window.HubBodacc.isStale ? window.HubBodacc.isStale(result, 7) : true;
+    if (!result || stale) doCheck();
   }, [siren]); // déclenche quand siren change
 
   if (!siren) return null;
@@ -200,7 +211,142 @@ var ProcedureBadge = ({
       margin: "0 0 18px",
       lineHeight: 1.5
     }
-  }, "\u2713 Aucune proc\xE9dure collective publi\xE9e au BODACC. Le client n'est pas en sauvegarde, redressement ni liquidation au regard des annonces officielles."), ann && /*#__PURE__*/React.createElement("div", {
+  }, "\u2713 Aucune proc\xE9dure collective publi\xE9e. Le client n'est pas en sauvegarde, redressement ni liquidation au regard des donn\xE9es ", result.source === "pappers" ? "Pappers" : "BODACC", "."), result.company && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      padding: 14,
+      marginBottom: 18,
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 8
+    }
+  }, "Fiche entreprise \xB7 source Pappers"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#0f172a",
+      marginBottom: 6
+    }
+  }, result.company.denomination || "—"), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("tbody", null, result.company.forme_juridique && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: "#64748b",
+      padding: "3px 0",
+      width: "40%"
+    }
+  }, "Forme juridique"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "3px 0",
+      fontWeight: 600
+    }
+  }, result.company.forme_juridique)), result.company.etat_administratif && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: "#64748b",
+      padding: "3px 0"
+    }
+  }, "\xC9tat administratif"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "3px 0",
+      fontWeight: 700,
+      color: result.company.etat_administratif === "Active" ? "#065f46" : "#9b1c1c"
+    }
+  }, result.company.etat_administratif)), result.company.date_creation && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: "#64748b",
+      padding: "3px 0"
+    }
+  }, "Cr\xE9ation"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "3px 0"
+    }
+  }, new Date(result.company.date_creation).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }))), result.company.capital && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: "#64748b",
+      padding: "3px 0"
+    }
+  }, "Capital"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "3px 0",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, Number(result.company.capital).toLocaleString("fr-FR"), " \u20AC")), result.company.effectif && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: "#64748b",
+      padding: "3px 0"
+    }
+  }, "Effectif"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "3px 0"
+    }
+  }, result.company.effectif)), result.company.libelle_code_naf && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: "#64748b",
+      padding: "3px 0"
+    }
+  }, "Activit\xE9 (NAF)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "3px 0",
+      fontSize: 11.5
+    }
+  }, result.company.libelle_code_naf)), result.company.siege && (result.company.siege.adresse || result.company.siege.ville) && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: "#64748b",
+      padding: "3px 0"
+    }
+  }, "Si\xE8ge"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "3px 0",
+      fontSize: 11.5
+    }
+  }, result.company.siege.adresse, result.company.siege.cp ? ", " + result.company.siege.cp : "", " ", result.company.siege.ville)))), result.company.dirigeants && result.company.dirigeants.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      paddingTop: 10,
+      borderTop: "1px solid #e2e8f0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#64748b",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "Dirigeants"), result.company.dirigeants.map((d, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      fontSize: 12,
+      padding: "3px 0"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, d.nom), d.fonction && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#64748b",
+      marginLeft: 6
+    }
+  }, "\xB7 ", d.fonction))))), ann && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fafbfc",
       border: "1px solid " + p.border,
@@ -327,7 +473,14 @@ var ProcedureBadge = ({
       marginTop: 12,
       fontStyle: "italic"
     }
-  }, "Source : ", /*#__PURE__*/React.createElement("a", {
+  }, "Source : ", result.source === "pappers" ? /*#__PURE__*/React.createElement("a", {
+    href: "https://www.pappers.fr/entreprise/" + cleanSiren,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3"
+    }
+  }, "Pappers \u2197") : /*#__PURE__*/React.createElement("a", {
     href: "https://bodacc-datadila.opendatasoft.com/explore/dataset/annonces-commerciales/?refine.familleavis_lib=Proc%C3%A9dure+collective&q=" + cleanSiren,
     target: "_blank",
     rel: "noopener",

@@ -19,10 +19,10 @@
   <div id="root"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
-  <script src="components/supabase-config.js?v=202606082130"></script>
-  <script src="components/supabase-client.js?v=202606082130"></script>
-  <script src="components/api.js?v=202606082130"></script>
-  <script src="components/hub-user-menu.js?v=202606082130"></script>
+  <script src="components/supabase-config.js?v=202606082230"></script>
+  <script src="components/supabase-client.js?v=202606082230"></script>
+  <script src="components/api.js?v=202606082230"></script>
+  <script src="components/hub-user-menu.js?v=202606082230"></script>
   <script>
     window.addEventListener("DOMContentLoaded", function() {
       if (window.api && window.api.auth && window.HubSupabase && window.HubSupabase.enabled) {
@@ -30,40 +30,39 @@
       }
     });
   </script>
-  <script src="components/access-store.js?v=202606082130"></script>
-  <script src="components/hub-data.js?v=202606082130"></script>
-  <script src="components/hub-nav.js?v=202606082130"></script>
-  <script defer src="dist/design-canvas.js?v=202606082130"></script>
-  <script defer src="dist/components/LoginModal.js?v=202606082130"></script>
-  <script defer src="dist/components/ERPHome.js?v=202606082130"></script>
+  <script src="components/access-store.js?v=202606082230"></script>
+  <script src="components/hub-data.js?v=202606082230"></script>
+  <script src="components/hub-nav.js?v=202606082230"></script>
+  <script defer src="dist/design-canvas.js?v=202606082230"></script>
+  <script defer src="dist/components/LoginModal.js?v=202606082230"></script>
+  <script defer src="dist/components/ERPHome.js?v=202606082230"></script>
 
     <script defer>
     window.addEventListener("DOMContentLoaded", function() {
-      // Error boundary : si ERPHome crash, affiche l'erreur en grand au lieu
-      // de laisser React unmount silencieusement vers un écran blanc.
-      function ErrorBoundary(props) {
-        var s = React.useState({ err: null });
-        var state = s[0], setState = s[1];
-        React.useEffect(function () {
-          window.addEventListener("error", function (e) {
-            setState({ err: e.message + (e.filename ? " — " + e.filename.split("/").pop() + ":" + e.lineno : "") });
-          });
-        }, []);
-        if (state.err) {
+      // Vraie React Error Boundary (class) qui catche les crashes en render.
+      var EB = function(props) { React.Component.call(this, props); this.state = { err: null }; };
+      EB.prototype = Object.create(React.Component.prototype);
+      EB.getDerivedStateFromError = function(err) { return { err: err }; };
+      EB.prototype.componentDidCatch = function(err, info) { console.error("[ErrorBoundary]", err, info); };
+      EB.prototype.render = function() {
+        if (this.state.err) {
           return React.createElement("div", {
-            style: { padding: 24, fontFamily: "monospace", background: "#fff5f5", color: "#9b1c1c", border: "1px solid #fecaca", margin: 20, borderRadius: 8 }
+            style: { padding: 30, fontFamily: "monospace", background: "#fff5f5", color: "#9b1c1c", margin: 30, borderRadius: 10, border: "2px solid #ef4444", maxWidth: 800 }
           }, [
-            React.createElement("h2", { key: "h", style: { marginTop: 0 } }, "Erreur de chargement"),
-            React.createElement("pre", { key: "p", style: { whiteSpace: "pre-wrap" } }, state.err),
-            React.createElement("a", { key: "a", href: "/debug.html", style: { color: "#0f172a", fontWeight: 600 } }, "→ Ouvrir /debug.html pour diagnostiquer"),
+            React.createElement("h2", { key: "h", style: { marginTop: 0, fontSize: 18 } }, "❌ Crash React"),
+            React.createElement("pre", { key: "p", style: { whiteSpace: "pre-wrap", fontSize: 12 } }, String(this.state.err && (this.state.err.message || this.state.err))),
+            React.createElement("pre", { key: "s", style: { whiteSpace: "pre-wrap", fontSize: 11, color: "#666", maxHeight: 200, overflow: "auto" } }, String(this.state.err && this.state.err.stack || "")),
+            React.createElement("p", { key: "n" }, [
+              React.createElement("a", { key: "1", href: "/debug.html", style: { color: "#0f172a", fontWeight: 600, marginRight: 16 } }, "→ Diagnostic /debug.html"),
+              React.createElement("a", { key: "2", href: "/ticketing", style: { color: "#0f172a", fontWeight: 600 } }, "→ Aller au Ticketing"),
+            ]),
           ]);
         }
-        try { return React.createElement(ERPHome); }
-        catch (e) {
-          return React.createElement("div", { style: { padding: 24, color: "#9b1c1c" } }, "Crash : " + e.message);
-        }
-      }
-      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ErrorBoundary));
+        return this.props.children;
+      };
+      ReactDOM.createRoot(document.getElementById('root')).render(
+        React.createElement(EB, null, React.createElement(ERPHome))
+      );
     });
   </script>
 </body>

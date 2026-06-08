@@ -48,6 +48,25 @@ const AdvanceOpportunity = () => {
   const oppRef = params.get("opp") || null;
   const clientId = params.get("client") || "";
 
+  // ⚠ TOUS les hooks doivent être appelés AVANT tout return conditionnel
+  // (règle React : nombre d'appels de hooks identique à chaque render)
+  const [oppData, setOppData] = React.useState(null);
+  React.useEffect(() => {
+    if (!oppRef || !window.api) return;
+    window.api.opportunities.getById(oppRef).then((data) => {
+      if (data) setOppData({
+        ...data,
+        ref: data.id || data.ref,
+        amount: data.amount_eur != null ? data.amount_eur : data.amount,
+        close: data.close_date
+          ? new Date(data.close_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
+          : (data.close || ""),
+        client_name: data.client_name || (data.data && data.data.client_name) || "",
+      });
+    }).catch((e) => console.warn("[AdvanceOpp] getById:", e));
+  }, [oppRef]);
+
+  // Early return APRÈS les hooks
   if (!oppRef) {
     return (
       <div style={{ padding: 40, fontFamily: "'Inter', system-ui, sans-serif", textAlign: "center", color: "#64748b" }}>
@@ -66,23 +85,6 @@ const AdvanceOpportunity = () => {
     { k: "won",       label: "Signé",         color: "#10b981", proba: 100 },
   ];
 
-  // Load opp from API
-  const [oppData, setOppData] = React.useState(null);
-  React.useEffect(() => {
-    if (!window.api) return;
-    window.api.opportunities.getById(oppRef).then((data) => {
-      if (data) setOppData({
-        ...data,
-        ref: data.id || data.ref,
-        amount: data.amount_eur != null ? data.amount_eur : data.amount,
-        close: data.close_date
-          ? new Date(data.close_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
-          : (data.close || ""),
-        client_name: data.client_name || (data.data && data.data.client_name) || "",
-      });
-    }).catch((e) => console.warn("[AdvanceOpp] getById:", e));
-  }, [oppRef]);
-
   const opp = oppData || {
     ref: oppRef,
     name: "Chargement…",
@@ -95,15 +97,10 @@ const AdvanceOpportunity = () => {
     last_update: "",
   };
 
-  if (!oppData) {
-    return (
-      <div style={{ padding: 40, fontFamily: "'Inter', system-ui, sans-serif", textAlign: "center", color: "#64748b" }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>Opportunité introuvable</div>
-        <div style={{ fontSize: 13, marginBottom: 16 }}>L'opportunité <strong>{oppRef}</strong> n'existe pas ou plus.</div>
-        <a href="/crm" style={{ padding: "8px 14px", background: "#0f172a", color: "#fff", textDecoration: "none", borderRadius: 7, fontSize: 13, fontWeight: 600 }}>← Retour au pipeline</a>
-      </div>
-    );
-  }
+  // ⚠ Pas d'early return ici — sinon les hooks suivants violeraient la
+  // règle des hooks. On laisse le composant rendre avec les valeurs
+  // placeholder de `opp` (name: "Chargement…") jusqu'à ce que la donnée
+  // arrive depuis l'API.
 
   const curIdx = Math.max(0, stages.findIndex((s) => s.k === opp.stage));
   const [targetIdx, setTargetIdx] = React.useState(Math.min(stages.length - 1, curIdx + 1));

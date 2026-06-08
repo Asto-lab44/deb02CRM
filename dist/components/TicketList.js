@@ -981,30 +981,7 @@ var TicketList = () => {
     style: {
       flex: 1
     }
-  }), /*#__PURE__*/React.createElement("a", {
-    onClick: () => alert("Base de connaissances — 12 articles trouvés.\n\n• Diagnostic VPN Wi-Fi (driver Intel AX211)\n• Reset profil Outlook\n• Procédure onboarding poste\n• Réinitialisation MDP Active Directory\n• Configuration MFA Microsoft 365\n• …\n\n(L'index articles complet sera connecté à votre base de connaissances réelle.)"),
-    style: {
-      ...tlStyles.kbHint,
-      cursor: "pointer",
-      textDecoration: "none",
-      display: "block"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginBottom: 6,
-      fontWeight: 500
-    }
-  }, "Base de connaissances"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "#0f172a",
-      lineHeight: 1.4
-    }
-  }, "12 articles correspondent \xE0 vos tickets ouverts."), /*#__PURE__*/React.createElement("span", {
-    style: tlStyles.kbLink
-  }, "Consulter \u2192")), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     onClick: () => setUserMenuOpen(v => !v),
     style: {
       ...tlStyles.userRow,
@@ -1012,9 +989,9 @@ var TicketList = () => {
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Camille Dufour",
+    name: "Astorya",
     size: 26,
-    color: "#6366f1"
+    color: "#4f46e5"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -1026,12 +1003,12 @@ var TicketList = () => {
       fontWeight: 600,
       color: "#0f172a"
     }
-  }, "Camille Dufour"), /*#__PURE__*/React.createElement("div", {
+  }, "Compte connect\xE9"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Direction Marketing")), /*#__PURE__*/React.createElement("span", {
+  }, "Voir menu en haut \u2192")), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#94a3b8",
       fontSize: 14
@@ -1168,21 +1145,7 @@ var TicketList = () => {
       color: "#64748b",
       marginLeft: 4
     }
-  }, callIdx % (callers.length || 1) + 1, "/", callers.length || 0)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert(`Notifications (${escalatedCount + tickets.filter(t => t.status === 'open').length})\n\n• ${tickets.filter(t => t.status === 'open').length} ticket(s) en attente d'assignation\n• ${escalatedCount} ticket(s) escaladé(s) à la Supervision\n• Mise à jour SLA toutes les 5 min\n\n(Sera connecté au flux temps réel Supabase.)`),
-    style: tlStyles.iconBtn,
-    title: "Notifications"
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13
-    }
-  }, "\u25D4"), /*#__PURE__*/React.createElement("span", {
-    style: tlStyles.notifDot
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Centre d'aide Hub Astorya\n\nRaccourcis clavier :\n• N — Nouveau ticket\n• ⌘K — Recherche globale\n• Esc — Fermer la fiche détail\n• Cliquez sur une ligne pour ouvrir le ticket\n• Filtres dans la sidebar gauche\n\nContactez support@astorya.fr pour plus d'aide."),
-    style: tlStyles.iconBtn,
-    title: "Aide"
-  }, "?"))), lastCreated && /*#__PURE__*/React.createElement("div", {
+  }, callIdx % (callers.length || 1) + 1, "/", callers.length || 0)))), lastCreated && /*#__PURE__*/React.createElement("div", {
     style: {
       margin: "10px 20px 0",
       padding: "10px 14px",
@@ -1485,11 +1448,7 @@ var TicketList = () => {
     value: "prio:asc"
   }, "Priorit\xE9 \u2191"), /*#__PURE__*/React.createElement("option", {
     value: "prio:desc"
-  }, "Priorit\xE9 \u2193")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Vues disponibles :\n• Liste (actuel)\n• Kanban par statut\n• Calendar SLA\n\n(Sera connecté au sélecteur de vues.)"),
-    style: tlStyles.filterPill,
-    title: "Changer la vue"
-  }, "\u25A6"))), /*#__PURE__*/React.createElement("div", {
+  }, "Priorit\xE9 \u2193")))), /*#__PURE__*/React.createElement("div", {
     style: tlStyles.tableHead
   }, /*#__PURE__*/React.createElement("div", {
     style: {

@@ -96,7 +96,21 @@ const BattleCard = () => {
             <h3 style={bcStyles.h3}>Objections fréquentes & reformulations</h3>
             <p style={bcStyles.h3sub}>Réponses validées équipe à utiliser en RDV</p>
           </div>
-          <button onClick={() => alert("Ajouter une objection : sera persistée dans Supabase prochainement.")} style={{ ...bcStyles.smBtn, cursor: "pointer" }}>+ Ajouter</button>
+          <button onClick={() => {
+            const obj = prompt("Nouvelle objection client :");
+            if (!obj || !obj.trim()) return;
+            const ans = prompt("Réponse validée à donner :");
+            if (!ans || !ans.trim()) return;
+            // Stocke en localStorage pour l'instant (objections par battlecard)
+            try {
+              const key = "hubAstorya.battlecard.objections.v1";
+              const arr = JSON.parse(localStorage.getItem(key) || "[]");
+              arr.push({ obj: obj.trim(), ans: ans.trim(), at: new Date().toISOString() });
+              localStorage.setItem(key, JSON.stringify(arr));
+              alert("✓ Objection ajoutée (sauvée localement)");
+              window.location.reload();
+            } catch (e) { alert("Erreur : " + e.message); }
+          }} style={{ ...bcStyles.smBtn, cursor: "pointer" }}>+ Ajouter</button>
         </div>
         <div style={bcStyles.objList}>
           {[

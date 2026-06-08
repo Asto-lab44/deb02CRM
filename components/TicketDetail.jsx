@@ -624,12 +624,23 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                     </div>
 
                     <div style={callStyles.audioBar}>
-                      <button onClick={() => alert("Lecture audio — à connecter au stockage 3CX/Supabase Storage.\n\nLes enregistrements 3CX sont accessibles via leur URL CDR.")} style={{ ...callStyles.playBtn, cursor: "pointer" }}>▶</button>
+                      <button onClick={() => {
+                        if (n.recording_url) { window.open(n.recording_url, "_blank"); return; }
+                        alert("⚠ Aucun enregistrement audio disponible pour cet appel.\n\nLes enregistrements 3CX seront accessibles dès que le PBX poussera leur URL dans la table calls (champ recording_url).");
+                      }} style={{ ...callStyles.playBtn, cursor: "pointer" }} title={n.recording_url ? "Lire l'enregistrement" : "Audio indisponible"}>▶</button>
                       <div style={{ flex: 1, height: 4, background: "#e2e8f0", borderRadius: 999 }}>
                         <div style={{ width: "0%", height: "100%", background: "#10b981", borderRadius: 999 }} />
                       </div>
                       <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>00:00 / {fmtDur(n.durationSec || 0)}</span>
-                      <button onClick={() => alert("Téléchargement audio — à connecter au stockage 3CX/Supabase Storage.")} style={{ ...callStyles.dlBtn, cursor: "pointer" }} title="Télécharger l'enregistrement">⬇</button>
+                      <button onClick={() => {
+                        if (n.recording_url) {
+                          const a = document.createElement("a");
+                          a.href = n.recording_url; a.download = "appel-" + (n.atIso || Date.now()) + ".mp3";
+                          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                          return;
+                        }
+                        alert("⚠ Aucun enregistrement audio à télécharger.");
+                      }} style={{ ...callStyles.dlBtn, cursor: "pointer" }} title={n.recording_url ? "Télécharger" : "Audio indisponible"}>⬇</button>
                     </div>
 
                     <div style={callStyles.transcriptLabel}>Retranscription</div>

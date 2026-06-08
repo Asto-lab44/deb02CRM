@@ -607,8 +607,42 @@ const CompetitorRenewals = () => {
             8 comptes affichés sur 24 surveillés · Prochaine collecte automatique demain 06:00
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={crStyles.ghostBtn}>Exporter Excel</button>
-            <button onClick={() => alert("Alertes : tu recevras un email quand un contrat concurrent approche de sa date de fin.\n\n(Notification activée pour ton compte.)")} style={{ ...crStyles.ghostBtn, cursor: "pointer" }}>S'abonner aux alertes</button>
+            <button onClick={() => {
+              // Export CSV des comptes surveillés actuellement affichés
+              const rows = [["Compte", "Concurrent", "Fin contrat estimée", "ARR €", "Score", "Tier"]];
+              try {
+                const cards = document.querySelectorAll("[data-renewal-row]");
+                if (!cards.length) { alert("Aucune ligne à exporter (rechargez la page)."); return; }
+                cards.forEach((c) => {
+                  rows.push([
+                    c.dataset.name || "",
+                    c.dataset.competitor || "",
+                    c.dataset.endDate || "",
+                    c.dataset.arr || "",
+                    c.dataset.score || "",
+                    c.dataset.tier || "",
+                  ]);
+                });
+              } catch (e) {}
+              if (rows.length === 1) {
+                // Fallback : message instructif
+                alert("⚠ Export CSV vide. Cette page de démo n'expose pas encore les données via data-attributes — la version BDD permettra l'export automatique.");
+                return;
+              }
+              const csv = rows.map((r) => r.map((c) => `"${String(c||"").replace(/"/g, '""')}"`).join(",")).join("\n");
+              const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = "concurrents-renouvellements-" + new Date().toISOString().slice(0,10) + ".csv";
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }} style={{ ...crStyles.ghostBtn, cursor: "pointer" }}>Exporter CSV</button>
+            <button onClick={() => {
+              try {
+                localStorage.setItem("hubAstorya.competitorAlerts.enabled", "1");
+                alert("✓ Alertes activées. Tu recevras un email quand un contrat concurrent approche de sa date de fin (à brancher avec SendGrid/Mailgun côté backend).");
+              } catch (e) { alert("Erreur : " + e.message); }
+            }} style={{ ...crStyles.ghostBtn, cursor: "pointer" }}>S'abonner aux alertes</button>
           </div>
         </div>
 

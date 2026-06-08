@@ -318,12 +318,37 @@ var UserManagement = () => {
     onClick: async () => {
       var email = prompt("Email du nouvel utilisateur Astorya :");
       if (!email || !email.trim()) return;
-      if (!window.HubSupabase || !window.HubSupabase.enabled) {
-        alert("Supabase non configuré — invitation impossible. Crée le compte directement dans le dashboard Supabase (Authentication → Users → Add user).");
+      var V = window.HubValidators;
+      var err = V && V.email(email.trim());
+      if (err) {
+        alert("Email invalide : " + err.message);
         return;
       }
-      alert("ℹ Pour des raisons de sécurité, l'invitation se fait depuis le dashboard Supabase :\n\nhttps://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users\n\nClique « Add user » → " + email);
-      window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+      if (!window.HubSupabase || !window.HubSupabase.enabled) {
+        alert("Supabase non configuré — invitation impossible.");
+        return;
+      }
+      // Envoie un magic link Supabase (signInWithOtp) — l'utilisateur
+      // sera créé automatiquement à la première connexion via le
+      // trigger handle_new_user (lui assigne le groupe admin).
+      try {
+        var {
+          error
+        } = await window.HubSupabase.client.auth.signInWithOtp({
+          email: email.trim(),
+          options: {
+            emailRedirectTo: window.location.origin + "/bienvenue"
+          }
+        });
+        if (error) {
+          alert("Erreur d'envoi du lien d'invitation : " + error.message + "\n\nTu peux aussi créer le compte manuellement depuis le dashboard Supabase.");
+          window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+        } else {
+          alert("✓ Lien d'invitation envoyé à " + email.trim() + ".\n\nL'utilisateur recevra un email avec un lien magique pour activer son compte et définir son mot de passe.");
+        }
+      } catch (e) {
+        alert("Erreur réseau : " + (e.message || e));
+      }
     },
     style: {
       ...S.newBtn,

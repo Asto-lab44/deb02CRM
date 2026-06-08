@@ -1278,11 +1278,18 @@ var TicketDetail = ({
   }, "\xB7"), /*#__PURE__*/React.createElement("span", null, "Enregistrement archiv\xE9 sur PBX 3CX")), /*#__PURE__*/React.createElement("div", {
     style: callStyles.audioBar
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Lecture audio — à connecter au stockage 3CX/Supabase Storage.\n\nLes enregistrements 3CX sont accessibles via leur URL CDR."),
+    onClick: () => {
+      if (n.recording_url) {
+        window.open(n.recording_url, "_blank");
+        return;
+      }
+      alert("⚠ Aucun enregistrement audio disponible pour cet appel.\n\nLes enregistrements 3CX seront accessibles dès que le PBX poussera leur URL dans la table calls (champ recording_url).");
+    },
     style: {
       ...callStyles.playBtn,
       cursor: "pointer"
-    }
+    },
+    title: n.recording_url ? "Lire l'enregistrement" : "Audio indisponible"
   }, "\u25B6"), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -1304,12 +1311,23 @@ var TicketDetail = ({
       fontFamily: "'JetBrains Mono', monospace"
     }
   }, "00:00 / ", fmtDur(n.durationSec || 0)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Téléchargement audio — à connecter au stockage 3CX/Supabase Storage."),
+    onClick: () => {
+      if (n.recording_url) {
+        var a = document.createElement("a");
+        a.href = n.recording_url;
+        a.download = "appel-" + (n.atIso || Date.now()) + ".mp3";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      alert("⚠ Aucun enregistrement audio à télécharger.");
+    },
     style: {
       ...callStyles.dlBtn,
       cursor: "pointer"
     },
-    title: "T\xE9l\xE9charger l'enregistrement"
+    title: n.recording_url ? "Télécharger" : "Audio indisponible"
   }, "\u2B07")), /*#__PURE__*/React.createElement("div", {
     style: callStyles.transcriptLabel
   }, "Retranscription"), /*#__PURE__*/React.createElement("div", {

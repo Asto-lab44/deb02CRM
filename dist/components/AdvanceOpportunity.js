@@ -468,6 +468,13 @@ var AdvanceOpportunity = () => {
   var confirmAdvance = async asLost => {
     var newStage = asLost ? "lost" : target.k;
     var amountNum = parseFloat(String(newAmount || "0").replace(/[^\d.]/g, "")) || 0;
+
+    // Avertissement souple si on avance malgré des critères non cochés
+    var incomplete = criteria.filter(c => c.todo && !c.done).length;
+    if (!asLost && incomplete > 0) {
+      var proceed = confirm("Il reste " + incomplete + " critère(s) de sortie non validé(s) pour passer en " + target.label + ".\n\n" + "Continuer malgré tout ?");
+      if (!proceed) return;
+    }
     try {
       await window.api.opportunities.update(opp.ref, {
         stage: newStage,
@@ -478,8 +485,10 @@ var AdvanceOpportunity = () => {
       });
     } catch (e) {
       console.warn("confirmAdvance:", e);
+      alert("Erreur lors de la mise à jour : " + (e.message || e));
+      return;
     }
-    alert(asLost ? "Opportunité marquée comme perdue" : "Opportunité passée en " + target.label);
+    alert(asLost ? "✓ Opportunité marquée comme perdue" : "✓ Opportunité passée en " + target.label);
     if (clientId) window.location.href = "/fiche-client?id=" + encodeURIComponent(clientId);else window.location.href = "/crm";
   };
 

@@ -199,6 +199,17 @@ const AdvanceOpportunity = () => {
   const confirmAdvance = async (asLost) => {
     const newStage = asLost ? "lost" : target.k;
     const amountNum = parseFloat(String(newAmount || "0").replace(/[^\d.]/g, "")) || 0;
+
+    // Avertissement souple si on avance malgré des critères non cochés
+    const incomplete = criteria.filter((c) => c.todo && !c.done).length;
+    if (!asLost && incomplete > 0) {
+      const proceed = confirm(
+        "Il reste " + incomplete + " critère(s) de sortie non validé(s) pour passer en " + target.label + ".\n\n" +
+        "Continuer malgré tout ?"
+      );
+      if (!proceed) return;
+    }
+
     try {
       await window.api.opportunities.update(opp.ref, {
         stage: newStage,
@@ -207,8 +218,12 @@ const AdvanceOpportunity = () => {
         close_date: newClose || null,
         notes: comment || null,
       });
-    } catch (e) { console.warn("confirmAdvance:", e); }
-    alert(asLost ? "Opportunité marquée comme perdue" : "Opportunité passée en " + target.label);
+    } catch (e) {
+      console.warn("confirmAdvance:", e);
+      alert("Erreur lors de la mise à jour : " + (e.message || e));
+      return;
+    }
+    alert(asLost ? "✓ Opportunité marquée comme perdue" : "✓ Opportunité passée en " + target.label);
     if (clientId) window.location.href = "/fiche-client?id=" + encodeURIComponent(clientId);
     else window.location.href = "/crm";
   };

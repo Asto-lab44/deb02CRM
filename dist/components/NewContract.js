@@ -467,15 +467,42 @@ var NewContract = () => {
       status: action === "send" ? "pending_signature" : "draft",
       created_at: new Date().toISOString()
     };
+    // Validation côté "envoyer pour signature" : signataire obligatoire
+    if (action === "send" && !signatory.name.trim()) {
+      alert("⚠ Renseignez le nom du signataire avant d'envoyer pour signature");
+      return;
+    }
+    var saved = null;
     try {
-      await window.api.contracts.create(ctr);
+      saved = await window.api.contracts.create(ctr);
     } catch (e) {
       console.warn("submitContract:", e);
+      alert("Erreur de sauvegarde : " + (e.message || e));
+      return;
+    }
+    // Si "envoyer pour signature" : crée aussi une action de suivi pour
+    // le commercial (rappel signature) si on a une API actions.
+    if (action === "send" && window.api.actions && window.api.actions.create) {
+      try {
+        await window.api.actions.create({
+          client_id: clientId,
+          type: "task",
+          title: "Suivi signature contrat " + ctrRef + " — " + (signatory.name || ""),
+          meta: "Envoyer relance si pas signé sous 5 jours",
+          due_text: "Sous 5 jours",
+          priority: "haute",
+          icon: "✍",
+          tag: "Signature",
+          tagColor: "#a855f7"
+        });
+      } catch (e) {
+        console.warn("[NewContract] action création:", e);
+      }
     }
     if (action === "send") {
-      alert("Contrat " + ctrRef + " envoyé pour signature à " + (signatory.name || "le signataire"));
+      alert("✓ Contrat " + ctrRef + " envoyé pour signature à " + (signatory.name || "le signataire") + " — action de suivi créée");
     } else {
-      alert("Brouillon enregistré : " + ctrRef);
+      alert("✓ Brouillon enregistré : " + ctrRef);
     }
     if (clientId) window.location.href = "/fiche-client?id=" + encodeURIComponent(clientId);else window.location.href = "/crm";
   };

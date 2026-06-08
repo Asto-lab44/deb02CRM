@@ -16,6 +16,13 @@ const NewProspect = () => {
   const [contactLi,     setContactLi]     = React.useState("");
   const [besoin,        setBesoin]        = React.useState("");
   const [notes,         setNotes]         = React.useState("");
+  const [tags,          setTags]          = React.useState([]);
+  // Détection live de doublons : nom approchant ou SIREN identique
+  const [allClients, setAllClients] = React.useState([]);
+  React.useEffect(() => {
+    if (!window.api || !window.api.clients) return;
+    window.api.clients.list().then((list) => setAllClients(list || [])).catch(() => {});
+  }, []);
   const [source,        setSource]        = React.useState("");
   const [contactDate,   setContactDate]   = React.useState("");
   const [projectDate,   setProjectDate]   = React.useState("");
@@ -45,6 +52,22 @@ const NewProspect = () => {
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
   const [companyName,    setCompanyName]    = React.useState("");
   const [companySiren,   setCompanySiren]   = React.useState("");
+  // Computed : doublons potentiels
+  const duplicates = React.useMemo(() => {
+    if (!allClients || allClients.length === 0) return [];
+    const q = (companyName || "").trim().toLowerCase();
+    const siren = (companySiren || "").replace(/\s/g, "");
+    return allClients.filter((c) => {
+      if (siren && c.siren && c.siren.replace(/\s/g, "") === siren) return true;
+      if (q.length >= 3) {
+        const n = (c.raison_sociale || c.name || "").toLowerCase();
+        if (n.includes(q) || q.includes(n)) return true;
+        // Levenshtein-light : nom commence pareil
+        if (n.slice(0, Math.min(5, q.length)) === q.slice(0, Math.min(5, n.length))) return true;
+      }
+      return false;
+    }).slice(0, 5);
+  }, [allClients, companyName, companySiren]);
   const [companyNaf,     setCompanyNaf]     = React.useState("");
   const [companyTva,     setCompanyTva]     = React.useState("");
   const [companyAddress, setCompanyAddress] = React.useState("");
@@ -232,7 +255,7 @@ const NewProspect = () => {
     source, project_date: projectDate,
     concurrent,
     concurrent_amount: concurrentAmount,
-    besoin, notes,
+    besoin, notes, tags,
     owner: owner.name,
     owner_role: owner.role,
     owner_color: owner.color,
@@ -783,14 +806,18 @@ const NewProspect = () => {
               </div>
             </FormRow>
 
-            <FormRow label="Étiquettes">
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <span style={npStyles.tag}># Radar-2026</span>
-                <span style={npStyles.tag}># Banque-privée</span>
-                <span style={npStyles.tag}># Displacement-Pega</span>
-                <span style={npStyles.tag}># DORA</span>
-                <span style={npStyles.tag}># Sud-EMEA</span>
-                <button onClick={() => { const t = prompt("Nouvelle étiquette :"); if (t) showFlash("✓ Étiquette « " + t + " » ajoutée"); }} style={{ ...npStyles.addChip, cursor: "pointer" }}>+</button>
+            <FormRow label="Étiquettes" subtitle="Tags libres pour catégoriser ce prospect">
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                {tags.map((t, i) => (
+                  <span key={i} style={{ ...npStyles.tag, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    # {t}
+                    <span onClick={() => setTags((arr) => arr.filter((_, j) => j !== i))} style={{ cursor: "pointer", color: "#cbd5e1", fontSize: 13, marginLeft: 2 }}>×</span>
+                  </span>
+                ))}
+                <button
+                  onClick={() => { const v = prompt("Nouvelle étiquette :"); if (v && v.trim()) setTags((arr) => [...arr, v.trim()]); }}
+                  style={{ ...npStyles.addChip, cursor: "pointer" }}
+                >+ Ajouter</button>
               </div>
             </FormRow>
 
@@ -877,24 +904,28 @@ const NewProspect = () => {
             </div>
           </div>
 
-          {/* Doublons */}
-          <div style={{ ...npStyles.previewBlock, background: "#fffbeb", borderColor: "#fde68a" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <span style={{ fontSize: 14 }}>⚠</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#a65f00" }}>Doublons potentiels</span>
-            </div>
-            <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>
-              Aucun doublon exact détecté. <strong>1 entreprise similaire</strong> dans votre base :
-            </div>
-            <div style={npStyles.dupRow}>
-              <div style={{ width: 26, height: 26, borderRadius: 6, background: "#475569", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>BM</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Banque Méridional<span style={{ color: "#dc2626" }}>e</span> SA</div>
-                <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Lost 2024 · Tom Verdier</div>
+          {/* Doublons potentiels — détection live via api.clients.list */}
+          {(companyName.trim() || companySiren) && duplicates.length > 0 && (
+            <div style={{ ...npStyles.previewBlock, background: "#fffbeb", borderColor: "#fde68a" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <span style={{ fontSize: 14 }}>⚠</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#a65f00" }}>Doublons potentiels</span>
               </div>
-              <button style={{ ...npStyles.smBtn, fontSize: 10.5 }}>Voir</button>
+              <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>
+                <strong>{duplicates.length} entreprise{duplicates.length > 1 ? "s" : ""} similaire{duplicates.length > 1 ? "s" : ""}</strong> trouvée{duplicates.length > 1 ? "s" : ""} dans la base :
+              </div>
+              {duplicates.slice(0, 3).map((d) => (
+                <div key={d.id} style={npStyles.dupRow}>
+                  <div style={{ width: 26, height: 26, borderRadius: 6, background: "#475569", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>{(d.raison_sociale || d.name || "??").slice(0, 2).toUpperCase()}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.raison_sociale || d.name}</div>
+                    <div style={{ fontSize: 10.5, color: "#94a3b8" }}>{d.status === "client" ? "Client" : "Prospect"} · {d.ville || d.city || "—"}</div>
+                  </div>
+                  <a href={"/fiche-client?id=" + encodeURIComponent(d.id)} style={{ ...npStyles.smBtn, fontSize: 10.5, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>Voir</a>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </aside>
       </div>
     </div>

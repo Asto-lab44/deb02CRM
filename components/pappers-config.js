@@ -16,4 +16,4 @@
 // une fonction Edge Supabase (plus tard).
 // ────────────────────────────────────────────────────────────────────
 
-window.HubPappersToken = ""; // ← Colle ton token Pappers ici
+window.HubPappersToken = "b1fdcf444930fe6c5052dc89a85c1629609e055f35b71fb2"; // ← Colle ton token Pappers ici

@@ -570,13 +570,30 @@ var TicketList = () => {
   };
 
   // counts
+  // Identité utilisateur courant (pour filtre "Mes tickets")
+  var [currentUserEmail, setCurrentUserEmail] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then(u => {
+      if (u) setCurrentUserEmail(u.email);
+    }).catch(() => {});
+  }, []);
+  var isMyTicket = t => {
+    if (!currentUserEmail) return false;
+    var name = t.assignee && t.assignee.name || "";
+    var email = t.assignee && t.assignee.email || "";
+    return name === currentUserEmail || email === currentUserEmail || name.toLowerCase().split(" ")[0] === currentUserEmail.split("@")[0].toLowerCase();
+  };
+  var myCount = tickets.filter(isMyTicket).length;
   var counts = {
     all: tickets.length,
-    mine: 4,
+    mine: myCount,
     open: tickets.filter(t => t.status === "open").length,
     in_progress: tickets.filter(t => t.status === "in_progress").length,
     waiting: tickets.filter(t => t.status === "waiting").length,
-    resolved: tickets.filter(t => t.status === "resolved").length
+    resolved: tickets.filter(t => t.status === "resolved").length,
+    danger: tickets.filter(t => t.sla && t.sla.risk === "danger").length,
+    escalated: tickets.filter(t => !!t.escalated).length
   };
   var Avatar = ({
     name,
@@ -706,9 +723,28 @@ var TicketList = () => {
     style: {
       flex: 1
     }
-  }, "Tous mes tickets"), /*#__PURE__*/React.createElement("span", {
+  }, "Tous les tickets"), /*#__PURE__*/React.createElement("span", {
     style: tlStyles.navCount
-  }, counts.all)), /*#__PURE__*/React.createElement("a", {
+  }, counts.all)), /*#__PURE__*/React.createElement("div", {
+    onClick: () => setFilterIfDifferent("assignee", "__me__"),
+    style: {
+      ...tlStyles.navItem,
+      ...(isFilterActive("assignee", "__me__") ? tlStyles.navItemActive : {}),
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 14,
+      color: isFilterActive("assignee", "__me__") ? "#4f46e5" : "#94a3b8",
+      fontSize: 11
+    }
+  }, "\uD83D\uDC64"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Mes tickets"), /*#__PURE__*/React.createElement("span", {
+    style: tlStyles.navCount
+  }, counts.mine)), /*#__PURE__*/React.createElement("a", {
     href: "/fiche-client",
     style: {
       ...tlStyles.navItem,
@@ -1207,16 +1243,16 @@ var TicketList = () => {
   }, {
     label: "En cours",
     value: counts.in_progress,
-    delta: "MTTR moyen 6 h 12",
+    delta: "En traitement",
     color: "#a855f7",
     click: () => setFilter({
       kind: "status",
       value: "in_progress"
     })
   }, {
-    label: "En attente de moi",
+    label: "En attente",
     value: counts.waiting,
-    delta: "Validation manager",
+    delta: "Bloqués / validation",
     color: "#f59e0b",
     click: () => setFilter({
       kind: "status",
@@ -1224,14 +1260,17 @@ var TicketList = () => {
     })
   }, {
     label: "SLA à risque",
-    value: tickets.filter(t => t.sla?.risk === "danger" || t.sla?.risk === "warn").length,
-    delta: "INC-2837 — 22 min",
+    value: counts.danger,
+    delta: counts.danger > 0 ? "Action requise" : "RAS",
     color: "#dc2626",
-    click: () => alert("Tickets avec SLA à risque\n\n" + tickets.filter(t => t.sla?.risk === "danger" || t.sla?.risk === "warn").map(t => `• ${t.id} — ${t.sla.left} restantes`).join("\n"))
+    click: () => {
+      /* on filtre les tickets avec danger en localSearch */var dangerIds = tickets.filter(t => t.sla?.risk === "danger" || t.sla?.risk === "warn").map(t => t.id).join(" ");
+      setSearchText(dangerIds);
+    }
   }, {
-    label: "Résolus 30 j",
+    label: "Résolus",
     value: counts.resolved,
-    delta: "CSAT 4,6 / 5",
+    delta: "Total résolus",
     color: "#10b981",
     click: () => setFilter({
       kind: "status",
@@ -1552,7 +1591,11 @@ var TicketList = () => {
       if (filter.kind === "all") return true;
       if (filter.kind === "status") return t.status === filter.value;
       if (filter.kind === "priority") return t.prio === filter.value;
-      if (filter.kind === "assignee") return filter.value === "__unassigned__" ? !t.assignee : t.assignee?.name === filter.value;
+      if (filter.kind === "assignee") {
+        if (filter.value === "__unassigned__") return !t.assignee;
+        if (filter.value === "__me__") return isMyTicket(t);
+        return t.assignee?.name === filter.value;
+      }
       if (filter.kind === "escalated") return !!t.escalated;
       if (filter.kind === "lifecycle") return t.lifecycle === filter.value;
       if (filter.kind === "billable") return !!t.billable;
@@ -1821,7 +1864,11 @@ var TicketList = () => {
       if (filter.kind === "all") return true;
       if (filter.kind === "status") return t.status === filter.value;
       if (filter.kind === "priority") return t.prio === filter.value;
-      if (filter.kind === "assignee") return filter.value === "__unassigned__" ? !t.assignee : t.assignee?.name === filter.value;
+      if (filter.kind === "assignee") {
+        if (filter.value === "__unassigned__") return !t.assignee;
+        if (filter.value === "__me__") return isMyTicket(t);
+        return t.assignee?.name === filter.value;
+      }
       if (filter.kind === "escalated") return !!t.escalated;
       if (filter.kind === "lifecycle") return t.lifecycle === filter.value;
       if (filter.kind === "billable") return !!t.billable;

@@ -32,10 +32,21 @@ var ClientPage = () => {
       }), window.api.opportunities.list({
         client_id: cid
       })]);
+      // Liste des "anciens" noms démo à remplacer par l'utilisateur courant
+      var legacyDemoNames = new Set(["Karim Ben Salah", "Nadia Lefèvre", "Tom Verdier", "Émilie Garnier", "Sophie Aubry", "Antoine Mercier", "Julien Pasquier", "Marie Lopez", "Pierre Dubois", "Romain Faure", "Léo Tanaka", "Diane Roussel", "Farid Belkacem", "Valérie Chen", "Léa Marchand", "Olivier Vasseur", "Catherine Marchand", "Hugo Bertrand"]);
+      var currentUserName = (() => {
+        try {
+          var u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+          return u && u.name || "Vous";
+        } catch (e) {
+          return "Vous";
+        }
+      })();
+      var normalizeAssignee = n => n && legacyDemoNames.has(n) ? currentUserName : n || currentUserName;
       var todo = (acts || []).filter(a => a.status !== "done").map(a => ({
         ...a,
         due: a.due || a.due_text || "Date à définir",
-        assigned: a.assigned || a.assigned_to || "Vous",
+        assigned: normalizeAssignee(a.assigned || a.assigned_to),
         tag: a.tag || null,
         tagColor: a.tagColor || a.tag_color || "#475569",
         icon: a.icon || "•"
@@ -44,7 +55,7 @@ var ClientPage = () => {
         ...a,
         icon: a.icon || (a.type === "call" ? "☎" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : a.type === "note" ? "✎" : "✓"),
         color: "#10b981",
-        who: a.assigned_to || a.assigned || "—",
+        who: normalizeAssignee(a.assigned_to || a.assigned),
         at: a.completed_at ? new Date(a.completed_at).toLocaleDateString("fr-FR", {
           day: "2-digit",
           month: "short",

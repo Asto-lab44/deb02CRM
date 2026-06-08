@@ -338,6 +338,13 @@
     async create(payload) {
       const id = payload.id || genId("EX");
       const full = { ...payload, id, status: payload.status || "todo", created_at: new Date().toISOString() };
+      // Default assigned : utilisateur courant si rien de fourni
+      if (!full.assigned) {
+        try {
+          const cu = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+          if (cu && cu.name) full.assigned = cu.name;
+        } catch (e) {}
+      }
       const s = supa();
       if (s) {
         const created_by = await getCurrentUserId();

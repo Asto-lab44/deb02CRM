@@ -388,7 +388,6 @@ const NewContract = () => {
                       <div style={{ fontSize: 12.5, fontWeight: 600 }}>{clientName}</div>
                       <div style={{ fontSize: 10.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>SIREN {clientSiren}</div>
                     </div>
-                    <button onClick={() => window.location.href = "/crm"} style={ncStyles.changeBtn}>Changer</button>
                   </div>
                 </NCFormRow>
 

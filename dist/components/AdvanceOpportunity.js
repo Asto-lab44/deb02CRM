@@ -1305,9 +1305,6 @@ var AdvanceOpportunity = () => {
       flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => history.back(),
-    style: aoStyles.ghostBtn
-  }, "Enregistrer comme brouillon"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (confirm("Marquer cette opportunité comme perdue ?")) confirmAdvance(true);
     },

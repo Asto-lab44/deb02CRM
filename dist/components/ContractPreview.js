@@ -23,6 +23,8 @@ var ContractPreview = ({
   contract,
   clientObj,
   templateName,
+  cgvText,
+  templatePdfUrl,
   onClose,
   onConfirm
 }) => {
@@ -330,7 +332,68 @@ var ContractPreview = ({
     style: S.signZone
   }, "Signature \xE9lectronique qualifi\xE9e (eIDAS)"))), /*#__PURE__*/React.createElement("div", {
     style: S.footer
-  }, "Contrat \xE9mis le ", fmtDate(new Date()), " \u2014 Astorya SAS \xB7 12 rue de la Tech, 75008 Paris \xB7 SIREN 123 456 789")))), /*#__PURE__*/React.createElement("style", null, `
+  }, "Contrat \xE9mis le ", fmtDate(new Date()), " \u2014 Astorya SAS \xB7 12 rue de la Tech, 75008 Paris \xB7 SIREN 123 456 789")), cgvText && /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...S.section,
+      marginTop: 60,
+      paddingTop: 30,
+      borderTop: "3px double #0f172a"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: 10,
+      textAlign: "center"
+    }
+  }, "ANNEXE \u2014 Conditions G\xE9n\xE9rales de Vente"), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      ...S.h2,
+      textAlign: "center",
+      fontSize: 16
+    }
+  }, templateName), templatePdfUrl && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    href: templatePdfUrl,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      fontSize: 11,
+      color: "#3730a3",
+      fontWeight: 600,
+      textDecoration: "underline"
+    }
+  }, "\uD83D\uDCC4 T\xE9l\xE9charger les CGV en PDF original")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      lineHeight: 1.55,
+      color: "#475569",
+      whiteSpace: "pre-wrap",
+      columnCount: 2,
+      columnGap: 22,
+      columnRule: "1px solid #e2e8f0",
+      textAlign: "justify",
+      hyphens: "auto"
+    }
+  }, cgvText)), !cgvText && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 30,
+      padding: 14,
+      background: "#fffbeb",
+      border: "1px solid #fde68a",
+      borderRadius: 8,
+      fontSize: 11.5,
+      color: "#78350f",
+      textAlign: "center"
+    }
+  }, "\u26A0 Aucun texte CGV extrait disponible pour ce mod\xE8le. R\xE9uploade le PDF depuis l'admin pour avoir l'annexe compl\xE8te."))), /*#__PURE__*/React.createElement("style", null, `
         @media print {
           .cp-no-print { display: none !important; }
           body * { visibility: hidden; }

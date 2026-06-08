@@ -19,7 +19,7 @@
 //   onConfirm    : callback envoi signature
 // ════════════════════════════════════════════════════════════════════
 
-const ContractPreview = ({ contract, clientObj, templateName, onClose, onConfirm }) => {
+const ContractPreview = ({ contract, clientObj, templateName, cgvText, templatePdfUrl, onClose, onConfirm }) => {
   if (!contract) return null;
 
   const fmt = (n) => {
@@ -255,6 +255,41 @@ const ContractPreview = ({ contract, clientObj, templateName, onClose, onConfirm
               Contrat émis le {fmtDate(new Date())} — Astorya SAS · 12 rue de la Tech, 75008 Paris · SIREN 123 456 789
             </div>
           </div>
+
+          {/* CGV — Conditions Générales de Vente extraites du PDF modèle */}
+          {cgvText && (
+            <div style={{ ...S.section, marginTop: 60, paddingTop: 30, borderTop: "3px double #0f172a" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, textAlign: "center" }}>
+                ANNEXE — Conditions Générales de Vente
+              </div>
+              <h2 style={{ ...S.h2, textAlign: "center", fontSize: 16 }}>{templateName}</h2>
+              {templatePdfUrl && (
+                <div style={{ textAlign: "center", marginBottom: 18 }}>
+                  <a href={templatePdfUrl} target="_blank" rel="noopener" style={{ fontSize: 11, color: "#3730a3", fontWeight: 600, textDecoration: "underline" }}>
+                    📄 Télécharger les CGV en PDF original
+                  </a>
+                </div>
+              )}
+              <div style={{
+                fontSize: 9.5,
+                lineHeight: 1.55,
+                color: "#475569",
+                whiteSpace: "pre-wrap",
+                columnCount: 2,
+                columnGap: 22,
+                columnRule: "1px solid #e2e8f0",
+                textAlign: "justify",
+                hyphens: "auto",
+              }}>
+                {cgvText}
+              </div>
+            </div>
+          )}
+          {!cgvText && (
+            <div style={{ marginTop: 30, padding: 14, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, fontSize: 11.5, color: "#78350f", textAlign: "center" }}>
+              ⚠ Aucun texte CGV extrait disponible pour ce modèle. Réuploade le PDF depuis l'admin pour avoir l'annexe complète.
+            </div>
+          )}
         </div>
       </div>
 

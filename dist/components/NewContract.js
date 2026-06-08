@@ -286,6 +286,18 @@ var NewContract = () => {
   var [savedTick, setSavedTick] = React.useState(0);
   // Preview avant envoi pour signature
   var [previewOpen, setPreviewOpen] = React.useState(false);
+  // Modèles juridiques (CGV) chargés depuis l'admin
+  var [templates, setTemplates] = React.useState([]);
+  var [selectedTemplate, setSelectedTemplate] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.contractTemplates) return;
+    window.api.contractTemplates.list().then(list => {
+      setTemplates(list || []);
+      // Pré-sélectionne le modèle marqué par défaut, sinon le premier
+      var def = (list || []).find(t => t.is_default) || (list || [])[0];
+      if (def) setSelectedTemplate(def);
+    }).catch(() => {});
+  }, []);
 
   // ── Products
   var [products, setProducts] = React.useState([{
@@ -1315,27 +1327,65 @@ var NewContract = () => {
   }, /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Mod\xE8le juridique",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: ncStyles.docPick
+  }, templates.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...ncStyles.docPick,
+      background: "#fff7ed",
+      borderColor: "#fdba74"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 18
     }
-  }, "\uD83D\uDCC4"), /*#__PURE__*/React.createElement("div", {
+  }, "\u26A0"), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      fontWeight: 600
+      fontWeight: 600,
+      color: "#9a3412"
     }
-  }, "CGV Astorya Suite v4.2 \u2014 FR"), /*#__PURE__*/React.createElement("div", {
+  }, "Aucun mod\xE8le CGV upload\xE9"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Mise \xE0 jour ", fmtDateFR(new Date().toISOString()), " \xB7 DORA-compliant")))), /*#__PURE__*/React.createElement(NCFormRow, {
+  }, "Va dans ", /*#__PURE__*/React.createElement("a", {
+    href: "/administration-utilisateurs",
+    style: {
+      color: "#3730a3",
+      textDecoration: "underline"
+    }
+  }, "Administration \u2192 Mod\xE8les de contrat"), " pour uploader ton PDF."))) : /*#__PURE__*/React.createElement("select", {
+    value: selectedTemplate ? selectedTemplate.id : "",
+    onChange: e => setSelectedTemplate(templates.find(t => t.id === e.target.value) || null),
+    style: {
+      ...ncStyles.input,
+      fontSize: 13
+    }
+  }, templates.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t.id,
+    value: t.id
+  }, t.name, " \xB7 ", t.version, t.is_default ? " · DÉFAUT" : ""))), selectedTemplate && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 11,
+      color: "#64748b",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC4 ", selectedTemplate.pdf_size_kb || "?", " Ko"), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, selectedTemplate.cgv_text ? Math.round(selectedTemplate.cgv_text.length / 100) / 10 + "k caractères extraits" : "Aucun texte extrait"), selectedTemplate.pdf_url && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("a", {
+    href: selectedTemplate.pdf_url,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "\uD83D\uDC41 Voir PDF source")))), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Annexes"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1773,7 +1823,9 @@ var NewContract = () => {
       signatory
     },
     clientObj: clientObj,
-    templateName: "CGV Astorya Suite v4.2 \u2014 FR",
+    templateName: selectedTemplate ? selectedTemplate.name + " " + selectedTemplate.version : "CGV Astorya Suite v4.2 — FR",
+    cgvText: selectedTemplate ? selectedTemplate.cgv_text : null,
+    templatePdfUrl: selectedTemplate ? selectedTemplate.pdf_url : null,
     onClose: () => setPreviewOpen(false),
     onConfirm: () => {
       setPreviewOpen(false);

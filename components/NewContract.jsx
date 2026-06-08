@@ -115,6 +115,18 @@ const NewContract = () => {
   const [savedTick, setSavedTick] = React.useState(0);
   // Preview avant envoi pour signature
   const [previewOpen, setPreviewOpen] = React.useState(false);
+  // Modèles juridiques (CGV) chargés depuis l'admin
+  const [templates, setTemplates] = React.useState([]);
+  const [selectedTemplate, setSelectedTemplate] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.contractTemplates) return;
+    window.api.contractTemplates.list().then((list) => {
+      setTemplates(list || []);
+      // Pré-sélectionne le modèle marqué par défaut, sinon le premier
+      const def = (list || []).find((t) => t.is_default) || (list || [])[0];
+      if (def) setSelectedTemplate(def);
+    }).catch(() => {});
+  }, []);
 
   // ── Products
   const [products, setProducts] = React.useState([
@@ -659,13 +671,42 @@ const NewContract = () => {
 
               <div style={ncStyles.formGrid2}>
                 <NCFormRow label="Modèle juridique" required>
-                  <div style={ncStyles.docPick}>
-                    <span style={{ fontSize: 18 }}>📄</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>CGV Astorya Suite v4.2 — FR</div>
-                      <div style={{ fontSize: 11, color: "#64748b" }}>Mise à jour {fmtDateFR(new Date().toISOString())} · DORA-compliant</div>
+                  {templates.length === 0 ? (
+                    <div style={{ ...ncStyles.docPick, background: "#fff7ed", borderColor: "#fdba74" }}>
+                      <span style={{ fontSize: 18 }}>⚠</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#9a3412" }}>Aucun modèle CGV uploadé</div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>
+                          Va dans <a href="/administration-utilisateurs" style={{ color: "#3730a3", textDecoration: "underline" }}>Administration → Modèles de contrat</a> pour uploader ton PDF.
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <select
+                      value={selectedTemplate ? selectedTemplate.id : ""}
+                      onChange={(e) => setSelectedTemplate(templates.find((t) => t.id === e.target.value) || null)}
+                      style={{ ...ncStyles.input, fontSize: 13 }}
+                    >
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} · {t.version}{t.is_default ? " · DÉFAUT" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {selectedTemplate && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: "#64748b", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span>📄 {selectedTemplate.pdf_size_kb || "?"} Ko</span>
+                      <span>·</span>
+                      <span>{selectedTemplate.cgv_text ? Math.round(selectedTemplate.cgv_text.length / 100) / 10 + "k caractères extraits" : "Aucun texte extrait"}</span>
+                      {selectedTemplate.pdf_url && (
+                        <>
+                          <span>·</span>
+                          <a href={selectedTemplate.pdf_url} target="_blank" rel="noopener" style={{ color: "#3730a3", fontWeight: 600 }}>👁 Voir PDF source</a>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </NCFormRow>
                 <NCFormRow label="Annexes">
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -853,7 +894,9 @@ const NewContract = () => {
             signatory,
           }}
           clientObj={clientObj}
-          templateName="CGV Astorya Suite v4.2 — FR"
+          templateName={selectedTemplate ? (selectedTemplate.name + " " + selectedTemplate.version) : "CGV Astorya Suite v4.2 — FR"}
+          cgvText={selectedTemplate ? selectedTemplate.cgv_text : null}
+          templatePdfUrl={selectedTemplate ? selectedTemplate.pdf_url : null}
           onClose={() => setPreviewOpen(false)}
           onConfirm={() => { setPreviewOpen(false); submitContract("send"); }}
         />

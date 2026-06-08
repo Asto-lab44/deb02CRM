@@ -353,20 +353,11 @@ const TicketList = () => {
 
         <div style={{ flex: 1 }} />
 
-        <a onClick={() => alert("Base de connaissances — 12 articles trouvés.\n\n• Diagnostic VPN Wi-Fi (driver Intel AX211)\n• Reset profil Outlook\n• Procédure onboarding poste\n• Réinitialisation MDP Active Directory\n• Configuration MFA Microsoft 365\n• …\n\n(L'index articles complet sera connecté à votre base de connaissances réelle.)")}
-           style={{ ...tlStyles.kbHint, cursor: "pointer", textDecoration: "none", display: "block" }}>
-          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6, fontWeight: 500 }}>Base de connaissances</div>
-          <div style={{ fontSize: 11.5, color: "#0f172a", lineHeight: 1.4 }}>
-            12 articles correspondent à vos tickets ouverts.
-          </div>
-          <span style={tlStyles.kbLink}>Consulter →</span>
-        </a>
-
         <div onClick={() => setUserMenuOpen((v) => !v)} style={{ ...tlStyles.userRow, cursor: "pointer", position: "relative" }}>
-          <Avatar name="Camille Dufour" size={26} color="#6366f1" />
+          <Avatar name="Astorya" size={26} color="#4f46e5" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Camille Dufour</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Direction Marketing</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Compte connecté</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Voir menu en haut →</div>
           </div>
           <span style={{ color: "#94a3b8", fontSize: 14 }}>⋯</span>
           {userMenuOpen && (
@@ -406,11 +397,6 @@ const TicketList = () => {
               Simuler appel entrant
               <span style={{ fontSize: 10, color: "#64748b", marginLeft: 4 }}>{(callIdx % (callers.length || 1)) + 1}/{callers.length || 0}</span>
             </button>
-            <button onClick={() => alert(`Notifications (${escalatedCount + (tickets.filter(t => t.status === 'open').length)})\n\n• ${tickets.filter(t => t.status === 'open').length} ticket(s) en attente d'assignation\n• ${escalatedCount} ticket(s) escaladé(s) à la Supervision\n• Mise à jour SLA toutes les 5 min\n\n(Sera connecté au flux temps réel Supabase.)`)} style={tlStyles.iconBtn} title="Notifications">
-              <span style={{ fontSize: 13 }}>◔</span>
-              <span style={tlStyles.notifDot} />
-            </button>
-            <button onClick={() => alert("Centre d'aide Hub Astorya\n\nRaccourcis clavier :\n• N — Nouveau ticket\n• ⌘K — Recherche globale\n• Esc — Fermer la fiche détail\n• Cliquez sur une ligne pour ouvrir le ticket\n• Filtres dans la sidebar gauche\n\nContactez support@astorya.fr pour plus d'aide.")} style={tlStyles.iconBtn} title="Aide">?</button>
           </div>
         </header>
 
@@ -540,7 +526,6 @@ const TicketList = () => {
               <option value="prio:asc">Priorité ↑</option>
               <option value="prio:desc">Priorité ↓</option>
             </select>
-            <button onClick={() => alert("Vues disponibles :\n• Liste (actuel)\n• Kanban par statut\n• Calendar SLA\n\n(Sera connecté au sélecteur de vues.)")} style={tlStyles.filterPill} title="Changer la vue">▦</button>
           </div>
         </div>
 

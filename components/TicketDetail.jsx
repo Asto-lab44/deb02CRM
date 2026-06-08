@@ -377,7 +377,6 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={{ ...tdStyles.iconBtn, cursor: "pointer" }} onClick={onBack} title="Retour à la liste">‹</button>
-            <button onClick={() => showFlash("✓ Vous suivez ce ticket — notifications activées")} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
           </div>
         </header>
 
@@ -399,8 +398,6 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => alert(`Historique d'escalade — ${TICKET_ID}\n\n• ${display.escalated.at && (typeof display.escalated.at === "string" ? display.escalated.at : new Date(display.escalated.at).toLocaleString("fr-FR"))} — escaladé au groupe ${display.escalated.group || "Supervision"}\n  Motif : ${display.escalated.reason || "—"}\n\n(L'historique complet sera connecté à la table audit.)`)}
-                          style={{ ...escStyles.bannerBtnGhost, cursor: "pointer" }}>Voir l'historique d'escalade</button>
                   <button onClick={async () => {
                     if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
                     const { error } = await window.HubData.updateTicket(TICKET_ID, { escalated_to: null, escalated_at: null, escalated_reason: null, escalated_group: null });
@@ -611,12 +608,12 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                     </div>
 
                     <div style={callStyles.audioBar}>
-                      <button style={callStyles.playBtn}>▶</button>
+                      <button onClick={() => alert("Lecture audio — à connecter au stockage 3CX/Supabase Storage.\n\nLes enregistrements 3CX sont accessibles via leur URL CDR.")} style={{ ...callStyles.playBtn, cursor: "pointer" }}>▶</button>
                       <div style={{ flex: 1, height: 4, background: "#e2e8f0", borderRadius: 999 }}>
                         <div style={{ width: "0%", height: "100%", background: "#10b981", borderRadius: 999 }} />
                       </div>
                       <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>00:00 / {fmtDur(n.durationSec || 0)}</span>
-                      <button style={callStyles.dlBtn} title="Télécharger l'enregistrement">⬇</button>
+                      <button onClick={() => alert("Téléchargement audio — à connecter au stockage 3CX/Supabase Storage.")} style={{ ...callStyles.dlBtn, cursor: "pointer" }} title="Télécharger l'enregistrement">⬇</button>
                     </div>
 
                     <div style={callStyles.transcriptLabel}>Retranscription</div>
@@ -643,8 +640,6 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
               />
               <div style={tdStyles.composerFoot}>
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={() => alert("Pièce jointe — sélecteur de fichiers (sera connecté au stockage Supabase).")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Joindre un fichier">📎</button>
-                  <button onClick={() => alert("Capture d'écran — insertion image (sera connecté au stockage Supabase).")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Insérer une image">🖼</button>
                   <button onClick={() => setReplyText((t) => t + " @")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Mentionner un collègue">@</button>
                   <button onClick={() => setReplyText((t) => t + " **gras**")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Gras (Markdown)">𝐁</button>
                   <button onClick={() => setReplyText((t) => t + "\n```\ncode\n```")} style={{ ...tdStyles.composerIcon, cursor: "pointer" }} title="Bloc de code">{"</>"}</button>
@@ -714,13 +709,6 @@ const SidePanel = ({ Avatar }) => (
             <div style={{ fontSize: 12.5, fontWeight: 500 }}>Tom Verdier</div>
             <div style={{ fontSize: 11, color: "#94a3b8" }}>Support N2 · Réseau</div>
           </div>
-        </div>
-      } />
-      <Field label="Observateurs" value={
-        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          <Avatar name="Sophie Aubry" size={22} color="#10b981" />
-          <Avatar name="Léa Marchand" size={22} color="#0ea5e9" />
-          <button style={tdStyles.addPill}>+ Ajouter</button>
         </div>
       } />
     </section>

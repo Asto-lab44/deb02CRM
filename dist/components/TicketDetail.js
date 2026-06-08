@@ -770,13 +770,7 @@ var TicketDetail = ({
     },
     onClick: onBack,
     title: "Retour \xE0 la liste"
-  }, "\u2039"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => showFlash("✓ Vous suivez ce ticket — notifications activées"),
-    style: {
-      ...tdStyles.ghostBtn,
-      cursor: "pointer"
-    }
-  }, "\u2605 Suivre"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u2039"))), /*#__PURE__*/React.createElement("div", {
     style: tdStyles.body
   }, /*#__PURE__*/React.createElement("section", {
     style: tdStyles.convCol
@@ -808,12 +802,6 @@ var TicketDetail = ({
       gap: 6
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert(`Historique d'escalade — ${TICKET_ID}\n\n• ${display.escalated.at && (typeof display.escalated.at === "string" ? display.escalated.at : new Date(display.escalated.at).toLocaleString("fr-FR"))} — escaladé au groupe ${display.escalated.group || "Supervision"}\n  Motif : ${display.escalated.reason || "—"}\n\n(L'historique complet sera connecté à la table audit.)`),
-    style: {
-      ...escStyles.bannerBtnGhost,
-      cursor: "pointer"
-    }
-  }, "Voir l'historique d'escalade"), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
       if (!dataOn) {
         showFlash("Mode démo — branchement DB nécessaire", "warn");
@@ -1248,7 +1236,11 @@ var TicketDetail = ({
   }, "\xB7"), /*#__PURE__*/React.createElement("span", null, "Enregistrement archiv\xE9 sur PBX 3CX")), /*#__PURE__*/React.createElement("div", {
     style: callStyles.audioBar
   }, /*#__PURE__*/React.createElement("button", {
-    style: callStyles.playBtn
+    onClick: () => alert("Lecture audio — à connecter au stockage 3CX/Supabase Storage.\n\nLes enregistrements 3CX sont accessibles via leur URL CDR."),
+    style: {
+      ...callStyles.playBtn,
+      cursor: "pointer"
+    }
   }, "\u25B6"), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -1270,7 +1262,11 @@ var TicketDetail = ({
       fontFamily: "'JetBrains Mono', monospace"
     }
   }, "00:00 / ", fmtDur(n.durationSec || 0)), /*#__PURE__*/React.createElement("button", {
-    style: callStyles.dlBtn,
+    onClick: () => alert("Téléchargement audio — à connecter au stockage 3CX/Supabase Storage."),
+    style: {
+      ...callStyles.dlBtn,
+      cursor: "pointer"
+    },
     title: "T\xE9l\xE9charger l'enregistrement"
   }, "\u2B07")), /*#__PURE__*/React.createElement("div", {
     style: callStyles.transcriptLabel
@@ -1335,20 +1331,6 @@ var TicketDetail = ({
       gap: 4
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Pièce jointe — sélecteur de fichiers (sera connecté au stockage Supabase)."),
-    style: {
-      ...tdStyles.composerIcon,
-      cursor: "pointer"
-    },
-    title: "Joindre un fichier"
-  }, "\uD83D\uDCCE"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Capture d'écran — insertion image (sera connecté au stockage Supabase)."),
-    style: {
-      ...tdStyles.composerIcon,
-      cursor: "pointer"
-    },
-    title: "Ins\xE9rer une image"
-  }, "\uD83D\uDDBC"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setReplyText(t => t + " @"),
     style: {
       ...tdStyles.composerIcon,
@@ -1527,25 +1509,6 @@ var SidePanel = ({
       color: "#94a3b8"
     }
   }, "Support N2 \xB7 R\xE9seau")))
-}), /*#__PURE__*/React.createElement(Field, {
-  label: "Observateurs",
-  value: /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 4,
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Sophie Aubry",
-    size: 22,
-    color: "#10b981"
-  }), /*#__PURE__*/React.createElement(Avatar, {
-    name: "L\xE9a Marchand",
-    size: 22,
-    color: "#0ea5e9"
-  }), /*#__PURE__*/React.createElement("button", {
-    style: tdStyles.addPill
-  }, "+ Ajouter"))
 })), /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("div", {
   style: tdStyles.sideHead
 }, "\xC9quipement concern\xE9"), /*#__PURE__*/React.createElement("div", {

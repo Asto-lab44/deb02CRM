@@ -284,6 +284,8 @@ var NewContract = () => {
     role: ""
   });
   var [savedTick, setSavedTick] = React.useState(0);
+  // Preview avant envoi pour signature
+  var [previewOpen, setPreviewOpen] = React.useState(false);
 
   // ── Products
   var [products, setProducts] = React.useState([{
@@ -614,7 +616,7 @@ var NewContract = () => {
     onClick: () => history.back(),
     style: ncStyles.ghostBtn
   }, "Annuler"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => submitContract("send"),
+    onClick: () => setPreviewOpen(true),
     style: ncStyles.primaryBtn
   }, "Cr\xE9er & envoyer pour signature"))), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.titleRow
@@ -1491,7 +1493,7 @@ var NewContract = () => {
     onClick: () => submitContract("draft"),
     style: ncStyles.ghostBtn
   }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => submitContract("send"),
+    onClick: () => setPreviewOpen(true),
     style: ncStyles.primaryBtn
   }, "Continuer \u2192 Envoi signature")))), /*#__PURE__*/React.createElement("aside", {
     style: ncStyles.previewCol
@@ -1750,7 +1752,34 @@ var NewContract = () => {
       color: "#475569",
       lineHeight: 1.5
     }
-  }, "Montant ", ">", " 150 k\u20AC \u2014 validation Direction Finance obligatoire")))))));
+  }, "Montant ", ">", " 150 k\u20AC \u2014 validation Direction Finance obligatoire")))))), previewOpen && window.ContractPreview && /*#__PURE__*/React.createElement(ContractPreview, {
+    contract: {
+      id: "CTR-" + new Date().getFullYear() + "-DRAFT",
+      client_id: clientId,
+      client_name: clientName,
+      name: products.slice(0, 2).map(p => p.name).join(" + "),
+      products,
+      annexes,
+      clauses,
+      sums,
+      start: startDate,
+      end: endDate,
+      duration,
+      tacite,
+      indexation,
+      indexCap,
+      payment_delay: paymentDelay,
+      billing_period: billingPeriod,
+      signatory
+    },
+    clientObj: clientObj,
+    templateName: "CGV Astorya Suite v4.2 \u2014 FR",
+    onClose: () => setPreviewOpen(false),
+    onConfirm: () => {
+      setPreviewOpen(false);
+      submitContract("send");
+    }
+  }));
 };
 var ncStyles = {
   frame: {

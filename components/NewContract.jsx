@@ -113,6 +113,8 @@ const NewContract = () => {
   const [signMethod, setSignMethod] = React.useState("qualified");
   const [signatory, setSignatory] = React.useState({ name: "", role: "" });
   const [savedTick, setSavedTick] = React.useState(0);
+  // Preview avant envoi pour signature
+  const [previewOpen, setPreviewOpen] = React.useState(false);
 
   // ── Products
   const [products, setProducts] = React.useState([
@@ -307,7 +309,7 @@ const NewContract = () => {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => history.back()} style={ncStyles.ghostBtn}>Annuler</button>
-          <button onClick={() => submitContract("send")} style={ncStyles.primaryBtn}>Créer & envoyer pour signature</button>
+          <button onClick={() => setPreviewOpen(true)} style={ncStyles.primaryBtn}>Créer & envoyer pour signature</button>
         </div>
       </header>
 
@@ -729,7 +731,7 @@ const NewContract = () => {
               <button onClick={() => history.back()} style={ncStyles.ghostBtn}>← Précédent</button>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => submitContract("draft")} style={ncStyles.ghostBtn}>Enregistrer brouillon</button>
-                <button onClick={() => submitContract("send")} style={ncStyles.primaryBtn}>Continuer → Envoi signature</button>
+                <button onClick={() => setPreviewOpen(true)} style={ncStyles.primaryBtn}>Continuer → Envoi signature</button>
               </div>
             </div>
           </div>
@@ -827,6 +829,35 @@ const NewContract = () => {
           </aside>
         </div>
       </div>
+
+      {/* Preview PDF avant signature */}
+      {previewOpen && window.ContractPreview && (
+        <ContractPreview
+          contract={{
+            id: "CTR-" + new Date().getFullYear() + "-DRAFT",
+            client_id: clientId,
+            client_name: clientName,
+            name: products.slice(0, 2).map((p) => p.name).join(" + "),
+            products,
+            annexes,
+            clauses,
+            sums,
+            start: startDate,
+            end: endDate,
+            duration,
+            tacite,
+            indexation,
+            indexCap,
+            payment_delay: paymentDelay,
+            billing_period: billingPeriod,
+            signatory,
+          }}
+          clientObj={clientObj}
+          templateName="CGV Astorya Suite v4.2 — FR"
+          onClose={() => setPreviewOpen(false)}
+          onConfirm={() => { setPreviewOpen(false); submitContract("send"); }}
+        />
+      )}
     </div>
   );
 };

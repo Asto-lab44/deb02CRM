@@ -51,7 +51,8 @@ const TicketList = () => {
     if (sp.get("billable"))   return { kind: "billable",  value: null };
     return { kind: "all", value: null };
   })();
-  const [filter, setFilter] = React.useState(initialFilter);
+  const [filter, setFilterRaw] = React.useState(initialFilter);
+  const setFilter = (f) => { setFilterRaw(f); setPage(1); };
   const isFilterActive = (kind, value) => filter.kind === kind && (value === undefined || filter.value === value);
   const setFilterIfDifferent = (kind, value) => {
     if (isFilterActive(kind, value)) setFilter({ kind: "all", value: null });

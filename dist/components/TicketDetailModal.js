@@ -79,10 +79,11 @@ var TicketDetailModal = ({
     var reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason || !ticket) return;
     setSaving(true);
+    var currentUser = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
     var {
       error
     } = await window.HubData.escalateTicket(ticket.id, {
-      toUserId: null,
+      toUserId: currentUser?.id || null,
       groupId: "supervision",
       reason
     });
@@ -98,6 +99,30 @@ var TicketDetailModal = ({
       escalated_reason: reason
     });
     showFlash("✓ Ticket escaladé à Supervision");
+    setTimeout(() => {
+      if (onClose) onClose();
+    }, 800);
+  };
+  var resolve = async () => {
+    if (!ticket) return;
+    await patch({
+      status: "resolved",
+      closed_at: new Date().toISOString()
+    });
+    setTimeout(() => {
+      if (onClose) onClose();
+    }, 800);
+  };
+  var closeT = async () => {
+    if (!ticket) return;
+    if (!confirm("Fermer définitivement ce ticket ?")) return;
+    await patch({
+      status: "closed",
+      closed_at: new Date().toISOString()
+    });
+    setTimeout(() => {
+      if (onClose) onClose();
+    }, 800);
   };
   var STATUS = [{
     v: "open",
@@ -241,13 +266,15 @@ var TicketDetailModal = ({
     style: D.btnEscalate,
     title: "Remonter \xE0 la Supervision"
   }, "\u2191 Escalader"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => patch({
-      status: "resolved",
-      closed_at: new Date().toISOString()
-    }),
+    onClick: resolve,
     disabled: !dataOn || saving,
     style: D.btnResolve
   }, "\u2713 Marquer r\xE9solu"), /*#__PURE__*/React.createElement("button", {
+    onClick: closeT,
+    disabled: !dataOn || saving,
+    style: D.btnClose,
+    title: "Fermer d\xE9finitivement le ticket"
+  }, "\xD7 Fermer"), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: D.close
   }, "\xD7"))), loading ? /*#__PURE__*/React.createElement("div", {
@@ -563,6 +590,16 @@ var D = {
     background: "#10b981",
     color: "#fff",
     border: 0,
+    borderRadius: 7,
+    fontSize: 12.5,
+    fontWeight: 700,
+    cursor: "pointer"
+  },
+  btnClose: {
+    padding: "7px 13px",
+    background: "#fff",
+    color: "#475569",
+    border: "1px solid #cbd5e1",
     borderRadius: 7,
     fontSize: 12.5,
     fontWeight: 700,

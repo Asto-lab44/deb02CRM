@@ -1,9 +1,16 @@
 // Écran 2 — Détail ticket + conversation (vue utilisateur final)
 
-const TICKET_ID_DEFAULT = "INC-2837";
-
 const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
-  const TICKET_ID = ticketId || TICKET_ID_DEFAULT;
+  if (!ticketId) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 40, color: "#64748b" }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>Aucun ticket sélectionné</div>
+        <div style={{ fontSize: 13, marginBottom: 16 }}>Sélectionnez un ticket dans la liste pour voir le détail.</div>
+        <a href="/ticketing" style={{ padding: "8px 14px", borderRadius: 8, background: "#4f46e5", color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>← Voir la liste des tickets</a>
+      </div>
+    );
+  }
+  const TICKET_ID = ticketId;
   const [flash, setFlash] = React.useState(null);
   const [composerTabState, setComposerTabState] = React.useState("reply");
   const [replyText, setReplyText] = React.useState("");
@@ -102,7 +109,14 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
     });
     if (error) { showFlash("Erreur : " + error.message, "err"); return; }
     if (note && note.trim() && window.HubData.createComment) {
-      await window.HubData.createComment({ ticket_id: TICKET_ID, body: "✓ Résolu — " + note.trim(), author_id: null });
+      const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
+      await window.HubData.createComment({
+        ticket_id: TICKET_ID,
+        body: "✓ Résolu — " + note.trim(),
+        author_id: currentUser?.id || null,
+        author_name: currentUser?.name || null,
+        author_email: currentUser?.email || null,
+      });
     }
     showFlash("✓ Ticket marqué comme résolu");
     refreshTicket();
@@ -153,8 +167,9 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
     if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
     const reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason) return;
+    const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
     const { error } = await window.HubData.escalateTicket(TICKET_ID, {
-      toUserId: null, // à remplir avec l'ID du superviseur courant
+      toUserId: currentUser?.id || null,
       groupId: "supervision",
       reason,
     });

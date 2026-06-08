@@ -212,16 +212,48 @@ var AdvanceOpportunity = () => {
   }, [oppRef]);
   var opp = oppData || {
     ref: oppRef,
-    name: "Astorya Suite — 750 sièges",
-    client_name: "AXA Wealth France",
-    stage: "propo",
-    amount: 215000,
-    proba: 55,
-    owner: "Nadia Lefèvre",
-    close: "2026-06-15",
-    last_update: "il y a 8 j",
-    hot: true
+    name: "Chargement…",
+    client_name: "",
+    stage: "qualif",
+    amount: 0,
+    proba: 20,
+    owner: "Vous",
+    close: "",
+    last_update: ""
   };
+  if (!oppData) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 40,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        textAlign: "center",
+        color: "#64748b"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: "#0f172a",
+        marginBottom: 8
+      }
+    }, "Opportunit\xE9 introuvable"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        marginBottom: 16
+      }
+    }, "L'opportunit\xE9 ", /*#__PURE__*/React.createElement("strong", null, oppRef), " n'existe pas ou plus."), /*#__PURE__*/React.createElement("a", {
+      href: "/crm",
+      style: {
+        padding: "8px 14px",
+        background: "#0f172a",
+        color: "#fff",
+        textDecoration: "none",
+        borderRadius: 7,
+        fontSize: 13,
+        fontWeight: 600
+      }
+    }, "\u2190 Retour au pipeline"));
+  }
   var curIdx = Math.max(0, stages.findIndex(s => s.k === opp.stage));
   var [targetIdx, setTargetIdx] = React.useState(Math.min(stages.length - 1, curIdx + 1));
   var current = stages[curIdx];

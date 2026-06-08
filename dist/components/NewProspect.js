@@ -16,6 +16,13 @@ var NewProspect = () => {
   var [contactLi, setContactLi] = React.useState("");
   var [besoin, setBesoin] = React.useState("");
   var [notes, setNotes] = React.useState("");
+  var [tags, setTags] = React.useState([]);
+  // Détection live de doublons : nom approchant ou SIREN identique
+  var [allClients, setAllClients] = React.useState([]);
+  React.useEffect(() => {
+    if (!window.api || !window.api.clients) return;
+    window.api.clients.list().then(list => setAllClients(list || [])).catch(() => {});
+  }, []);
   var [source, setSource] = React.useState("");
   var [contactDate, setContactDate] = React.useState("");
   var [projectDate, setProjectDate] = React.useState("");
@@ -69,6 +76,22 @@ var NewProspect = () => {
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
   var [companyName, setCompanyName] = React.useState("");
   var [companySiren, setCompanySiren] = React.useState("");
+  // Computed : doublons potentiels
+  var duplicates = React.useMemo(() => {
+    if (!allClients || allClients.length === 0) return [];
+    var q = (companyName || "").trim().toLowerCase();
+    var siren = (companySiren || "").replace(/\s/g, "");
+    return allClients.filter(c => {
+      if (siren && c.siren && c.siren.replace(/\s/g, "") === siren) return true;
+      if (q.length >= 3) {
+        var n = (c.raison_sociale || c.name || "").toLowerCase();
+        if (n.includes(q) || q.includes(n)) return true;
+        // Levenshtein-light : nom commence pareil
+        if (n.slice(0, Math.min(5, q.length)) === q.slice(0, Math.min(5, n.length))) return true;
+      }
+      return false;
+    }).slice(0, 5);
+  }, [allClients, companyName, companySiren]);
   var [companyNaf, setCompanyNaf] = React.useState("");
   var [companyTva, setCompanyTva] = React.useState("");
   var [companyAddress, setCompanyAddress] = React.useState("");
@@ -264,6 +287,7 @@ var NewProspect = () => {
     concurrent_amount: concurrentAmount,
     besoin,
     notes,
+    tags,
     owner: owner.name,
     owner_role: owner.role,
     owner_color: owner.color,
@@ -1258,33 +1282,41 @@ var NewProspect = () => {
       }
     }, a.hint)));
   }))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "\xC9tiquettes"
+    label: "\xC9tiquettes",
+    subtitle: "Tags libres pour cat\xE9goriser ce prospect"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "center"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: npStyles.tag
-  }, "# Radar-2026"), /*#__PURE__*/React.createElement("span", {
-    style: npStyles.tag
-  }, "# Banque-priv\xE9e"), /*#__PURE__*/React.createElement("span", {
-    style: npStyles.tag
-  }, "# Displacement-Pega"), /*#__PURE__*/React.createElement("span", {
-    style: npStyles.tag
-  }, "# DORA"), /*#__PURE__*/React.createElement("span", {
-    style: npStyles.tag
-  }, "# Sud-EMEA"), /*#__PURE__*/React.createElement("button", {
+  }, tags.map((t, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      ...npStyles.tag,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, "# ", t, /*#__PURE__*/React.createElement("span", {
+    onClick: () => setTags(arr => arr.filter((_, j) => j !== i)),
+    style: {
+      cursor: "pointer",
+      color: "#cbd5e1",
+      fontSize: 13,
+      marginLeft: 2
+    }
+  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      var t = prompt("Nouvelle étiquette :");
-      if (t) showFlash("✓ Étiquette « " + t + " » ajoutée");
+      var v = prompt("Nouvelle étiquette :");
+      if (v && v.trim()) setTags(arr => [...arr, v.trim()]);
     },
     style: {
       ...npStyles.addChip,
       cursor: "pointer"
     }
-  }, "+"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "+ Ajouter"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Notes internes",
     subtitle: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
   }, /*#__PURE__*/React.createElement("textarea", {
@@ -1507,7 +1539,7 @@ var NewProspect = () => {
       color: "#a855f7",
       fontWeight: 600
     }
-  }, "En cours"))), /*#__PURE__*/React.createElement("div", {
+  }, "En cours"))), (companyName.trim() || companySiren) && duplicates.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       ...npStyles.previewBlock,
       background: "#fffbeb",
@@ -1537,7 +1569,8 @@ var NewProspect = () => {
       lineHeight: 1.5,
       marginBottom: 8
     }
-  }, "Aucun doublon exact d\xE9tect\xE9. ", /*#__PURE__*/React.createElement("strong", null, "1 entreprise similaire"), " dans votre base :"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("strong", null, duplicates.length, " entreprise", duplicates.length > 1 ? "s" : "", " similaire", duplicates.length > 1 ? "s" : ""), " trouv\xE9e", duplicates.length > 1 ? "s" : "", " dans la base :"), duplicates.slice(0, 3).map(d => /*#__PURE__*/React.createElement("div", {
+    key: d.id,
     style: npStyles.dupRow
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1552,7 +1585,7 @@ var NewProspect = () => {
       fontSize: 9,
       fontWeight: 700
     }
-  }, "BM"), /*#__PURE__*/React.createElement("div", {
+  }, (d.raison_sociale || d.name || "??").slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -1561,23 +1594,26 @@ var NewProspect = () => {
     style: {
       fontSize: 12,
       fontWeight: 600,
-      color: "#0f172a"
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     }
-  }, "Banque M\xE9ridional", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#dc2626"
-    }
-  }, "e"), " SA"), /*#__PURE__*/React.createElement("div", {
+  }, d.raison_sociale || d.name), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "#94a3b8"
     }
-  }, "Lost 2024 \xB7 Tom Verdier")), /*#__PURE__*/React.createElement("button", {
+  }, d.status === "client" ? "Client" : "Prospect", " \xB7 ", d.ville || d.city || "—")), /*#__PURE__*/React.createElement("a", {
+    href: "/fiche-client?id=" + encodeURIComponent(d.id),
     style: {
       ...npStyles.smBtn,
-      fontSize: 10.5
+      fontSize: 10.5,
+      textDecoration: "none",
+      display: "inline-block",
+      cursor: "pointer"
     }
-  }, "Voir"))))));
+  }, "Voir")))))));
 };
 
 // ───── helpers

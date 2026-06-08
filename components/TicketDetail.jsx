@@ -443,19 +443,20 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                 Ticket <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{TICKET_ID}</span> · Demandeur {display.requester} · {(t.msgs != null ? t.msgs : 11)} messages
               </p>
 
-              {/* SLA strip — calculé depuis sla_due_at + opened_at */}
+              {/* SLA strip — calculé depuis sla_due_at + opened_at,
+                  avec fallback automatique depuis la priorité si absent */}
               {(() => {
-                const dueIso = (ticket && ticket.sla_due_at) || display.sla_due_at;
-                const openedIso = (ticket && ticket.opened_at) || display.opened_at;
-                if (!dueIso || !openedIso) {
-                  return (
-                    <div style={tdStyles.slaStrip}>
-                      <div style={tdStyles.slaBlock}>
-                        <div style={tdStyles.slaLabel}>SLA</div>
-                        <div style={tdStyles.slaValueOk}>—</div>
-                      </div>
-                    </div>
-                  );
+                // SLA par priorité (heures jusqu'à résolution attendue)
+                const slaHoursByPrio = { critique: 2, haute: 4, normale: 24, basse: 72 };
+                let openedIso = (ticket && (ticket.opened_at || ticket.created_at)) || display.opened_at;
+                let dueIso = (ticket && ticket.sla_due_at) || display.sla_due_at;
+                // Fallback : si pas d'opened_at, on prend maintenant
+                if (!openedIso) openedIso = new Date().toISOString();
+                // Fallback : si pas de sla_due_at, on calcule depuis la priorité
+                if (!dueIso) {
+                  const prio = (ticket && (ticket.priority || ticket.prio)) || display.priority || "normale";
+                  const h = slaHoursByPrio[prio] != null ? slaHoursByPrio[prio] : 24;
+                  dueIso = new Date(new Date(openedIso).getTime() + h * 3600 * 1000).toISOString();
                 }
                 const now = Date.now();
                 const due = new Date(dueIso).getTime();

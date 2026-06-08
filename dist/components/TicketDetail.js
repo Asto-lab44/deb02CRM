@@ -920,18 +920,22 @@ var TicketDetail = ({
       color: "#475569"
     }
   }, TICKET_ID), " \xB7 Demandeur ", display.requester, " \xB7 ", t.msgs != null ? t.msgs : 11, " messages"), (() => {
+    // SLA par priorité (heures jusqu'à résolution attendue)
+    var slaHoursByPrio = {
+      critique: 2,
+      haute: 4,
+      normale: 24,
+      basse: 72
+    };
+    var openedIso = ticket && (ticket.opened_at || ticket.created_at) || display.opened_at;
     var dueIso = ticket && ticket.sla_due_at || display.sla_due_at;
-    var openedIso = ticket && ticket.opened_at || display.opened_at;
-    if (!dueIso || !openedIso) {
-      return /*#__PURE__*/React.createElement("div", {
-        style: tdStyles.slaStrip
-      }, /*#__PURE__*/React.createElement("div", {
-        style: tdStyles.slaBlock
-      }, /*#__PURE__*/React.createElement("div", {
-        style: tdStyles.slaLabel
-      }, "SLA"), /*#__PURE__*/React.createElement("div", {
-        style: tdStyles.slaValueOk
-      }, "\u2014")));
+    // Fallback : si pas d'opened_at, on prend maintenant
+    if (!openedIso) openedIso = new Date().toISOString();
+    // Fallback : si pas de sla_due_at, on calcule depuis la priorité
+    if (!dueIso) {
+      var prio = ticket && (ticket.priority || ticket.prio) || display.priority || "normale";
+      var h = slaHoursByPrio[prio] != null ? slaHoursByPrio[prio] : 24;
+      dueIso = new Date(new Date(openedIso).getTime() + h * 3600 * 1000).toISOString();
     }
     var now = Date.now();
     var due = new Date(dueIso).getTime();

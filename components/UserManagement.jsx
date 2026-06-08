@@ -209,6 +209,9 @@ const UserManagement = () => {
           <div onClick={() => setActiveTab("invitations")} style={{ ...S.navItem, ...(activeTab === "invitations" ? S.navItemActive : {}), cursor: "pointer" }}>
             <span style={S.bullet}>◇</span><span style={{ flex: 1 }}>Invitations</span>
           </div>
+          <div onClick={() => setActiveTab("templates")} style={{ ...S.navItem, ...(activeTab === "templates" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>📄</span><span style={{ flex: 1 }}>Modèles de contrat</span>
+          </div>
           <div onClick={() => setActiveTab("audit")} style={{ ...S.navItem, ...(activeTab === "audit" ? S.navItemActive : {}), cursor: "pointer" }}>
             <span style={S.bullet}>◨</span><span style={{ flex: 1 }}>Audit & journal</span>
           </div>
@@ -524,6 +527,8 @@ const UserManagement = () => {
           </section>
         )}
 
+        {activeTab === "templates" && <ContractTemplatesPanel />}
+
         {activeTab === "audit" && (
           <section style={{ ...S.splitRow, gridTemplateColumns: "1fr" }}>
             <div style={{ padding: 40, textAlign: "center", background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 }}>
@@ -728,6 +733,178 @@ const S = {
   tableFoot: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#64748b" },
   pageBtn: { padding: "4px 10px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" },
   pageBtnActive: { background: "#3730a3", borderColor: "#3730a3", color: "#fff", fontWeight: 700 },
+};
+
+// ════════════════════════════════════════════════════════════════════
+// ContractTemplatesPanel — sous-composant tab "Modèles de contrat"
+// ════════════════════════════════════════════════════════════════════
+const ContractTemplatesPanel = () => {
+  const [templates, setTemplates] = React.useState([]);
+  const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState("");
+  const fileRef = React.useRef(null);
+
+  const reload = async () => {
+    if (!window.api || !window.api.contractTemplates) return;
+    try {
+      const list = await window.api.contractTemplates.list();
+      setTemplates(list || []);
+    } catch (e) { console.warn("[Templates] list:", e); }
+  };
+  React.useEffect(() => { reload(); }, []);
+
+  // Extraction du texte d'un PDF avec PDF.js (loaded via CDN dans la HTML)
+  const extractPdfText = async (file) => {
+    if (!window.pdfjsLib) {
+      console.warn("PDF.js not loaded — text extraction skipped");
+      return null;
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((it) => it.str).join(" ");
+      text += pageText + "\n\n";
+    }
+    return text.trim();
+  };
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      if (window.HubToast) window.HubToast.error("Seuls les fichiers PDF sont acceptés.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      if (window.HubToast) window.HubToast.error("Le PDF ne doit pas dépasser 10 Mo (le tien fait " + Math.round(file.size / 1024 / 1024 * 10) / 10 + " Mo).");
+      return;
+    }
+    setUploading(true);
+    try {
+      setProgress("1/3 Extraction du texte du PDF…");
+      const cgvText = await extractPdfText(file);
+      setProgress("2/3 Demande du nom du modèle…");
+      const name = window.HubModal
+        ? await window.HubModal.prompt({ title: "Nom du modèle", label: "Comment vais-je l'identifier dans NewContract ?", default: file.name.replace(/\.pdf$/i, ""), okLabel: "Continuer" })
+        : prompt("Nom du modèle :", file.name.replace(/\.pdf$/i, ""));
+      if (!name) { setUploading(false); setProgress(""); return; }
+      const version = window.HubModal
+        ? await window.HubModal.prompt({ title: "Version", label: "Numéro de version (ex : v4.2)", default: "v1.0", okLabel: "Continuer" })
+        : "v1.0";
+      setProgress("3/3 Upload sur Supabase Storage + sauvegarde BDD…");
+      const saved = await window.api.contractTemplates.upload({ name, version: version || "v1.0", file, cgvText });
+      if (window.HubToast) window.HubToast.success("✓ Modèle « " + saved.name + " » uploadé (" + (saved.pdf_size_kb || "?") + " Ko)");
+      await reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur upload : " + (e.message || e));
+    } finally {
+      setUploading(false);
+      setProgress("");
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async (t) => {
+    const ok = window.HubModal
+      ? await window.HubModal.confirm({ title: "Supprimer ce modèle ?", message: "Le PDF sera retiré du stockage. Soft-delete : la ligne reste en BDD pour audit.", okLabel: "Supprimer", okStyle: "danger" })
+      : confirm("Supprimer ce modèle ?");
+    if (!ok) return;
+    try {
+      await window.api.contractTemplates.remove(t.id);
+      if (window.HubToast) window.HubToast.success("✓ Modèle supprimé");
+      await reload();
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e)); }
+  };
+
+  const handleSetDefault = async (t) => {
+    try {
+      await window.api.contractTemplates.setDefault(t.id);
+      if (window.HubToast) window.HubToast.success("✓ « " + t.name + " » est maintenant le modèle par défaut");
+      await reload();
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e)); }
+  };
+
+  return (
+    <section style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 24 }}>
+      <header style={{ marginBottom: 18 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>📄 Modèles de contrat (CGV)</h2>
+        <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
+          Upload des PDF de CGV. Le texte est extrait automatiquement pour s'afficher dans la preview du contrat envoyé pour signature.
+        </p>
+      </header>
+
+      {/* Zone de drop / upload */}
+      <div style={{ border: "2px dashed " + (uploading ? "#4f46e5" : "#cbd5e1"), borderRadius: 12, padding: 28, textAlign: "center", background: uploading ? "#eef2ff" : "#fafbfc", transition: "all .15s", marginBottom: 24 }}
+           onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+           onDrop={(e) => { e.preventDefault(); e.stopPropagation(); if (uploading) return; const f = e.dataTransfer.files[0]; if (f) handleUpload(f); }}>
+        {uploading ? (
+          <>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#3730a3" }}>{progress || "Upload en cours…"}</div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>📤</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", marginBottom: 6 }}>Glisser-déposer un PDF ici</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>ou cliquer pour parcourir · max 10 Mo</div>
+            <button onClick={() => fileRef.current && fileRef.current.click()}
+                    style={{ padding: "10px 20px", background: "#0f172a", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              Sélectionner un PDF
+            </button>
+            <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }}
+                   onChange={(e) => { const f = e.target.files[0]; if (f) handleUpload(f); }} />
+          </>
+        )}
+      </div>
+
+      {/* Liste des templates */}
+      {templates.length === 0 ? (
+        <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 13, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 10, background: "#fafbfc" }}>
+          Aucun modèle uploadé pour l'instant. Upload ton premier PDF de CGV ci-dessus.
+        </div>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "#fafbfc", borderBottom: "1px solid #eef1f5" }}>
+              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Modèle</th>
+              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Version</th>
+              <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Taille</th>
+              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Uploadé</th>
+              <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((t) => (
+              <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>📄</span>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{t.name}{t.is_default && <span style={{ marginLeft: 8, fontSize: 10, background: "#dcfce7", color: "#065f46", padding: "2px 7px", borderRadius: 999, fontWeight: 700 }}>★ DÉFAUT</span>}</div>
+                      {t.description && <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{t.description}</div>}
+                      {t.cgv_text && <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 2 }}>{Math.round(t.cgv_text.length / 100) / 10}k caractères extraits</div>}
+                    </div>
+                  </div>
+                </td>
+                <td style={{ padding: "12px", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{t.version}</td>
+                <td style={{ padding: "12px", textAlign: "right", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{t.pdf_size_kb ? t.pdf_size_kb + " Ko" : "—"}</td>
+                <td style={{ padding: "12px", fontSize: 12, color: "#64748b" }}>{t.created_at ? new Date(t.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
+                <td style={{ padding: "12px", textAlign: "right" }}>
+                  <div style={{ display: "inline-flex", gap: 6 }}>
+                    {t.pdf_url && <a href={t.pdf_url} target="_blank" rel="noopener" style={{ padding: "5px 10px", fontSize: 11.5, color: "#3730a3", border: "1px solid #e2e8f0", borderRadius: 6, textDecoration: "none", background: "#fff" }}>👁 Voir</a>}
+                    {!t.is_default && <button onClick={() => handleSetDefault(t)} style={{ padding: "5px 10px", fontSize: 11.5, color: "#0f172a", border: "1px solid #e2e8f0", borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 600 }}>★ Définir par défaut</button>}
+                    <button onClick={() => handleDelete(t)} style={{ padding: "5px 10px", fontSize: 11.5, color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, background: "#fff", cursor: "pointer" }}>🗑</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
 };
 
 window.UserManagement = UserManagement;

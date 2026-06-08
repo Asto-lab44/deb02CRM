@@ -465,12 +465,38 @@ as $$
 $$;
 
 -- ════════════════════════════════════════════════════════════════════
+-- 12.6 CONTRACT_TEMPLATES — modèles de contrat avec CGV uploadées en PDF
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.contract_templates (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  version     text default 'v1.0',
+  description text,
+  pdf_url     text,        -- URL Supabase Storage du PDF source
+  pdf_size_kb int,
+  cgv_text    text,        -- Texte extrait du PDF (preview HTML)
+  is_default  boolean default false,
+  is_active   boolean default true,
+  deleted_at  timestamptz,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now(),
+  created_by  uuid references auth.users(id) on delete set null
+);
+create index if not exists idx_contract_templates_active on public.contract_templates(is_active) where deleted_at is null;
+create index if not exists idx_contract_templates_default on public.contract_templates(is_default) where deleted_at is null and is_default = true;
+
+drop trigger if exists trg_contract_templates_touch on public.contract_templates;
+create trigger trg_contract_templates_touch before update on public.contract_templates
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
 -- 13. RLS — Row Level Security
 -- ════════════════════════════════════════════════════════════════════
-alter table public.profiles         enable row level security;
-alter table public.groups           enable row level security;
-alter table public.profile_groups   enable row level security;
-alter table public.clients          enable row level security;
+alter table public.profiles            enable row level security;
+alter table public.groups              enable row level security;
+alter table public.profile_groups      enable row level security;
+alter table public.clients             enable row level security;
+alter table public.contract_templates  enable row level security;
 alter table public.contracts        enable row level security;
 alter table public.assets           enable row level security;
 alter table public.tickets          enable row level security;
@@ -488,7 +514,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array[
-    'profiles','groups','profile_groups','clients','contracts','assets',
+    'profiles','groups','profile_groups','clients','contract_templates','contracts','assets',
     'tickets','comments','opportunities','contacts','actions',
     'calls','call_transcripts'
   ])
@@ -543,6 +569,31 @@ insert into public.profiles (id, email, name)
 insert into public.profile_groups (profile_id, group_id)
   select u.id, 'admin' from auth.users u
   on conflict do nothing;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 14.5 STORAGE BUCKET pour les modèles de contrat (PDF uploadés par admin)
+-- ════════════════════════════════════════════════════════════════════
+-- Crée un bucket Supabase Storage 'contract-templates' (public en lecture
+-- pour servir les PDF directement, restreint en écriture aux authenticated).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('contract-templates', 'contract-templates', true, 10485760, ARRAY['application/pdf'])
+  on conflict (id) do update set public = true, file_size_limit = 10485760, allowed_mime_types = ARRAY['application/pdf'];
+
+-- Policies sur storage.objects pour ce bucket
+do $$
+begin
+  drop policy if exists "contract_templates_read"   on storage.objects;
+  drop policy if exists "contract_templates_write"  on storage.objects;
+  create policy "contract_templates_read"
+    on storage.objects for select to public
+    using (bucket_id = 'contract-templates');
+  create policy "contract_templates_write"
+    on storage.objects for all to authenticated
+    using (bucket_id = 'contract-templates')
+    with check (bucket_id = 'contract-templates');
+exception when others then
+  raise notice 'Storage policies skipped : %', SQLERRM;
+end $$;
 
 -- ════════════════════════════════════════════════════════════════════
 -- 15. REALTIME — notifications live multi-onglets / multi-agents

@@ -615,6 +615,110 @@
   };
 
   // ───────────────────────────────────────────────────────────────────
+  // §6.5 CONTRACT_TEMPLATES — modèles de contrat (CGV PDF uploadables)
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Combinaison Storage (PDF) + table (métadonnées + texte extrait).
+  // Méthodes : list, getActive, getDefault, upload, remove, setDefault
+  const contractTemplates = {
+    /** Liste les modèles actifs (non soft-deleted). */
+    async list() {
+      const s = supa();
+      if (!s) return [];
+      const { data, error } = await s.from("contract_templates")
+        .select("*")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.warn("[api.contractTemplates.list]", error.message);
+        return [];
+      }
+      return data || [];
+    },
+
+    /** Récupère le modèle par défaut (celui marqué is_default=true). */
+    async getDefault() {
+      const s = supa();
+      if (!s) return null;
+      const { data } = await s.from("contract_templates")
+        .select("*")
+        .is("deleted_at", null)
+        .eq("is_default", true)
+        .eq("is_active", true)
+        .maybeSingle();
+      return data || null;
+    },
+
+    /** Upload un PDF + crée la ligne template.
+     *  payload = { name, version, description, file (File object), cgvText (string extrait) } */
+    async upload(payload) {
+      const s = supa();
+      if (!s) throw new Error("Supabase non configuré.");
+      const file = payload.file;
+      if (!file) throw new Error("Aucun fichier PDF fourni.");
+      if (file.type !== "application/pdf") throw new Error("Le fichier doit être au format PDF.");
+
+      const path = "templates/" + Date.now() + "-" + (file.name || "template.pdf").replace(/[^\w.-]/g, "_");
+      // 1. Upload du PDF dans Storage
+      const { error: upErr } = await s.storage.from("contract-templates").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: "application/pdf",
+      });
+      if (upErr) throw new Error("Upload échoué : " + upErr.message);
+      const { data: urlData } = s.storage.from("contract-templates").getPublicUrl(path);
+      const pdf_url = urlData ? urlData.publicUrl : null;
+
+      // 2. Insertion en BDD
+      const row = {
+        name: payload.name || file.name.replace(/\.pdf$/i, ""),
+        version: payload.version || "v1.0",
+        description: payload.description || null,
+        pdf_url,
+        pdf_size_kb: Math.round(file.size / 1024),
+        cgv_text: payload.cgvText || null,
+        is_active: true,
+      };
+      const created_by = await getCurrentUserId();
+      if (created_by) row.created_by = created_by;
+      const { data, error } = await s.from("contract_templates").insert(row).select().maybeSingle();
+      if (error) {
+        console.warn("[api.contractTemplates.upload]", error.message);
+        throw new Error("Sauvegarde métadonnées échouée : " + error.message);
+      }
+      return data;
+    },
+
+    /** Soft-delete + suppression du PDF dans Storage. */
+    async remove(id) {
+      const s = supa();
+      if (!s) return;
+      const { data: existing } = await s.from("contract_templates").select("pdf_url").eq("id", id).maybeSingle();
+      // 1. Soft-delete en BDD
+      const { error } = await s.from("contract_templates").update({ deleted_at: new Date().toISOString(), is_active: false }).eq("id", id);
+      if (error) throw new Error(error.message);
+      // 2. Suppression du PDF en Storage (best-effort)
+      if (existing && existing.pdf_url) {
+        const m = existing.pdf_url.match(/contract-templates\/(.+)$/);
+        if (m) {
+          try { await s.storage.from("contract-templates").remove([m[1]]); } catch (e) {}
+        }
+      }
+    },
+
+    /** Marque un modèle comme par défaut (les autres deviennent non-default). */
+    async setDefault(id) {
+      const s = supa();
+      if (!s) return;
+      // 1. Reset tous à false
+      await s.from("contract_templates").update({ is_default: false }).neq("id", id);
+      // 2. Set le nouveau à true
+      const { error } = await s.from("contract_templates").update({ is_default: true }).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+  };
+
+  // ───────────────────────────────────────────────────────────────────
   // §7. AUTH — wrapper Supabase Auth
   // ───────────────────────────────────────────────────────────────────
   //
@@ -663,5 +767,5 @@
   // ───────────────────────────────────────────────────────────────────
   // §8. EXPORT global
   // ───────────────────────────────────────────────────────────────────
-  window.api = { clients, opportunities, contacts, actions, contracts, auth };
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, auth };
 })();

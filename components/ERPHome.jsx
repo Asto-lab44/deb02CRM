@@ -7,7 +7,16 @@ const ERPHome = () => {
   const activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
   const allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
   const allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
-  const currentUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  const localUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  // Identité Supabase réelle si dispo, sinon fallback access-store
+  const [supaUser, setSupaUser] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then((u) => { if (u) setSupaUser(u); }).catch(() => {});
+  }, []);
+  const currentUser = supaUser
+    ? { name: supaUser.email, role: "Astorya" }
+    : localUser;
   const [loginOpen, setLoginOpen] = React.useState(false);
 
   const Avatar = ({ name, size = 22, color }) => {
@@ -307,12 +316,20 @@ const ERPHome = () => {
               <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</div>
               <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.role}</div>
             </div>
-            <button onClick={() => window.HubAccess.logout()} title="Se déconnecter" style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 14, cursor: "pointer", padding: 4 }}>⏻</button>
+            <button
+              onClick={async () => {
+                if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
+                if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
+                window.location.href = "/login";
+              }}
+              title="Se déconnecter"
+              style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 14, cursor: "pointer", padding: 4 }}
+            >⏻</button>
           </div>
         ) : (
-          <button onClick={() => setLoginOpen(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 12px", borderRadius: 8, background: "#0f172a", border: 0, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+          <a href="/login" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 12px", borderRadius: 8, background: "#0f172a", border: 0, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
             → Se connecter
-          </button>
+          </a>
         )}
       </aside>
 

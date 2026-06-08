@@ -40,12 +40,7 @@ const ERPHome = () => {
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 17l4-4 4 4 5-7"/></svg>,
       color: "#4f46e5",
       bg: "#eef2ff",
-      stats: [
-        { k: "Pipeline", v: "1,75 M€" },
-        { k: "Deals", v: "32" },
-        { k: "Win rate", v: "57 %" },
-      ],
-      badge: { label: "3 SLA risk", tone: "danger" },
+      stats: [],
       trendUp: true,
     },
     {
@@ -56,12 +51,7 @@ const ERPHome = () => {
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>,
       color: "#dc2626",
       bg: "#fdecec",
-      stats: [
-        { k: "Comptes radar", v: "24" },
-        { k: "≤ 90 j", v: "5" },
-        { k: "Hot leads", v: "8" },
-      ],
-      badge: { label: "Nouveau", tone: "new" },
+      stats: [],
     },
     {
       cat: "Commercial",

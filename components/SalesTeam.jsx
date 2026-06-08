@@ -58,7 +58,7 @@ const SalesTeam = () => {
   };
 
   const fmt = (n) => `${(n).toLocaleString("fr-FR")} k€`;
-  const teamAttainment = Math.round((team.totalDone / team.totalQuota) * 100);
+  const teamAttainment = team.totalQuota > 0 ? Math.round((team.totalDone / team.totalQuota) * 100) : 0;
 
   const statusColor = { online: "#10b981", away: "#f59e0b", offline: "#cbd5e1" };
   const trendIcon = (t) => t === "up" ? <span style={{ color: "#10b981" }}>▲</span> : t === "down" ? <span style={{ color: "#dc2626" }}>▼</span> : <span style={{ color: "#94a3b8" }}>—</span>;
@@ -142,8 +142,8 @@ const SalesTeam = () => {
         {/* Title row */}
         <div style={teamStyles.titleRow}>
           <div>
-            <h1 style={teamStyles.h1}>Équipe commerciale EMEA</h1>
-            <p style={teamStyles.h1sub}>10 commerciaux · objectif trimestre {fmt(team.totalQuota)} · réalisé {fmt(team.totalDone)} ({teamAttainment}%) · 5 semaines avant clôture</p>
+            <h1 style={teamStyles.h1}>Équipe commerciale</h1>
+            <p style={teamStyles.h1sub}>{reps.length} commercial{reps.length > 1 ? "iaux" : ""} · {team.totalDeals} opportunité{team.totalDeals > 1 ? "s" : ""} · {fmt(team.totalDone)} signé{team.totalDone > 0 ? "" : ""}</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={teamStyles.segCtrl}>
@@ -180,13 +180,13 @@ const SalesTeam = () => {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{fmt(team.totalDone)} / {fmt(team.totalQuota)}</div>
             </div>
             <div style={teamStyles.kpiBar}><div style={{ width: `${teamAttainment}%`, height: "100%", background: "linear-gradient(90deg, #a78bfa, #10b981)", borderRadius: 999 }} /></div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 6, fontFamily: "'JetBrains Mono', monospace" }}>Reste {fmt(team.totalQuota - team.totalDone)} sur 35 j ouvrés</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 6, fontFamily: "'JetBrains Mono', monospace" }}>{team.totalQuota > 0 ? `Reste ${fmt(team.totalQuota - team.totalDone)}` : "Objectif équipe non défini"}</div>
           </div>
 
           <div style={teamStyles.kpi}>
             <span style={teamStyles.kpiLabel}>Pipeline total</span>
             <div style={teamStyles.kpiValue}>{fmt(team.totalPipe)}</div>
-            <div style={teamStyles.kpiSub}>{team.totalDeals} deals actifs · pondéré 742 k€</div>
+            <div style={teamStyles.kpiSub}>{team.totalDeals} deal{team.totalDeals > 1 ? "s" : ""} actif{team.totalDeals > 1 ? "s" : ""}</div>
           </div>
           <div style={teamStyles.kpi}>
             <span style={teamStyles.kpiLabel}>Win rate moy.</span>

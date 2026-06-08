@@ -123,7 +123,7 @@ var SalesTeam = () => {
     avgWinRate: Math.round(reps.reduce((s, r) => s + r.winRate, 0) / reps.length)
   };
   var fmt = n => `${n.toLocaleString("fr-FR")} k€`;
-  var teamAttainment = Math.round(team.totalDone / team.totalQuota * 100);
+  var teamAttainment = team.totalQuota > 0 ? Math.round(team.totalDone / team.totalQuota * 100) : 0;
   var statusColor = {
     online: "#10b981",
     away: "#f59e0b",
@@ -368,9 +368,9 @@ var SalesTeam = () => {
     style: teamStyles.titleRow
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: teamStyles.h1
-  }, "\xC9quipe commerciale EMEA"), /*#__PURE__*/React.createElement("p", {
+  }, "\xC9quipe commerciale"), /*#__PURE__*/React.createElement("p", {
     style: teamStyles.h1sub
-  }, "10 commerciaux \xB7 objectif trimestre ", fmt(team.totalQuota), " \xB7 r\xE9alis\xE9 ", fmt(team.totalDone), " (", teamAttainment, "%) \xB7 5 semaines avant cl\xF4ture")), /*#__PURE__*/React.createElement("div", {
+  }, reps.length, " commercial", reps.length > 1 ? "iaux" : "", " \xB7 ", team.totalDeals, " opportunit\xE9", team.totalDeals > 1 ? "s" : "", " \xB7 ", fmt(team.totalDone), " sign\xE9", team.totalDone > 0 ? "" : "")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8
@@ -469,7 +469,7 @@ var SalesTeam = () => {
       marginTop: 6,
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, "Reste ", fmt(team.totalQuota - team.totalDone), " sur 35 j ouvr\xE9s")), /*#__PURE__*/React.createElement("div", {
+  }, team.totalQuota > 0 ? `Reste ${fmt(team.totalQuota - team.totalDone)}` : "Objectif équipe non défini")), /*#__PURE__*/React.createElement("div", {
     style: teamStyles.kpi
   }, /*#__PURE__*/React.createElement("span", {
     style: teamStyles.kpiLabel
@@ -477,7 +477,7 @@ var SalesTeam = () => {
     style: teamStyles.kpiValue
   }, fmt(team.totalPipe)), /*#__PURE__*/React.createElement("div", {
     style: teamStyles.kpiSub
-  }, team.totalDeals, " deals actifs \xB7 pond\xE9r\xE9 742 k\u20AC")), /*#__PURE__*/React.createElement("div", {
+  }, team.totalDeals, " deal", team.totalDeals > 1 ? "s" : "", " actif", team.totalDeals > 1 ? "s" : "")), /*#__PURE__*/React.createElement("div", {
     style: teamStyles.kpi
   }, /*#__PURE__*/React.createElement("span", {
     style: teamStyles.kpiLabel

@@ -586,7 +586,6 @@ const AdvanceOpportunity = () => {
           </span>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => history.back()} style={aoStyles.ghostBtn}>Enregistrer comme brouillon</button>
           <button onClick={() => { if (confirm("Marquer cette opportunité comme perdue ?")) confirmAdvance(true); }} style={aoStyles.dangerGhostBtn}>Marquer comme perdu</button>
           <button onClick={() => confirmAdvance(false)} style={aoStyles.primaryBtnBig}>
             ✓ Confirmer le passage en {target.label}

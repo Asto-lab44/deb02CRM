@@ -828,10 +828,7 @@ var NewContract = () => {
       color: "#64748b",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, "SIREN ", clientSiren)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => window.location.href = "/crm",
-    style: ncStyles.changeBtn
-  }, "Changer"))), /*#__PURE__*/React.createElement(NCFormRow, {
+  }, "SIREN ", clientSiren)))), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Signataire habilit\xE9",
     required: true
   }, /*#__PURE__*/React.createElement("div", {

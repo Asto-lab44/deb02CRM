@@ -65,10 +65,22 @@ var RadarAccountDetail = () => {
       display: "flex",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: radStyles.ghostBtn
-  }, "\u2605 Suivre"), /*#__PURE__*/React.createElement("button", {
-    style: radStyles.primaryBtn
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/fins-contrats-concurrents",
+    style: {
+      ...radStyles.ghostBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      display: "inline-block"
+    }
+  }, "\u2190 Retour radar"), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite",
+    style: {
+      ...radStyles.primaryBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      display: "inline-block"
+    }
   }, "\u2192 Convertir en opportunit\xE9"))), /*#__PURE__*/React.createElement("div", {
     style: radStyles.body
   }, /*#__PURE__*/React.createElement("div", {
@@ -246,15 +258,31 @@ var RadarAccountDetail = () => {
     }
   }, "\uD83D\uDFE2 Phase concurrentielle ouverte"))), /*#__PURE__*/React.createElement("div", {
     style: radStyles.actionBar
-  }, /*#__PURE__*/React.createElement("button", {
-    style: radStyles.primaryBtn
-  }, "+ Cr\xE9er opportunit\xE9"), /*#__PURE__*/React.createElement("button", {
-    style: radStyles.ghostBtn
-  }, "\u2709 Email \xE0 \xC9lise Vasseur"), /*#__PURE__*/React.createElement("button", {
-    style: radStyles.ghostBtn
-  }, "\uD83D\uDCC5 Planifier RDV"), /*#__PURE__*/React.createElement("button", {
-    style: radStyles.ghostBtn
-  }, "\uD83D\uDCDE Logger appel"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite",
+    style: {
+      ...radStyles.primaryBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      display: "inline-block"
+    }
+  }, "+ Cr\xE9er opportunit\xE9"), /*#__PURE__*/React.createElement("a", {
+    href: "mailto:elise.vasseur@example.com",
+    style: {
+      ...radStyles.ghostBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      display: "inline-block"
+    }
+  }, "\u2709 Envoyer un email"), /*#__PURE__*/React.createElement("a", {
+    href: "tel:+33000000000",
+    style: {
+      ...radStyles.ghostBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      display: "inline-block"
+    }
+  }, "\uD83D\uDCDE Appeler"), /*#__PURE__*/React.createElement("button", {
     style: radStyles.ghostBtn
   }, "\uD83D\uDCCE Joindre signal"), /*#__PURE__*/React.createElement("span", {
     style: {

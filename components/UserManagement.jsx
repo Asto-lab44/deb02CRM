@@ -106,7 +106,19 @@ const UserManagement = () => {
             <div style={{ fontSize: 11, color: "#64748b" }}>Administration</div>
           </div>
         </a>
-        <button style={S.newBtn}>+ Inviter un utilisateur <span style={S.kbd}>I</span></button>
+        <button
+          onClick={async () => {
+            const email = prompt("Email du nouvel utilisateur Astorya :");
+            if (!email || !email.trim()) return;
+            if (!window.HubSupabase || !window.HubSupabase.enabled) {
+              alert("Supabase non configuré — invitation impossible. Crée le compte directement dans le dashboard Supabase (Authentication → Users → Add user).");
+              return;
+            }
+            alert("ℹ Pour des raisons de sécurité, l'invitation se fait depuis le dashboard Supabase :\n\nhttps://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users\n\nClique « Add user » → " + email);
+            window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+          }}
+          style={{ ...S.newBtn, cursor: "pointer" }}
+        >+ Inviter un utilisateur</button>
 
         <div style={S.navSection}>
           <div style={S.navLabel}>Navigation</div>

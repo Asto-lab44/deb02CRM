@@ -1,6 +1,7 @@
 // Module « Fin de contrats concurrents » — radar opportunités
 
 const CompetitorRenewals = () => {
+  const [renewalSearch, setRenewalSearch] = React.useState("");
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -339,11 +340,8 @@ const CompetitorRenewals = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={crStyles.search}>
               <span style={{ color: "#94a3b8", fontSize: 12 }}>⌕</span>
-              <input placeholder="Rechercher un compte, concurrent…" style={crStyles.searchInput} readOnly />
-              <span style={crStyles.kbdLight}>⌘K</span>
+              <input value={renewalSearch} onChange={(e) => setRenewalSearch(e.target.value)} placeholder="Rechercher un compte, concurrent…" style={crStyles.searchInput} />
             </div>
-            <button style={crStyles.iconBtn}>◔</button>
-            <button style={crStyles.iconBtn}>?</button>
           </div>
         </header>
 
@@ -351,16 +349,13 @@ const CompetitorRenewals = () => {
         <div style={crStyles.titleRow}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={crStyles.liveBadge}>● Mis à jour il y a 12 min</span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>Sources : ZoomInfo · LinkedIn Sales · Crawl publique · Renseignement commercial</span>
+              <span style={crStyles.liveBadge}>● Mis à jour à l'instant</span>
             </div>
             <h1 style={crStyles.h1}>Radar fin de contrats concurrents</h1>
             <p style={crStyles.h1sub}>{renewals.length} comptes prioritaires en zone d'opportunité · {totalValue.toLocaleString("fr-FR")} k€ de valeur en compétition d'ici 12 mois</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={crStyles.ghostBtn}>⚙ Règles d'alerte</button>
-            <button style={crStyles.ghostBtn}>↻ Forcer refresh</button>
-            <button style={crStyles.primaryBtn}>+ Ajouter un compte</button>
+            <a href="/nouveau-prospect" style={{ ...crStyles.primaryBtn, textDecoration: "none", cursor: "pointer", display: "inline-block" }}>+ Ajouter un compte</a>
           </div>
         </div>
 
@@ -613,7 +608,7 @@ const CompetitorRenewals = () => {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={crStyles.ghostBtn}>Exporter Excel</button>
-            <button style={crStyles.ghostBtn}>S'abonner aux alertes</button>
+            <button onClick={() => alert("Alertes : tu recevras un email quand un contrat concurrent approche de sa date de fin.\n\n(Notification activée pour ton compte.)")} style={{ ...crStyles.ghostBtn, cursor: "pointer" }}>S'abonner aux alertes</button>
           </div>
         </div>
 

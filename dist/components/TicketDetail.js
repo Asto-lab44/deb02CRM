@@ -659,22 +659,19 @@ var TicketDetail = ({
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    style: tdStyles.iconBtn,
+    style: {
+      ...tdStyles.iconBtn,
+      cursor: "pointer"
+    },
     onClick: onBack,
     title: "Retour \xE0 la liste"
   }, "\u2039"), /*#__PURE__*/React.createElement("button", {
-    style: tdStyles.iconBtn,
-    title: "Suivant"
-  }, "\u203A"), /*#__PURE__*/React.createElement("button", {
     onClick: () => showFlash("✓ Vous suivez ce ticket — notifications activées"),
     style: {
       ...tdStyles.ghostBtn,
       cursor: "pointer"
     }
-  }, "\u2605 Suivre"), /*#__PURE__*/React.createElement("button", {
-    style: tdStyles.iconBtn,
-    title: "Plus d'actions"
-  }, "\u22EF"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u2605 Suivre"))), /*#__PURE__*/React.createElement("div", {
     style: tdStyles.body
   }, /*#__PURE__*/React.createElement("section", {
     style: tdStyles.convCol

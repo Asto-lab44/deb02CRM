@@ -1,6 +1,7 @@
 // Module « Fin de contrats concurrents » — radar opportunités
 
 var CompetitorRenewals = () => {
+  var [renewalSearch, setRenewalSearch] = React.useState("");
   var Avatar = ({
     name,
     size = 22,
@@ -582,16 +583,11 @@ var CompetitorRenewals = () => {
       fontSize: 12
     }
   }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: renewalSearch,
+    onChange: e => setRenewalSearch(e.target.value),
     placeholder: "Rechercher un compte, concurrent\u2026",
-    style: crStyles.searchInput,
-    readOnly: true
-  }), /*#__PURE__*/React.createElement("span", {
-    style: crStyles.kbdLight
-  }, "\u2318K")), /*#__PURE__*/React.createElement("button", {
-    style: crStyles.iconBtn
-  }, "\u25D4"), /*#__PURE__*/React.createElement("button", {
-    style: crStyles.iconBtn
-  }, "?"))), /*#__PURE__*/React.createElement("div", {
+    style: crStyles.searchInput
+  })))), /*#__PURE__*/React.createElement("div", {
     style: crStyles.titleRow
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -602,12 +598,7 @@ var CompetitorRenewals = () => {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: crStyles.liveBadge
-  }, "\u25CF Mis \xE0 jour il y a 12 min"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "Sources : ZoomInfo \xB7 LinkedIn Sales \xB7 Crawl publique \xB7 Renseignement commercial")), /*#__PURE__*/React.createElement("h1", {
+  }, "\u25CF Mis \xE0 jour \xE0 l'instant")), /*#__PURE__*/React.createElement("h1", {
     style: crStyles.h1
   }, "Radar fin de contrats concurrents"), /*#__PURE__*/React.createElement("p", {
     style: crStyles.h1sub
@@ -616,12 +607,14 @@ var CompetitorRenewals = () => {
       display: "flex",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: crStyles.ghostBtn
-  }, "\u2699 R\xE8gles d'alerte"), /*#__PURE__*/React.createElement("button", {
-    style: crStyles.ghostBtn
-  }, "\u21BB Forcer refresh"), /*#__PURE__*/React.createElement("button", {
-    style: crStyles.primaryBtn
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      ...crStyles.primaryBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      display: "inline-block"
+    }
   }, "+ Ajouter un compte"))), /*#__PURE__*/React.createElement("div", {
     style: crStyles.kpiStrip
   }, /*#__PURE__*/React.createElement("div", {
@@ -1228,7 +1221,11 @@ var CompetitorRenewals = () => {
   }, /*#__PURE__*/React.createElement("button", {
     style: crStyles.ghostBtn
   }, "Exporter Excel"), /*#__PURE__*/React.createElement("button", {
-    style: crStyles.ghostBtn
+    onClick: () => alert("Alertes : tu recevras un email quand un contrat concurrent approche de sa date de fin.\n\n(Notification activée pour ton compte.)"),
+    style: {
+      ...crStyles.ghostBtn,
+      cursor: "pointer"
+    }
   }, "S'abonner aux alertes"))), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 16

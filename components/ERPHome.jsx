@@ -327,12 +327,7 @@ const ERPHome = () => {
             <span style={erpStyles.todayChip}>mardi 26 mai 2026 · 09:42</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button style={erpStyles.iconBtn} title="Notifications">
-              <span style={{ fontSize: 13 }}>◔</span>
-              <span style={erpStyles.notifDot} />
-            </button>
-            <button style={erpStyles.iconBtn}>?</button>
-            <button style={erpStyles.iconBtn}>⚙</button>
+            <a href="/administration-utilisateurs" style={{ ...erpStyles.iconBtn, textDecoration: "none", color: "inherit" }} title="Administration">⚙</a>
           </div>
         </header>
 

@@ -22,8 +22,8 @@ const RadarAccountDetail = () => {
           <span style={radStyles.refMono}>REN-2026-001</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button style={radStyles.ghostBtn}>★ Suivre</button>
-          <button style={radStyles.primaryBtn}>→ Convertir en opportunité</button>
+          <a href="/fins-contrats-concurrents" style={{ ...radStyles.ghostBtn, textDecoration: "none", cursor: "pointer", display: "inline-block" }}>← Retour radar</a>
+          <a href="/nouvelle-opportunite" style={{ ...radStyles.primaryBtn, textDecoration: "none", cursor: "pointer", display: "inline-block" }}>→ Convertir en opportunité</a>
         </div>
       </div>
 
@@ -88,10 +88,9 @@ const RadarAccountDetail = () => {
 
             {/* Action bar */}
             <div style={radStyles.actionBar}>
-              <button style={radStyles.primaryBtn}>+ Créer opportunité</button>
-              <button style={radStyles.ghostBtn}>✉ Email à Élise Vasseur</button>
-              <button style={radStyles.ghostBtn}>📅 Planifier RDV</button>
-              <button style={radStyles.ghostBtn}>📞 Logger appel</button>
+              <a href="/nouvelle-opportunite" style={{ ...radStyles.primaryBtn, textDecoration: "none", cursor: "pointer", display: "inline-block" }}>+ Créer opportunité</a>
+              <a href="mailto:elise.vasseur@example.com" style={{ ...radStyles.ghostBtn, textDecoration: "none", cursor: "pointer", display: "inline-block" }}>✉ Envoyer un email</a>
+              <a href="tel:+33000000000" style={{ ...radStyles.ghostBtn, textDecoration: "none", cursor: "pointer", display: "inline-block" }}>📞 Appeler</a>
               <button style={radStyles.ghostBtn}>📎 Joindre signal</button>
               <span style={{ flex: 1 }} />
               <button style={radStyles.dangerGhost}>Marquer non-pertinent</button>

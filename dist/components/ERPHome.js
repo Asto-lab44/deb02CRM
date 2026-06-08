@@ -798,19 +798,14 @@ var ERPHome = () => {
       alignItems: "center",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.iconBtn,
-    title: "Notifications"
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/administration-utilisateurs",
     style: {
-      fontSize: 13
-    }
-  }, "\u25D4"), /*#__PURE__*/React.createElement("span", {
-    style: erpStyles.notifDot
-  })), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.iconBtn
-  }, "?"), /*#__PURE__*/React.createElement("button", {
-    style: erpStyles.iconBtn
+      ...erpStyles.iconBtn,
+      textDecoration: "none",
+      color: "inherit"
+    },
+    title: "Administration"
   }, "\u2699"))), /*#__PURE__*/React.createElement("section", {
     style: erpStyles.hero
   }, /*#__PURE__*/React.createElement("div", {

@@ -9,6 +9,11 @@ const UserManagement = () => {
   const currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
 
   const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
+  const [activeTab, setActiveTab] = React.useState("groups");
+  const [userSearch, setUserSearch] = React.useState("");
+  const [userFilterStatus, setUserFilterStatus] = React.useState(""); // "" | "online" | "away" | "offline"
+  const [userPage, setUserPage] = React.useState(1);
+  const USER_PAGE_SIZE = 10;
   const [loginOpen, setLoginOpen] = React.useState(false);
   const [savedFlash, setSavedFlash] = React.useState(null);
   const flashTimer = React.useRef(null);
@@ -130,12 +135,18 @@ const UserManagement = () => {
 
         <div style={S.navSection}>
           <div style={S.navLabel}>Administration</div>
-          <div style={{ ...S.navItem, ...S.navItemActive }}><span style={S.bullet}>◐</span><span style={{ flex: 1 }}>Groupes & accès</span><span style={{ ...S.navCount, background: "#3730a3", color: "#fff" }}>{groups.length}</span></div>
-          <div style={S.navItem}><span style={S.bullet}>◯</span><span style={{ flex: 1 }}>Utilisateurs</span><span style={S.navCount}>{users.length}</span></div>
-          <div style={S.navItem}><span style={S.bullet}>◇</span><span style={{ flex: 1 }}>Invitations</span><span style={S.navCount}>3</span></div>
-          <div style={S.navItem}><span style={S.bullet}>◑</span><span style={{ flex: 1 }}>Rôles & permissions</span></div>
-          <div style={S.navItem}><span style={S.bullet}>◧</span><span style={{ flex: 1 }}>Sécurité & SSO</span></div>
-          <div style={S.navItem}><span style={S.bullet}>◨</span><span style={{ flex: 1 }}>Audit & journal</span></div>
+          <div onClick={() => setActiveTab("groups")} style={{ ...S.navItem, ...(activeTab === "groups" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>◐</span><span style={{ flex: 1 }}>Groupes & accès</span><span style={{ ...S.navCount, ...(activeTab === "groups" ? { background: "#3730a3", color: "#fff" } : {}) }}>{groups.length}</span>
+          </div>
+          <div onClick={() => setActiveTab("users")} style={{ ...S.navItem, ...(activeTab === "users" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>◯</span><span style={{ flex: 1 }}>Utilisateurs</span><span style={{ ...S.navCount, ...(activeTab === "users" ? { background: "#3730a3", color: "#fff" } : {}) }}>{users.length}</span>
+          </div>
+          <div onClick={() => setActiveTab("invitations")} style={{ ...S.navItem, ...(activeTab === "invitations" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>◇</span><span style={{ flex: 1 }}>Invitations</span>
+          </div>
+          <div onClick={() => setActiveTab("audit")} style={{ ...S.navItem, ...(activeTab === "audit" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>◨</span><span style={{ flex: 1 }}>Audit & journal</span>
+          </div>
         </div>
 
         <div style={{ marginTop: "auto", padding: 10, borderRadius: 8, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 11.5, color: "#475569" }}>
@@ -210,10 +221,13 @@ const UserManagement = () => {
                 title="Supprimer toutes les données métier (clients, opps, contacts, actions, contrats)"
               >🗑 Reset données</button>
               <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinit. groupes</button>
-              <button
-                onClick={() => { flash("⟳ Synchronisation SSO lancée — 0 changement détecté"); }}
-                style={{ ...S.btnGhost, cursor: "pointer" }}
-              >⟳ Synchroniser SSO</button>
+              <a
+                href="https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/providers"
+                target="_blank"
+                rel="noopener"
+                style={{ ...S.btnGhost, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+                title="Configurer SAML / OAuth / SSO dans Supabase"
+              >🔗 Configurer SSO →</a>
               <button
                 onClick={() => {
                   const label = prompt("Nom du nouveau groupe :");
@@ -239,14 +253,25 @@ const UserManagement = () => {
 
         {/* TABS */}
         <div style={S.tabsRow}>
-          <div style={{ ...S.tab, ...S.tabActive }}>Groupes <span style={S.tabBadge}>{groups.length}</span></div>
-          <div style={S.tab}>Utilisateurs <span style={S.tabBadge}>{users.length}</span></div>
-          <div style={S.tab}>Invitations <span style={S.tabBadge}>3</span></div>
-          <div style={S.tab}>Journal d'audit</div>
+          {[
+            { k: "groups",      label: "Groupes",        badge: groups.length },
+            { k: "users",       label: "Utilisateurs",   badge: users.length },
+            { k: "invitations", label: "Invitations",    badge: 0 },
+            { k: "audit",       label: "Journal d'audit" },
+          ].map((t) => (
+            <div
+              key={t.k}
+              onClick={() => setActiveTab(t.k)}
+              style={{ ...S.tab, ...(activeTab === t.k ? S.tabActive : {}), cursor: "pointer" }}
+            >
+              {t.label}
+              {t.badge != null && <span style={S.tabBadge}>{t.badge}</span>}
+            </div>
+          ))}
         </div>
 
         {/* GROUPES + DÉTAIL */}
-        <section style={S.splitRow}>
+        {activeTab === "groups" && <section style={S.splitRow}>
           {/* Liste des groupes */}
           <div style={S.groupsCol}>
             <div style={S.colHeader}>
@@ -350,7 +375,16 @@ const UserManagement = () => {
                   <div key={m} style={S.memberChip}>
                     <Avatar name={m} size={22} />
                     <span style={{ fontSize: 12.5, fontWeight: 500, color: "#1e293b" }}>{m}</span>
-                    <span style={{ fontSize: 11, color: "#94a3b8", cursor: "pointer" }}>×</span>
+                    <span
+                      onClick={() => {
+                        if (!confirm(`Retirer « ${m} » du groupe ${selectedGroup.name || selectedGroup.label} ?`)) return;
+                        const next = persistedGroups.map((g) => g.id === selectedGroup.id ? { ...g, members: (g.members || []).filter((x) => x !== m) } : g);
+                        window.HubAccess.saveGroups(next);
+                        flash("✓ Membre retiré du groupe");
+                      }}
+                      style={{ fontSize: 13, color: "#94a3b8", cursor: "pointer", padding: "0 4px" }}
+                      title="Retirer du groupe"
+                    >×</span>
                   </div>
                 ))}
               </div>
@@ -405,15 +439,51 @@ const UserManagement = () => {
               ))}
             </div>
           </div>
-        </section>
+        </section>}
 
-        {/* TABLE UTILISATEURS */}
-        <section style={S.usersCard}>
+        {activeTab === "invitations" && (
+          <section style={{ ...S.splitRow, gridTemplateColumns: "1fr" }}>
+            <div style={{ padding: 40, textAlign: "center", background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📨</div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 6px" }}>Aucune invitation en attente</h2>
+              <p style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 16px" }}>Les utilisateurs invités via le dashboard Supabase apparaissent ici tant qu'ils n'ont pas confirmé leur email.</p>
+              <a href="https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users" target="_blank" rel="noopener" style={{ display: "inline-block", padding: "8px 14px", background: "#0f172a", color: "#fff", borderRadius: 7, textDecoration: "none", fontSize: 13, fontWeight: 600 }}>+ Inviter dans Supabase →</a>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "audit" && (
+          <section style={{ ...S.splitRow, gridTemplateColumns: "1fr" }}>
+            <div style={{ padding: 40, textAlign: "center", background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📜</div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 6px" }}>Journal d'audit</h2>
+              <p style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 8px" }}>Le journal d'audit (connexions, modifications de groupes, suppressions) nécessite une table dédiée dans Supabase.</p>
+              <p style={{ fontSize: 11.5, color: "#94a3b8", margin: 0, fontFamily: "'JetBrains Mono', monospace" }}>À venir : audit_logs (auth.users, action, target, timestamp)</p>
+            </div>
+          </section>
+        )}
+
+        {/* TABLE UTILISATEURS — masquée si onglet Invitations ou Audit actif */}
+        {(activeTab === "groups" || activeTab === "users") && <section style={S.usersCard}>
           <div style={S.colHeader}>
             <span>Tous les utilisateurs</span>
             <div style={{ display: "flex", gap: 8 }}>
-              <input style={S.search} placeholder="Filtrer par nom, email, groupe…" />
-              <button style={S.btnGhost}>Filtres</button>
+              <input
+                style={S.search}
+                placeholder="Filtrer par nom, email, rôle…"
+                value={userSearch}
+                onChange={(e) => { setUserSearch(e.target.value); setUserPage(1); }}
+              />
+              <select
+                value={userFilterStatus}
+                onChange={(e) => { setUserFilterStatus(e.target.value); setUserPage(1); }}
+                style={{ ...S.btnGhost, cursor: "pointer", paddingRight: 28 }}
+              >
+                <option value="">Tous statuts</option>
+                <option value="online">● En ligne</option>
+                <option value="away">● Absent</option>
+                <option value="offline">○ Hors ligne</option>
+              </select>
             </div>
           </div>
           <table style={S.table}>
@@ -428,7 +498,22 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {(() => {
+                const q = userSearch.trim().toLowerCase();
+                const filtered = users.filter((u) => {
+                  if (userFilterStatus && u.status !== userFilterStatus) return false;
+                  if (q && !`${u.name} ${u.email} ${u.role}`.toLowerCase().includes(q)) return false;
+                  return true;
+                });
+                const totalP = Math.max(1, Math.ceil(filtered.length / USER_PAGE_SIZE));
+                const pageSafe = Math.min(userPage, totalP);
+                const slice = filtered.slice((pageSafe - 1) * USER_PAGE_SIZE, pageSafe * USER_PAGE_SIZE);
+                if (filtered.length === 0) {
+                  return (
+                    <tr><td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Aucun utilisateur ne correspond.</td></tr>
+                  );
+                }
+                return slice.map((u) => (
                 <tr key={u.email} style={S.tr}>
                   <td style={S.td}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -459,21 +544,46 @@ const UserManagement = () => {
                   </td>
                   <td style={{ ...S.td, color: "#64748b", fontSize: 12 }}>{u.last}</td>
                   <td style={{ ...S.td, textAlign: "right" }}>
-                    <button style={S.iconBtn}>⋯</button>
+                    <a
+                      href={`https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users`}
+                      target="_blank"
+                      rel="noopener"
+                      style={{ ...S.iconBtn, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      title="Gérer ce compte dans Supabase Auth"
+                    >⋯</a>
                   </td>
                 </tr>
-              ))}
+                ));
+              })()}
             </tbody>
           </table>
-          <div style={S.tableFoot}>
-            <div>Affichage 1–{users.length} sur {users.length} utilisateurs</div>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <button style={S.pageBtn}>‹</button>
-              <button style={{ ...S.pageBtn, ...S.pageBtnActive }}>1</button>
-              <button style={S.pageBtn}>›</button>
-            </div>
-          </div>
-        </section>
+          {(() => {
+            const q = userSearch.trim().toLowerCase();
+            const filtered = users.filter((u) => {
+              if (userFilterStatus && u.status !== userFilterStatus) return false;
+              if (q && !`${u.name} ${u.email} ${u.role}`.toLowerCase().includes(q)) return false;
+              return true;
+            });
+            const totalP = Math.max(1, Math.ceil(filtered.length / USER_PAGE_SIZE));
+            const pageSafe = Math.min(userPage, totalP);
+            const start = (pageSafe - 1) * USER_PAGE_SIZE + 1;
+            const end = Math.min(pageSafe * USER_PAGE_SIZE, filtered.length);
+            return (
+              <div style={S.tableFoot}>
+                <div>{filtered.length === 0 ? "Aucun résultat" : `Affichage ${start}–${end} sur ${filtered.length} utilisateur${filtered.length > 1 ? "s" : ""}`}{q || userFilterStatus ? ` (filtré sur ${users.length})` : ""}</div>
+                {totalP > 1 && (
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <button onClick={() => setUserPage((p) => Math.max(1, p - 1))} disabled={pageSafe === 1} style={{ ...S.pageBtn, opacity: pageSafe === 1 ? 0.5 : 1, cursor: pageSafe === 1 ? "not-allowed" : "pointer" }}>‹</button>
+                    {Array.from({ length: totalP }, (_, i) => i + 1).map((n) => (
+                      <button key={n} onClick={() => setUserPage(n)} style={{ ...S.pageBtn, ...(pageSafe === n ? S.pageBtnActive : {}), cursor: "pointer" }}>{n}</button>
+                    ))}
+                    <button onClick={() => setUserPage((p) => Math.min(totalP, p + 1))} disabled={pageSafe === totalP} style={{ ...S.pageBtn, opacity: pageSafe === totalP ? 0.5 : 1, cursor: pageSafe === totalP ? "not-allowed" : "pointer" }}>›</button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </section>}
       </main>
     </div>
   );

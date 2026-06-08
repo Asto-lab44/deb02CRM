@@ -8,6 +8,11 @@ var UserManagement = () => {
   var activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
   var currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
   var [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
+  var [activeTab, setActiveTab] = React.useState("groups");
+  var [userSearch, setUserSearch] = React.useState("");
+  var [userFilterStatus, setUserFilterStatus] = React.useState(""); // "" | "online" | "away" | "offline"
+  var [userPage, setUserPage] = React.useState(1);
+  var USER_PAGE_SIZE = 10;
   var [loginOpen, setLoginOpen] = React.useState(false);
   var [savedFlash, setSavedFlash] = React.useState(null);
   var flashTimer = React.useRef(null);
@@ -337,9 +342,11 @@ var UserManagement = () => {
   }, /*#__PURE__*/React.createElement("div", {
     style: S.navLabel
   }, "Administration"), /*#__PURE__*/React.createElement("div", {
+    onClick: () => setActiveTab("groups"),
     style: {
       ...S.navItem,
-      ...S.navItemActive
+      ...(activeTab === "groups" ? S.navItemActive : {}),
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: S.bullet
@@ -350,11 +357,18 @@ var UserManagement = () => {
   }, "Groupes & acc\xE8s"), /*#__PURE__*/React.createElement("span", {
     style: {
       ...S.navCount,
-      background: "#3730a3",
-      color: "#fff"
+      ...(activeTab === "groups" ? {
+        background: "#3730a3",
+        color: "#fff"
+      } : {})
     }
   }, groups.length)), /*#__PURE__*/React.createElement("div", {
-    style: S.navItem
+    onClick: () => setActiveTab("users"),
+    style: {
+      ...S.navItem,
+      ...(activeTab === "users" ? S.navItemActive : {}),
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: S.bullet
   }, "\u25EF"), /*#__PURE__*/React.createElement("span", {
@@ -362,35 +376,33 @@ var UserManagement = () => {
       flex: 1
     }
   }, "Utilisateurs"), /*#__PURE__*/React.createElement("span", {
-    style: S.navCount
+    style: {
+      ...S.navCount,
+      ...(activeTab === "users" ? {
+        background: "#3730a3",
+        color: "#fff"
+      } : {})
+    }
   }, users.length)), /*#__PURE__*/React.createElement("div", {
-    style: S.navItem
+    onClick: () => setActiveTab("invitations"),
+    style: {
+      ...S.navItem,
+      ...(activeTab === "invitations" ? S.navItemActive : {}),
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: S.bullet
   }, "\u25C7"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1
     }
-  }, "Invitations"), /*#__PURE__*/React.createElement("span", {
-    style: S.navCount
-  }, "3")), /*#__PURE__*/React.createElement("div", {
-    style: S.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: S.bullet
-  }, "\u25D1"), /*#__PURE__*/React.createElement("span", {
+  }, "Invitations")), /*#__PURE__*/React.createElement("div", {
+    onClick: () => setActiveTab("audit"),
     style: {
-      flex: 1
+      ...S.navItem,
+      ...(activeTab === "audit" ? S.navItemActive : {}),
+      cursor: "pointer"
     }
-  }, "R\xF4les & permissions")), /*#__PURE__*/React.createElement("div", {
-    style: S.navItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: S.bullet
-  }, "\u25E7"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "S\xE9curit\xE9 & SSO")), /*#__PURE__*/React.createElement("div", {
-    style: S.navItem
   }, /*#__PURE__*/React.createElement("span", {
     style: S.bullet
   }, "\u25E8"), /*#__PURE__*/React.createElement("span", {
@@ -596,15 +608,19 @@ var UserManagement = () => {
       }
     },
     style: S.btnGhost
-  }, "\u27F2 R\xE9init. groupes"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      flash("⟳ Synchronisation SSO lancée — 0 changement détecté");
-    },
+  }, "\u27F2 R\xE9init. groupes"), /*#__PURE__*/React.createElement("a", {
+    href: "https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/providers",
+    target: "_blank",
+    rel: "noopener",
     style: {
       ...S.btnGhost,
-      cursor: "pointer"
-    }
-  }, "\u27F3 Synchroniser SSO"), /*#__PURE__*/React.createElement("button", {
+      cursor: "pointer",
+      textDecoration: "none",
+      display: "inline-flex",
+      alignItems: "center"
+    },
+    title: "Configurer SAML / OAuth / SSO dans Supabase"
+  }, "\uD83D\uDD17 Configurer SSO \u2192"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       var label = prompt("Nom du nouveau groupe :");
       if (!label || !label.trim()) return;
@@ -631,24 +647,32 @@ var UserManagement = () => {
     }
   }, "+ Nouveau groupe")))), /*#__PURE__*/React.createElement("div", {
     style: S.tabsRow
-  }, /*#__PURE__*/React.createElement("div", {
+  }, [{
+    k: "groups",
+    label: "Groupes",
+    badge: groups.length
+  }, {
+    k: "users",
+    label: "Utilisateurs",
+    badge: users.length
+  }, {
+    k: "invitations",
+    label: "Invitations",
+    badge: 0
+  }, {
+    k: "audit",
+    label: "Journal d'audit"
+  }].map(t => /*#__PURE__*/React.createElement("div", {
+    key: t.k,
+    onClick: () => setActiveTab(t.k),
     style: {
       ...S.tab,
-      ...S.tabActive
+      ...(activeTab === t.k ? S.tabActive : {}),
+      cursor: "pointer"
     }
-  }, "Groupes ", /*#__PURE__*/React.createElement("span", {
+  }, t.label, t.badge != null && /*#__PURE__*/React.createElement("span", {
     style: S.tabBadge
-  }, groups.length)), /*#__PURE__*/React.createElement("div", {
-    style: S.tab
-  }, "Utilisateurs ", /*#__PURE__*/React.createElement("span", {
-    style: S.tabBadge
-  }, users.length)), /*#__PURE__*/React.createElement("div", {
-    style: S.tab
-  }, "Invitations ", /*#__PURE__*/React.createElement("span", {
-    style: S.tabBadge
-  }, "3")), /*#__PURE__*/React.createElement("div", {
-    style: S.tab
-  }, "Journal d'audit")), /*#__PURE__*/React.createElement("section", {
+  }, t.badge)))), activeTab === "groups" && /*#__PURE__*/React.createElement("section", {
     style: S.splitRow
   }, /*#__PURE__*/React.createElement("div", {
     style: S.groupsCol
@@ -918,11 +942,22 @@ var UserManagement = () => {
       color: "#1e293b"
     }
   }, m), /*#__PURE__*/React.createElement("span", {
+    onClick: () => {
+      if (!confirm(`Retirer « ${m} » du groupe ${selectedGroup.name || selectedGroup.label} ?`)) return;
+      var next = persistedGroups.map(g => g.id === selectedGroup.id ? {
+        ...g,
+        members: (g.members || []).filter(x => x !== m)
+      } : g);
+      window.HubAccess.saveGroups(next);
+      flash("✓ Membre retiré du groupe");
+    },
     style: {
-      fontSize: 11,
+      fontSize: 13,
       color: "#94a3b8",
-      cursor: "pointer"
-    }
+      cursor: "pointer",
+      padding: "0 4px"
+    },
+    title: "Retirer du groupe"
   }, "\xD7"))))), /*#__PURE__*/React.createElement("div", {
     style: S.section
   }, /*#__PURE__*/React.createElement("div", {
@@ -1009,7 +1044,90 @@ var UserManagement = () => {
     }, on ? "Visible sur l'Accueil" : "Masqué pour ce groupe")), /*#__PURE__*/React.createElement(Toggle, {
       on: on
     }));
-  }))))))), /*#__PURE__*/React.createElement("section", {
+  }))))))), activeTab === "invitations" && /*#__PURE__*/React.createElement("section", {
+    style: {
+      ...S.splitRow,
+      gridTemplateColumns: "1fr"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 36,
+      marginBottom: 12
+    }
+  }, "\uD83D\uDCE8"), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: "0 0 6px"
+    }
+  }, "Aucune invitation en attente"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12.5,
+      color: "#64748b",
+      margin: "0 0 16px"
+    }
+  }, "Les utilisateurs invit\xE9s via le dashboard Supabase apparaissent ici tant qu'ils n'ont pas confirm\xE9 leur email."), /*#__PURE__*/React.createElement("a", {
+    href: "https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users",
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      display: "inline-block",
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      borderRadius: 7,
+      textDecoration: "none",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "+ Inviter dans Supabase \u2192"))), activeTab === "audit" && /*#__PURE__*/React.createElement("section", {
+    style: {
+      ...S.splitRow,
+      gridTemplateColumns: "1fr"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 36,
+      marginBottom: 12
+    }
+  }, "\uD83D\uDCDC"), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: "0 0 6px"
+    }
+  }, "Journal d'audit"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12.5,
+      color: "#64748b",
+      margin: "0 0 8px"
+    }
+  }, "Le journal d'audit (connexions, modifications de groupes, suppressions) n\xE9cessite une table d\xE9di\xE9e dans Supabase."), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11.5,
+      color: "#94a3b8",
+      margin: 0,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, "\xC0 venir : audit_logs (auth.users, action, target, timestamp)"))), (activeTab === "groups" || activeTab === "users") && /*#__PURE__*/React.createElement("section", {
     style: S.usersCard
   }, /*#__PURE__*/React.createElement("div", {
     style: S.colHeader
@@ -1020,10 +1138,32 @@ var UserManagement = () => {
     }
   }, /*#__PURE__*/React.createElement("input", {
     style: S.search,
-    placeholder: "Filtrer par nom, email, groupe\u2026"
-  }), /*#__PURE__*/React.createElement("button", {
-    style: S.btnGhost
-  }, "Filtres"))), /*#__PURE__*/React.createElement("table", {
+    placeholder: "Filtrer par nom, email, r\xF4le\u2026",
+    value: userSearch,
+    onChange: e => {
+      setUserSearch(e.target.value);
+      setUserPage(1);
+    }
+  }), /*#__PURE__*/React.createElement("select", {
+    value: userFilterStatus,
+    onChange: e => {
+      setUserFilterStatus(e.target.value);
+      setUserPage(1);
+    },
+    style: {
+      ...S.btnGhost,
+      cursor: "pointer",
+      paddingRight: 28
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Tous statuts"), /*#__PURE__*/React.createElement("option", {
+    value: "online"
+  }, "\u25CF En ligne"), /*#__PURE__*/React.createElement("option", {
+    value: "away"
+  }, "\u25CF Absent"), /*#__PURE__*/React.createElement("option", {
+    value: "offline"
+  }, "\u25CB Hors ligne")))), /*#__PURE__*/React.createElement("table", {
     style: S.table
   }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
     style: S.th
@@ -1040,113 +1180,175 @@ var UserManagement = () => {
       ...S.th,
       textAlign: "right"
     }
-  }, "Actions"))), /*#__PURE__*/React.createElement("tbody", null, users.map(u => /*#__PURE__*/React.createElement("tr", {
-    key: u.email,
-    style: S.tr
-  }, /*#__PURE__*/React.createElement("td", {
-    style: S.td
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10
+  }, "Actions"))), /*#__PURE__*/React.createElement("tbody", null, (() => {
+    var q = userSearch.trim().toLowerCase();
+    var filtered = users.filter(u => {
+      if (userFilterStatus && u.status !== userFilterStatus) return false;
+      if (q && !`${u.name} ${u.email} ${u.role}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    var totalP = Math.max(1, Math.ceil(filtered.length / USER_PAGE_SIZE));
+    var pageSafe = Math.min(userPage, totalP);
+    var slice = filtered.slice((pageSafe - 1) * USER_PAGE_SIZE, pageSafe * USER_PAGE_SIZE);
+    if (filtered.length === 0) {
+      return /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+        colSpan: 5,
+        style: {
+          padding: 24,
+          textAlign: "center",
+          color: "#94a3b8",
+          fontSize: 13
+        }
+      }, "Aucun utilisateur ne correspond."));
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: u.name,
-    size: 28
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      right: -1,
-      bottom: -1,
-      width: 8,
-      height: 8,
-      borderRadius: 999,
-      background: statusColor[u.status],
-      border: "1.5px solid #fff"
-    }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, u.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "#94a3b8"
-    }
-  }, u.email)))), /*#__PURE__*/React.createElement("td", {
-    style: S.td
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      color: "#475569"
-    }
-  }, u.role)), /*#__PURE__*/React.createElement("td", {
-    style: S.td
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 4
-    }
-  }, u.groups.map(gid => {
-    var g = groups.find(x => x.id === gid);
-    return g ? groupChip(g) : null;
-  }))), /*#__PURE__*/React.createElement("td", {
-    style: S.td
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 12,
-      color: "#475569",
-      textTransform: "capitalize"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: 999,
-      background: statusColor[u.status]
-    }
-  }), u.status === "online" ? "En ligne" : u.status === "away" ? "Absent" : "Hors ligne")), /*#__PURE__*/React.createElement("td", {
-    style: {
-      ...S.td,
-      color: "#64748b",
-      fontSize: 12
-    }
-  }, u.last), /*#__PURE__*/React.createElement("td", {
-    style: {
-      ...S.td,
-      textAlign: "right"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: S.iconBtn
-  }, "\u22EF")))))), /*#__PURE__*/React.createElement("div", {
-    style: S.tableFoot
-  }, /*#__PURE__*/React.createElement("div", null, "Affichage 1\u2013", users.length, " sur ", users.length, " utilisateurs"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: S.pageBtn
-  }, "\u2039"), /*#__PURE__*/React.createElement("button", {
-    style: {
-      ...S.pageBtn,
-      ...S.pageBtnActive
-    }
-  }, "1"), /*#__PURE__*/React.createElement("button", {
-    style: S.pageBtn
-  }, "\u203A"))))));
+    return slice.map(u => /*#__PURE__*/React.createElement("tr", {
+      key: u.email,
+      style: S.tr
+    }, /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement(Avatar, {
+      name: u.name,
+      size: 28
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        right: -1,
+        bottom: -1,
+        width: 8,
+        height: 8,
+        borderRadius: 999,
+        background: statusColor[u.status],
+        border: "1.5px solid #fff"
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, u.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#94a3b8"
+      }
+    }, u.email)))), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#475569"
+      }
+    }, u.role)), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4
+      }
+    }, u.groups.map(gid => {
+      var g = groups.find(x => x.id === gid);
+      return g ? groupChip(g) : null;
+    }))), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 12,
+        color: "#475569",
+        textTransform: "capitalize"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 999,
+        background: statusColor[u.status]
+      }
+    }), u.status === "online" ? "En ligne" : u.status === "away" ? "Absent" : "Hors ligne")), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...S.td,
+        color: "#64748b",
+        fontSize: 12
+      }
+    }, u.last), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...S.td,
+        textAlign: "right"
+      }
+    }, /*#__PURE__*/React.createElement("a", {
+      href: `https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users`,
+      target: "_blank",
+      rel: "noopener",
+      style: {
+        ...S.iconBtn,
+        textDecoration: "none",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer"
+      },
+      title: "G\xE9rer ce compte dans Supabase Auth"
+    }, "\u22EF"))));
+  })())), (() => {
+    var q = userSearch.trim().toLowerCase();
+    var filtered = users.filter(u => {
+      if (userFilterStatus && u.status !== userFilterStatus) return false;
+      if (q && !`${u.name} ${u.email} ${u.role}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    var totalP = Math.max(1, Math.ceil(filtered.length / USER_PAGE_SIZE));
+    var pageSafe = Math.min(userPage, totalP);
+    var start = (pageSafe - 1) * USER_PAGE_SIZE + 1;
+    var end = Math.min(pageSafe * USER_PAGE_SIZE, filtered.length);
+    return /*#__PURE__*/React.createElement("div", {
+      style: S.tableFoot
+    }, /*#__PURE__*/React.createElement("div", null, filtered.length === 0 ? "Aucun résultat" : `Affichage ${start}–${end} sur ${filtered.length} utilisateur${filtered.length > 1 ? "s" : ""}`, q || userFilterStatus ? ` (filtré sur ${users.length})` : ""), totalP > 1 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setUserPage(p => Math.max(1, p - 1)),
+      disabled: pageSafe === 1,
+      style: {
+        ...S.pageBtn,
+        opacity: pageSafe === 1 ? 0.5 : 1,
+        cursor: pageSafe === 1 ? "not-allowed" : "pointer"
+      }
+    }, "\u2039"), Array.from({
+      length: totalP
+    }, (_, i) => i + 1).map(n => /*#__PURE__*/React.createElement("button", {
+      key: n,
+      onClick: () => setUserPage(n),
+      style: {
+        ...S.pageBtn,
+        ...(pageSafe === n ? S.pageBtnActive : {}),
+        cursor: "pointer"
+      }
+    }, n)), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setUserPage(p => Math.min(totalP, p + 1)),
+      disabled: pageSafe === totalP,
+      style: {
+        ...S.pageBtn,
+        opacity: pageSafe === totalP ? 0.5 : 1,
+        cursor: pageSafe === totalP ? "not-allowed" : "pointer"
+      }
+    }, "\u203A")));
+  })())));
 };
 
 // ───────── STYLES

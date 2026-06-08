@@ -103,7 +103,7 @@ var CRMAccount = () => {
     type: "call",
     at: "09:18",
     title: "Appel sortant — 22 min",
-    who: "Karim Ben Salah → Antoine Mercier (CISO)",
+    who: "Romain Daviaud → Antoine Mercier (CISO)",
     note: "Validation du périmètre sécurité. Ouvert à un POC sur 50 utilisateurs.",
     color: "#10b981"
   }, {
@@ -1112,7 +1112,7 @@ var CRMAccount = () => {
         gap: 7
       }
     }, /*#__PURE__*/React.createElement(Avatar, {
-      name: "Karim Ben Salah",
+      name: "Romain Daviaud",
       size: 20,
       color: "#6366f1"
     }), /*#__PURE__*/React.createElement("span", {
@@ -1120,7 +1120,7 @@ var CRMAccount = () => {
         fontSize: 12.5,
         fontWeight: 500
       }
-    }, "Karim Ben Salah"))
+    }, "Romain Daviaud"))
   }), /*#__PURE__*/React.createElement(Field, {
     label: "Source",
     value: /*#__PURE__*/React.createElement("span", {

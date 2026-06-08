@@ -574,7 +574,7 @@ var HOTLINE_DEMO_CALLERS = [{
   email: "s.dubois@maif.fr",
   tier: "premium",
   contract: "Premium 24/7",
-  lastContact: "il y a 3 j (Karim B.S.)",
+  lastContact: "il y a 3 j (Romain D.)",
   openTickets: [{
     id: "INC-2841",
     title: "Impossible d'accéder à SharePoint Direction",

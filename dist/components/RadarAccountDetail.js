@@ -441,7 +441,7 @@ var RadarAccountDetail = () => {
     title: "Premier RDV — Pitch DORA + différenciants",
     desc: "14h00 visio · 30 min. Préparer : démo Cyber, calcul TCO comparatif, témoignage Crédit Mutuel Océan."
   }, {
-    who: "Karim Ben Salah",
+    who: "Romain Daviaud",
     when: "06 juin",
     title: "Réponse RFP",
     desc: "Date butoir : 18 juillet (avant échéance contrat SF — possible négociation reconduction)."
@@ -555,7 +555,7 @@ var RadarAccountDetail = () => {
       borderTop: "1px solid #f1f5f9"
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Karim Ben Salah",
+    name: "Romain Daviaud",
     size: 28,
     color: "#6366f1"
   }), /*#__PURE__*/React.createElement("div", {
@@ -567,7 +567,7 @@ var RadarAccountDetail = () => {
       fontSize: 12,
       fontWeight: 600
     }
-  }, "Karim Ben Salah"), /*#__PURE__*/React.createElement("div", {
+  }, "Romain Daviaud"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#94a3b8"

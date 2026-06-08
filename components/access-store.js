@@ -36,7 +36,7 @@
       id: "commercial", name: "Commercial", color: "#0ea5e9",
       description: "Équipes vente et avant-vente — pipeline, comptes, opportunités.",
       access: ["crm", "intel", "marketing", "billing", "reports"],
-      members: ["Karim Ben Salah", "Tom Verdier", "Émilie Garnier", "Antoine Mercier", "Julien Pasquier", "Marie Lopez", "Pierre Dubois", "Romain Faure"],
+      members: ["Romain Daviaud", "Tom Verdier", "Émilie Garnier", "Antoine Mercier", "Julien Pasquier", "Marie Lopez", "Pierre Dubois", "Romain Faure"],
     },
     {
       id: "support", name: "Support technique", color: "#0891b2",
@@ -81,7 +81,6 @@
     { email: "h.bertrand@astorya.fr",  password: "demo", name: "Hugo Bertrand",      role: "IT Manager",             groups: ["admin", "finance"] },
     { email: "c.marchand@astorya.fr",  password: "demo", name: "Catherine Marchand", role: "CEO",                    groups: ["direction"] },
     { email: "o.vasseur@astorya.fr",   password: "demo", name: "Olivier Vasseur",    role: "COO",                    groups: ["direction", "ops"] },
-    { email: "k.bensalah@astorya.fr",  password: "demo", name: "Karim Ben Salah",    role: "AE Senior Cyber",        groups: ["commercial"] },
     { email: "s.aubry@astorya.fr",     password: "demo", name: "Sophie Aubry",       role: "AE & DRH",               groups: ["direction", "rh"] },
     { email: "t.verdier@astorya.fr",   password: "demo", name: "Tom Verdier",        role: "AE Hub",                 groups: ["commercial"] },
     { email: "e.garnier@astorya.fr",   password: "demo", name: "Émilie Garnier",     role: "AE BENELUX",             groups: ["commercial", "marketing"] },

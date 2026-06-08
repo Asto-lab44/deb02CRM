@@ -165,7 +165,7 @@ const AdvanceOpportunity = () => {
     nego: [
       { check: true, p: "haute", title: "Présenter proposition finale", due: "À planifier", who: "Owner", icon: "📅" },
       { check: true, p: "haute", title: "Envoyer proposition v3 avec ajustements", due: "À planifier", who: "Owner", icon: "📧" },
-      { check: false, p: "moyenne", title: "Préparer matrice négociation (3 scénarios remise)", due: "À planifier", who: "Karim Ben Salah", icon: "📊" },
+      { check: false, p: "moyenne", title: "Préparer matrice négociation (3 scénarios remise)", due: "À planifier", who: "Romain Daviaud", icon: "📊" },
       { check: false, p: "moyenne", title: "Demander signature DPA + clause DORA", due: "À planifier", who: "Tom Verdier", icon: "⚖" },
     ],
     won: [
@@ -572,8 +572,8 @@ const AdvanceOpportunity = () => {
             </div>
             <div style={aoStyles.notifyRow}>
               <input type="checkbox" defaultChecked />
-              <AOAvatar name="Karim Ben Salah" size={20} color="#6366f1" />
-              <span style={{ fontSize: 11.5, flex: 1 }}>Karim Ben Salah · Co-owner</span>
+              <AOAvatar name="Romain Daviaud" size={20} color="#6366f1" />
+              <span style={{ fontSize: 11.5, flex: 1 }}>Romain Daviaud · Co-owner</span>
             </div>
             <div style={aoStyles.notifyRow}>
               <input type="checkbox" />

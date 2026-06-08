@@ -395,7 +395,7 @@ var AdvanceOpportunity = () => {
       p: "moyenne",
       title: "Préparer matrice négociation (3 scénarios remise)",
       due: "À planifier",
-      who: "Karim Ben Salah",
+      who: "Romain Daviaud",
       icon: "📊"
     }, {
       check: false,
@@ -1262,7 +1262,7 @@ var AdvanceOpportunity = () => {
     type: "checkbox",
     defaultChecked: true
   }), /*#__PURE__*/React.createElement(AOAvatar, {
-    name: "Karim Ben Salah",
+    name: "Romain Daviaud",
     size: 20,
     color: "#6366f1"
   }), /*#__PURE__*/React.createElement("span", {
@@ -1270,7 +1270,7 @@ var AdvanceOpportunity = () => {
       fontSize: 11.5,
       flex: 1
     }
-  }, "Karim Ben Salah \xB7 Co-owner")), /*#__PURE__*/React.createElement("div", {
+  }, "Romain Daviaud \xB7 Co-owner")), /*#__PURE__*/React.createElement("div", {
     style: aoStyles.notifyRow
   }, /*#__PURE__*/React.createElement("input", {
     type: "checkbox"

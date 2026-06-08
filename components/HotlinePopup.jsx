@@ -347,7 +347,7 @@ const HOTLINE_DEMO_CALLERS = [
   {
     id: "c1", phone: "+33 1 42 86 74 21", line: "Hotline support",
     name: "Sophie Dubois", company: "MAIF Innovation", email: "s.dubois@maif.fr",
-    tier: "premium", contract: "Premium 24/7", lastContact: "il y a 3 j (Karim B.S.)",
+    tier: "premium", contract: "Premium 24/7", lastContact: "il y a 3 j (Romain D.)",
     openTickets: [
       { id: "INC-2841", title: "Impossible d'accéder à SharePoint Direction", prio: "critique", sla: "warn", slaLeft: "47 min", opened: "il y a 28 min", assignee: "Non assigné" },
       { id: "INC-2829", title: "VPN se déconnecte toutes les 10 min", prio: "haute", sla: "danger", slaLeft: "22 min", opened: "il y a 1 j", assignee: "Tom Verdier" },

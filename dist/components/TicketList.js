@@ -238,7 +238,7 @@ var TicketList = () => {
     prio: "haute",
     cat: "Matériel · Imprimante",
     assignee: {
-      name: "Karim Ben Salah",
+      name: "Romain Daviaud",
       team: "Support N1"
     },
     opened: "il y a 2 h",
@@ -346,7 +346,7 @@ var TicketList = () => {
     prio: "normale",
     cat: "Messagerie",
     assignee: {
-      name: "Karim Ben Salah",
+      name: "Romain Daviaud",
       team: "Support N1"
     },
     opened: "il y a 2 j",

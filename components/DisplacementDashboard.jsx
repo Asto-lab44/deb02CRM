@@ -46,10 +46,10 @@ const DisplacementDashboard = () => {
   // Recent displacements
   const recent = [
     { type: "win", co: "Crédit Mutuel Océan", logo: "CM", logoBg: "#0f766e", from: "salesforce", value: 142, date: "il y a 8 j", owner: "Nadia Lefèvre", ownerColor: "#a855f7", reason: "Conformité DORA + TCO", cycle: 84 },
-    { type: "win", co: "BNP Asset Management", logo: "BP", logoBg: "#0f766e", from: "pega", value: 168, date: "il y a 12 j", owner: "Karim Ben Salah", ownerColor: "#6366f1", reason: "Time-to-value 3 mois", cycle: 102 },
+    { type: "win", co: "BNP Asset Management", logo: "BP", logoBg: "#0f766e", from: "pega", value: 168, date: "il y a 12 j", owner: "Romain Daviaud", ownerColor: "#6366f1", reason: "Time-to-value 3 mois", cycle: 102 },
     { type: "loss", co: "Macif Métropole", logo: "MM", logoBg: "#dc2626", from: "msft", value: 96, date: "il y a 14 j", owner: "Tom Verdier", ownerColor: "#f59e0b", reason: "Préférence statu-quo Microsoft", cycle: 124 },
-    { type: "win", co: "Aviva Investors FR", logo: "AV", logoBg: "#fbbf24", from: "salesforce", value: 88, date: "il y a 18 j", owner: "Karim Ben Salah", ownerColor: "#6366f1", reason: "Pricing add-ons SF rédhibitoire", cycle: 76 },
-    { type: "win", co: "Generali Patrimoine", logo: "GP", logoBg: "#dc2626", from: "guidewire", value: 92, date: "il y a 22 j", owner: "Karim Ben Salah", ownerColor: "#6366f1", reason: "Spécialisation métier", cycle: 91 },
+    { type: "win", co: "Aviva Investors FR", logo: "AV", logoBg: "#fbbf24", from: "salesforce", value: 88, date: "il y a 18 j", owner: "Romain Daviaud", ownerColor: "#6366f1", reason: "Pricing add-ons SF rédhibitoire", cycle: 76 },
+    { type: "win", co: "Generali Patrimoine", logo: "GP", logoBg: "#dc2626", from: "guidewire", value: 92, date: "il y a 22 j", owner: "Romain Daviaud", ownerColor: "#6366f1", reason: "Spécialisation métier", cycle: 91 },
     { type: "loss", co: "Crédit Foncier", logo: "CF", logoBg: "#1e3a8a", from: "salesforce", value: 64, date: "il y a 27 j", owner: "Julien Pasquier", ownerColor: "#8b5cf6", reason: "Influence cabinet conseil pro-SF", cycle: 138 },
     { type: "win", co: "Crédit Agricole Sud", logo: "CA", logoBg: "#10b981", from: "salesforce", value: 46, date: "il y a 1 mois", owner: "Tom Verdier", ownerColor: "#f59e0b", reason: "Souveraineté & UE", cycle: 68 },
   ];

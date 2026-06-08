@@ -27,7 +27,7 @@ const ClientPage = () => {
         window.api.opportunities.list({ client_id: cid }),
       ]);
       // Liste des "anciens" noms démo à remplacer par l'utilisateur courant
-      const legacyDemoNames = new Set(["Karim Ben Salah","Nadia Lefèvre","Tom Verdier","Émilie Garnier","Sophie Aubry","Antoine Mercier","Julien Pasquier","Marie Lopez","Pierre Dubois","Romain Faure","Léo Tanaka","Diane Roussel","Farid Belkacem","Valérie Chen","Léa Marchand","Olivier Vasseur","Catherine Marchand","Hugo Bertrand"]);
+      const legacyDemoNames = new Set(["Romain Daviaud","Nadia Lefèvre","Tom Verdier","Émilie Garnier","Sophie Aubry","Antoine Mercier","Julien Pasquier","Marie Lopez","Pierre Dubois","Romain Faure","Léo Tanaka","Diane Roussel","Farid Belkacem","Valérie Chen","Léa Marchand","Olivier Vasseur","Catherine Marchand","Hugo Bertrand"]);
       const currentUserName = (() => { try { const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser(); return (u && u.name) || "Vous"; } catch (e) { return "Vous"; } })();
       const normalizeAssignee = (n) => (n && legacyDemoNames.has(n)) ? currentUserName : (n || currentUserName);
       const todo = (acts || []).filter((a) => a.status !== "done").map((a) => ({

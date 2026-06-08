@@ -81,7 +81,7 @@ const CompetitorRenewals = () => {
         { type: "hot", label: "Insatisfaction publique du CIO en interview" },
         { type: "neutral", label: "Budget IT 2026 voté en hausse de 22 %" },
       ],
-      owner: "Karim Ben Salah", ownerColor: "#6366f1",
+      owner: "Romain Daviaud", ownerColor: "#6366f1",
       contacts: 2,
       lastTouch: "il y a 5 j",
       action: "Préparer use-case bancaire dédié",

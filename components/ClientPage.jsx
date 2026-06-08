@@ -26,8 +26,25 @@ const ClientPage = () => {
         window.api.contacts.list({ client_id: cid }),
         window.api.opportunities.list({ client_id: cid }),
       ]);
-      setExtraActions((acts || []).filter((a) => a.status !== "done"));
-      setCompletedActions((acts || []).filter((a) => a.status === "done"));
+      const todo = (acts || []).filter((a) => a.status !== "done").map((a) => ({
+        ...a,
+        due: a.due || a.due_text || "Date à définir",
+        assigned: a.assigned || a.assigned_to || "Vous",
+        tag: a.tag || null,
+        tagColor: a.tagColor || a.tag_color || "#475569",
+        icon: a.icon || "•",
+      }));
+      const done = (acts || []).filter((a) => a.status === "done").map((a) => ({
+        ...a,
+        icon: a.icon || (a.type === "call" ? "☎" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : a.type === "note" ? "✎" : "✓"),
+        color: "#10b981",
+        who: a.assigned_to || a.assigned || "—",
+        at: a.completed_at
+          ? new Date(a.completed_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) + " · " + new Date(a.completed_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+          : "",
+      }));
+      setExtraActions(todo);
+      setCompletedActions(done);
       setCustomContacts(conts || []);
       setStoredOpps((opps || []).map((o) => ({
         ref: o.id || o.ref,
@@ -510,7 +527,7 @@ const ClientPage = () => {
   for (let i = 0; i < 34; i++) pastExtras.push({ type: "stage", icon: "•", color: "#94a3b8", title: `Synchronisation CRM #${i + 1}`, who: "Système", at: "Q1 2026", meta: "Mise à jour automatique" });
   // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
   // Actions terminées par l'utilisateur, filtrées sur ce client
-  const completedForThis = completedActions.filter((x) => x.client_id === (urlId || "ACC-0184"));
+  const completedForThis = completedActions;
   const pastAll = past.concat(pastExtras);
   // Custom prospect : on n'affiche QUE les actions terminées par l'utilisateur. AXA : démo + customs en tête.
   const pastShown = isCustom
@@ -866,7 +883,7 @@ const ClientPage = () => {
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>
-                      <span style={{ color: "#4f46e5" }}>→</span> Actions à mener <span style={cliStyles.blockCount}>{extraActions.filter((x) => !x.client_id || x.client_id === (urlId || "ACC-0184")).length + (isCustom ? 0 : future.length)}</span>
+                      <span style={{ color: "#4f46e5" }}>→</span> Actions à mener <span style={cliStyles.blockCount}>{extraActions.length + (isCustom ? 0 : future.length)}</span>
                     </h2>
                     <p style={cliStyles.h2sub}>Tâches, relances et événements planifiés</p>
                   </div>
@@ -874,12 +891,12 @@ const ClientPage = () => {
                 </div>
 
                 <div style={cliStyles.actionsList}>
-                  {([...extraActions.filter((x) => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].length === 0) && (
+                  {([...extraActions, ...(isCustom ? [] : future)].length === 0) && (
                     <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 12.5, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc" }}>
                       Aucune action planifiée. Cliquez sur <b>+ Ajouter</b> pour en créer une.
                     </div>
                   )}
-                  {[...extraActions.filter((x) => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].map((a, i) => {
+                  {[...extraActions, ...(isCustom ? [] : future)].map((a, i) => {
                     const p = prioMeta[a.priority] || prioMeta.basse;
                     const key = a.id || ("d-" + i);
                     const done = !!doneActions[key];

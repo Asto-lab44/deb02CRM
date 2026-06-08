@@ -32,8 +32,30 @@ var ClientPage = () => {
       }), window.api.opportunities.list({
         client_id: cid
       })]);
-      setExtraActions((acts || []).filter(a => a.status !== "done"));
-      setCompletedActions((acts || []).filter(a => a.status === "done"));
+      var todo = (acts || []).filter(a => a.status !== "done").map(a => ({
+        ...a,
+        due: a.due || a.due_text || "Date à définir",
+        assigned: a.assigned || a.assigned_to || "Vous",
+        tag: a.tag || null,
+        tagColor: a.tagColor || a.tag_color || "#475569",
+        icon: a.icon || "•"
+      }));
+      var done = (acts || []).filter(a => a.status === "done").map(a => ({
+        ...a,
+        icon: a.icon || (a.type === "call" ? "☎" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : a.type === "note" ? "✎" : "✓"),
+        color: "#10b981",
+        who: a.assigned_to || a.assigned || "—",
+        at: a.completed_at ? new Date(a.completed_at).toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }) + " · " + new Date(a.completed_at).toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit"
+        }) : ""
+      }));
+      setExtraActions(todo);
+      setCompletedActions(done);
       setCustomContacts(conts || []);
       setStoredOpps((opps || []).map(o => ({
         ref: o.id || o.ref,
@@ -865,7 +887,7 @@ var ClientPage = () => {
   });
   // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
   // Actions terminées par l'utilisateur, filtrées sur ce client
-  var completedForThis = completedActions.filter(x => x.client_id === (urlId || "ACC-0184"));
+  var completedForThis = completedActions;
   var pastAll = past.concat(pastExtras);
   // Custom prospect : on n'affiche QUE les actions terminées par l'utilisateur. AXA : démo + customs en tête.
   var pastShown = isCustom ? completedForThis : [...completedForThis, ...(pastShowAll ? pastAll : past)];
@@ -1728,7 +1750,7 @@ var ClientPage = () => {
     }
   }, "\u2192"), " Actions \xE0 mener ", /*#__PURE__*/React.createElement("span", {
     style: cliStyles.blockCount
-  }, extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")).length + (isCustom ? 0 : future.length))), /*#__PURE__*/React.createElement("p", {
+  }, extraActions.length + (isCustom ? 0 : future.length))), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
   }, "T\xE2ches, relances et \xE9v\xE9nements planifi\xE9s")), /*#__PURE__*/React.createElement("button", {
     onClick: addAction,
@@ -1738,7 +1760,7 @@ var ClientPage = () => {
     }
   }, "+ Ajouter")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsList
-  }, [...extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, [...extraActions, ...(isCustom ? [] : future)].length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "24px 14px",
       textAlign: "center",
@@ -1748,7 +1770,7 @@ var ClientPage = () => {
       borderRadius: 8,
       background: "#fafbfc"
     }
-  }, "Aucune action planifi\xE9e. Cliquez sur ", /*#__PURE__*/React.createElement("b", null, "+ Ajouter"), " pour en cr\xE9er une."), [...extraActions.filter(x => !x.client_id || x.client_id === (urlId || "ACC-0184")), ...(isCustom ? [] : future)].map((a, i) => {
+  }, "Aucune action planifi\xE9e. Cliquez sur ", /*#__PURE__*/React.createElement("b", null, "+ Ajouter"), " pour en cr\xE9er une."), [...extraActions, ...(isCustom ? [] : future)].map((a, i) => {
     var p = prioMeta[a.priority] || prioMeta.basse;
     var key = a.id || "d-" + i;
     var done = !!doneActions[key];

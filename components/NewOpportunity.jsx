@@ -7,24 +7,24 @@ const NewOpportunity = () => {
   const [allClients, setAllClients] = React.useState([]);
 
   React.useEffect(() => {
-    const local = (() => { try { return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]"); } catch (e) { return []; } })();
-    const fromLocal = local.map((p) => ({ id: p.id, name: p.raison_sociale || p.name, sector: p.secteur, city: p.ville, siren: p.siren, since: "Nouveau prospect", source: "local" }));
-    const finishLoad = (clients) => {
-      setAllClients(clients);
-      // Pré-sélection via ?client=… (depuis fiche client → bouton + Nouvelle opportunité)
+    (async () => {
+      const list = await window.api.clients.list();
+      const mapped = (list || []).map((p) => ({
+        id: p.id,
+        name: p.raison_sociale || p.name,
+        sector: p.secteur || p.industry,
+        city: p.ville || p.city,
+        siren: p.siren,
+        since: p.status === "client" ? "Client" : "Nouveau prospect",
+        source: p.status === "client" ? "supabase" : "local",
+      }));
+      setAllClients(mapped);
       const urlClientId = new URLSearchParams(window.location.search).get("client");
       if (urlClientId) {
-        const hit = clients.find((c) => c.id === urlClientId);
+        const hit = mapped.find((c) => c.id === urlClientId);
         if (hit) setSelectedClient(hit);
       }
-    };
-    if (window.HubData && window.HubData.enabled()) {
-      window.HubData.fetchClients().then(({ data }) => {
-        const fromSupa = (data || []).map((c) => ({ id: c.id, name: c.name, sector: c.industry, city: c.city, since: c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}` : "Client", source: "supabase" }));
-        const seen = new Set();
-        finishLoad([...fromLocal, ...fromSupa].filter((c) => seen.has(c.id) ? false : (seen.add(c.id), true)));
-      });
-    } else { finishLoad(fromLocal); }
+    })();
   }, []);
 
   const q = clientSearch.trim().toLowerCase();
@@ -59,17 +59,15 @@ const NewOpportunity = () => {
   const toggleModule = (m) => setOppModules((arr) => arr.includes(m) ? arr.filter((x) => x !== m) : [...arr, m]);
   const showFlash = (m, tone = "ok") => { setFlash({ m, tone }); setTimeout(() => setFlash(null), 2800); };
 
-  const createOpp = () => {
+  const createOpp = async () => {
     if (!selectedClient) { showFlash("Sélectionnez d'abord un client", "err"); return; }
     if (!oppName.trim()) { showFlash("Nom de l'opportunité obligatoire", "err"); return; }
-    const ref = "OPP-" + Math.floor(Math.random() * 9000 + 1000);
     const opp = {
-      id: ref, ref,
       client_id: selectedClient.id,
       client_name: selectedClient.name,
       name: oppName,
       amount: oppAmount,
-      target_date: oppDate,
+      close_date: oppDate || null,
       close: oppDate ? new Date(oppDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "",
       notes: oppNotes,
       type: oppType,
@@ -80,13 +78,13 @@ const NewOpportunity = () => {
       stage: oppStage,
       proba,
       owner: "Vous",
-      created_at: new Date().toISOString(),
     };
     try {
-      const existing = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-      existing.unshift(opp);
-      localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(existing));
-    } catch (e) {}
+      await window.api.opportunities.create(opp);
+    } catch (e) {
+      showFlash("Erreur de sauvegarde — " + (e.message || ""), "err");
+      return;
+    }
     showFlash("✓ Opportunité créée — redirection…");
     setTimeout(() => {
       window.location.href = selectedClient && selectedClient.id

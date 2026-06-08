@@ -253,22 +253,10 @@ var NewContract = () => {
   // ── Client lookup
   var [clientObj, setClientObj] = React.useState(null);
   React.useEffect(() => {
-    if (!clientId) return;
-    try {
-      var local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
-      var hit = local.find(p => p.id === clientId);
-      if (hit) {
-        setClientObj(hit);
-        return;
-      }
-    } catch (e) {}
-    if (window.HubData && window.HubData.fetchClientById) {
-      window.HubData.fetchClientById(clientId).then(({
-        data
-      }) => {
-        if (data) setClientObj(data);
-      });
-    }
+    if (!clientId || !window.api) return;
+    window.api.clients.getById(clientId).then(data => {
+      if (data) setClientObj(data);
+    }).catch(() => {});
   }, [clientId]);
   var clientName = clientObj && (clientObj.name || clientObj.raison_sociale) || (clientId ? "Client " + clientId : "AXA Wealth France SAS");
   var clientSiren = clientObj && (clientObj.siren || clientObj.siret) || "487 921 304";
@@ -439,7 +427,7 @@ var NewContract = () => {
   };
 
   // ── Submit
-  var submitContract = action => {
+  var submitContract = async action => {
     if (products.length === 0) {
       alert("Ajoutez au moins une ligne produit");
       return;
@@ -480,9 +468,10 @@ var NewContract = () => {
       created_at: new Date().toISOString()
     };
     try {
-      var all = JSON.parse(localStorage.getItem("hubAstorya.contracts.v1") || "[]");
-      localStorage.setItem("hubAstorya.contracts.v1", JSON.stringify([ctr, ...all]));
-    } catch (e) {}
+      await window.api.contracts.create(ctr);
+    } catch (e) {
+      console.warn("submitContract:", e);
+    }
     if (action === "send") {
       alert("Contrat " + ctrRef + " envoyé pour signature à " + (signatory.name || "le signataire"));
     } else {

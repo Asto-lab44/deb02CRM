@@ -16,52 +16,58 @@ var ClientPage = () => {
       setDoneActions(JSON.parse(localStorage.getItem("hubAstorya.actionsDone.v1") || "{}"));
     } catch (e) {}
     try {
-      setExtraActions(JSON.parse(localStorage.getItem("hubAstorya.actionsExtra.v1") || "[]"));
-    } catch (e) {}
-    try {
-      setCompletedActions(JSON.parse(localStorage.getItem("hubAstorya.actionsCompleted.v1") || "[]"));
-    } catch (e) {}
-    try {
       setOppEdits(JSON.parse(localStorage.getItem("hubAstorya.oppEdits.v1") || "{}"));
     } catch (e) {}
   }, []);
+
+  // Recharge actions/contacts/opps depuis l'API quand l'URL change
+  var reloadAllForClient = React.useCallback(async () => {
+    var cid = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") : null;
+    if (!window.api) return;
+    try {
+      var [acts, conts, opps] = await Promise.all([window.api.actions.list({
+        client_id: cid
+      }), window.api.contacts.list({
+        client_id: cid
+      }), window.api.opportunities.list({
+        client_id: cid
+      })]);
+      setExtraActions((acts || []).filter(a => a.status !== "done"));
+      setCompletedActions((acts || []).filter(a => a.status === "done"));
+      setCustomContacts(conts || []);
+      setStoredOpps((opps || []).map(o => ({
+        ref: o.id || o.ref,
+        name: o.name,
+        amount: o.amount_eur != null ? Math.round(o.amount_eur).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : o.amount || "—",
+        stage: o.stage || "qualif",
+        proba: o.proba || 20,
+        owner: o.owner || "Vous",
+        ownerColor: "#0ea5e9",
+        close: o.close_date ? new Date(o.close_date).toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric"
+        }) : o.close || "—",
+        days: 0,
+        isNew: o.stage === "qualif"
+      })));
+    } catch (e) {
+      console.warn("[ClientPage] reload:", e);
+    }
+  }, []);
+  React.useEffect(() => {
+    reloadAllForClient();
+  }, [reloadAllForClient]);
   var [completedActions, setCompletedActions] = React.useState([]);
 
   // Complète une action utilisateur : la sort de extraActions et la pose dans completedActions
-  var completeAction = a => {
-    var completedEntry = {
-      id: a.id,
-      client_id: a.client_id || null,
-      type: a.type || (a.icon === "📞" ? "call" : a.icon === "✉" ? "email" : a.icon === "👥" ? "meeting" : a.icon === "📅" ? "rdv" : "task"),
-      icon: a.icon || "✓",
-      color: "#10b981",
-      title: a.title,
-      who: a.assigned ? `Réalisé par ${a.assigned}` : "Terminée",
-      at: new Date().toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }) + " · " + new Date().toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit"
-      }),
-      meta: a.meta || null,
-      completed_at: new Date().toISOString()
-    };
-    setExtraActions(arr => {
-      var next = arr.filter(x => x.id !== a.id);
-      try {
-        localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
-      } catch (e) {}
-      return next;
-    });
-    setCompletedActions(arr => {
-      var next = [completedEntry, ...arr];
-      try {
-        localStorage.setItem("hubAstorya.actionsCompleted.v1", JSON.stringify(next));
-      } catch (e) {}
-      return next;
-    });
+  var completeAction = async a => {
+    try {
+      await window.api.actions.complete(a.id);
+      reloadAllForClient();
+    } catch (e) {
+      console.warn("completeAction:", e);
+    }
   };
   var toggleAction = (key, action) => {
     // Pour une action utilisateur (a.id présent) : passer au statut terminé = déplacer
@@ -132,7 +138,7 @@ var ClientPage = () => {
     });
     setAddActionOpen(true);
   };
-  var submitNewAction = () => {
+  var submitNewAction = async () => {
     if (!newAction.title.trim()) {
       alert("Le titre est obligatoire");
       return;
@@ -150,32 +156,30 @@ var ClientPage = () => {
       day: "2-digit",
       month: "short"
     }) + (newAction.time ? " · " + newAction.time : "") : "Date à définir";
-    var next = [{
-      id: "EX-" + Date.now(),
-      client_id: urlId || "ACC-0184",
-      type: newAction.type,
-      title: newAction.title.trim(),
-      due: dueText,
-      priority: newAction.priority,
-      icon: iconMap[newAction.type] || "•",
-      meta: newAction.meta || "",
-      assigned: newAction.assigned || "Vous",
-      assignedColor: "#3730a3",
-      tag: newAction.tag || (newAction.type === "email" ? "Email" : newAction.type === "call" ? "Appel" : newAction.type === "visio" ? "Visio" : newAction.type === "rdv" ? "RDV" : newAction.type === "task" ? "Tâche" : "Note"),
-      tagColor: "#475569"
-    }, ...extraActions];
-    setExtraActions(next);
     try {
-      localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
-    } catch (e) {}
-    setAddActionOpen(false);
+      await window.api.actions.create({
+        client_id: urlId || "ACC-0184",
+        type: newAction.type,
+        title: newAction.title.trim(),
+        due: dueText,
+        priority: newAction.priority,
+        icon: iconMap[newAction.type] || "•",
+        meta: newAction.meta || "",
+        assigned: newAction.assigned || "Vous",
+        tag: newAction.tag || (newAction.type === "email" ? "Email" : newAction.type === "call" ? "Appel" : newAction.type === "visio" ? "Visio" : newAction.type === "rdv" ? "RDV" : newAction.type === "task" ? "Tâche" : "Note"),
+        tagColor: "#475569"
+      });
+      setAddActionOpen(false);
+      reloadAllForClient();
+    } catch (e) {
+      alert("Erreur : " + (e.message || e));
+    }
   };
   var addAction = () => openAddAction();
-  var removeAction = id => {
-    var next = extraActions.filter(a => a.id !== id);
-    setExtraActions(next);
+  var removeAction = async id => {
     try {
-      localStorage.setItem("hubAstorya.actionsExtra.v1", JSON.stringify(next));
+      await window.api.actions.remove(id);
+      reloadAllForClient();
     } catch (e) {}
   };
   var updateOppField = (ref, field, value) => {
@@ -332,75 +336,91 @@ var ClientPage = () => {
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
   var defaultContacts = [];
   var [customContacts, setCustomContacts] = React.useState([]);
-  React.useEffect(() => {
-    try {
-      setCustomContacts(JSON.parse(localStorage.getItem("hubAstorya.contacts.v1") || "[]"));
-    } catch (e) {}
-  }, []);
 
-  // Compose la liste : si client custom, démarre depuis contact_principal + extras locaux. Sinon démo AXA + customs.
-  // Vide par défaut pour un nouveau prospect tant que rien n'est renseigné (pas de carte vide).
-  var allContacts = (() => {
-    var localForThis = customContacts.filter(cc => cc.client_id === (urlId || "ACC-0184")).map(cc => ({
-      ...cc,
-      _custom: true
-    }));
-    if (isCustom) {
-      var cp = c.contact_principal || display.contactPrincipal;
-      var fullName = cp ? ((cp.prenom || "") + " " + (cp.nom || "")).trim() : "";
-      var principal = fullName || cp && cp.email || cp && cp.phone ? [{
-        name: fullName || cp && cp.email || "Contact principal",
-        role: cp && cp.fonction || "—",
-        email: cp && cp.email || "",
-        phone: cp && cp.phone || "",
-        linkedin: cp && cp.linkedin || "",
-        color: "#a855f7",
-        champion: Array.isArray(c.roles) && c.roles.includes("Champion"),
-        decisionRoles: Array.isArray(c.roles) ? c.roles : [],
-        hierarchie: c.fonction || "",
-        last: "Contact principal · ajouté à la création"
-      }] : [];
-      var additionnels = (c.contacts_additionnels || []).filter(x => (x.prenom || x.nom || x.email || x.phone || "").toString().trim()) // ignore les contacts entièrement vides
-      .map((x, i) => ({
-        name: ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || x.phone || "Contact",
-        role: x.fonction || "—",
-        email: x.email || "",
-        phone: x.phone || "",
-        linkedin: x.linkedin || "",
-        color: ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"][i % 5],
-        last: "Co-contact · ajouté à la création"
-      }));
-      return [...principal, ...additionnels, ...localForThis];
-    }
-    return [...defaultContacts, ...localForThis];
-  })();
+  // Composition unifiée : customContacts vient de api.contacts.list({client_id})
+  // qui contient à la fois le contact principal (is_principal=true) et les co-contacts.
+  var allContacts = React.useMemo(() => {
+    var colors = ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"];
+    var coIdx = 0;
+    return (customContacts || []).filter(cc => (cc.prenom || cc.nom || cc.email || cc.phone || "").toString().trim()).map(cc => {
+      var fullName = ((cc.prenom || "") + " " + (cc.nom || "")).trim() || cc.email || cc.phone || "Contact";
+      if (cc.is_principal) {
+        return {
+          id: cc.id,
+          name: fullName,
+          role: cc.fonction || "—",
+          email: cc.email || "",
+          phone: cc.phone || "",
+          linkedin: cc.linkedin || "",
+          color: "#a855f7",
+          champion: Array.isArray(cc.roles) && cc.roles.includes("Champion"),
+          decisionRoles: Array.isArray(cc.roles) ? cc.roles : [],
+          hierarchie: cc.hierarchie || "",
+          last: "Contact principal",
+          _custom: true
+        };
+      }
+      var color = colors[coIdx++ % colors.length];
+      return {
+        id: cc.id,
+        name: fullName,
+        role: cc.fonction || "—",
+        email: cc.email || "",
+        phone: cc.phone || "",
+        linkedin: cc.linkedin || "",
+        color,
+        last: "Co-contact",
+        _custom: true
+      };
+    });
+  }, [customContacts]);
+  var [addContactOpen, setAddContactOpen] = React.useState(false);
+  var [newContactForm, setNewContactForm] = React.useState({
+    prenom: "",
+    nom: "",
+    fonction: "",
+    email: "",
+    phone: "",
+    linkedin: ""
+  });
   var addContact = () => {
-    var fullName = prompt("Nom complet du contact :");
-    if (!fullName) return;
-    var role = prompt("Fonction :", "—");
-    var email = prompt("Email :", "");
-    var phone = prompt("Téléphone :", "");
-    var newContact = {
-      id: "CT-" + Date.now().toString().slice(-7),
-      client_id: urlId || "ACC-0184",
-      name: fullName,
-      role: role || "—",
-      email: email || "",
-      phone: phone || "",
-      color: ["#a855f7", "#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"][Math.floor(Math.random() * 6)],
-      last: "à l'instant"
-    };
-    var next = [newContact, ...customContacts];
-    setCustomContacts(next);
-    try {
-      localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next));
-    } catch (e) {}
+    setNewContactForm({
+      prenom: "",
+      nom: "",
+      fonction: "",
+      email: "",
+      phone: "",
+      linkedin: ""
+    });
+    setAddContactOpen(true);
   };
-  var removeContact = id => {
-    var next = customContacts.filter(c => c.id !== id);
-    setCustomContacts(next);
+  var submitNewContact = async () => {
+    var f = newContactForm;
+    if (!(f.prenom || f.nom || f.email || f.phone)) {
+      alert("Remplissez au moins un champ");
+      return;
+    }
     try {
-      localStorage.setItem("hubAstorya.contacts.v1", JSON.stringify(next));
+      await window.api.contacts.create({
+        client_id: urlId || "ACC-0184",
+        prenom: f.prenom,
+        nom: f.nom,
+        fonction: f.fonction,
+        email: f.email,
+        phone: f.phone,
+        linkedin: f.linkedin,
+        is_principal: false
+      });
+      setAddContactOpen(false);
+      reloadAllForClient();
+    } catch (e) {
+      alert("Erreur : " + (e.message || e));
+    }
+  };
+  var removeContact = async id => {
+    try {
+      await window.api.contacts.remove(id);
+      reloadAllForClient();
     } catch (e) {}
   };
   var [pastShowAll, setPastShowAll] = React.useState(false);
@@ -420,25 +440,10 @@ var ClientPage = () => {
       setLoadedClient(null);
       return;
     }
-    // 1. cherche dans localStorage
-    try {
-      var local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
-      var hit = local.find(p => p.id === urlId);
-      if (hit) {
-        setLoadedClient(hit);
-        return;
-      }
-    } catch (e) {}
-    // 2. cherche dans Supabase
-    if (window.HubData && window.HubData.enabled() && window.HubData.fetchClientById) {
-      window.HubData.fetchClientById(urlId).then(({
-        data
-      }) => {
-        if (data) setLoadedClient({
-          ...data,
-          _source: "supabase"
-        });
-      });
+    if (window.api && window.api.clients) {
+      window.api.clients.getById(urlId).then(data => {
+        if (data) setLoadedClient(data);
+      }).catch(e => console.warn("[ClientPage] getById:", e));
     }
   }, [urlId]);
 
@@ -546,7 +551,7 @@ var ClientPage = () => {
     });
     setEditOpen(true);
   };
-  var saveEdit = () => {
+  var saveEdit = async () => {
     if (!urlId) {
       alert("Édition uniquement disponible pour les prospects créés");
       return;
@@ -592,22 +597,40 @@ var ClientPage = () => {
       notes: editDraft.desc || null
     };
     try {
-      var all = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
-      var idx = all.findIndex(p => p.id === urlId);
-      if (idx >= 0) {
-        all[idx] = {
-          ...all[idx],
-          ...patch
-        };
-        localStorage.setItem("hubAstorya.prospects.v1", JSON.stringify(all));
-        setLoadedClient({
-          ...(loadedClient || {}),
-          ...patch
-        });
-      } else {
-        alert("Prospect introuvable en local — modification non sauvée");
+      var updated = await window.api.clients.update(urlId, patch);
+      if (updated) setLoadedClient(updated);
+      // Si contact_principal a été modifié, on met aussi à jour la table contacts
+      if (patch.contact_principal && (patch.contact_principal.prenom || patch.contact_principal.nom || patch.contact_principal.email)) {
+        // Cherche s'il existe déjà un contact_principal pour ce client
+        var existing = (await window.api.contacts.list({
+          client_id: urlId
+        })) || [];
+        var principal = existing.find(x => x.is_principal);
+        if (principal) {
+          await window.api.contacts.update(principal.id, {
+            prenom: patch.contact_principal.prenom,
+            nom: patch.contact_principal.nom,
+            fonction: patch.contact_principal.fonction,
+            email: patch.contact_principal.email,
+            phone: patch.contact_principal.phone,
+            linkedin: patch.contact_principal.linkedin,
+            roles: patch.roles,
+            hierarchie: patch.fonction
+          });
+        } else {
+          await window.api.contacts.create({
+            client_id: urlId,
+            ...patch.contact_principal,
+            roles: patch.roles,
+            hierarchie: patch.fonction,
+            is_principal: true
+          });
+        }
+        reloadAllForClient();
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("saveEdit:", e);
+    }
     setEditOpen(false);
   };
   var Avatar = ({
@@ -716,27 +739,8 @@ var ClientPage = () => {
     ref: "OPP-2698"
   }];
 
-  // ── Opportunités créées via /nouvelle-opportunite, filtrées sur ce client
+  // ── Opportunités chargées par reloadAllForClient (via api.opportunities.list)
   var [storedOpps, setStoredOpps] = React.useState([]);
-  React.useEffect(() => {
-    try {
-      var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-      var cid = urlId || "ACC-0184";
-      var mine = all.filter(o => o.client_id === cid).map(o => ({
-        ref: o.ref || o.id,
-        name: o.name,
-        amount: o.amount ? String(o.amount).match(/€/) ? o.amount : o.amount + " €" : "—",
-        stage: o.stage || "qualif",
-        proba: o.proba || 20,
-        owner: o.owner || "Vous",
-        ownerColor: "#0ea5e9",
-        close: o.close || o.target_date || "—",
-        days: 0,
-        isNew: true
-      }));
-      setStoredOpps(mine);
-    } catch (e) {}
-  }, [urlId]);
 
   // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
   var opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
@@ -3253,7 +3257,157 @@ var ClientPage = () => {
       fontWeight: 600,
       cursor: "pointer"
     }
-  }, "Enregistrer")))), addActionOpen && /*#__PURE__*/React.createElement("div", {
+  }, "Enregistrer")))), addContactOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setAddContactOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.45)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      width: "100%",
+      maxWidth: 480,
+      boxShadow: "0 20px 50px rgba(15,23,42,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px 22px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "+ Ajouter un contact"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAddContactOpen(false),
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 20,
+      color: "#94a3b8",
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Pr\xE9nom"), /*#__PURE__*/React.createElement("input", {
+    value: newContactForm.prenom,
+    onChange: e => setNewContactForm({
+      ...newContactForm,
+      prenom: e.target.value
+    }),
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Nom"), /*#__PURE__*/React.createElement("input", {
+    value: newContactForm.nom,
+    onChange: e => setNewContactForm({
+      ...newContactForm,
+      nom: e.target.value
+    }),
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Fonction"), /*#__PURE__*/React.createElement("input", {
+    value: newContactForm.fonction,
+    onChange: e => setNewContactForm({
+      ...newContactForm,
+      fonction: e.target.value
+    }),
+    placeholder: "Ex. CFO, DSI\u2026",
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: newContactForm.email,
+    onChange: e => setNewContactForm({
+      ...newContactForm,
+      email: e.target.value
+    }),
+    style: modalInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "T\xE9l\xE9phone"), /*#__PURE__*/React.createElement("input", {
+    value: newContactForm.phone,
+    onChange: e => setNewContactForm({
+      ...newContactForm,
+      phone: e.target.value
+    }),
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: modalLabel
+  }, "LinkedIn"), /*#__PURE__*/React.createElement("input", {
+    value: newContactForm.linkedin,
+    onChange: e => setNewContactForm({
+      ...newContactForm,
+      linkedin: e.target.value
+    }),
+    placeholder: "linkedin.com/in/\u2026",
+    style: modalInput
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAddContactOpen(false),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: submitNewContact,
+    style: {
+      padding: "8px 14px",
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Ajouter")))), addActionOpen && /*#__PURE__*/React.createElement("div", {
     onClick: () => setAddActionOpen(false),
     style: {
       position: "fixed",

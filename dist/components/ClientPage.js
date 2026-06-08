@@ -1658,15 +1658,7 @@ var ClientPage = () => {
         opacity: done ? 0.5 : 1,
         textDecoration: done ? "line-through" : "none"
       }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "checkbox",
-      style: {
-        ...cliStyles.checkbox,
-        cursor: "pointer"
-      },
-      checked: done,
-      onChange: () => toggleAction(key, a)
-    }), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         ...cliStyles.actionIcon,
         background: a.priority === "ai" ? "#0f172a" : "#fff",

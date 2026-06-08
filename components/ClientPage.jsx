@@ -941,7 +941,6 @@ const ClientPage = () => {
                         opacity: done ? 0.5 : 1,
                         textDecoration: done ? "line-through" : "none",
                       }}>
-                        <input type="checkbox" style={{ ...cliStyles.checkbox, cursor: "pointer" }} checked={done} onChange={() => toggleAction(key, a)} />
                         <div style={{
                           ...cliStyles.actionIcon,
                           background: a.priority === "ai" ? "#0f172a" : "#fff",

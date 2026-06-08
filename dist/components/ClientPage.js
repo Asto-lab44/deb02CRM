@@ -482,31 +482,31 @@ var ClientPage = () => {
   // (sinon flash visuel du nom/secteur AXA pendant le fetch).
   var empty = isCustom && !loadedClient;
   var display = {
-    id: c.id || (empty ? urlId || "—" : "ACC-0184"),
-    name: c.raison_sociale || c.name || (empty ? "Chargement…" : "AXA Wealth France"),
-    sector: c.secteur || c.industry || (empty ? "—" : "Asset Management"),
-    size: c.effectif ? `Effectif ${c.effectif}` : empty ? "—" : "12 000 employés",
-    city: c.ville || c.city || (empty ? "—" : "Paris · La Défense"),
-    web: c.site_web || c.website || (empty ? "" : "axa-im.fr"),
+    id: c.id || urlId || "—",
+    name: c.raison_sociale || c.name || (empty ? "Chargement…" : "Sélectionnez un client"),
+    sector: c.secteur || c.industry || "—",
+    size: c.effectif ? `Effectif ${c.effectif}` : "—",
+    city: c.ville || c.city || "—",
+    web: c.site_web || c.website || "",
     since: c.created_at ? `Prospect depuis ${new Date(c.created_at).toLocaleDateString("fr-FR", {
       month: "short",
       year: "numeric"
     })}` : c.client_since ? `Client depuis ${new Date(c.client_since).toLocaleDateString("fr-FR", {
       month: "short",
       year: "numeric"
-    })}` : empty ? "" : "Client depuis mars 2024",
-    desc: c.notes || c.besoin || (isCustom ? c.tier ? `Compte tier ${c.tier} — créé via le formulaire prospect.` : empty ? "" : "Compte créé via le formulaire prospect." : "Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation)."),
-    logo: (c.raison_sociale || c.name || (empty ? "?" : "AX")).slice(0, 2).toUpperCase(),
-    arr: isCustom ? "—" : "184 k€",
-    pipe: isCustom ? "0" : "355 k€",
-    health: isCustom ? "—" : "78",
+    })}` : "",
+    desc: c.notes || c.besoin || "",
+    logo: (c.raison_sociale || c.name || "?").slice(0, 2).toUpperCase(),
+    arr: "—",
+    pipe: "0",
+    health: "—",
     contactPrincipal: c.contact_principal || null,
-    owner: c.owner || (isCustom ? "—" : "Nadia Lefèvre"),
-    ownerColor: c.owner_color || (isCustom ? "#64748b" : "#a855f7"),
-    coowner: c.coowner || (isCustom ? "—" : "Karim Ben Salah"),
-    coownerColor: c.coowner_color || (isCustom ? "#64748b" : "#6366f1"),
-    source: c.source || (isCustom ? "—" : "Salon Finovate Paris"),
-    concurrent: c.concurrent || (isCustom ? "—" : "Salesforce · Pega"),
+    owner: c.owner || "—",
+    ownerColor: c.owner_color || "#64748b",
+    coowner: c.coowner || "—",
+    coownerColor: c.coowner_color || "#64748b",
+    source: c.source || "—",
+    concurrent: c.concurrent || "—",
     concurrentEnd: c.concurrent_end || "",
     concurrentAmount: c.concurrent_amount || "",
     contactDate: c.contact_date || "",
@@ -519,16 +519,16 @@ var ClientPage = () => {
       day: "2-digit",
       month: "long",
       year: "numeric"
-    }) : isCustom ? "—" : "14 mars 2024",
-    renewal: c.renewal || (isCustom ? "—" : "01 mars 2026 ✓"),
-    activeContracts: c.active_contracts || (isCustom ? "—" : "1 (Suite 2024-2026)"),
-    address: c.adresse || (isCustom ? "—" : "Tour Majunga"),
-    cp: c.code_postal || (isCustom ? "" : "92800"),
-    addressCity: c.ville || c.city || (isCustom ? "" : "Puteaux"),
-    siren: c.siren || (isCustom ? "" : "487 921 304"),
-    naf: c.naf || (isCustom ? "" : "6420Z"),
+    }) : "—",
+    renewal: c.renewal || "—",
+    activeContracts: c.active_contracts || "—",
+    address: c.adresse || "—",
+    cp: c.code_postal || "",
+    addressCity: c.ville || c.city || "",
+    siren: c.siren || "",
+    naf: c.naf || "",
     sousSecteur: c.sous_secteur || "",
-    tier: c.tier || (isCustom ? "" : ""),
+    tier: c.tier || "",
     ca: c.ca_meur || "",
     linkedin: c.linkedin_entreprise || "",
     tva: c.tva || "",
@@ -719,255 +719,22 @@ var ClientPage = () => {
     label: "Signé",
     color: "#10b981"
   }];
-  var defaultOpps = [{
-    name: "Astorya Suite — 750 sièges",
-    amount: "215 000 €",
-    stage: "propo",
-    proba: 55,
-    owner: "Nadia Lefèvre",
-    ownerColor: "#a855f7",
-    close: "15 juin 2026",
-    days: 8,
-    hot: true,
-    ref: "OPP-2814"
-  }, {
-    name: "Module Cyber — POC 50 utilisateurs",
-    amount: "48 000 €",
-    stage: "discovery",
-    proba: 40,
-    owner: "Karim Ben Salah",
-    ownerColor: "#6366f1",
-    close: "30 juin 2026",
-    days: 4,
-    ref: "OPP-2841"
-  }, {
-    name: "Extension Hub — filiale Belgique",
-    amount: "92 000 €",
-    stage: "qualif",
-    proba: 20,
-    owner: "Nadia Lefèvre",
-    ownerColor: "#a855f7",
-    close: "15 sept. 2026",
-    days: 2,
-    isNew: true,
-    ref: "OPP-2867"
-  }, {
-    name: "Renouvellement Suite 2024-2026",
-    amount: "184 000 €",
-    stage: "won",
-    proba: 100,
-    owner: "Nadia Lefèvre",
-    ownerColor: "#a855f7",
-    close: "01 mars 2026",
-    days: 0,
-    won: true,
-    ref: "OPP-2698"
-  }];
 
-  // ── Opportunités chargées par reloadAllForClient (via api.opportunities.list)
+  // ── Opportunités chargées par reloadAllForClient (via api.opportunities.list filtré par client_id)
   var [storedOpps, setStoredOpps] = React.useState([]);
-
-  // Pour AXA (pas un prospect custom) → mélange défauts + stockées ; sinon uniquement les stockées
-  var opportunities = isCustom ? storedOpps : [...storedOpps, ...defaultOpps];
+  var opportunities = storedOpps;
 
   // ── Actions menées (passé, dernières)
-  var past = [{
-    type: "email",
-    icon: "✉",
-    color: "#a855f7",
-    title: "Email envoyé — Proposition Suite v2",
-    who: "Nadia Lefèvre → Émilie Roux",
-    at: "il y a 4 h",
-    meta: "Pièce jointe : Proposition-AXA-v2.pdf"
-  }, {
-    type: "call",
-    icon: "☎",
-    color: "#10b981",
-    title: "Appel sortant — 22 min",
-    who: "Karim Ben Salah → Antoine Mercier (CISO)",
-    at: "hier · 09:18",
-    meta: "Validation périmètre sécurité — ouvert à POC 50 utilisateurs"
-  }, {
-    type: "meeting",
-    icon: "👥",
-    color: "#0ea5e9",
-    title: "RDV — Démo Astorya Suite",
-    who: "5 participants AXA · 60 min",
-    at: "jeu. 21 mai",
-    meta: "Très bon retour UX sur les modules Dashboard et Reporting"
-  }, {
-    type: "stage",
-    icon: "↗",
-    color: "#a855f7",
-    title: "Étape avancée : Discovery → Proposition",
-    who: "OPP-2814 · par Nadia Lefèvre",
-    at: "lun. 25 mai",
-    meta: null
-  }, {
-    type: "note",
-    icon: "✎",
-    color: "#a65f00",
-    title: "Note privée — Sentiment décideurs",
-    who: "Nadia Lefèvre",
-    at: "lun. 25 mai",
-    meta: "CFO veut ROI à 18 mois. Préparer slide dédié pour comité."
-  }, {
-    type: "email",
-    icon: "✉",
-    color: "#a855f7",
-    title: "Email reçu — Questions techniques",
-    who: "Émilie Roux (VP Innovation)",
-    at: "il y a 2 j",
-    meta: "3 points à clarifier : DORA, localisation UE, tarif > 500 users"
-  }, {
-    type: "meeting",
-    icon: "👥",
-    color: "#0ea5e9",
-    title: "RDV — Cadrage besoins métier",
-    who: "3 participants · 45 min",
-    at: "ven. 16 mai",
-    meta: "Priorités confirmées : reporting client, conformité, mobilité"
-  }, {
-    type: "doc",
-    icon: "📄",
-    color: "#64748b",
-    title: "Document partagé — RFP Astorya",
-    who: "Téléchargé 7 fois par AXA",
-    at: "08 mai",
-    meta: "RFP-Astorya-2026.pdf · 2,4 Mo"
-  }];
-
-  // Historique étendu (39 anciennes actions ajoutées au "Tout voir")
-  var pastExtras = [{
-    type: "doc",
-    icon: "📄",
-    color: "#64748b",
-    title: "RFP — Présélection 2026",
-    who: "Échangée avec Émilie Roux",
-    at: "02 mai",
-    meta: "Astorya retenue dans la shortlist finale (5 éditeurs)"
-  }, {
-    type: "call",
-    icon: "☎",
-    color: "#10b981",
-    title: "Appel — Cadrage gouvernance DORA",
-    who: "Karim Ben Salah → Émilie Roux",
-    at: "28 avr.",
-    meta: "Confirmation localisation des données UE obligatoire"
-  }, {
-    type: "email",
-    icon: "✉",
-    color: "#a855f7",
-    title: "Email — Documentation sécurité",
-    who: "Antoine Mercier → Nadia Lefèvre",
-    at: "25 avr.",
-    meta: "Demande ISO 27001 + SOC2 type II"
-  }, {
-    type: "meeting",
-    icon: "👥",
-    color: "#0ea5e9",
-    title: "RDV — Présentation roadmap 2026",
-    who: "12 participants AXA",
-    at: "18 avr.",
-    meta: "Webinar produit · NPS 9/10"
-  }, {
-    type: "stage",
-    icon: "↗",
-    color: "#a855f7",
-    title: "OPP-2698 : signé",
-    who: "Renouvellement Suite 24-26",
-    at: "01 mars",
-    meta: "184 k€ · 3 ans"
-  }];
-  for (var i = 0; i < 34; i++) pastExtras.push({
-    type: "stage",
-    icon: "•",
-    color: "#94a3b8",
-    title: `Synchronisation CRM #${i + 1}`,
-    who: "Système",
-    at: "Q1 2026",
-    meta: "Mise à jour automatique"
-  });
-  // Pour un prospect custom : actions menées vides par défaut (pas d'historique AXA)
-  // Actions terminées par l'utilisateur, filtrées sur ce client
+  // Actions historiques : SEULEMENT celles terminées par l'utilisateur (extraites de Supabase via reloadAllForClient)
+  var past = [];
+  var pastExtras = [];
   var completedForThis = completedActions;
-  var pastAll = past.concat(pastExtras);
-  // Custom prospect : on n'affiche QUE les actions terminées par l'utilisateur. AXA : démo + customs en tête.
-  var pastShown = isCustom ? completedForThis : [...completedForThis, ...(pastShowAll ? pastAll : past)];
-  var pastTotal = isCustom ? completedForThis.length : pastAll.length + completedForThis.length;
+  var pastAll = past;
+  var pastShown = completedForThis;
+  var pastTotal = completedForThis.length;
 
-  // ── Actions à mener (futur, à faire)
-  var future = [{
-    priority: "haute",
-    overdue: true,
-    icon: "📧",
-    title: "Répondre aux 3 questions techniques d'Émilie",
-    due: "Aujourd'hui · 18:00",
-    assigned: "Nadia Lefèvre",
-    assignedColor: "#a855f7",
-    meta: "Brouillon IA pré-rempli (citations p.12-14 de la proposition)",
-    tag: "OPP-2814",
-    tagColor: "#a855f7"
-  }, {
-    priority: "haute",
-    icon: "📅",
-    title: "Comité achats AXA — présentation finale Suite",
-    due: "Jeu. 28 mai · 14h00 · 30 min",
-    assigned: "Nadia Lefèvre",
-    assignedColor: "#a855f7",
-    meta: "Visio Teams · 4 participants AXA (Roux, Mercier, Pasquier, Lopez)",
-    tag: "OPP-2814",
-    tagColor: "#a855f7",
-    attendees: ["Émilie Roux", "Antoine Mercier", "Julien Pasquier", "Marie Lopez"]
-  }, {
-    priority: "moyenne",
-    icon: "📞",
-    title: "Appel de cadrage POC Cyber avec Antoine Mercier",
-    due: "Ven. 29 mai · 10h00",
-    assigned: "Karim Ben Salah",
-    assignedColor: "#6366f1",
-    meta: "Préparer planning d'installation et plan de test",
-    tag: "OPP-2841",
-    tagColor: "#dc2626"
-  }, {
-    priority: "moyenne",
-    icon: "✉",
-    title: "Envoyer proposition v3 Suite mise à jour",
-    due: "Dim. 31 mai",
-    assigned: "Nadia Lefèvre",
-    assignedColor: "#a855f7",
-    meta: "Intégrer commentaires CFO sur le ROI 18 mois",
-    tag: "OPP-2814",
-    tagColor: "#a855f7"
-  }, {
-    priority: "basse",
-    icon: "👥",
-    title: "RDV de découverte filiale Belgique",
-    due: "Sem. du 02 juin",
-    assigned: "Nadia Lefèvre",
-    assignedColor: "#a855f7",
-    meta: "Identifier interlocuteurs locaux à Bruxelles",
-    tag: "OPP-2867",
-    tagColor: "#94a3b8"
-  }, {
-    priority: "basse",
-    icon: "🔄",
-    title: "Préparer renouvellement Suite 2026-2028",
-    due: "Sept. 2026",
-    assigned: "Nadia Lefèvre",
-    assignedColor: "#a855f7",
-    meta: "Renouvellement automatique en mars — anticiper négociation",
-    tag: "Recurring",
-    tagColor: "#10b981"
-  }, {
-    priority: "ai",
-    icon: "★",
-    title: "Suggestion IA — Inviter Émilie Roux à user-group Astorya",
-    due: "Ce mois",
-    meta: "Émilie a téléchargé 3 white papers ce trimestre. Signal champion fort.",
-    tag: "Insight",
-    tagColor: "#0f172a"
-  }];
+  // Actions à mener : SEULEMENT celles créées par l'utilisateur (extraites de Supabase, statut "todo")
+  var future = [];
   var prioMeta = {
     haute: {
       label: "Haute",

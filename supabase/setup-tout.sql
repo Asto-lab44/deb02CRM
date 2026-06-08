@@ -33,16 +33,7 @@ begin
 end;
 $$;
 
--- Retourne les groupes de l'utilisateur courant (utilisé dans les RLS futures)
-create or replace function public.current_user_groups()
-returns text[]
-language sql
-stable
-as $$
-  select coalesce(array_agg(group_id), '{}'::text[])
-  from public.profile_groups
-  where profile_id = auth.uid()
-$$;
+-- Note : current_user_groups() est créée en bas du script, après les tables.
 
 -- ════════════════════════════════════════════════════════════════════
 -- 1. PROFILS UTILISATEURS
@@ -459,6 +450,19 @@ create or replace view public.v_actions_todo as
   from public.actions
   where status = 'todo' and deleted_at is null
   group by assigned_to;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 12.5 HELPER : groupes de l'utilisateur courant (après que profile_groups existe)
+-- ════════════════════════════════════════════════════════════════════
+create or replace function public.current_user_groups()
+returns text[]
+language sql
+stable
+as $$
+  select coalesce(array_agg(group_id), '{}'::text[])
+  from public.profile_groups
+  where profile_id = auth.uid()
+$$;
 
 -- ════════════════════════════════════════════════════════════════════
 -- 13. RLS — Row Level Security

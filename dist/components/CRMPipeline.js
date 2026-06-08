@@ -1,4 +1,25 @@
-// Écran CRM 1 — Pipeline commercial (kanban + KPIs)
+// ════════════════════════════════════════════════════════════════════
+// CRMPipeline — Pipeline commercial (route : /crm)
+// ════════════════════════════════════════════════════════════════════
+//
+// Composé de 2 sections (deux composants empilés) :
+//   1. <CRMPipeline>      → header + kanban des opportunités + KPI strip
+//   2. <CRMAccountsList>  → sous-composant tableau Comptes & Contacts
+//   3. <ActionsRow>       → sous-composant liste "Actions à mener"
+//
+// Sources de données :
+//   - opportunités : api.opportunities.list() — colonne kanban par stage
+//   - clients      : api.clients.list() — table Comptes
+//   - contacts     : api.contacts.list() — compteur sidebar
+//   - actions      : api.actions.list() — compteur sidebar
+//
+// Filtres :
+//   - crmFilter { kind: "all"|"view"|"product"|"status", value }
+//     → contrôle ce qui apparaît dans le kanban
+//   - globalSearch → recherche transversale (clients + opps + contacts)
+//
+// Compteurs sidebar (Comptes/Contacts/Activités) sont mis à jour live au mount.
+// ════════════════════════════════════════════════════════════════════
 
 var CRMPipeline = () => {
   // Filtre actif sur le pipeline (vue, produit, savedView…)

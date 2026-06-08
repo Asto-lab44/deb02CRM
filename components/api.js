@@ -1,23 +1,49 @@
-// Hub Astorya — Couche d'accès aux données
-// Toutes les opérations CRUD passent par ce module.
-// Si Supabase est configuré et l'utilisateur authentifié → Supabase.
-// Sinon → localStorage (fallback offline / dev).
+// ════════════════════════════════════════════════════════════════════
+// Hub Astorya — Couche d'accès aux données (API layer)
+// ════════════════════════════════════════════════════════════════════
 //
-// Usage :
+// SOMMAIRE
+//   §1. Helpers internes (supa, getCurrentUserId, lsGet/lsSet, genId, flattenClient, buildClientPatch)
+//   §2. clients         → CRUD prospects/clients (Supabase clients + fallback localStorage)
+//   §3. opportunities   → CRUD pipeline commercial (Supabase opportunities)
+//   §4. contacts        → CRUD contacts secondaires d'un client (Supabase contacts)
+//   §5. actions         → CRUD timeline d'actions (Supabase actions)
+//   §6. contracts       → CRUD contrats client (Supabase contracts)
+//   §7. auth            → getUser/signOut/requireAuth (wrapper Supabase Auth)
+//   §8. Export window.api
+//
+// COMPORTEMENT GLOBAL
+//   - Si Supabase est configuré (HubSupabase.enabled) → tous les writes/reads
+//     vont en BDD Supabase. Filtrage automatique des soft-deleted (deleted_at).
+//   - Si Supabase fail (RLS, schéma manquant…) → fallback silencieux sur
+//     localStorage pour ne pas perdre la donnée (`hubAstorya.prospects.v1`,
+//     `.opportunities.v1`, etc.)
+//   - Les deletes sont SOFT (UPDATE deleted_at = now()) sur les tables
+//     concernées — pas de perte de donnée par erreur.
+//   - Les IDs générés (`genId`) sont collision-résistants (timestamp base36
+//     + 6 chars random).
+//
+// USAGE
 //   await window.api.clients.list({ status: 'prospect' })
-//   await window.api.clients.create({ name, ... })
-//   await window.api.opportunities.update('OPP-1234', { stage: 'won' })
-//   await window.api.actions.complete('EX-1234')
-//
-// Tables Supabase : clients, opportunities, contacts, actions, contracts
+//   await window.api.clients.create({ raison_sociale, siren, ... })
+//   await window.api.opportunities.update('OPP-…', { stage: 'won' })
+//   await window.api.actions.complete('EX-…')
+//   const u = await window.api.auth.getUser()
+// ════════════════════════════════════════════════════════════════════
 
 (function () {
   "use strict";
 
+  // ───────────────────────────────────────────────────────────────────
+  // §1. HELPERS INTERNES
+  // ───────────────────────────────────────────────────────────────────
+
+  /** Renvoie le client Supabase si configuré, sinon null. */
   function supa() {
     return window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
   }
 
+  /** Renvoie l'UUID de l'utilisateur connecté à Supabase Auth, sinon null. */
   async function getCurrentUserId() {
     const s = supa();
     if (!s) return null;
@@ -27,6 +53,16 @@
     } catch (e) { return null; }
   }
 
+  /** Renvoie le nom (display name) de l'utilisateur connecté, depuis HubAccess. */
+  function getCurrentUserName() {
+    try {
+      const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+      return (u && u.name) || null;
+    } catch (e) { return null; }
+  }
+
+  // localStorage helpers — chaque ressource est sérialisée sous la clé
+  // `hubAstorya.<resource>.v1` (un tableau JSON).
   function lsKey(resource) { return "hubAstorya." + resource + ".v1"; }
   function lsGet(resource) {
     try { return JSON.parse(localStorage.getItem(lsKey(resource)) || "[]"); } catch (e) { return []; }
@@ -35,13 +71,17 @@
     try { localStorage.setItem(lsKey(resource), JSON.stringify(arr)); } catch (e) {}
   }
 
+  /** Génère un ID unique de la forme `PREFIX-{timestamp36}{rand6}`.
+   *  Collision-résistant : ~2 milliards de combinaisons pour rand6 + timestamp ms. */
   function genId(prefix) {
-    // Format: PREFIX-{timestamp_base36}{6 random chars} — collision-résistant
     const ts = Date.now().toString(36);
     const rand = Math.random().toString(36).slice(2, 8);
     return prefix + "-" + ts + rand;
   }
 
+  /** "Aplatit" une ligne client Supabase : les colonnes top-level + le contenu
+   *  de la colonne `data` (jsonb) sont fusionnés dans un seul objet plat.
+   *  → permet à ClientPage de lire `c.siren`, `c.naf`, etc. uniformément. */
   function flattenClient(row) {
     if (!row) return row;
     const extras = row.data && typeof row.data === "object" ? row.data : {};
@@ -50,6 +90,11 @@
     return out;
   }
 
+  /** Construit un payload BDD pour `clients.insert` / `clients.update` :
+   *  - les colonnes "core" (name, industry, city, website, status, owner)
+   *    deviennent des colonnes top-level
+   *  - tout le reste (siren, naf, tva, effectif, adresse…) part dans la
+   *    colonne `data jsonb` pour rester schemaless. */
   function buildClientPatch(payload) {
     const topLevel = {
       id: payload.id,
@@ -61,7 +106,6 @@
       owner: payload.owner || null,
       client_since: payload.client_since || null,
     };
-    // tout le reste va dans data
     const reserved = new Set(["id", "name", "industry", "city", "website", "status", "owner", "client_since", "data", "updated_at", "created_at", "created_by"]);
     const data = {};
     Object.keys(payload).forEach((k) => {
@@ -72,7 +116,21 @@
     return topLevel;
   }
 
-  // ────────────────────── CLIENTS ────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────
+  // §2. CLIENTS — prospects + clients
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Table : public.clients
+  // Colonnes JSONB : `data` (siren, naf, tva, effectif, adresse, contact_principal…)
+  // Soft-delete : `deleted_at IS NULL` est appliqué automatiquement aux reads.
+  //
+  // Méthodes :
+  //   list({status}?)      → tableau, trié created_at DESC
+  //   getById(id)          → objet ou null (fallback localStorage si pas en BDD)
+  //   create(payload)      → objet créé (avec id généré si absent)
+  //   update(id, patch)    → objet maj
+  //   remove(id)           → SOFT delete (UPDATE deleted_at = now())
+
   const clients = {
     async list(filter = {}) {
       const s = supa();
@@ -159,18 +217,38 @@
       return null;
     },
 
+    /** SOFT-delete : marque `deleted_at = now()`. La donnée reste en BDD,
+     *  juste filtrée par les reads. Permet de restaurer via une simple
+     *  requête `UPDATE clients SET deleted_at = NULL`. */
     async remove(id) {
       const s = supa();
       if (s) {
-        const { error } = await s.from("clients").delete().eq("id", id);
-        if (error) console.warn("[api.clients.remove]", error.message);
+        const { error } = await s.from("clients").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) {
+          console.warn("[api.clients.remove]", error.message);
+          // Si la colonne deleted_at n'existe pas (vieux schéma), fallback hard delete
+          if (/column.+deleted_at.+does not exist/i.test(error.message || "")) {
+            await s.from("clients").delete().eq("id", id);
+          } else {
+            throw new Error("Suppression échouée : " + error.message);
+          }
+        }
       }
       const arr = lsGet("prospects").filter((c) => c.id !== id);
       lsSet("prospects", arr);
     },
   };
 
-  // ────────────────────── OPPORTUNITIES ──────────────────────────────
+  // ───────────────────────────────────────────────────────────────────
+  // §3. OPPORTUNITIES — pipeline commercial
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Table : public.opportunities
+  // Stages : qualif → discovery → propo → nego → won/lost
+  // Champs clés : client_id, amount_eur, stage, proba (0-100), close_date,
+  //               owner (nom du commercial), modules (text[])
+  //
+  // Méthodes : list({client_id, stage}?), getById, create, update
   const opportunities = {
     async list(filter = {}) {
       const s = supa();
@@ -254,7 +332,15 @@
     },
   };
 
-  // ────────────────────── CONTACTS (secondaires) ─────────────────────
+  // ───────────────────────────────────────────────────────────────────
+  // §4. CONTACTS — interlocuteurs liés à un client
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Table : public.contacts
+  // Particularité : un seul `is_principal=true` par client (contrainte unique
+  // partielle en BDD). Les autres contacts sont marqués `is_principal=false`.
+  //
+  // Méthodes : list({client_id}?), create, update, remove
   const contacts = {
     async list(filter = {}) {
       const s = supa();
@@ -315,7 +401,17 @@
     },
   };
 
-  // ────────────────────── ACTIONS (Email/RDV/Call/Tâche/Note) ────────
+  // ───────────────────────────────────────────────────────────────────
+  // §5. ACTIONS — timeline (Email / Call / RDV / Tâche / Note)
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Table : public.actions
+  // Types : email, call, rdv, visio, task, note, in (LinkedIn), wait, stage
+  // Statuts : todo (à mener), done (terminée), cancelled
+  // Champs clés : client_id, opp_id, due_at, priority (haute/moyenne/basse/ai),
+  //               assigned_to (nom user), completed_at
+  //
+  // Méthodes : list({client_id, status}?), create, complete(id), remove(id)
   const actions = {
     async list(filter = {}) {
       const s = supa();
@@ -410,7 +506,17 @@
     },
   };
 
-  // ────────────────────── CONTRACTS ──────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────
+  // §6. CONTRACTS — contrats client
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Table : public.contracts
+  // Tiers : premium / standard / none
+  // Statuts : active, expiring, expired, none
+  // Champs clés : client_id, opp_id (origine), name, start_date, end_date,
+  //               monthly_eur, products (jsonb)
+  //
+  // Méthodes : list({client_id}?), create, update, remove
   const contracts = {
     async list(filter = {}) {
       const s = supa();
@@ -452,7 +558,15 @@
     },
   };
 
-  // ────────────────────── AUTH HELPERS ───────────────────────────────
+  // ───────────────────────────────────────────────────────────────────
+  // §7. AUTH — wrapper Supabase Auth
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Méthodes :
+  //   getUser()       → l'objet user Supabase (null si déconnecté)
+  //   signOut()       → déconnecte la session
+  //   requireAuth()   → redirige vers /login si pas de session
+  //                     (à appeler en début de page protégée)
   const auth = {
     async getUser() {
       const s = supa();
@@ -490,5 +604,8 @@
     },
   };
 
+  // ───────────────────────────────────────────────────────────────────
+  // §8. EXPORT global
+  // ───────────────────────────────────────────────────────────────────
   window.api = { clients, opportunities, contacts, actions, contracts, auth };
 })();

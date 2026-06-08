@@ -1,10 +1,41 @@
-// Shared access/identity store for the Hub Astorya design canvas.
-// Plain JS (no JSX) so it loads synchronously before the Babel-transformed
-// component scripts. State is persisted in localStorage; subscribers are
-// notified whenever groups or the active identity change so React views can
-// re-render via useSyncExternalStore.
+// ════════════════════════════════════════════════════════════════════
+// Hub Astorya — Store d'identité et de droits (HubAccess)
+// ════════════════════════════════════════════════════════════════════
+//
+// SOMMAIRE
+//   §1. Constants     : ALL_KEYS (modules ERP), DEFAULT_GROUPS (9 groupes seed)
+//   §2. USERS         : tableau démo (sera remplacé par une lecture BDD à terme)
+//   §3. Storage       : caches localStorage (groups, activeGroup, session, transcripts)
+//   §4. Listeners     : système subscribe/emit pour les re-renders React
+//   §5. Groups API    : loadGroups, saveGroups, getActiveGroup, setActiveGroupId
+//   §6. Transcripts   : retranscriptions d'appel 3CX rattachées à un ticket
+//   §7. Session       : getCurrentUser (Supabase OR localStorage demo), login, logout
+//   §8. resetAll      : purge complète localStorage (utilisé par le bouton Reset)
+//   §9. Export window.HubAccess
+//
+// ARCHITECTURE
+//   - Plain JS (pas de JSX) → loadé en SYNC avant les composants React.
+//   - State persisté en localStorage. Les composants React s'abonnent via
+//     useSyncExternalStore(subscribe, () => HubAccess.getCurrentUser()).
+//   - Cache des refs : chaque getter (getCurrentUser, getActiveGroup, loadGroups)
+//     renvoie la MÊME référence tant que rien n'a changé → snapshot stable pour
+//     useSyncExternalStore (cf React error #185).
+//   - emit() est déclenché à chaque mutation (saveGroups, login, logout, …) et
+//     invalide tous les caches.
+//
+// USAGE
+//   const user = window.HubAccess.getCurrentUser()
+//   const group = window.HubAccess.getActiveGroup()
+//   window.HubAccess.subscribe(() => myComponent.forceRefresh())
+// ════════════════════════════════════════════════════════════════════
 
 (function () {
+  // ───────────────────────────────────────────────────────────────────
+  // §1. CONSTANTS
+  // ───────────────────────────────────────────────────────────────────
+
+  /** Les 13 modules ERP/CRM disponibles. Sert de "feature flag" par groupe :
+   *  un groupe a un sous-ensemble de ces clés dans son `access` array. */
   const ALL_KEYS = [
     "crm", "intel", "marketing",
     "tech", "projects", "inventory",

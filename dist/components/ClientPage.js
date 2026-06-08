@@ -1,4 +1,31 @@
-// Fiche client 360 — pipe multi-contrats + actions menées / à mener
+// ════════════════════════════════════════════════════════════════════
+// ClientPage — Fiche client 360° (route : /fiche-client?id=…)
+// ════════════════════════════════════════════════════════════════════
+//
+// Le plus gros composant de l'app (~1600 lignes). Affiche toutes les infos
+// relatives à un client/prospect :
+//
+//  - HEADER     : nom, secteur, ville, web, owner, contrat, KPIs (ARR, pipe)
+//  - SECTIONS   :
+//      • Informations compte (commercial, effectif, secteur, source…)
+//      • Contacts clés (principal + co-contacts)
+//      • Contrats actifs
+//      • Opportunités liées (chargées via api.opportunities.list)
+//      • Actions à mener (api.actions.list status="todo")
+//      • Actions historiques (api.actions.list status="done")
+//      • Parc IT (modale AssetInventoryModal)
+//      • Stats appels (modale CallStatsModal)
+//  - MODALS    : nouvelle action, nouveau contact, édition fiche
+//
+// Sources :
+//   - Client : api.clients.getById(urlId) → loadedClient
+//   - Tout le reste : reloadAllForClient() qui parallélise les 3 listes
+//     (actions + contacts + opportunités)
+//
+// Note legacy : ce composant gère encore un fallback "AXA Wealth France"
+// (démo) quand `urlId` est absent (`empty` = false), pour ne pas casser
+// la maquette d'origine.
+// ════════════════════════════════════════════════════════════════════
 
 var ClientPage = () => {
   var [statsOpen, setStatsOpen] = React.useState(false);
@@ -1103,9 +1130,12 @@ var ClientPage = () => {
   }), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
       if (!urlId) return;
-      if (confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) {
+      if (!confirm("Supprimer définitivement " + display.name + " ?\n\n(Soft-delete : la donnée reste en BDD, juste marquée supprimée)")) return;
+      try {
         await window.api.clients.remove(urlId);
         window.location.href = "/crm";
+      } catch (err) {
+        alert("Suppression échouée : " + (err && err.message || err) + "\n\nLa donnée reste accessible.");
       }
     },
     style: {

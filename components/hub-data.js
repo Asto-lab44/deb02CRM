@@ -1,10 +1,36 @@
-// Couche d'accès aux données Supabase pour le Hub Astorya.
-// Charge groupes, clients, contrats, tickets, parc IT et appels depuis la
-// base si elle est configurée. Sinon retourne null (les composants gardent
-// alors leurs données inline de maquette comme fallback gracieux).
+// ════════════════════════════════════════════════════════════════════
+// Hub Astorya — Data layer Supabase pour le ticketing (HubData)
+// ════════════════════════════════════════════════════════════════════
 //
-// Toutes les fonctions sont async et renvoient un objet { data, error } à
-// la mode Supabase pour faciliter le matching.
+// Distinct de window.api (qui gère CRM : clients/opps/contacts/actions/contrats).
+// Ce module est dédié au TICKETING et aux ressources spécifiques au support :
+// tickets, comments, profiles, calls, transcripts.
+//
+// SOMMAIRE
+//   §1. Helpers internes      (supa, listeners, cache, flattenClient)
+//   §2. Reads (fetch...)      → fetchGroups, fetchClients, fetchTickets,
+//                                fetchTicketById, fetchProfiles,
+//                                fetchCommentsByTicket
+//   §3. Mutations             → createTicket, updateTicket, escalateTicket,
+//                                createComment, recordCall, saveTranscript
+//   §4. Realtime              → subscribeChanges, subscribeCommentsForTicket
+//                                (notifs live multi-onglets / multi-agents)
+//   §5. Export window.HubData
+//
+// FORMAT DE RETOUR
+//   Toutes les méthodes async renvoient { data, error } à la Supabase.
+//   - data : la donnée demandée (objet/array) ou null
+//   - error : { message } ou null
+//
+// CACHE
+//   - cache.tickets, cache.clients : mémorise le dernier fetch en mémoire
+//   - invalidate(name) : reset le cache d'une ressource (appelé après mutate)
+//
+// USAGE
+//   const { data, error } = await window.HubData.fetchTickets({ limit: 50 })
+//   const off = window.HubData.subscribeChanges(() => reload())
+//   await window.HubData.createTicket({ id, title, client_id, priority, … })
+// ════════════════════════════════════════════════════════════════════
 
 (function () {
   const supa = (typeof window !== "undefined" && window.HubSupabase && window.HubSupabase.enabled)

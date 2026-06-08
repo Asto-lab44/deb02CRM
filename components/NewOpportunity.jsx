@@ -40,16 +40,16 @@ const NewOpportunity = () => {
   const [oppSource, setOppSource] = React.useState("Référence client existant");
   const [oppDuration, setOppDuration] = React.useState("3 ans");
   const [oppStage, setOppStage] = React.useState("qualif");
-  const [oppOwner, setOppOwner] = React.useState("Romain Daviaud");
+  // Owner par défaut = nom de l'utilisateur connecté (via HubAccess).
+  // Fallback "Romain Daviaud" si pas de session.
+  const initialOwner = (() => {
+    try {
+      const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+      return (u && u.name) || "Romain Daviaud";
+    } catch (e) { return "Romain Daviaud"; }
+  })();
+  const [oppOwner, setOppOwner] = React.useState(initialOwner);
   const [oppTags,  setOppTags]  = React.useState([]);
-  React.useEffect(() => {
-    if (!window.api || !window.api.auth) return;
-    window.api.auth.getUser().then((u) => {
-      if (!u) return;
-      if (u.email === "a.morin@astorya.fr") setOppOwner("Augustin Morin");
-      else if (u.email === "achat@astorya.fr") setOppOwner("Romain Daviaud");
-    }).catch(() => {});
-  }, []);
   // Stage pré-sélectionné via ?stage=
   React.useEffect(() => {
     const s = new URLSearchParams(window.location.search).get("stage");

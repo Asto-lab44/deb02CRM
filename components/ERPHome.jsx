@@ -1,4 +1,24 @@
-// Page d'accueil ERP — tuiles des modules (filtrées par le groupe actif)
+// ════════════════════════════════════════════════════════════════════
+// ERPHome — Page d'accueil de l'ERP (route : /)
+// ════════════════════════════════════════════════════════════════════
+//
+// Affiche :
+//  - Sidebar avec navigation, user actif, switcher de groupe
+//  - Topbar avec recherche globale (clients + opportunités)
+//  - Hero "Bonjour {prénom}" + KPI live (clients, opps, signées)
+//  - Grille de tuiles ERP filtrée par les droits du groupe actif
+//  - Panel "Mes actions à mener" depuis api.actions
+//
+// État principal :
+//  - activeGroup, allGroups, localUser : lus depuis HubAccess au mount
+//  - supaUser : email Supabase fetched async (api.auth.getUser)
+//  - crmStats : compteurs en live (api.clients.list + api.opportunities.list)
+//  - actionsTodo : actions status="todo" (api.actions.list)
+//  - searchQ + searchData : barre de recherche globale
+//
+// Le filtre `allowedKeys` = Set des modules autorisés pour le groupe actif.
+// Les tuiles dont la clé n'est pas dans allowedKeys sont masquées.
+// ════════════════════════════════════════════════════════════════════
 
 const ERPHome = () => {
   // Lecture une seule fois au mount. La session Supabase est récupérée dans

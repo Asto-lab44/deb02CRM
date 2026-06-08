@@ -52,6 +52,23 @@ var ERPHome = () => {
   };
 
   // ───── modules organisés par catégorie
+  // Stats live CRM (depuis Supabase) injectées dans la tuile CRM
+  var [crmStats, setCrmStats] = React.useState({
+    clients: 0,
+    opps: 0,
+    won: 0
+  });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([window.api.clients.list(), window.api.opportunities.list()]).then(([clients, opps]) => {
+      var won = (opps || []).filter(o => o.stage === "won").length;
+      setCrmStats({
+        clients: (clients || []).length,
+        opps: (opps || []).length,
+        won
+      });
+    }).catch(() => {});
+  }, []);
   var modules = [
   // COMMERCIAL
   {
@@ -75,7 +92,16 @@ var ERPHome = () => {
     })),
     color: "#4f46e5",
     bg: "#eef2ff",
-    stats: [],
+    stats: [{
+      k: "Comptes",
+      v: String(crmStats.clients)
+    }, {
+      k: "Opportunités",
+      v: String(crmStats.opps)
+    }, {
+      k: "Signées",
+      v: String(crmStats.won)
+    }],
     trendUp: true
   }, {
     cat: "Commercial",
@@ -783,7 +809,15 @@ var ERPHome = () => {
     }
   }, "Accueil"), /*#__PURE__*/React.createElement("span", {
     style: erpStyles.todayChip
-  }, "mardi 26 mai 2026 \xB7 09:42")), /*#__PURE__*/React.createElement("div", {
+  }, new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }), " \xB7 ", new Date().toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -815,15 +849,18 @@ var ERPHome = () => {
       marginBottom: 6,
       fontWeight: 500
     }
-  }, "Bonjour ", currentUser ? currentUser.name.split(" ")[0] : "Claire", " \u2014 voici votre tableau de bord"), /*#__PURE__*/React.createElement("h1", {
+  }, "Bonjour ", currentUser ? currentUser.name.split(" ")[0].split("@")[0] : "", " \u2014 voici votre tableau de bord"), /*#__PURE__*/React.createElement("h1", {
     style: erpStyles.heroH1
-  }, "Bonne matin\xE9e", /*#__PURE__*/React.createElement("span", {
+  }, (() => {
+    var h = new Date().getHours();
+    return h < 12 ? "Bonne matinée" : h < 18 ? "Bon après-midi" : "Bonne soirée";
+  })(), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#a78bfa"
     }
   }, ".")), /*#__PURE__*/React.createElement("p", {
     style: erpStyles.heroSub
-  }, "5 notifications en attente \xB7 3 tickets urgents \xB7 1 r\xE9union \xE0 venir dans 18 minutes"), /*#__PURE__*/React.createElement("div", {
+  }, crmStats.opps, " opportunit\xE9", crmStats.opps > 1 ? "s" : "", " en cours \xB7 ", crmStats.clients, " compte", crmStats.clients > 1 ? "s" : "", " en base"), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.quickActions
   }, /*#__PURE__*/React.createElement("button", {
     style: {
@@ -852,38 +889,20 @@ var ERPHome = () => {
       color: "#10b981",
       fontWeight: 600
     }
-  }, "\u25CF Mis \xE0 jour il y a 2 min")), /*#__PURE__*/React.createElement("div", {
+  }, "\u25CF Live")), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.pulseGrid
   }, [{
-    k: "Chiffre d'affaires jour",
-    v: "12 480 €",
-    delta: "+8 %",
-    color: "#10b981",
-    spark: [3, 4, 5, 4, 6, 7, 8]
+    k: "Comptes",
+    v: String(crmStats.clients),
+    color: "#4f46e5"
   }, {
-    k: "Nouveaux deals",
-    v: "3",
-    delta: "vs 2 hier",
-    color: "#4f46e5",
-    spark: [1, 2, 2, 3, 2, 4, 3]
+    k: "Opportunités",
+    v: String(crmStats.opps),
+    color: "#a855f7"
   }, {
-    k: "Tickets ouverts",
-    v: "47",
-    delta: "↑ 4 depuis hier",
-    color: "#0ea5e9",
-    spark: [40, 42, 44, 43, 45, 46, 47]
-  }, {
-    k: "Encours impayés",
-    v: "18,4 k€",
-    delta: "3 relances dues",
-    color: "#f59e0b",
-    spark: [22, 21, 20, 19, 18, 19, 18]
-  }, {
-    k: "Trésorerie",
-    v: "1,24 M€",
-    delta: "+62 k€ semaine",
-    color: "#0e7a55",
-    spark: [1.18, 1.20, 1.21, 1.22, 1.21, 1.23, 1.24]
+    k: "Signées",
+    v: String(crmStats.won),
+    color: "#10b981"
   }].map(p => /*#__PURE__*/React.createElement("div", {
     key: p.k,
     style: erpStyles.pulse
@@ -901,10 +920,7 @@ var ERPHome = () => {
       textTransform: "uppercase",
       letterSpacing: 0.4
     }
-  }, p.k), /*#__PURE__*/React.createElement(MiniSparkline, {
-    data: p.spark,
-    color: p.color
-  })), /*#__PURE__*/React.createElement("div", {
+  }, p.k)), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 20,
       fontWeight: 700,
@@ -912,14 +928,7 @@ var ERPHome = () => {
       letterSpacing: -0.4,
       marginTop: 4
     }
-  }, p.v), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: p.color,
-      fontWeight: 600,
-      marginTop: 2
-    }
-  }, p.delta))))), /*#__PURE__*/React.createElement("section", {
+  }, p.v))))), /*#__PURE__*/React.createElement("section", {
     style: erpStyles.modulesSection
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.sectionHead

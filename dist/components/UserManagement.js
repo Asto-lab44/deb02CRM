@@ -547,6 +547,48 @@ var UserManagement = () => {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!confirm("⚠ DANGER : Supprimer DÉFINITIVEMENT toutes les données métier ?\n\n• Tous les clients/prospects\n• Toutes les opportunités\n• Tous les contacts\n• Toutes les actions\n• Tous les contrats\n• localStorage entier\n\n(Les comptes Romain + Augustin restent dans Auth)")) return;
+      if (!confirm("Vraiment sûr ? Cette action est irréversible.")) return;
+      var report = [];
+      // Supabase
+      if (window.HubSupabase && window.HubSupabase.enabled && window.HubSupabase.client) {
+        var s = window.HubSupabase.client;
+        for (var t of ["actions", "contacts", "contracts", "opportunities", "clients"]) {
+          try {
+            var {
+              error
+            } = await s.from(t).delete().not("id", "is", null);
+            report.push((error ? "✗ " : "✓ ") + t + (error ? " — " + error.message : ""));
+          } catch (e) {
+            report.push("✗ " + t + " — " + e.message);
+          }
+        }
+      } else {
+        report.push("ℹ Supabase non configuré, skip");
+      }
+      // localStorage
+      try {
+        var keys = Object.keys(localStorage).filter(k => k.startsWith("hubAstorya."));
+        keys.forEach(k => localStorage.removeItem(k));
+        report.push("✓ localStorage : " + keys.length + " clés supprimées");
+      } catch (e) {
+        report.push("✗ localStorage — " + e.message);
+      }
+      alert("Reset terminé :\n\n" + report.join("\n"));
+      flash("✓ Base vidée");
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    },
+    style: {
+      ...S.btnGhost,
+      borderColor: "#fecaca",
+      color: "#dc2626",
+      cursor: "pointer"
+    },
+    title: "Supprimer toutes les donn\xE9es m\xE9tier (clients, opps, contacts, actions, contrats)"
+  }, "\uD83D\uDDD1 Reset donn\xE9es"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) {
         window.HubAccess.resetAll();
@@ -554,7 +596,7 @@ var UserManagement = () => {
       }
     },
     style: S.btnGhost
-  }, "\u27F2 R\xE9initialiser"), /*#__PURE__*/React.createElement("button", {
+  }, "\u27F2 R\xE9init. groupes"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       flash("⟳ Synchronisation SSO lancée — 0 changement détecté");
     },

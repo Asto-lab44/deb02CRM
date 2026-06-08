@@ -81,215 +81,60 @@ var CRMPipeline = () => {
       }
     }, initials);
   };
-  var columns = [{
+
+  // Colonnes du Kanban — alimentées par les opportunités Supabase
+  var stageMeta = [{
     key: "qualif",
     label: "Qualification",
-    count: 8,
-    total: "184 k€",
-    color: "#94a3b8",
-    cards: [{
-      co: "Banque Méridionale",
-      amount: "32 000 €",
-      days: 3,
-      owner: "Nadia Lefèvre",
-      proba: 20,
-      tag: "Cyber",
-      logo: "BM",
-      logoBg: "#0f172a"
-    }, {
-      co: "Crédit Provence",
-      amount: "18 500 €",
-      days: 5,
-      owner: "Tom Verdier",
-      proba: 15,
-      tag: "Hub",
-      logo: "CP",
-      logoBg: "#10b981"
-    }, {
-      co: "Helios Mutuelle",
-      amount: "24 000 €",
-      days: 1,
-      owner: "Sophie Aubry",
-      proba: 25,
-      tag: "Cyber",
-      logo: "HM",
-      logoBg: "#f59e0b",
-      isNew: true
-    }]
+    color: "#94a3b8"
   }, {
     key: "discovery",
     label: "Discovery",
-    count: 11,
-    total: "412 k€",
-    color: "#3b82f6",
-    cards: [{
-      co: "Groupe Vatel Assurances",
-      amount: "85 000 €",
-      days: 6,
-      owner: "Nadia Lefèvre",
-      proba: 35,
-      tag: "Suite",
-      logo: "VA",
-      logoBg: "#4f46e5",
-      contacts: 3,
-      hot: true
-    }, {
-      co: "MACIF Régionale Nord",
-      amount: "47 000 €",
-      days: 2,
-      owner: "Karim Ben Salah",
-      proba: 40,
-      tag: "Hub",
-      logo: "MN",
-      logoBg: "#dc2626",
-      contacts: 2
-    }, {
-      co: "Atlantique Patrimoine",
-      amount: "29 500 €",
-      days: 9,
-      owner: "Sophie Aubry",
-      proba: 30,
-      tag: "Cyber",
-      logo: "AP",
-      logoBg: "#0ea5e9",
-      warning: "Pas de contact 12 j"
-    }, {
-      co: "Cabinet Renard & Fils",
-      amount: "12 000 €",
-      days: 4,
-      owner: "Tom Verdier",
-      proba: 35,
-      tag: "Hub",
-      logo: "RF",
-      logoBg: "#a855f7"
-    }]
+    color: "#3b82f6"
   }, {
     key: "propo",
     label: "Proposition",
-    count: 6,
-    total: "548 k€",
-    color: "#a855f7",
-    cards: [{
-      co: "AXA Wealth France",
-      amount: "215 000 €",
-      days: 11,
-      owner: "Nadia Lefèvre",
-      proba: 55,
-      tag: "Suite",
-      logo: "AX",
-      logoBg: "#1e40af",
-      contacts: 5,
-      hot: true,
-      meeting: "Comité achats jeudi"
-    }, {
-      co: "Generali Patrimoine",
-      amount: "92 000 €",
-      days: 7,
-      owner: "Karim Ben Salah",
-      proba: 60,
-      tag: "Cyber",
-      logo: "GP",
-      logoBg: "#dc2626",
-      contacts: 4
-    }, {
-      co: "MAIF Innovation",
-      amount: "78 500 €",
-      days: 5,
-      owner: "Sophie Aubry",
-      proba: 50,
-      tag: "Hub",
-      logo: "MI",
-      logoBg: "#10b981",
-      contacts: 3
-    }, {
-      co: "Caisse d'Épargne IDF",
-      amount: "54 000 €",
-      days: 14,
-      owner: "Tom Verdier",
-      proba: 45,
-      tag: "Hub",
-      logo: "CE",
-      logoBg: "#ea580c",
-      warning: "Relance attendue"
-    }]
+    color: "#a855f7"
   }, {
     key: "nego",
     label: "Négociation",
-    count: 4,
-    total: "327 k€",
-    color: "#ea580c",
-    cards: [{
-      co: "BNP Asset Management",
-      amount: "168 000 €",
-      days: 8,
-      owner: "Nadia Lefèvre",
-      proba: 75,
-      tag: "Suite",
-      logo: "BP",
-      logoBg: "#0f766e",
-      contacts: 6,
-      hot: true,
-      meeting: "Signature prévue 30/05"
-    }, {
-      co: "Allianz France PME",
-      amount: "96 000 €",
-      days: 13,
-      owner: "Karim Ben Salah",
-      proba: 70,
-      tag: "Cyber",
-      logo: "AL",
-      logoBg: "#1e3a8a",
-      contacts: 4
-    }, {
-      co: "Société Générale Pri.",
-      amount: "63 000 €",
-      days: 21,
-      owner: "Sophie Aubry",
-      proba: 65,
-      tag: "Hub",
-      logo: "SG",
-      logoBg: "#dc2626",
-      warning: "Stagne 21 j"
-    }]
+    color: "#ea580c"
   }, {
     key: "won",
     label: "Gagné",
-    count: 3,
-    total: "276 k€",
-    color: "#10b981",
-    cards: [{
-      co: "Crédit Mutuel Océan",
-      amount: "142 000 €",
-      days: 2,
-      owner: "Nadia Lefèvre",
-      proba: 100,
-      tag: "Suite",
-      logo: "CM",
-      logoBg: "#0f766e",
-      contacts: 5,
-      won: true
-    }, {
-      co: "Aviva Investors FR",
-      amount: "88 000 €",
-      days: 4,
-      owner: "Karim Ben Salah",
-      proba: 100,
-      tag: "Cyber",
-      logo: "AV",
-      logoBg: "#fbbf24",
-      won: true
-    }, {
-      co: "Crédit Agricole Sud",
-      amount: "46 000 €",
-      days: 6,
-      owner: "Tom Verdier",
-      proba: 100,
-      tag: "Hub",
-      logo: "CA",
-      logoBg: "#10b981",
-      won: true
-    }]
+    color: "#10b981"
   }];
+  var palette = ["#1e40af", "#dc2626", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#0f766e", "#ec4899", "#a855f7"];
+  var moduleTag = (modules, produit) => {
+    if (Array.isArray(modules) && modules.length > 0) return modules[0];
+    if (typeof produit === "string") {
+      if (produit.includes("Cyber")) return "Cyber";
+      if (produit.includes("Hub")) return "Hub";
+      if (produit.includes("Suite")) return "Suite";
+    }
+    return "Suite";
+  };
+  var columns = stageMeta.map((s, idx) => {
+    var stageOpps = (searchOpps || []).filter(o => (o.stage || "qualif") === s.key);
+    var total = stageOpps.reduce((sum, o) => sum + (Number(o.amount_eur) || 0), 0);
+    return {
+      ...s,
+      count: stageOpps.length,
+      total: total > 0 ? Math.round(total / 1000) + " k€" : "0 €",
+      cards: stageOpps.map((o, i) => ({
+        id: o.id,
+        co: o.client_name || o.data && o.data.client_name || "Client",
+        amount: o.amount_eur != null ? Math.round(o.amount_eur).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—",
+        days: 0,
+        owner: o.owner || "—",
+        proba: o.proba || s.key === "qualif" ? 20 : s.key === "discovery" ? 35 : s.key === "propo" ? 55 : s.key === "nego" ? 75 : 100,
+        tag: moduleTag(o.modules, o.produit),
+        logo: (o.client_name || "??").slice(0, 2).toUpperCase(),
+        logoBg: palette[(idx * 3 + i) % palette.length],
+        won: o.stage === "won"
+      }))
+    };
+  });
   var tagMeta = {
     Cyber: {
       bg: "#fdecec",
@@ -1003,14 +848,32 @@ var CRMPipeline = () => {
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.cards
-  }, col.cards.map((c, i) => {
-    var tag = tagMeta[c.tag];
+  }, col.cards.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 12px",
+      fontSize: 11.5,
+      color: "#94a3b8",
+      textAlign: "center",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc"
+    }
+  }, "Aucune opportunit\xE9"), col.cards.map((c, i) => {
+    var tag = tagMeta[c.tag] || {
+      bg: "#eef1f5",
+      color: "#475569"
+    };
+    var goto = () => {
+      if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id);
+    };
     return /*#__PURE__*/React.createElement("div", {
-      key: i,
+      key: c.id || i,
+      onClick: goto,
       style: {
         ...crmStyles.card,
         ...(c.hot ? crmStyles.cardHot : {}),
-        ...(c.won ? crmStyles.cardWon : {})
+        ...(c.won ? crmStyles.cardWon : {}),
+        cursor: c.id ? "pointer" : "default"
       }
     }, c.isNew && /*#__PURE__*/React.createElement("div", {
       style: crmStyles.newRibbon

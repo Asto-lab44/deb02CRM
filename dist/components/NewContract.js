@@ -258,8 +258,8 @@ var NewContract = () => {
       if (data) setClientObj(data);
     }).catch(() => {});
   }, [clientId]);
-  var clientName = clientObj && (clientObj.name || clientObj.raison_sociale) || (clientId ? "Client " + clientId : "AXA Wealth France SAS");
-  var clientSiren = clientObj && (clientObj.siren || clientObj.siret) || "487 921 304";
+  var clientName = clientObj && (clientObj.name || clientObj.raison_sociale) || (clientId ? "Chargement…" : "Aucun client sélectionné");
+  var clientSiren = clientObj && (clientObj.siren || clientObj.siret) || "—";
   var clientInitials = (clientName.split(" ").slice(0, 2).map(s => s[0]).join("") || "??").toUpperCase();
 
   // ── State

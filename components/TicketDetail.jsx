@@ -55,7 +55,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
     status:   t.status || "in_progress",
     priority: t.priority || t.prio || "haute",
     category: t.category || t.cat || "Réseau · VPN",
-    client:   (t.client && t.client.name) || "AXA Wealth France",
+    client:   (t.client && t.client.name) || "Client inconnu",
     clientId: (t.client && t.client.id) || null,
     contract: t.client && t.client.contracts && t.client.contracts[0] ? t.client.contracts[0] :
               (t.client && t.client.maintenance ? { status: t.client.maintenance, name: t.client.contract } : null),

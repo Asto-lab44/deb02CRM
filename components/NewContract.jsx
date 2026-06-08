@@ -92,8 +92,8 @@ const NewContract = () => {
     window.api.clients.getById(clientId).then((data) => { if (data) setClientObj(data); }).catch(() => {});
   }, [clientId]);
 
-  const clientName = (clientObj && (clientObj.name || clientObj.raison_sociale)) || (clientId ? "Client " + clientId : "AXA Wealth France SAS");
-  const clientSiren = (clientObj && (clientObj.siren || clientObj.siret)) || "487 921 304";
+  const clientName = (clientObj && (clientObj.name || clientObj.raison_sociale)) || (clientId ? "Chargement…" : "Aucun client sélectionné");
+  const clientSiren = (clientObj && (clientObj.siren || clientObj.siret)) || "—";
   const clientInitials = (clientName.split(" ").slice(0, 2).map(s => s[0]).join("") || "??").toUpperCase();
 
   // ── State

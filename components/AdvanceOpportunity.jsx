@@ -75,16 +75,25 @@ const AdvanceOpportunity = () => {
 
   const opp = oppData || {
     ref: oppRef,
-    name: "Astorya Suite — 750 sièges",
-    client_name: "AXA Wealth France",
-    stage: "propo",
-    amount: 215000,
-    proba: 55,
-    owner: "Nadia Lefèvre",
-    close: "2026-06-15",
-    last_update: "il y a 8 j",
-    hot: true,
+    name: "Chargement…",
+    client_name: "",
+    stage: "qualif",
+    amount: 0,
+    proba: 20,
+    owner: "Vous",
+    close: "",
+    last_update: "",
   };
+
+  if (!oppData) {
+    return (
+      <div style={{ padding: 40, fontFamily: "'Inter', system-ui, sans-serif", textAlign: "center", color: "#64748b" }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", marginBottom: 8 }}>Opportunité introuvable</div>
+        <div style={{ fontSize: 13, marginBottom: 16 }}>L'opportunité <strong>{oppRef}</strong> n'existe pas ou plus.</div>
+        <a href="/crm" style={{ padding: "8px 14px", background: "#0f172a", color: "#fff", textDecoration: "none", borderRadius: 7, fontSize: 13, fontWeight: 600 }}>← Retour au pipeline</a>
+      </div>
+    );
+  }
 
   const curIdx = Math.max(0, stages.findIndex((s) => s.k === opp.stage));
   const [targetIdx, setTargetIdx] = React.useState(Math.min(stages.length - 1, curIdx + 1));

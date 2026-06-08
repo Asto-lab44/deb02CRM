@@ -441,19 +441,28 @@ const NewProspect = () => {
               </div>
             </FormRow>
 
+            {(() => {
+              const V = window.HubValidators;
+              const sirenErr = V && V.siren(companySiren);
+              return (
             <div style={npStyles.formGrid3}>
               <FormRow label="SIREN" required>
-                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }}
+                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(sirenErr ? V.errorStyle(sirenErr) : {}) }}
                        value={companySiren}
+                       placeholder="9 chiffres"
                        onChange={(e) => { setCompanySiren(e.target.value); const t = computeTva(e.target.value); if (t) setCompanyTva(t); }} />
+                {sirenErr && <div style={V.errorMsgStyle(sirenErr)}>{sirenErr.message}</div>}
               </FormRow>
               <FormRow label="Code NAF">
                 <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }} value={companyNaf} onChange={(e) => setCompanyNaf(e.target.value)} />
               </FormRow>
               <FormRow label="TVA intracom.">
-                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }} value={companyTva} onChange={(e) => setCompanyTva(e.target.value)} />
+                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(V && V.tva(companyTva) ? V.errorStyle(V.tva(companyTva)) : {}) }} value={companyTva} placeholder="FR12345678901" onChange={(e) => setCompanyTva(e.target.value)} />
+                {V && V.tva(companyTva) && <div style={V.errorMsgStyle(V.tva(companyTva))}>{V.tva(companyTva).message}</div>}
               </FormRow>
             </div>
+              );
+            })()}
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Secteur d'activité" required>
@@ -599,21 +608,30 @@ const NewProspect = () => {
               </FormRow>
             </div>
 
+            {(() => {
+              const V = window.HubValidators;
+              const emailErr = V && V.email(contactEmail);
+              const phoneErr = V && V.phone(contactPhone);
+              return (
             <div style={npStyles.formGrid2}>
               <FormRow label="Email pro" required>
-                <div style={npStyles.inputWithIcon}>
+                <div style={{ ...npStyles.inputWithIcon, ...(emailErr ? V.errorStyle(emailErr) : {}) }}>
                   <span style={{ color: "#94a3b8" }}>✉</span>
                   <input type="email" style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
-                  {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Format ok</span>}
+                  {!emailErr && contactEmail && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Format ok</span>}
                 </div>
+                {emailErr && <div style={V.errorMsgStyle(emailErr)}>{emailErr.message}</div>}
               </FormRow>
               <FormRow label="Téléphone">
-                <div style={npStyles.inputWithIcon}>
+                <div style={{ ...npStyles.inputWithIcon, ...(phoneErr ? V.errorStyle(phoneErr) : {}) }}>
                   <span style={{ color: "#94a3b8" }}>☎</span>
                   <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
                 </div>
+                {phoneErr && <div style={V.errorMsgStyle(phoneErr)}>{phoneErr.message}</div>}
               </FormRow>
             </div>
+              );
+            })()}
 
             <FormRow label="Rôle dans le projet" subtitle="Quelle place dans la décision d'achat ?">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

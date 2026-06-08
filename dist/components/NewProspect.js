@@ -665,41 +665,53 @@ var NewProspect = () => {
         fontWeight: 700
       }
     }, "\u21B5"));
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.formGrid3
-  }, /*#__PURE__*/React.createElement(FormRow, {
-    label: "SIREN",
-    required: true
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    },
-    value: companySiren,
-    onChange: e => {
-      setCompanySiren(e.target.value);
-      var t = computeTva(e.target.value);
-      if (t) setCompanyTva(t);
-    }
-  })), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Code NAF"
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    },
-    value: companyNaf,
-    onChange: e => setCompanyNaf(e.target.value)
-  })), /*#__PURE__*/React.createElement(FormRow, {
-    label: "TVA intracom."
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    },
-    value: companyTva,
-    onChange: e => setCompanyTva(e.target.value)
-  }))), /*#__PURE__*/React.createElement("div", {
+  })))), (() => {
+    var V = window.HubValidators;
+    var sirenErr = V && V.siren(companySiren);
+    return /*#__PURE__*/React.createElement("div", {
+      style: npStyles.formGrid3
+    }, /*#__PURE__*/React.createElement(FormRow, {
+      label: "SIREN",
+      required: true
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        fontFamily: "'JetBrains Mono', monospace",
+        ...(sirenErr ? V.errorStyle(sirenErr) : {})
+      },
+      value: companySiren,
+      placeholder: "9 chiffres",
+      onChange: e => {
+        setCompanySiren(e.target.value);
+        var t = computeTva(e.target.value);
+        if (t) setCompanyTva(t);
+      }
+    }), sirenErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(sirenErr)
+    }, sirenErr.message)), /*#__PURE__*/React.createElement(FormRow, {
+      label: "Code NAF"
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        fontFamily: "'JetBrains Mono', monospace"
+      },
+      value: companyNaf,
+      onChange: e => setCompanyNaf(e.target.value)
+    })), /*#__PURE__*/React.createElement(FormRow, {
+      label: "TVA intracom."
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        fontFamily: "'JetBrains Mono', monospace",
+        ...(V && V.tva(companyTva) ? V.errorStyle(V.tva(companyTva)) : {})
+      },
+      value: companyTva,
+      placeholder: "FR12345678901",
+      onChange: e => setCompanyTva(e.target.value)
+    }), V && V.tva(companyTva) && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(V.tva(companyTva))
+    }, V.tva(companyTva).message)));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Secteur d'activit\xE9",
@@ -899,52 +911,67 @@ var NewProspect = () => {
       ...(fonction === v ? npStyles.segBtnActive : {}),
       cursor: "pointer"
     }
-  }, v))))), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.formGrid2
-  }, /*#__PURE__*/React.createElement(FormRow, {
-    label: "Email pro",
-    required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.inputWithIcon
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, "\u2709"), /*#__PURE__*/React.createElement("input", {
-    type: "email",
-    style: {
-      ...npStyles.input,
-      border: "none",
-      padding: 0,
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 12.5
-    },
-    value: contactEmail,
-    onChange: e => setContactEmail(e.target.value)
-  }), /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) && /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...npStyles.linkTag,
-      color: "#10b981"
-    }
-  }, "\u2713 Format ok"))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "T\xE9l\xE9phone"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.inputWithIcon
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, "\u260E"), /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      border: "none",
-      padding: 0,
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 12.5
-    },
-    value: contactPhone,
-    onChange: e => setContactPhone(e.target.value)
-  })))), /*#__PURE__*/React.createElement(FormRow, {
+  }, v))))), (() => {
+    var V = window.HubValidators;
+    var emailErr = V && V.email(contactEmail);
+    var phoneErr = V && V.phone(contactPhone);
+    return /*#__PURE__*/React.createElement("div", {
+      style: npStyles.formGrid2
+    }, /*#__PURE__*/React.createElement(FormRow, {
+      label: "Email pro",
+      required: true
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...npStyles.inputWithIcon,
+        ...(emailErr ? V.errorStyle(emailErr) : {})
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u2709"), /*#__PURE__*/React.createElement("input", {
+      type: "email",
+      style: {
+        ...npStyles.input,
+        border: "none",
+        padding: 0,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 12.5
+      },
+      value: contactEmail,
+      onChange: e => setContactEmail(e.target.value)
+    }), !emailErr && contactEmail && /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...npStyles.linkTag,
+        color: "#10b981"
+      }
+    }, "\u2713 Format ok")), emailErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(emailErr)
+    }, emailErr.message)), /*#__PURE__*/React.createElement(FormRow, {
+      label: "T\xE9l\xE9phone"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...npStyles.inputWithIcon,
+        ...(phoneErr ? V.errorStyle(phoneErr) : {})
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u260E"), /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        border: "none",
+        padding: 0,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 12.5
+      },
+      value: contactPhone,
+      onChange: e => setContactPhone(e.target.value)
+    })), phoneErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(phoneErr)
+    }, phoneErr.message)));
+  })(), /*#__PURE__*/React.createElement(FormRow, {
     label: "R\xF4le dans le projet",
     subtitle: "Quelle place dans la d\xE9cision d'achat ?"
   }, /*#__PURE__*/React.createElement("div", {

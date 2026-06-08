@@ -447,6 +447,8 @@ var ClientPage = () => {
     } catch (e) {}
   };
   var [pastShowAll, setPastShowAll] = React.useState(false);
+  var [pipeView, setPipeView] = React.useState("kanban"); // "kanban" | "list"
+
   var addContract = () => {
     var cid = urlId || display.id || "";
     window.location.href = "/nouveau-contrat" + (cid ? "?client=" + encodeURIComponent(cid) : "");
@@ -1075,10 +1077,11 @@ var ClientPage = () => {
   }, "Comptes"), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.navCount
   }, "412")), /*#__PURE__*/React.createElement("a", {
-    onClick: () => alert("Carnet contacts — 1 184 fiches\n\n(Sera connecté à la table profiles + clients Supabase.)"),
+    href: "/crm#contacts",
     style: {
       ...cliStyles.navItem,
-      cursor: "pointer"
+      textDecoration: "none",
+      color: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.bullet
@@ -1086,13 +1089,12 @@ var ClientPage = () => {
     style: {
       flex: 1
     }
-  }, "Contacts"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.navCount
-  }, "1 184")), /*#__PURE__*/React.createElement("a", {
-    onClick: () => alert("Timeline activités client — Appels, emails, RDV, notes\n\n(Sera connectée à la table activities.)"),
+  }, "Contacts")), /*#__PURE__*/React.createElement("a", {
+    href: "/crm#actions",
     style: {
       ...cliStyles.navItem,
-      cursor: "pointer"
+      textDecoration: "none",
+      color: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.bullet
@@ -1100,9 +1102,7 @@ var ClientPage = () => {
     style: {
       flex: 1
     }
-  }, "Activit\xE9s"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.navCount
-  }, "27"))), /*#__PURE__*/React.createElement("div", {
+  }, "Activit\xE9s"))), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel
@@ -1324,72 +1324,77 @@ var ClientPage = () => {
     style: cliStyles.tag
   }, "# Migration Salesforce"), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.tag
-  }, "# DORA"))), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStats
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: () => alert("ARR AXA Wealth France\n\n• 184 k€ actuel\n• +12 % YoY\n• Renouvellement Suite signé 01 mars 2026 — 184 k€\n\n(Détail facturation à connecter à la vue revenue.)"),
-    style: {
-      ...cliStyles.heroStat,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStatK
-  }, "ARR actuel"), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStatV
-  }, display.arr), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#0e7a55",
-      marginTop: 2
-    }
-  }, "\u2191 +12 % YoY")), /*#__PURE__*/React.createElement("div", {
-    onClick: () => alert("Pipe ouvert AXA Wealth France\n\n• OPP-2814 Astorya Suite 750 sièges — 215 k€ (Proposition)\n• OPP-2841 Module Cyber POC — 48 k€ (Discovery)\n• OPP-2867 Extension Belgique — 92 k€ (Qualification)\n\nTotal pondéré : ~ 152 k€"),
-    style: {
-      ...cliStyles.heroStat,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStatK
-  }, "Pipe ouvert"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...cliStyles.heroStatV,
-      color: "#4f46e5"
-    }
-  }, display.pipe), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#64748b",
-      marginTop: 2
-    }
-  }, "3 opportunit\xE9s")), /*#__PURE__*/React.createElement("div", {
-    onClick: () => alert("Health score AXA Wealth France : 78/100\n\n+  Renouvellement signé +12 % (+20 pts)\n+  Champion identifié : Émilie Roux (+10 pts)\n+  3 opportunités actives (+15 pts)\n−  Délai paiement moyen 47 j (−5 pts)\n−  Pas de POC technique en cours (−10 pts)\n\nObjectif T2 2026 : 85/100"),
-    style: {
-      ...cliStyles.heroStat,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.heroStatK
-  }, "Health score"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...cliStyles.heroStatV,
-      color: "#10b981"
-    }
-  }, display.health, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: "#64748b",
-      fontWeight: 500
-    }
-  }, display.health !== "—" ? " / 100" : "")), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.miniBar
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: display.health === "—" ? "0%" : display.health + "%",
-      height: "100%",
-      background: "linear-gradient(90deg, #4f46e5, #10b981)",
-      borderRadius: 999
-    }
-  }))))), /*#__PURE__*/React.createElement("div", {
+  }, "# DORA"))), (() => {
+    var arrNum = contractsList.reduce((s, ct) => s + (parseFloat(String(ct.amount || "").replace(/[^\d.]/g, "")) || 0), 0);
+    var arrLabel = arrNum > 0 ? Math.round(arrNum / 1000) + " k€" : isCustom ? "—" : display.arr;
+    var opps = storedOpps.filter(o => o.stage !== "won" && o.stage !== "lost");
+    var pipeNum = opps.reduce((s, o) => {
+      var amt = parseFloat(String(o.amount || "").replace(/[^\d.]/g, "")) || 0;
+      return s + amt;
+    }, 0);
+    var pipeLabel = pipeNum > 0 ? Math.round(pipeNum / 1000) + " k€" : isCustom ? "0" : display.pipe;
+    var oppCount = opps.length;
+    // Health = % critères basiques renseignés
+    var criteres = [!!c.contact_principal && (c.contact_principal.email || c.contact_principal.nom), !!c.siren, !!c.secteur, !!c.adresse, !!c.owner, contractsList.length > 0 || opps.length > 0];
+    var filled = criteres.filter(Boolean).length;
+    var healthVal = Math.round(filled / criteres.length * 100);
+    var healthLabel = isCustom ? healthVal : display.health;
+    return /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStats
+    }, /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStat
+    }, /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStatK
+    }, "ARR actuel"), /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStatV
+    }, arrLabel), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, contractsList.length, " contrat", contractsList.length > 1 ? "s" : "")), /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStat
+    }, /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStatK
+    }, "Pipe ouvert"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...cliStyles.heroStatV,
+        color: "#4f46e5"
+      }
+    }, pipeLabel), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, oppCount, " opportunit\xE9", oppCount > 1 ? "s" : "")), /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStat,
+      title: "Score bas\xE9 sur la compl\xE9tude des informations (contact, SIREN, secteur, adresse, commercial, contrat/opp)."
+    }, /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.heroStatK
+    }, "Health score"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...cliStyles.heroStatV,
+        color: healthVal >= 70 ? "#10b981" : healthVal >= 40 ? "#f59e0b" : "#dc2626"
+      }
+    }, healthLabel, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14,
+        color: "#64748b",
+        fontWeight: 500
+      }
+    }, healthLabel !== "—" ? " / 100" : "")), /*#__PURE__*/React.createElement("div", {
+      style: cliStyles.miniBar
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: healthLabel === "—" ? "0%" : healthLabel + "%",
+        height: "100%",
+        background: "linear-gradient(90deg, #4f46e5, #10b981)",
+        borderRadius: 999
+      }
+    }))));
+  })()), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionBar
   }, /*#__PURE__*/React.createElement("a", {
     href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id),
@@ -1557,21 +1562,27 @@ var ClientPage = () => {
       display: "flex",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "/crm",
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPipeView("kanban"),
     style: {
       ...cliStyles.filterPill,
-      textDecoration: "none",
-      display: "inline-block",
-      cursor: "pointer"
+      cursor: "pointer",
+      ...(pipeView === "kanban" ? {
+        background: "#0f172a",
+        color: "#fff"
+      } : {})
     }
   }, "Vue Kanban \u25A6"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Vue Liste — affichage tabulaire des opportunités.\n\n(Bascule entre Kanban / Liste sera activée quand les deals seront persistés en DB.)"),
+    onClick: () => setPipeView("list"),
     style: {
       ...cliStyles.filterPill,
-      cursor: "pointer"
+      cursor: "pointer",
+      ...(pipeView === "list" ? {
+        background: "#0f172a",
+        color: "#fff"
+      } : {})
     }
-  }, "Vue Liste \u2630"))), /*#__PURE__*/React.createElement("div", {
+  }, "Vue Liste \u2630"))), pipeView === "kanban" && /*#__PURE__*/React.createElement("div", {
     style: cliStyles.stagesStrip
   }, pipeStages.map((s, i) => {
     var opps = opportunities.filter(o => o.stage === s.k);
@@ -1615,7 +1626,11 @@ var ClientPage = () => {
       }
     })));
   })), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.oppGrid
+    style: pipeView === "list" ? {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    } : cliStyles.oppGrid
   }, opportunities.map((o, i) => {
     var edited = oppEdits[o.ref] || {};
     var currentStage = edited.stage || o.stage;
@@ -2663,7 +2678,15 @@ var ClientPage = () => {
         textAlign: "right"
       }
     }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => alert(`Contrat ${ct.id} — ${ct.name}\n\nIntitulé : ${ct.name}\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}\n\nProduit : ${ct.product || "—"}`),
+      onClick: async () => {
+        var choice = prompt(`Contrat ${ct.name}\n\n1. Voir détails\n2. Renouveler\n3. Supprimer\n\nTapez 1, 2 ou 3 :`, "1");
+        if (choice === "1") alert(`${ct.name}\n\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}`);else if (choice === "2") window.location.href = "/nouveau-contrat?client=" + encodeURIComponent(urlId || "");else if (choice === "3" && confirm("Supprimer ce contrat ?")) {
+          setContractsList(arr => arr.filter(x => x.id !== ct.id));
+          try {
+            (await window.api.contracts) && window.api.contracts.remove && window.api.contracts.remove(ct.id);
+          } catch (e) {}
+        }
+      },
       style: {
         background: "transparent",
         border: 0,

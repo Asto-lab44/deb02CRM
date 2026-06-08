@@ -117,6 +117,7 @@
     _groupsRaw = _sessionRaw = _transcriptsRaw = undefined;
     _activeId = undefined;
     _activeGroupKey = null;
+    _supaUserKey = null;
   };
   const emit = () => { invalidate(); listeners.forEach((fn) => { try { fn(); } catch (e) {} }); };
 
@@ -198,9 +199,11 @@
 
   // Cache de la session Supabase (rafraîchi via onAuthStateChange)
   let _supaSession = null;
+  let _supaUserCache = null;
+  let _supaUserKey = null;
   if (supa) {
-    supa.auth.getSession().then(({ data }) => { _supaSession = data.session; emit(); });
-    supa.auth.onAuthStateChange((_event, session) => { _supaSession = session; emit(); });
+    supa.auth.getSession().then(({ data }) => { _supaSession = data.session; _supaUserKey = null; emit(); });
+    supa.auth.onAuthStateChange((_event, session) => { _supaSession = session; _supaUserKey = null; emit(); });
   }
 
   function getCurrentUser() {
@@ -208,15 +211,18 @@
       // Mode auth réelle
       if (!_supaSession || !_supaSession.user) return null;
       const u = _supaSession.user;
+      // CRUCIAL : useSyncExternalStore exige une référence STABLE entre appels
+      // tant que rien n'a changé. On mémorise le résultat keyed par l'id user.
+      const key = u.id + "::" + (u.email || "");
+      if (key === _supaUserKey && _supaUserCache) return _supaUserCache;
       const meta = u.user_metadata || {};
-      // Pour le mapping groupe : on regarde d'abord user_metadata.groups (settable
-      // depuis le dashboard Supabase), sinon on cherche dans USERS par email,
-      // sinon on tombe sur le groupe "admin" par défaut (à durcir en prod).
       const fallback = USERS.find((x) => x.email.toLowerCase() === (u.email || "").toLowerCase());
       const groups = meta.groups || (fallback ? fallback.groups : ["admin"]);
       const name = meta.name || (fallback ? fallback.name : (u.email || "Utilisateur"));
       const role = meta.role || (fallback ? fallback.role : "—");
-      return { email: u.email, name, role, groups };
+      _supaUserKey = key;
+      _supaUserCache = { email: u.email, name, role, groups };
+      return _supaUserCache;
     }
     // Mode démo
     const raw = localStorage.getItem(SESSION_KEY);

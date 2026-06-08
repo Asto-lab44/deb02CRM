@@ -280,11 +280,6 @@ const CRMPipeline = () => {
                 </div>
               )}
             </div>
-            <button style={crmStyles.iconBtn} title="Notifications">
-              <span style={{ fontSize: 13 }}>◔</span>
-              <span style={crmStyles.notifDot} />
-            </button>
-            <button style={crmStyles.iconBtn}>?</button>
           </div>
         </header>
 
@@ -414,7 +409,7 @@ const CRMPipeline = () => {
                   );
                 })}
 
-                <button style={crmStyles.addCard}>+ Ajouter une opportunité</button>
+                <a href={"/nouvelle-opportunite?stage=" + col.key} style={{ ...crmStyles.addCard, textDecoration: "none", display: "block", textAlign: "center", cursor: "pointer" }}>+ Ajouter une opportunité</a>
               </div>
             </div>
           ))}

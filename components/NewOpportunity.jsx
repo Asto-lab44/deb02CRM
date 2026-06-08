@@ -40,6 +40,21 @@ const NewOpportunity = () => {
   const [oppSource, setOppSource] = React.useState("Référence client existant");
   const [oppDuration, setOppDuration] = React.useState("3 ans");
   const [oppStage, setOppStage] = React.useState("qualif");
+  const [oppOwner, setOppOwner] = React.useState("Romain Daviaud");
+  const [oppTags,  setOppTags]  = React.useState([]);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then((u) => {
+      if (!u) return;
+      if (u.email === "a.morin@astorya.fr") setOppOwner("Augustin Morin");
+      else if (u.email === "achat@astorya.fr") setOppOwner("Romain Daviaud");
+    }).catch(() => {});
+  }, []);
+  // Stage pré-sélectionné via ?stage=
+  React.useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get("stage");
+    if (s) setOppStage(s);
+  }, []);
   const [flash, setFlash]         = React.useState(null);
 
   // Résolution du dossier prospect complet (pour récupérer contact_principal + contacts_additionnels)
@@ -77,7 +92,8 @@ const NewOpportunity = () => {
       duration: oppDuration,
       stage: oppStage,
       proba,
-      owner: "Vous",
+      owner: oppOwner,
+      tags: oppTags,
     };
     try {
       await window.api.opportunities.create(opp);
@@ -144,8 +160,7 @@ const NewOpportunity = () => {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button style={noStyles.iconBtn} title="Plein écran">⤢</button>
-            <button style={noStyles.iconBtn} title="Fermer">×</button>
+            <button onClick={() => history.back()} style={{ ...noStyles.iconBtn, cursor: "pointer" }} title="Fermer">×</button>
           </div>
         </header>
 
@@ -471,47 +486,34 @@ const NewOpportunity = () => {
 
               {/* SECTION 4 — Équipe & concurrence */}
               <section style={noStyles.section}>
-                <SectionHead num="04" title="Équipe & concurrence" subtitle="Commercial attribué et environnement compétitif" />
+                <SectionHead num="04" title="Commercial & étiquettes" subtitle="Qui pilote l'opportunité et comment la classer" />
 
-                <div style={noStyles.formGrid2}>
-                  <FormRow label="Commercial" required>
-                    <div style={noStyles.linkedCardMini}>
-                      <Avatar name="Nadia Lefèvre" size={24} color="#a855f7" />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 600 }}>Nadia Lefèvre</div>
-                        <div style={{ fontSize: 11, color: "#64748b" }}>AE Senior · EMEA</div>
-                      </div>
-                      <button style={noStyles.changeBtn}>Changer</button>
-                    </div>
-                  </FormRow>
-
-                  <FormRow label="Co-owner">
-                    <button style={noStyles.addBtn}>+ Ajouter un co-owner</button>
-                  </FormRow>
-                </div>
-
-                <FormRow label="Concurrents identifiés" subtitle="Solutions actuelles ou pressenties chez le prospect">
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <div style={{ ...noStyles.compChip, background: "#e0f4fc", borderColor: "#00A1E0", color: "#00A1E0" }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", background: "#00A1E0", color: "#fff", borderRadius: 3 }}>SF</span>
-                      <span style={{ fontWeight: 600 }}>Salesforce</span>
-                      <span style={noStyles.removeChip}>×</span>
-                    </div>
-                    <div style={{ ...noStyles.compChip, background: "#fdecec", borderColor: "#dc2626", color: "#dc2626" }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", background: "#dc2626", color: "#fff", borderRadius: 3 }}>GW</span>
-                      <span style={{ fontWeight: 600 }}>Guidewire</span>
-                      <span style={noStyles.removeChip}>×</span>
-                    </div>
-                    <button style={noStyles.addChip}>+ Ajouter</button>
-                  </div>
+                <FormRow label="Commercial" required>
+                  <select
+                    value={oppOwner}
+                    onChange={(e) => setOppOwner(e.target.value)}
+                    style={{ ...noStyles.input, padding: "8px 12px" }}
+                  >
+                    <option value="Romain Daviaud">Romain Daviaud · Direction · Achat</option>
+                    <option value="Augustin Morin">Augustin Morin · Direction · Commercial</option>
+                  </select>
                 </FormRow>
 
-                <FormRow label="Étiquettes">
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <span style={noStyles.tag}># Extension</span>
-                    <span style={noStyles.tag}># BENELUX</span>
-                    <span style={noStyles.tag}># Q3 2026</span>
-                    <button style={noStyles.addChip}>+</button>
+                <FormRow label="Étiquettes" subtitle="Tags libres pour catégoriser cette opportunité">
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    {oppTags.map((tag, i) => (
+                      <span key={i} style={{ ...noStyles.tag, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        # {tag}
+                        <span onClick={() => setOppTags((arr) => arr.filter((_, j) => j !== i))} style={{ cursor: "pointer", color: "#cbd5e1", fontSize: 13 }}>×</span>
+                      </span>
+                    ))}
+                    <button
+                      onClick={() => {
+                        const t = prompt("Nouvelle étiquette :");
+                        if (t && t.trim()) setOppTags((arr) => [...arr, t.trim()]);
+                      }}
+                      style={{ ...noStyles.addChip, cursor: "pointer" }}
+                    >+ Ajouter</button>
                   </div>
                 </FormRow>
               </section>
@@ -520,8 +522,7 @@ const NewOpportunity = () => {
               <div style={noStyles.actionsRow}>
                 <button onClick={() => { window.location.href = "/crm"; }} style={noStyles.ghostBtn}>Annuler</button>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={createOpp} style={noStyles.ghostBtn}>Enregistrer brouillon</button>
-                  <button onClick={createOpp} style={noStyles.primaryBtn}>Créer l'opportunité →</button>
+                    <button onClick={createOpp} style={noStyles.primaryBtn}>Créer l'opportunité →</button>
                 </div>
               </div>
 

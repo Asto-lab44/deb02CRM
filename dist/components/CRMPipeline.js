@@ -636,18 +636,7 @@ var CRMPipeline = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, o.client_name, " \xB7 ", o.amount && o.amount + " €"))))))), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.iconBtn,
-    title: "Notifications"
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13
-    }
-  }, "\u25D4"), /*#__PURE__*/React.createElement("span", {
-    style: crmStyles.notifDot
-  })), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.iconBtn
-  }, "?"))), (() => {
+  }, o.client_name, " \xB7 ", o.amount && o.amount + " €"))))))))), (() => {
     var active = (searchOpps || []).filter(o => o.stage !== "won" && o.stage !== "lost");
     var totalActive = active.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
     var pondere = active.reduce((s, o) => s + (Number(o.amount_eur) || 0) * (Number(o.proba) || 0) / 100, 0);
@@ -951,8 +940,15 @@ var CRMPipeline = () => {
         color: "#94a3b8"
       }
     }, "\u25F7"), c.days, "j"))));
-  }), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.addCard
+  }), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite?stage=" + col.key,
+    style: {
+      ...crmStyles.addCard,
+      textDecoration: "none",
+      display: "block",
+      textAlign: "center",
+      cursor: "pointer"
+    }
   }, "+ Ajouter une opportunit\xE9"))))), /*#__PURE__*/React.createElement(CRMAccountsList, null), /*#__PURE__*/React.createElement(CRMActionsList, null)));
 };
 var crmStyles = {

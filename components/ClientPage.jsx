@@ -97,7 +97,14 @@ const ClientPage = () => {
     { name: "Augustin Morin",  role: "Direction · Commercial", color: "#10b981" },
   ];
   const [actionMenuKey, setActionMenuKey] = React.useState(null);
-  const [reschedule, setReschedule] = React.useState(null); // { id, date, time, title }
+  const [reschedule, setReschedule] = React.useState(null);
+  const [moreMenuOpen, setMoreMenuOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!moreMenuOpen) return;
+    const close = () => setMoreMenuOpen(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [moreMenuOpen]);
   React.useEffect(() => {
     if (!actionMenuKey) return;
     const close = () => setActionMenuKey(null);
@@ -645,27 +652,33 @@ const ClientPage = () => {
                 alert("✓ Vous suivez " + display.name);
               }
             }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
-            <button
-              onClick={async () => {
-                if (!urlId) return;
-                const choice = prompt(`${display.name}\n\n1. Convertir en client\n2. Archiver\n3. Supprimer définitivement\n\nTapez 1, 2 ou 3 :`, "");
-                if (choice === "1") {
-                  await window.api.clients.update(urlId, { status: "client", client_since: new Date().toISOString() });
-                  alert("Converti en client.");
-                  window.location.reload();
-                } else if (choice === "2") {
-                  await window.api.clients.update(urlId, { status: "archived" });
-                  alert("Archivé.");
-                  window.location.href = "/crm";
-                } else if (choice === "3" && confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) {
-                  await window.api.clients.remove(urlId);
-                  alert("Supprimé.");
-                  window.location.href = "/crm";
-                }
-              }}
-              style={{ ...cliStyles.iconBtn, cursor: "pointer" }}
-              title="Plus d'actions"
-            >⋯</button>
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMoreMenuOpen((v) => !v); }}
+                style={{ ...cliStyles.iconBtn, cursor: "pointer" }}
+                title="Plus d'actions"
+              >⋯</button>
+              {moreMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ position: "absolute", top: "100%", right: 0, marginTop: 4, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", zIndex: 1000, minWidth: 220, padding: 4 }}
+                >
+                  <button
+                    onClick={async () => { if (!urlId) return; await window.api.clients.update(urlId, { status: "client", client_since: new Date().toISOString() }); window.location.reload(); }}
+                    style={cliStyles.menuItem}
+                  >✓ Convertir en client</button>
+                  <button
+                    onClick={async () => { if (!urlId) return; await window.api.clients.update(urlId, { status: "archived" }); window.location.href = "/crm"; }}
+                    style={cliStyles.menuItem}
+                  >📦 Archiver</button>
+                  <div style={{ height: 1, background: "#eef1f5", margin: "4px 0" }} />
+                  <button
+                    onClick={async () => { if (!urlId) return; if (confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) { await window.api.clients.remove(urlId); window.location.href = "/crm"; } }}
+                    style={{ ...cliStyles.menuItem, color: "#dc2626" }}
+                  >🗑 Supprimer définitivement</button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

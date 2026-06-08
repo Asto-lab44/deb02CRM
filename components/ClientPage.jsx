@@ -1537,7 +1537,12 @@ const ClientPage = () => {
               </div>
               <div>
                 <label style={editLabel}>Fonction (intitulé)</label>
-                <input value={editDraft.cp_fonction || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_fonction: e.target.value })} placeholder="Ex. CFO, DSI…" style={editInput} />
+                <select value={editDraft.cp_fonction || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_fonction: e.target.value })} style={editInput}>
+                  <option value="">— Choisir une fonction —</option>
+                  {(window.HubConstants && window.HubConstants.FONCTIONS || []).map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
@@ -1687,7 +1692,12 @@ const ClientPage = () => {
               </div>
               <div>
                 <label style={modalLabel}>Fonction</label>
-                <input value={newContactForm.fonction} onChange={(e) => setNewContactForm({ ...newContactForm, fonction: e.target.value })} placeholder="Ex. CFO, DSI…" style={modalInput} />
+                <select value={newContactForm.fonction} onChange={(e) => setNewContactForm({ ...newContactForm, fonction: e.target.value })} style={modalInput}>
+                  <option value="">— Choisir une fonction —</option>
+                  {(window.HubConstants && window.HubConstants.FONCTIONS || []).map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>

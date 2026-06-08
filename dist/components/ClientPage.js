@@ -3139,15 +3139,19 @@ var ClientPage = () => {
     style: editInput
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
-  }, "Fonction (intitul\xE9)"), /*#__PURE__*/React.createElement("input", {
+  }, "Fonction (intitul\xE9)"), /*#__PURE__*/React.createElement("select", {
     value: editDraft.cp_fonction || "",
     onChange: e => setEditDraft({
       ...editDraft,
       cp_fonction: e.target.value
     }),
-    placeholder: "Ex. CFO, DSI\u2026",
     style: editInput
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir une fonction \u2014"), (window.HubConstants && window.HubConstants.FONCTIONS || []).map(f => /*#__PURE__*/React.createElement("option", {
+    key: f,
+    value: f
+  }, f)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -3465,15 +3469,19 @@ var ClientPage = () => {
     style: modalInput
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: modalLabel
-  }, "Fonction"), /*#__PURE__*/React.createElement("input", {
+  }, "Fonction"), /*#__PURE__*/React.createElement("select", {
     value: newContactForm.fonction,
     onChange: e => setNewContactForm({
       ...newContactForm,
       fonction: e.target.value
     }),
-    placeholder: "Ex. CFO, DSI\u2026",
     style: modalInput
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir une fonction \u2014"), (window.HubConstants && window.HubConstants.FONCTIONS || []).map(f => /*#__PURE__*/React.createElement("option", {
+    key: f,
+    value: f
+  }, f)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",

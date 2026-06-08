@@ -1,27 +1,32 @@
 // Page d'accueil ERP — tuiles des modules (filtrées par le groupe actif)
 
 var ERPHome = () => {
-  // useState + abonnement manuel : évite useSyncExternalStore et ses contraintes
-  // de référence stable du snapshot (cause historique d'écran blanc).
+  // Lecture une seule fois au mount. La session Supabase est récupérée dans
+  // un useEffect séparé avec un setTimeout pour laisser le temps à
+  // _supaSession d'être peuplée. Pas de subscribe → pas de risque de boucle.
   var HA = typeof window !== "undefined" && window.HubAccess ? window.HubAccess : null;
-  var [activeGroup, setActiveGroup] = React.useState(() => HA && HA.getActiveGroup ? HA.getActiveGroup() : {
+  var defaultGroup = {
     id: "admin",
     name: "Administrateurs",
     color: "#dc2626",
-    access: []
-  });
-  var [allGroups, setAllGroups] = React.useState(() => HA && HA.loadGroups ? HA.loadGroups() : []);
+    access: ["crm", "intel", "marketing", "tech", "projects", "inventory", "accounting", "billing", "treasury", "hr", "time", "reports", "settings"]
+  };
+  var [activeGroup, setActiveGroup] = React.useState(() => HA && HA.getActiveGroup && HA.getActiveGroup() || defaultGroup);
+  var [allGroups, setAllGroups] = React.useState(() => HA && HA.loadGroups && HA.loadGroups() || []);
   var [localUser, setLocalUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
   React.useEffect(() => {
-    if (!HA || !HA.subscribe) return;
-    var refresh = () => {
-      if (HA.getActiveGroup) setActiveGroup(HA.getActiveGroup());
-      if (HA.loadGroups) setAllGroups(HA.loadGroups());
-      if (HA.getCurrentUser) setLocalUser(HA.getCurrentUser());
-    };
-    refresh();
-    return HA.subscribe(refresh);
-  }, [HA]);
+    if (!HA) return;
+    // Laisser 200ms pour que _supaSession soit peuplé après getSession()
+    var t = setTimeout(() => {
+      var ag = HA.getActiveGroup && HA.getActiveGroup();
+      var lg = HA.loadGroups && HA.loadGroups();
+      var lu = HA.getCurrentUser && HA.getCurrentUser();
+      if (ag) setActiveGroup(ag);
+      if (lg) setAllGroups(lg);
+      if (lu) setLocalUser(lu);
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
   var allowedKeys = React.useMemo(() => new Set(activeGroup.access || []), [activeGroup]);
   // Identité Supabase réelle si dispo, sinon fallback access-store
   var [supaUser, setSupaUser] = React.useState(null);

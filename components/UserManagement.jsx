@@ -2,22 +2,24 @@
 // Les groupes et l'identité active sont persistés via window.HubAccess (localStorage).
 
 const UserManagement = () => {
-  // useState + abonnement manuel (évite useSyncExternalStore = pas de pb de
-  // snapshot stable, donc plus de risque d'écran blanc).
+  // Lecture une seule fois au mount + un poll de 200ms pour récupérer la
+  // session Supabase. Pas de subscribe → pas de risque de boucle.
   const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
-  const [persistedGroups, setPersistedGroups] = React.useState(() => HA && HA.loadGroups ? HA.loadGroups() : []);
-  const [activeGroupId, setActiveGroupId] = React.useState(() => HA && HA.getActiveGroupId ? HA.getActiveGroupId() : "admin");
+  const [persistedGroups, setPersistedGroups] = React.useState(() => (HA && HA.loadGroups && HA.loadGroups()) || []);
+  const [activeGroupId, setActiveGroupId] = React.useState(() => (HA && HA.getActiveGroupId && HA.getActiveGroupId()) || "admin");
   const [currentUser, setCurrentUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
   React.useEffect(() => {
-    if (!HA || !HA.subscribe) return;
-    const refresh = () => {
-      if (HA.loadGroups) setPersistedGroups(HA.loadGroups());
-      if (HA.getActiveGroupId) setActiveGroupId(HA.getActiveGroupId());
-      if (HA.getCurrentUser) setCurrentUser(HA.getCurrentUser());
-    };
-    refresh();
-    return HA.subscribe(refresh);
-  }, [HA]);
+    if (!HA) return;
+    const t = setTimeout(() => {
+      const pg = HA.loadGroups && HA.loadGroups();
+      const ag = HA.getActiveGroupId && HA.getActiveGroupId();
+      const cu = HA.getCurrentUser && HA.getCurrentUser();
+      if (pg) setPersistedGroups(pg);
+      if (ag) setActiveGroupId(ag);
+      if (cu) setCurrentUser(cu);
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
 
   const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
   const [activeTab, setActiveTab] = React.useState("groups");

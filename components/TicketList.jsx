@@ -354,11 +354,16 @@ const TicketList = () => {
 
         <div style={{ flex: 1 }} />
 
+        {(() => {
+          const cu = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
+          const nm = (cu && cu.name) || "Utilisateur";
+          const rl = (cu && cu.role) || "—";
+          return (
         <div onClick={() => setUserMenuOpen((v) => !v)} style={{ ...tlStyles.userRow, cursor: "pointer", position: "relative" }}>
-          <Avatar name="Astorya" size={26} color="#4f46e5" />
+          <Avatar name={nm} size={26} color="#4f46e5" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Compte connecté</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Voir menu en haut →</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nm}</div>
+            <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rl}</div>
           </div>
           <span style={{ color: "#94a3b8", fontSize: 14 }}>⋯</span>
           {userMenuOpen && (
@@ -371,6 +376,8 @@ const TicketList = () => {
             </div>
           )}
         </div>
+          );
+        })()}
       </aside>
 
       {/* ───── MAIN ───── */}

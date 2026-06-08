@@ -600,15 +600,22 @@ const ClientPage = () => {
 
         <div style={{ flex: 1 }} />
 
+        {(() => {
+          const cu = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
+          const nm = (cu && cu.name) || "Utilisateur";
+          const rl = (cu && cu.role) || "—";
+          return (
         <a href="/administration-utilisateurs"
            title="Profil & préférences"
            style={{ ...cliStyles.userRow, textDecoration: "none", color: "inherit", cursor: "pointer" }}>
-          <Avatar name="Astorya" size={26} color="#4f46e5" />
+          <Avatar name={nm} size={26} color="#4f46e5" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Compte connecté</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Voir menu en haut →</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nm}</div>
+            <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rl}</div>
           </div>
         </a>
+          );
+        })()}
       </aside>
 
       {/* ───── MAIN ───── */}

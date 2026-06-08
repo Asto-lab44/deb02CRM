@@ -28,14 +28,20 @@ const NewProspect = () => {
   const [projectDate,   setProjectDate]   = React.useState("");
   const [concurrent,    setConcurrent]    = React.useState("");
   const [concurrentAmount, setConcurrentAmount] = React.useState("");
-  const [owner,         setOwner]         = React.useState({ name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" });
-  const [ownerMenu,     setOwnerMenu]     = React.useState(false);
+  // Owner par défaut : l'utilisateur connecté (récupéré via HubAccess)
   const ownerList = [
-    { name: "Nadia Lefèvre",   role: "AE Senior · EMEA",   color: "#a855f7" },
-    { name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" },
-    { name: "Tom Verdier",     role: "AE Hub",             color: "#f59e0b" },
-    { name: "Émilie Garnier",  role: "AE BENELUX",         color: "#10b981" },
+    { name: "Romain Daviaud", role: "Super Admin", color: "#4f46e5" },
+    { name: "Augustin Morin", role: "Super Admin", color: "#a855f7" },
   ];
+  const initialOwner = (() => {
+    try {
+      const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+      if (u && u.name) return { name: u.name, role: u.role || "—", color: "#4f46e5" };
+    } catch (e) {}
+    return ownerList[0];
+  })();
+  const [owner,         setOwner]         = React.useState(initialOwner);
+  const [ownerMenu,     setOwnerMenu]     = React.useState(false);
   React.useEffect(() => {
     if (!ownerMenu) return;
     const close = () => setOwnerMenu(false);

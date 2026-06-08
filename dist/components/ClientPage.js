@@ -912,35 +912,46 @@ var ClientPage = () => {
     style: {
       flex: 1
     }
-  }), /*#__PURE__*/React.createElement("a", {
-    href: "/administration-utilisateurs",
-    title: "Profil & pr\xE9f\xE9rences",
-    style: {
-      ...cliStyles.userRow,
-      textDecoration: "none",
-      color: "inherit",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Astorya",
-    size: 26,
-    color: "#4f46e5"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 600
-    }
-  }, "Compte connect\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "Voir menu en haut \u2192")))), /*#__PURE__*/React.createElement("main", {
+  }), (() => {
+    var cu = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
+    var nm = cu && cu.name || "Utilisateur";
+    var rl = cu && cu.role || "—";
+    return /*#__PURE__*/React.createElement("a", {
+      href: "/administration-utilisateurs",
+      title: "Profil & pr\xE9f\xE9rences",
+      style: {
+        ...cliStyles.userRow,
+        textDecoration: "none",
+        color: "inherit",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement(Avatar, {
+      name: nm,
+      size: 26,
+      color: "#4f46e5"
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, nm), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, rl)));
+  })()), /*#__PURE__*/React.createElement("main", {
     style: cliStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: cliStyles.topbar

@@ -73,16 +73,20 @@
   const clients = {
     async list(filter = {}) {
       const s = supa();
+      const supaResult = [];
       if (s) {
         let q = s.from("clients").select("*");
         if (filter.status) q = q.eq("status", filter.status);
         const { data, error } = await q.order("created_at", { ascending: false });
         if (error) console.warn("[api.clients.list]", error.message);
-        return (data || []).map(flattenClient);
+        (data || []).forEach((r) => supaResult.push(flattenClient(r)));
       }
+      // Toujours fusionner avec localStorage (clients créés en fallback)
       let arr = lsGet("prospects");
       if (filter.status) arr = arr.filter((c) => c.status === filter.status);
-      return arr;
+      const seen = new Set(supaResult.map((c) => c.id));
+      arr.forEach((c) => { if (!seen.has(c.id)) supaResult.push(c); });
+      return supaResult;
     },
 
     async getById(id) {
@@ -90,8 +94,9 @@
       if (s) {
         const { data, error } = await s.from("clients").select("*").eq("id", id).maybeSingle();
         if (error) console.warn("[api.clients.getById]", error.message);
-        return flattenClient(data);
+        if (data) return flattenClient(data);
       }
+      // Fallback localStorage si pas trouvé en BDD (insert avait pu rater)
       const arr = lsGet("prospects");
       return arr.find((c) => c.id === id) || null;
     },
@@ -104,9 +109,15 @@
         const created_by = await getCurrentUserId();
         const row = buildClientPatch({ ...full, created_by });
         if (created_by) row.created_by = created_by;
-        const { data, error } = await s.from("clients").insert(row).select().maybeSingle();
+        let { data, error } = await s.from("clients").insert(row).select().maybeSingle();
+        // Retry sans colonne data si elle n'existe pas dans le schéma
+        if (error && /column.+data.+does not exist/i.test(error.message || "")) {
+          const { data: data2, error: e2 } = await s.from("clients").insert({ ...row, data: undefined }).select().maybeSingle();
+          if (!e2) { data = data2; error = null; }
+        }
         if (error) {
           console.warn("[api.clients.create]", error.message);
+          alert("Sauvegarde Supabase impossible : " + error.message + "\n\nExécute supabase/setup-tout.sql dans le SQL Editor.");
           // fallback local
           const arr = lsGet("prospects");
           arr.unshift(full);

@@ -718,11 +718,11 @@ const ClientPage = () => {
             {/* Action bar */}
             <div style={cliStyles.actionBar}>
               <a href={"/nouvelle-opportunite?client=" + encodeURIComponent(display.id)} style={{ ...cliStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
-              <button onClick={() => { const to = prompt("Destinataire (email) :", "e.roux@axa-im.fr"); if (!to) return; const subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite"); if (subj) { window.location.href = `mailto:${to}?subject=${encodeURIComponent(subj)}`; } }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✉ Email</button>
-              <button onClick={() => alert("Planifier un RDV avec AXA Wealth France\n\n(Sera connecté à Google Calendar / Outlook via /api/calendar-event)")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📅 RDV</button>
-              <button onClick={() => { const num = prompt("Numéro à appeler :", "+33 1 42 86 74 21"); if (num) window.location.href = `tel:${num}`; }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📞 Appel</button>
-              <button onClick={() => { const txt = prompt("Nouvelle tâche pour AXA Wealth France :"); if (txt) alert("✓ Tâche créée : " + txt + "\n\n(Sera persistée dans la table tasks.)"); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✓ Tâche</button>
-              <button onClick={() => { const txt = prompt("Nouvelle note privée :"); if (txt) alert("✓ Note enregistrée : " + txt + "\n\n(Sera persistée dans la timeline activities.)"); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✎ Note</button>
+              <button onClick={() => { setNewAction({ type: "email", title: "Email — " + display.name, date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "Email", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✉ Email</button>
+              <button onClick={() => { setNewAction({ type: "rdv", title: "RDV — " + display.name, date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "RDV", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📅 RDV</button>
+              <button onClick={() => { setNewAction({ type: "call", title: "Appel — " + display.name, date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "Appel", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>📞 Appel</button>
+              <button onClick={() => { setNewAction({ type: "task", title: "", date: "", time: "", priority: "moyenne", assigned: "Vous", tag: "Tâche", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✓ Tâche</button>
+              <button onClick={() => { setNewAction({ type: "note", title: "", date: "", time: "", priority: "basse", assigned: "Vous", tag: "Note", meta: "" }); setAddActionOpen(true); }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>✎ Note</button>
               <button
                 onClick={() => setStatsOpen(true)}
                 style={{ ...cliStyles.ghostBtn, background: "#eef2ff", borderColor: "#c7d2fe", color: "#3730a3", fontWeight: 600 }}
@@ -806,25 +806,6 @@ const ClientPage = () => {
                 const currentStage = edited.stage || o.stage;
                 const openOpp = () => {
                   const cid = urlId || display.id || "";
-                  const amountNum = parseInt((edited.amount || o.amount || "").replace(/\D/g, ""), 10) || 0;
-                  const oppForStore = {
-                    ref: o.ref,
-                    name: o.name,
-                    client_name: display.name,
-                    stage: edited.stage || o.stage,
-                    amount: amountNum,
-                    proba: edited.proba || o.proba,
-                    owner: edited.owner || o.owner,
-                    close: edited.close || o.close,
-                    hot: o.hot,
-                  };
-                  try {
-                    const all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-                    const idx = all.findIndex((x) => x.ref === o.ref);
-                    if (idx >= 0) all[idx] = { ...all[idx], ...oppForStore };
-                    else all.unshift(oppForStore);
-                    localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(all));
-                  } catch (e) {}
                   window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
                 };
                 const stage = pipeStages.find(s => s.k === o.stage);

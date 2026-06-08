@@ -1362,27 +1362,53 @@ var ClientPage = () => {
     }
   }, "+ Nouvelle opportunit\xE9"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      var to = prompt("Destinataire (email) :", "e.roux@axa-im.fr");
-      if (!to) return;
-      var subj = prompt("Sujet :", "AXA Wealth France — suite proposition Astorya Suite");
-      if (subj) {
-        window.location.href = `mailto:${to}?subject=${encodeURIComponent(subj)}`;
-      }
+      setNewAction({
+        type: "email",
+        title: "Email — " + display.name,
+        date: "",
+        time: "",
+        priority: "moyenne",
+        assigned: "Vous",
+        tag: "Email",
+        meta: ""
+      });
+      setAddActionOpen(true);
     },
     style: {
       ...cliStyles.ghostBtn,
       cursor: "pointer"
     }
   }, "\u2709 Email"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Planifier un RDV avec AXA Wealth France\n\n(Sera connecté à Google Calendar / Outlook via /api/calendar-event)"),
+    onClick: () => {
+      setNewAction({
+        type: "rdv",
+        title: "RDV — " + display.name,
+        date: "",
+        time: "",
+        priority: "moyenne",
+        assigned: "Vous",
+        tag: "RDV",
+        meta: ""
+      });
+      setAddActionOpen(true);
+    },
     style: {
       ...cliStyles.ghostBtn,
       cursor: "pointer"
     }
   }, "\uD83D\uDCC5 RDV"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      var num = prompt("Numéro à appeler :", "+33 1 42 86 74 21");
-      if (num) window.location.href = `tel:${num}`;
+      setNewAction({
+        type: "call",
+        title: "Appel — " + display.name,
+        date: "",
+        time: "",
+        priority: "moyenne",
+        assigned: "Vous",
+        tag: "Appel",
+        meta: ""
+      });
+      setAddActionOpen(true);
     },
     style: {
       ...cliStyles.ghostBtn,
@@ -1390,8 +1416,17 @@ var ClientPage = () => {
     }
   }, "\uD83D\uDCDE Appel"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      var txt = prompt("Nouvelle tâche pour AXA Wealth France :");
-      if (txt) alert("✓ Tâche créée : " + txt + "\n\n(Sera persistée dans la table tasks.)");
+      setNewAction({
+        type: "task",
+        title: "",
+        date: "",
+        time: "",
+        priority: "moyenne",
+        assigned: "Vous",
+        tag: "Tâche",
+        meta: ""
+      });
+      setAddActionOpen(true);
     },
     style: {
       ...cliStyles.ghostBtn,
@@ -1399,8 +1434,17 @@ var ClientPage = () => {
     }
   }, "\u2713 T\xE2che"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      var txt = prompt("Nouvelle note privée :");
-      if (txt) alert("✓ Note enregistrée : " + txt + "\n\n(Sera persistée dans la timeline activities.)");
+      setNewAction({
+        type: "note",
+        title: "",
+        date: "",
+        time: "",
+        priority: "basse",
+        assigned: "Vous",
+        tag: "Note",
+        meta: ""
+      });
+      setAddActionOpen(true);
     },
     style: {
       ...cliStyles.ghostBtn,
@@ -1538,27 +1582,6 @@ var ClientPage = () => {
     var currentStage = edited.stage || o.stage;
     var openOpp = () => {
       var cid = urlId || display.id || "";
-      var amountNum = parseInt((edited.amount || o.amount || "").replace(/\D/g, ""), 10) || 0;
-      var oppForStore = {
-        ref: o.ref,
-        name: o.name,
-        client_name: display.name,
-        stage: edited.stage || o.stage,
-        amount: amountNum,
-        proba: edited.proba || o.proba,
-        owner: edited.owner || o.owner,
-        close: edited.close || o.close,
-        hot: o.hot
-      };
-      try {
-        var all = JSON.parse(localStorage.getItem("hubAstorya.opportunities.v1") || "[]");
-        var idx = all.findIndex(x => x.ref === o.ref);
-        if (idx >= 0) all[idx] = {
-          ...all[idx],
-          ...oppForStore
-        };else all.unshift(oppForStore);
-        localStorage.setItem("hubAstorya.opportunities.v1", JSON.stringify(all));
-      } catch (e) {}
       window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
     };
     var stage = pipeStages.find(s => s.k === o.stage);

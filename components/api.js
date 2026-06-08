@@ -449,7 +449,7 @@
      */
     async requireAuth() {
       const s = supa();
-      if (!s) return null; // pas de Supabase → pas de redirect
+      if (!s) { window.location.href = "/login"; return null; }
       try {
         const { data } = await s.auth.getSession();
         if (!data || !data.session) {

@@ -23,8 +23,9 @@ const AssetInventoryModal = ({ open, client, onClose }) => {
     if (!open || !dataEnabled) return;
     let cancelled = false;
     (async () => {
-      // Pour cette maquette le client AXA est ACC-0184 ; en prod, prendre l'ID du client courant.
-      const { data, error } = await window.HubData.fetchAssetsByClient("ACC-0184");
+      const cid = (client && client.id) || (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") : null);
+      if (!cid) return;
+      const { data, error } = await window.HubData.fetchAssetsByClient(cid);
       if (!cancelled && !error && data) {
         setLiveAssets(data.map((a) => ({
           id: a.id, type: a.type, host: a.hostname, model: a.model, serial: a.serial,

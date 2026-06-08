@@ -157,13 +157,84 @@ var TicketDetail = ({
       showFlash("Mode démo — branchement DB nécessaire", "warn");
       return;
     }
+    var note = prompt("Note de résolution (visible client) :", "");
+    if (note === null) return; // cancel
     var {
       error
     } = await window.HubData.updateTicket(TICKET_ID, {
       status: "resolved",
       closed_at: new Date().toISOString()
     });
-    if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket marqué comme résolu");
+    if (error) {
+      showFlash("Erreur : " + error.message, "err");
+      return;
+    }
+    if (note && note.trim() && window.HubData.createComment) {
+      await window.HubData.createComment({
+        ticket_id: TICKET_ID,
+        body: "✓ Résolu — " + note.trim(),
+        author_id: null
+      });
+    }
+    showFlash("✓ Ticket marqué comme résolu");
+  };
+  var assignTicket = async () => {
+    if (!dataOn) {
+      showFlash("Mode démo — branchement DB nécessaire", "warn");
+      return;
+    }
+    // Liste des utilisateurs depuis Supabase profiles (fallback : Romain + Augustin)
+    var users = [];
+    try {
+      if (window.HubData.fetchProfiles) {
+        var {
+          data
+        } = await window.HubData.fetchProfiles();
+        users = (data || []).map(p => ({
+          id: p.id,
+          name: p.name || p.email,
+          team: p.team || "Astorya"
+        }));
+      }
+    } catch (e) {}
+    if (!users.length) {
+      users = [{
+        id: null,
+        name: "Romain Daviaud",
+        team: "Direction"
+      }, {
+        id: null,
+        name: "Augustin Morin",
+        team: "Direction"
+      }];
+    }
+    var list = users.map((u, i) => `${i + 1}. ${u.name} · ${u.team}`).join("\n");
+    var choice = prompt("Assigner à :\n\n" + list + "\n\nTapez le numéro :", "1");
+    var idx = parseInt(choice, 10) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= users.length) return;
+    var target = users[idx];
+    var {
+      error
+    } = await window.HubData.updateTicket(TICKET_ID, {
+      assignee_id: target.id,
+      assignee_team: target.team,
+      status: "in_progress"
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket assigné à " + target.name);
+  };
+  var closeTicket = async () => {
+    if (!dataOn) {
+      showFlash("Mode démo — branchement DB nécessaire", "warn");
+      return;
+    }
+    if (!confirm("Fermer définitivement ce ticket ? Le client ne pourra plus y répondre.")) return;
+    var {
+      error
+    } = await window.HubData.updateTicket(TICKET_ID, {
+      status: "closed",
+      closed_at: new Date().toISOString()
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");else showFlash("✓ Ticket fermé");
   };
   var escalateTicket = async () => {
     if (!dataOn) {
@@ -1238,6 +1309,13 @@ var TicketDetail = ({
       color: flash.tone === "err" ? "#991b1b" : flash.tone === "warn" ? "#78350f" : "#065f46"
     }
   }, flash.msg), /*#__PURE__*/React.createElement("button", {
+    onClick: assignTicket,
+    style: {
+      ...tdStyles.ghostBtn,
+      cursor: "pointer"
+    },
+    title: "Assigner \xE0 un technicien"
+  }, "\u21C4 Assigner"), /*#__PURE__*/React.createElement("button", {
     onClick: escalateTicket,
     style: {
       ...tdStyles.ghostBtn,
@@ -1254,7 +1332,15 @@ var TicketDetail = ({
       ...tdStyles.ghostBtn,
       cursor: "pointer"
     }
-  }, "Marquer comme r\xE9solu"), /*#__PURE__*/React.createElement("button", {
+  }, "\u2713 R\xE9soudre"), /*#__PURE__*/React.createElement("button", {
+    onClick: closeTicket,
+    style: {
+      ...tdStyles.ghostBtn,
+      color: "#64748b",
+      cursor: "pointer"
+    },
+    title: "Fermer d\xE9finitivement le ticket"
+  }, "\u2715 Fermer"), /*#__PURE__*/React.createElement("button", {
     onClick: sendReply,
     style: {
       ...tdStyles.primaryBtn,

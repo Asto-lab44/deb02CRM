@@ -74,12 +74,58 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
 
   const resolveTicket = async () => {
     if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    const note = prompt("Note de résolution (visible client) :", "");
+    if (note === null) return; // cancel
     const { error } = await window.HubData.updateTicket(TICKET_ID, {
       status: "resolved",
       closed_at: new Date().toISOString(),
     });
+    if (error) { showFlash("Erreur : " + error.message, "err"); return; }
+    if (note && note.trim() && window.HubData.createComment) {
+      await window.HubData.createComment({ ticket_id: TICKET_ID, body: "✓ Résolu — " + note.trim(), author_id: null });
+    }
+    showFlash("✓ Ticket marqué comme résolu");
+  };
+
+  const assignTicket = async () => {
+    if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    // Liste des utilisateurs depuis Supabase profiles (fallback : Romain + Augustin)
+    let users = [];
+    try {
+      if (window.HubData.fetchProfiles) {
+        const { data } = await window.HubData.fetchProfiles();
+        users = (data || []).map((p) => ({ id: p.id, name: p.name || p.email, team: p.team || "Astorya" }));
+      }
+    } catch (e) {}
+    if (!users.length) {
+      users = [
+        { id: null, name: "Romain Daviaud", team: "Direction" },
+        { id: null, name: "Augustin Morin", team: "Direction" },
+      ];
+    }
+    const list = users.map((u, i) => `${i + 1}. ${u.name} · ${u.team}`).join("\n");
+    const choice = prompt("Assigner à :\n\n" + list + "\n\nTapez le numéro :", "1");
+    const idx = parseInt(choice, 10) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= users.length) return;
+    const target = users[idx];
+    const { error } = await window.HubData.updateTicket(TICKET_ID, {
+      assignee_id: target.id,
+      assignee_team: target.team,
+      status: "in_progress",
+    });
     if (error) showFlash("Erreur : " + error.message, "err");
-    else showFlash("✓ Ticket marqué comme résolu");
+    else showFlash("✓ Ticket assigné à " + target.name);
+  };
+
+  const closeTicket = async () => {
+    if (!dataOn) { showFlash("Mode démo — branchement DB nécessaire", "warn"); return; }
+    if (!confirm("Fermer définitivement ce ticket ? Le client ne pourra plus y répondre.")) return;
+    const { error } = await window.HubData.updateTicket(TICKET_ID, {
+      status: "closed",
+      closed_at: new Date().toISOString(),
+    });
+    if (error) showFlash("Erreur : " + error.message, "err");
+    else showFlash("✓ Ticket fermé");
   };
 
   const escalateTicket = async () => {
@@ -559,8 +605,10 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                       {flash.msg}
                     </span>
                   )}
+                  <button onClick={assignTicket} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }} title="Assigner à un technicien">⇄ Assigner</button>
                   <button onClick={escalateTicket} style={{ ...tdStyles.ghostBtn, color: "#5b21b6", borderColor: "#c4b5fd", background: "#f5f3ff", fontWeight: 600, cursor: "pointer" }} title="Remonter le ticket au groupe Administrateur · Supervision">↑ Escalader</button>
-                  <button onClick={resolveTicket} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>Marquer comme résolu</button>
+                  <button onClick={resolveTicket} style={{ ...tdStyles.ghostBtn, cursor: "pointer" }}>✓ Résoudre</button>
+                  <button onClick={closeTicket} style={{ ...tdStyles.ghostBtn, color: "#64748b", cursor: "pointer" }} title="Fermer définitivement le ticket">✕ Fermer</button>
                   <button onClick={sendReply} style={{ ...tdStyles.primaryBtn, cursor: "pointer" }}>Envoyer ↵</button>
                 </div>
               </div>

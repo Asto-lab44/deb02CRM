@@ -113,20 +113,12 @@ var ClientPage = () => {
   var [editOpen, setEditOpen] = React.useState(false);
   var [editDraft, setEditDraft] = React.useState({});
   var ownerListE = [{
-    name: "Nadia Lefèvre",
-    role: "AE Senior · EMEA",
-    color: "#a855f7"
+    name: "Romain Daviaud",
+    role: "Direction · Achat",
+    color: "#4f46e5"
   }, {
-    name: "Karim Ben Salah",
-    role: "AE Senior · Cyber",
-    color: "#6366f1"
-  }, {
-    name: "Tom Verdier",
-    role: "AE Hub",
-    color: "#f59e0b"
-  }, {
-    name: "Émilie Garnier",
-    role: "AE BENELUX",
+    name: "Augustin Morin",
+    role: "Direction · Commercial",
     color: "#10b981"
   }];
   var [actionMenuKey, setActionMenuKey] = React.useState(null);
@@ -828,9 +820,7 @@ var ClientPage = () => {
     style: {
       flex: 1
     }
-  }, "Pipeline"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.navCount
-  }, "32")), /*#__PURE__*/React.createElement("div", {
+  }, "Pipeline")), /*#__PURE__*/React.createElement("div", {
     style: {
       ...cliStyles.navItem,
       ...cliStyles.navItemActive
@@ -841,9 +831,7 @@ var ClientPage = () => {
     style: {
       flex: 1
     }
-  }, "Comptes"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.navCount
-  }, "412")), /*#__PURE__*/React.createElement("a", {
+  }, "Comptes")), /*#__PURE__*/React.createElement("a", {
     href: "/crm#contacts",
     style: {
       ...cliStyles.navItem,
@@ -936,9 +924,9 @@ var ClientPage = () => {
       cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Nadia Lef\xE8vre",
+    name: "Astorya",
     size: 26,
-    color: "#a855f7"
+    color: "#4f46e5"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -949,12 +937,12 @@ var ClientPage = () => {
       fontSize: 12.5,
       fontWeight: 600
     }
-  }, "Nadia Lef\xE8vre"), /*#__PURE__*/React.createElement("div", {
+  }, "Compte connect\xE9"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "AE \xB7 EMEA")))), /*#__PURE__*/React.createElement("main", {
+  }, "Voir menu en haut \u2192")))), /*#__PURE__*/React.createElement("main", {
     style: cliStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: cliStyles.topbar
@@ -1074,24 +1062,9 @@ var ClientPage = () => {
     }
   }, display.since)), /*#__PURE__*/React.createElement("h1", {
     style: cliStyles.h1
-  }, display.name), /*#__PURE__*/React.createElement("p", {
+  }, display.name), display.desc && /*#__PURE__*/React.createElement("p", {
     style: cliStyles.subtitle
-  }, "Filiale fran\xE7aise gestion de patrimoine du groupe AXA. Direction : \xC9milie Roux (VP Innovation)."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 10,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.tag
-  }, "# Grand-compte"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.tag
-  }, "# Top-10 Q2"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.tag
-  }, "# Migration Salesforce"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.tag
-  }, "# DORA"))), (() => {
+  }, display.desc)), (() => {
     var arrNum = contractsList.reduce((s, ct) => s + (parseFloat(String(ct.amount || "").replace(/[^\d.]/g, "")) || 0), 0);
     var arrLabel = arrNum > 0 ? Math.round(arrNum / 1000) + " k€" : isCustom ? "—" : display.arr;
     var opps = storedOpps.filter(o => o.stage !== "won" && o.stage !== "lost");
@@ -1288,16 +1261,22 @@ var ClientPage = () => {
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       var rows = [["Champ", "Valeur"]];
-      rows.push(["Nom", "AXA Wealth France"]);
-      rows.push(["Référence", "ACC-0184"]);
-      rows.push(["Industrie", "Asset Management"]);
-      rows.push(["Effectif", "12 000 employés"]);
-      rows.push(["Ville", "Paris · La Défense"]);
-      rows.push(["Site web", "axa-im.fr"]);
-      rows.push(["Client depuis", "mars 2024"]);
-      rows.push(["ARR actuel", "184 k€"]);
-      rows.push(["Pipe ouvert", "355 k€"]);
-      rows.push(["Health score", "78 / 100"]);
+      rows.push(["Nom", display.name]);
+      rows.push(["Référence", display.id]);
+      rows.push(["Secteur", display.sector]);
+      rows.push(["Effectif", display.size]);
+      rows.push(["Ville", display.city]);
+      rows.push(["Site web", display.web]);
+      rows.push(["Commercial", display.owner]);
+      rows.push(["SIREN", display.siren]);
+      rows.push(["NAF", display.naf]);
+      rows.push(["TVA", display.tva]);
+      rows.push(["Adresse", display.address]);
+      rows.push(["Code postal", display.cp]);
+      rows.push(["Ville", display.addressCity]);
+      rows.push(["Source", display.source]);
+      rows.push(["Concurrent", display.concurrent]);
+      rows.push(["Tier", display.tier]);
       rows.push([]);
       rows.push(["Opportunités"]);
       rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
@@ -2476,7 +2455,7 @@ var ClientPage = () => {
   }), /*#__PURE__*/React.createElement(AssetInventoryModal, {
     open: assetsOpen,
     client: {
-      name: "AXA Wealth France"
+      name: display.name
     },
     onClose: () => setAssetsOpen(false)
   }), reschedule && /*#__PURE__*/React.createElement("div", {

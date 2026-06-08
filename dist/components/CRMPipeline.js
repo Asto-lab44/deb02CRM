@@ -747,60 +747,6 @@ var CRMPipeline = () => {
       }
     }, k.delta)))));
   })(), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.filterBar
-  }, /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.tabs
-  }, [{
-    k: "all",
-    label: "Pipeline",
-    active: true
-  }, {
-    k: "mine",
-    label: "Mes deals",
-    c: 9
-  }, {
-    k: "team",
-    label: "Équipe EMEA",
-    c: 32
-  }, {
-    k: "lost",
-    label: "Perdus 30j",
-    c: 4
-  }].map(t => /*#__PURE__*/React.createElement("button", {
-    key: t.k,
-    style: {
-      ...crmStyles.tab,
-      ...(t.active ? crmStyles.tabActive : {})
-    }
-  }, t.label, t.c != null && /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...crmStyles.tabCount,
-      ...(t.active ? crmStyles.tabCountActive : {})
-    }
-  }, t.c)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.filterPill
-  }, "+ Produit"), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.filterPill
-  }, "+ Montant"), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.filterPill
-  }, "+ Commercial"), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.filterPill
-  }, "+ Date close"), /*#__PURE__*/React.createElement("span", {
-    style: crmStyles.divider
-  }), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.filterPill
-  }, "\u2195 Montant"), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.filterPill,
-    title: "Vue Kanban"
-  }, "\u25A6"), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.filterPill,
-    title: "Vue Liste"
-  }, "\u2630"))), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.kanban
   }, columns.map(col => /*#__PURE__*/React.createElement("div", {
     key: col.key,

@@ -330,31 +330,6 @@ const CRMPipeline = () => {
         })()}
 
         {/* Filter bar */}
-        <div style={crmStyles.filterBar}>
-          <div style={crmStyles.tabs}>
-            {[
-              { k: "all", label: "Pipeline", active: true },
-              { k: "mine", label: "Mes deals", c: 9 },
-              { k: "team", label: "Équipe EMEA", c: 32 },
-              { k: "lost", label: "Perdus 30j", c: 4 },
-            ].map((t) => (
-              <button key={t.k} style={{ ...crmStyles.tab, ...(t.active ? crmStyles.tabActive : {}) }}>
-                {t.label}
-                {t.c != null && <span style={{ ...crmStyles.tabCount, ...(t.active ? crmStyles.tabCountActive : {}) }}>{t.c}</span>}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button style={crmStyles.filterPill}>+ Produit</button>
-            <button style={crmStyles.filterPill}>+ Montant</button>
-            <button style={crmStyles.filterPill}>+ Commercial</button>
-            <button style={crmStyles.filterPill}>+ Date close</button>
-            <span style={crmStyles.divider} />
-            <button style={crmStyles.filterPill}>↕ Montant</button>
-            <button style={crmStyles.filterPill} title="Vue Kanban">▦</button>
-            <button style={crmStyles.filterPill} title="Vue Liste">☰</button>
-          </div>
-        </div>
 
         {/* Kanban */}
         <div style={crmStyles.kanban}>

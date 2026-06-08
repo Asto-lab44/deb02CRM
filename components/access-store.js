@@ -206,14 +206,10 @@
     supa.auth.onAuthStateChange((_event, session) => { _supaSession = session; _supaUserKey = null; emit(); });
   }
 
-  // Utilisateur par défaut quand pas de session (mode no-auth).
-  // Référence stable pour useSyncExternalStore/useState.
-  const _defaultUser = { email: "romain.daviaud@astorya.fr", name: "Romain Daviaud", role: "Super Admin", groups: ["admin", "supervision", "direction"] };
-
   function getCurrentUser() {
     if (supa) {
-      // Mode auth Supabase si session présente, sinon défaut.
-      if (!_supaSession || !_supaSession.user) return _defaultUser;
+      // Mode auth Supabase — null si pas connecté (la page redirige vers /login)
+      if (!_supaSession || !_supaSession.user) return null;
       const u = _supaSession.user;
       const key = u.id + "::" + (u.email || "");
       if (key === _supaUserKey && _supaUserCache) return _supaUserCache;
@@ -226,16 +222,16 @@
       _supaUserCache = { email: u.email, name, role, groups };
       return _supaUserCache;
     }
-    // Mode démo (pas de Supabase) — défaut Romain Daviaud
+    // Mode démo (pas de Supabase) — utilisateur depuis localStorage
     const raw = localStorage.getItem(SESSION_KEY);
-    if (raw === _sessionRaw && _sessionCache) return _sessionCache;
+    if (raw === _sessionRaw) return _sessionCache;
     _sessionRaw = raw;
     try {
-      if (!raw) { _sessionCache = _defaultUser; return _sessionCache; }
+      if (!raw) { _sessionCache = null; return null; }
       const session = JSON.parse(raw);
       const user = USERS.find((u) => u.email === session.email);
-      _sessionCache = user ? { email: user.email, name: user.name, role: user.role, groups: user.groups } : _defaultUser;
-    } catch (e) { _sessionCache = _defaultUser; }
+      _sessionCache = user ? { email: user.email, name: user.name, role: user.role, groups: user.groups } : null;
+    } catch (e) { _sessionCache = null; }
     return _sessionCache;
   }
 

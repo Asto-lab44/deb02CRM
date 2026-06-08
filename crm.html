@@ -24,6 +24,13 @@
   <script src="components/api.js?v=202606051000"></script>
   <script src="components/hub-user-menu.js?v=202606051000"></script>
   
+    <script>
+    window.addEventListener("DOMContentLoaded", function() {
+      if (window.api && window.api.auth && window.HubSupabase && window.HubSupabase.enabled) {
+        window.api.auth.requireAuth();
+      }
+    });
+  </script>
   <script src="components/access-store.js?v=202606051000"></script>
   <script src="components/hub-data.js?v=202606051000"></script>
   <script src="components/hub-nav.js?v=202606051000"></script>

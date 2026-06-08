@@ -647,107 +647,106 @@ var CRMPipeline = () => {
     style: crmStyles.notifDot
   })), /*#__PURE__*/React.createElement("button", {
     style: crmStyles.iconBtn
-  }, "?"))), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.titleRow
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
-    style: crmStyles.h1
-  }, "Pipeline commercial"), /*#__PURE__*/React.createElement("p", {
-    style: crmStyles.h1sub
-  }, "32 opportunit\xE9s actives \xB7 1,75 M\u20AC pond\xE9r\xE9 \xB7 cl\xF4ture Q2 dans 5 semaines")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.ghostBtn
-  }, "Importer"), /*#__PURE__*/React.createElement("button", {
-    style: crmStyles.ghostBtn
-  }, "Exporter"), /*#__PURE__*/React.createElement("a", {
-    href: "/nouveau-prospect",
-    style: {
-      ...crmStyles.primaryBtn,
-      background: "#fff",
-      color: "#3730a3",
-      border: "1px solid #c7d2fe",
-      textDecoration: "none",
-      display: "inline-block",
-      cursor: "pointer",
-      boxShadow: "none"
-    }
-  }, "+ Nouveau prospect"), /*#__PURE__*/React.createElement("a", {
-    href: "/nouvelle-opportunite",
-    style: {
-      ...crmStyles.primaryBtn,
-      textDecoration: "none",
-      display: "inline-block",
-      cursor: "pointer"
-    }
-  }, "+ Nouvelle opportunit\xE9"))), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.kpiStrip
-  }, [{
-    label: "Pipeline total",
-    value: "1,75 M€",
-    delta: "+18 % vs Q1",
-    color: "#4f46e5"
-  }, {
-    label: "Pondéré (probabilité)",
-    value: "742 k€",
-    delta: "Objectif Q2 : 900 k€",
-    color: "#a855f7"
-  }, {
-    label: "Closing ce mois",
-    value: "276 k€",
-    delta: "3 deals · 4 j moy.",
-    color: "#10b981"
-  }, {
-    label: "Vélocité moy.",
-    value: "31 j",
-    delta: "–4 j vs trimestre",
-    color: "#0ea5e9"
-  }, {
-    label: "Deals à risque",
-    value: "5",
-    delta: "Stagnation > 14 j",
-    color: "#dc2626"
-  }].map(k => /*#__PURE__*/React.createElement("div", {
-    key: k.label,
-    style: crmStyles.kpi
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      marginBottom: 4
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 6,
-      height: 6,
-      borderRadius: 999,
-      background: k.color
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      fontWeight: 500,
-      letterSpacing: 0.2,
-      textTransform: "uppercase"
-    }
-  }, k.label)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 600,
-      color: "#0f172a",
-      letterSpacing: -0.5
-    }
-  }, k.value), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2
-    }
-  }, k.delta)))), /*#__PURE__*/React.createElement("div", {
+  }, "?"))), (() => {
+    var active = (searchOpps || []).filter(o => o.stage !== "won" && o.stage !== "lost");
+    var totalActive = active.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
+    var pondere = active.reduce((s, o) => s + (Number(o.amount_eur) || 0) * (Number(o.proba) || 0) / 100, 0);
+    var wonOpps = (searchOpps || []).filter(o => o.stage === "won");
+    var wonAmount = wonOpps.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
+    var fmtK = n => n > 999999 ? (n / 1000000).toFixed(2).replace(".", ",") + " M€" : Math.round(n / 1000) + " k€";
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.titleRow
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+      style: crmStyles.h1
+    }, "Pipeline commercial"), /*#__PURE__*/React.createElement("p", {
+      style: crmStyles.h1sub
+    }, active.length, " opportunit\xE9", active.length > 1 ? "s" : "", " active", active.length > 1 ? "s" : "", " \xB7 ", fmtK(pondere), " pond\xE9r\xE9")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("a", {
+      href: "/nouveau-prospect",
+      style: {
+        ...crmStyles.primaryBtn,
+        background: "#fff",
+        color: "#3730a3",
+        border: "1px solid #c7d2fe",
+        textDecoration: "none",
+        display: "inline-block",
+        cursor: "pointer",
+        boxShadow: "none"
+      }
+    }, "+ Nouveau prospect"), /*#__PURE__*/React.createElement("a", {
+      href: "/nouvelle-opportunite",
+      style: {
+        ...crmStyles.primaryBtn,
+        textDecoration: "none",
+        display: "inline-block",
+        cursor: "pointer"
+      }
+    }, "+ Nouvelle opportunit\xE9"))), /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.kpiStrip
+    }, [{
+      label: "Pipeline total",
+      value: fmtK(totalActive),
+      delta: active.length + " opp. actives",
+      color: "#4f46e5"
+    }, {
+      label: "Pondéré (probabilité)",
+      value: fmtK(pondere),
+      delta: "Selon stage de chaque opp.",
+      color: "#a855f7"
+    }, {
+      label: "Signées",
+      value: fmtK(wonAmount),
+      delta: wonOpps.length + " deal" + (wonOpps.length > 1 ? "s" : ""),
+      color: "#10b981"
+    }, {
+      label: "Total opportunités",
+      value: String((searchOpps || []).length),
+      delta: "Toutes étapes",
+      color: "#0ea5e9"
+    }].map(k => /*#__PURE__*/React.createElement("div", {
+      key: k.label,
+      style: crmStyles.kpi
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: k.color
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        fontWeight: 500,
+        letterSpacing: 0.2,
+        textTransform: "uppercase"
+      }
+    }, k.label)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 22,
+        fontWeight: 600,
+        color: "#0f172a",
+        letterSpacing: -0.5
+      }
+    }, k.value), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, k.delta)))));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.filterBar
   }, /*#__PURE__*/React.createElement("div", {
     style: crmStyles.tabs
@@ -1231,7 +1230,7 @@ var crmStyles = {
   },
   kpiStrip: {
     display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
+    gridTemplateColumns: "repeat(4, 1fr)",
     gap: 10,
     padding: "4px 24px 14px"
   },

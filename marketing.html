@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hub Astorya — Marketing & Campagnes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #f3f5f8; font-family: 'Inter', system-ui, sans-serif; }
+    #root { min-height: 100vh; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
+  <script src="components/supabase-config.js?v=202606091230"></script>
+  <script src="components/supabase-client.js?v=202606091230"></script>
+  <script src="components/api.js?v=202606091230"></script>
+  <script src="components/access-store.js?v=202606091230"></script>
+  <script defer src="dist/components/BientotPage.js?v=202606091230"></script>
+  <script defer>
+    window.addEventListener("DOMContentLoaded", function() {
+      ReactDOM.createRoot(document.getElementById('root')).render(
+        React.createElement(BientotPage, {
+          moduleName: "Marketing & Campagnes",
+          moduleIcon: "📧",
+          moduleColor: "#ec4899",
+          description: "Pilotez vos campagnes emailing, leads et taux de conversion en temps réel.",
+          roadmap: ["Campagnes emailing avec templates IA", "Lead scoring automatique", "Tunnel de conversion par campagne", "Intégration LinkedIn Sales Nav", "Analytics : ouvertures, clics, CTR", "Segmentation dynamique de la base"]
+        })
+      );
+    });
+  </script>
+</body>
+</html>

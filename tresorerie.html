@@ -3,30 +3,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hub Astorya — Bienvenue</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <title>Hub Astorya — Trésorerie</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #0f172a; font-family: 'Inter', system-ui, sans-serif; }
+    html, body { margin: 0; padding: 0; height: 100%; background: #f3f5f8; font-family: 'Inter', system-ui, sans-serif; }
     #root { min-height: 100vh; }
   </style>
-
   <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <div id="root"></div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
   <script src="components/supabase-config.js?v=202606091230"></script>
   <script src="components/supabase-client.js?v=202606091230"></script>
-  <script defer src="dist/components/Bienvenue.js?v=202606091230"></script>
-
+  <script src="components/api.js?v=202606091230"></script>
+  <script src="components/access-store.js?v=202606091230"></script>
+  <script defer src="dist/components/BientotPage.js?v=202606091230"></script>
   <script defer>
     window.addEventListener("DOMContentLoaded", function() {
-      var App = function() { return React.createElement(Bienvenue); };
-      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+      ReactDOM.createRoot(document.getElementById('root')).render(
+        React.createElement(BientotPage, {
+          moduleName: "Trésorerie",
+          moduleIcon: "💰",
+          moduleColor: "#0e7a55",
+          description: "Suivi des comptes bancaires, prévisionnel et virements SEPA.",
+          roadmap: ["Multi-comptes bancaires", "Rapprochement bancaire auto", "Prévisionnel cash 90 jours", "Virements SEPA + URSSAF", "Tableau de bord trésorerie", "Alertes solde bas"]
+        })
+      );
     });
   </script>
 </body>

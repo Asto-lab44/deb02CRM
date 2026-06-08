@@ -49,82 +49,68 @@
       id: "admin", name: "Administrateurs", color: "#dc2626",
       description: "Accès complet à l'ERP, gestion des utilisateurs et de la sécurité.",
       access: ALL_KEYS.slice(),
-      members: ["Nadia Lefèvre", "Hugo Bertrand"],
+      members: ["Romain Daviaud", "Augustin Morin"],
     },
     {
       id: "supervision", name: "Administrateur · Supervision", color: "#7c3aed",
       description: "Cellule supervision — réception des escalades tickets, monitoring SLA et arbitrage des incidents critiques.",
       access: ALL_KEYS.slice(),
-      members: ["Hugo Bertrand", "Léa Marchand", "Tom Verdier"],
+      members: ["Romain Daviaud", "Augustin Morin"],
     },
     {
       id: "direction", name: "Direction", color: "#4f46e5",
       description: "Comité exécutif — vue 360 sur tous les modules, lecture étendue.",
       access: ALL_KEYS.slice(),
-      members: ["Catherine Marchand", "Olivier Vasseur", "Sophie Aubry"],
+      members: ["Romain Daviaud", "Augustin Morin"],
     },
     {
       id: "commercial", name: "Commercial", color: "#0ea5e9",
       description: "Équipes vente et avant-vente — pipeline, comptes, opportunités.",
       access: ["crm", "intel", "marketing", "billing", "reports"],
-      members: ["Romain Daviaud", "Tom Verdier", "Émilie Garnier", "Antoine Mercier", "Julien Pasquier", "Marie Lopez", "Pierre Dubois", "Romain Faure"],
+      members: [],
     },
     {
       id: "support", name: "Support technique", color: "#0891b2",
       description: "Hotline N1/N2 — tickets, SLA, base de connaissances.",
       access: ["tech", "projects", "crm", "reports"],
-      members: ["Léo Tanaka", "Diane Roussel", "Farid Belkacem", "Romain Faure"],
+      members: [],
     },
     {
       id: "finance", name: "Finance & Compta", color: "#10b981",
       description: "Comptabilité, facturation, trésorerie et reporting financier.",
       access: ["accounting", "billing", "treasury", "reports", "hr"],
-      members: ["Valérie Chen", "Pierre Dubois", "Hugo Bertrand"],
+      members: [],
     },
     {
       id: "marketing", name: "Marketing", color: "#ec4899",
       description: "Campagnes, contenu, génération de leads et analytics.",
       access: ["marketing", "crm", "reports", "intel"],
-      members: ["Émilie Garnier", "Marie Lopez"],
+      members: [],
     },
     {
       id: "rh", name: "Ressources humaines", color: "#8b5cf6",
       description: "Paie, contrats, recrutement et gestion des temps.",
       access: ["hr", "time", "reports"],
-      members: ["Sophie Aubry", "Valérie Chen"],
+      members: [],
     },
     {
       id: "ops", name: "Opérations & Produit", color: "#a855f7",
       description: "Roadmap produit, livrables clients, gestion du stock.",
       access: ["projects", "inventory", "tech", "reports"],
-      members: ["Olivier Vasseur", "Léo Tanaka", "Diane Roussel"],
+      members: [],
     },
   ];
 
-  // Comptes de démonstration — mot de passe en clair, JAMAIS utiliser en prod.
-  // Le login factice ne sert qu'à pré-positionner l'identité active.
+  // ───────────────────────────────────────────────────────────────────
+  // §2. USERS — utilisateurs Astorya réels
+  // ───────────────────────────────────────────────────────────────────
+  // Sert UNIQUEMENT au fallback display name + groupes par email quand
+  // Supabase Auth est utilisé (cf §7. getCurrentUser).
+  // Les mots de passe sont gérés par Supabase Auth (BDD), PAS ici.
   const USERS = [
-    // Comptes réels Astorya (super admin, accès complet)
-    { email: "r.daviaud@astorya.fr",   password: "demo", name: "Romain Daviaud",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
-    { email: "achat@astorya.fr",       password: "demo", name: "Romain Daviaud",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
-    { email: "a.morin@astorya.fr",     password: "demo", name: "Augustin Morin",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
-    { email: "n.lefevre@astorya.fr",   password: "demo", name: "Nadia Lefèvre",      role: "Directrice technique",   groups: ["admin", "direction"] },
-    { email: "h.bertrand@astorya.fr",  password: "demo", name: "Hugo Bertrand",      role: "IT Manager",             groups: ["admin", "finance"] },
-    { email: "c.marchand@astorya.fr",  password: "demo", name: "Catherine Marchand", role: "CEO",                    groups: ["direction"] },
-    { email: "o.vasseur@astorya.fr",   password: "demo", name: "Olivier Vasseur",    role: "COO",                    groups: ["direction", "ops"] },
-    { email: "s.aubry@astorya.fr",     password: "demo", name: "Sophie Aubry",       role: "AE & DRH",               groups: ["direction", "rh"] },
-    { email: "t.verdier@astorya.fr",   password: "demo", name: "Tom Verdier",        role: "AE Hub",                 groups: ["commercial"] },
-    { email: "e.garnier@astorya.fr",   password: "demo", name: "Émilie Garnier",     role: "AE BENELUX",             groups: ["commercial", "marketing"] },
-    { email: "a.mercier@astorya.fr",   password: "demo", name: "Antoine Mercier",    role: "AE DACH",                groups: ["commercial"] },
-    { email: "j.pasquier@astorya.fr",  password: "demo", name: "Julien Pasquier",    role: "AE Suite",               groups: ["commercial"] },
-    { email: "m.lopez@astorya.fr",     password: "demo", name: "Marie Lopez",        role: "AE UK & Marketing Ops",  groups: ["commercial", "marketing"] },
-    { email: "p.dubois@astorya.fr",    password: "demo", name: "Pierre Dubois",      role: "Comptable senior",       groups: ["finance"] },
-    { email: "r.faure@astorya.fr",     password: "demo", name: "Romain Faure",       role: "AE Junior · Support",    groups: ["commercial", "support"] },
-    { email: "l.tanaka@astorya.fr",    password: "demo", name: "Léo Tanaka",         role: "Tech Lead Support",      groups: ["support", "ops"] },
-    { email: "d.roussel@astorya.fr",   password: "demo", name: "Diane Roussel",      role: "Ingénieure support N2",  groups: ["support", "ops"] },
-    { email: "f.belkacem@astorya.fr",  password: "demo", name: "Farid Belkacem",     role: "Technicien N1",          groups: ["support"] },
-    { email: "v.chen@astorya.fr",      password: "demo", name: "Valérie Chen",       role: "DAF",                    groups: ["finance", "rh"] },
-    { email: "l.marchand@astorya.fr",  password: "demo", name: "Léa Marchand",       role: "Superviseure Support N2", groups: ["supervision", "support"] },
+    { email: "r.daviaud@astorya.fr",  name: "Romain Daviaud",  role: "Super Admin", groups: ["admin", "supervision", "direction"] },
+    { email: "achat@astorya.fr",      name: "Romain Daviaud",  role: "Super Admin", groups: ["admin", "supervision", "direction"] },
+    { email: "a.morin@astorya.fr",    name: "Augustin Morin",  role: "Super Admin", groups: ["admin", "supervision", "direction"] },
   ];
 
   // v2 ajoute le groupe "Administrateur · Supervision".

@@ -288,28 +288,33 @@ const CRMPipeline = () => {
           </div>
         </header>
 
-        <div style={crmStyles.titleRow}>
-          <div>
-            <h1 style={crmStyles.h1}>Pipeline commercial</h1>
-            <p style={crmStyles.h1sub}>32 opportunités actives · 1,75 M€ pondéré · clôture Q2 dans 5 semaines</p>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={crmStyles.ghostBtn}>Importer</button>
-            <button style={crmStyles.ghostBtn}>Exporter</button>
-            <a href="/nouveau-prospect" style={{ ...crmStyles.primaryBtn, background: "#fff", color: "#3730a3", border: "1px solid #c7d2fe", textDecoration: "none", display: "inline-block", cursor: "pointer", boxShadow: "none" }}>+ Nouveau prospect</a>
-            <a href="/nouvelle-opportunite" style={{ ...crmStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
-          </div>
-        </div>
+        {(() => {
+          const active = (searchOpps || []).filter((o) => o.stage !== "won" && o.stage !== "lost");
+          const totalActive = active.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
+          const pondere = active.reduce((s, o) => s + (Number(o.amount_eur) || 0) * (Number(o.proba) || 0) / 100, 0);
+          const wonOpps = (searchOpps || []).filter((o) => o.stage === "won");
+          const wonAmount = wonOpps.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
+          const fmtK = (n) => n > 999999 ? (n / 1000000).toFixed(2).replace(".", ",") + " M€" : Math.round(n / 1000) + " k€";
+          return (
+            <>
+              <div style={crmStyles.titleRow}>
+                <div>
+                  <h1 style={crmStyles.h1}>Pipeline commercial</h1>
+                  <p style={crmStyles.h1sub}>{active.length} opportunité{active.length > 1 ? "s" : ""} active{active.length > 1 ? "s" : ""} · {fmtK(pondere)} pondéré</p>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <a href="/nouveau-prospect" style={{ ...crmStyles.primaryBtn, background: "#fff", color: "#3730a3", border: "1px solid #c7d2fe", textDecoration: "none", display: "inline-block", cursor: "pointer", boxShadow: "none" }}>+ Nouveau prospect</a>
+                  <a href="/nouvelle-opportunite" style={{ ...crmStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
+                </div>
+              </div>
 
-        {/* KPI strip */}
-        <div style={crmStyles.kpiStrip}>
-          {[
-            { label: "Pipeline total", value: "1,75 M€", delta: "+18 % vs Q1", color: "#4f46e5" },
-            { label: "Pondéré (probabilité)", value: "742 k€", delta: "Objectif Q2 : 900 k€", color: "#a855f7" },
-            { label: "Closing ce mois", value: "276 k€", delta: "3 deals · 4 j moy.", color: "#10b981" },
-            { label: "Vélocité moy.", value: "31 j", delta: "–4 j vs trimestre", color: "#0ea5e9" },
-            { label: "Deals à risque", value: "5", delta: "Stagnation > 14 j", color: "#dc2626" },
-          ].map((k) => (
+              <div style={crmStyles.kpiStrip}>
+                {[
+                  { label: "Pipeline total", value: fmtK(totalActive), delta: active.length + " opp. actives", color: "#4f46e5" },
+                  { label: "Pondéré (probabilité)", value: fmtK(pondere), delta: "Selon stage de chaque opp.", color: "#a855f7" },
+                  { label: "Signées", value: fmtK(wonAmount), delta: wonOpps.length + " deal" + (wonOpps.length > 1 ? "s" : ""), color: "#10b981" },
+                  { label: "Total opportunités", value: String((searchOpps || []).length), delta: "Toutes étapes", color: "#0ea5e9" },
+                ].map((k) => (
             <div key={k.label} style={crmStyles.kpi}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <span style={{ width: 6, height: 6, borderRadius: 999, background: k.color }} />
@@ -319,7 +324,10 @@ const CRMPipeline = () => {
               <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{k.delta}</div>
             </div>
           ))}
-        </div>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Filter bar */}
         <div style={crmStyles.filterBar}>
@@ -478,7 +486,7 @@ const crmStyles = {
   ghostBtn: { padding: "7px 13px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   primaryBtn: { padding: "7px 13px", border: "none", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, cursor: "pointer", fontWeight: 500, boxShadow: "0 1px 2px rgba(79,70,229,0.3)" },
 
-  kpiStrip: { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, padding: "4px 24px 14px" },
+  kpiStrip: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, padding: "4px 24px 14px" },
   kpi: { padding: "12px 14px", background: "#fff", border: "1px solid #eef1f5", borderRadius: 10 },
 
   filterBar: { padding: "10px 24px", borderTop: "1px solid #eef1f5", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },

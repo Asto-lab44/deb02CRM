@@ -11,6 +11,23 @@ const CRMPipeline = () => {
   const [searchClients, setSearchClients] = React.useState([]);
   const [searchOpen, setSearchOpen] = React.useState(false);
 
+  // ───── Comptes : décomptes pour la sidebar (Comptes / Contacts / Activités)
+  const [sidebarCounts, setSidebarCounts] = React.useState({ comptes: 0, contacts: 0, activites: 0 });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([
+      window.api.clients.list(),
+      window.api.contacts.list(),
+      window.api.actions.list({ status: "todo" }),
+    ]).then(([cl, co, ac]) => {
+      setSidebarCounts({
+        comptes: (cl || []).length,
+        contacts: (co || []).length,
+        activites: (ac || []).length,
+      });
+    }).catch(() => {});
+  }, []);
+
   React.useEffect(() => {
     if (!window.api) return;
     window.api.clients.list().then((list) => {
@@ -128,16 +145,16 @@ const CRMPipeline = () => {
         <div style={crmStyles.navSection}>
           <div style={crmStyles.navLabel}>Espace de travail</div>
           {[
-            { label: "Pipeline",    icon: "▦", href: "/crm",                      active: isCrmActive("all") },
-            { label: "Comptes",     icon: "◰", href: "/crm#comptes" },
-            { label: "Contacts",    icon: "◉", href: "/crm#contacts" },
-            { label: "Activités",   icon: "✦", href: "/crm#actions" },
+            { label: "Pipeline",    icon: "▦", href: "/crm",          active: isCrmActive("all") },
+            { label: "Comptes",     icon: "◰", href: "/crm#comptes",  count: sidebarCounts.comptes },
+            { label: "Contacts",    icon: "◉", href: "/crm#contacts", count: sidebarCounts.contacts },
+            { label: "Activités",   icon: "✦", href: "/crm#actions",  count: sidebarCounts.activites },
           ].map((n) => {
             const inner = (
               <>
                 <span style={{ width: 14, color: n.active ? "#4f46e5" : "#94a3b8", fontSize: 11 }}>{n.icon}</span>
                 <span style={{ flex: 1 }}>{n.label}</span>
-                {n.count && <span style={crmStyles.navCount}>{n.count}</span>}
+                {n.count > 0 && <span style={crmStyles.navCount}>{n.count}</span>}
               </>
             );
             const styleAct = { ...crmStyles.navItem, ...(n.active ? crmStyles.navItemActive : {}), cursor: "pointer" };

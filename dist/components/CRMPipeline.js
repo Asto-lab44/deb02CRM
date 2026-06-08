@@ -19,6 +19,25 @@ var CRMPipeline = () => {
   var [globalSearch, setGlobalSearch] = React.useState("");
   var [searchClients, setSearchClients] = React.useState([]);
   var [searchOpen, setSearchOpen] = React.useState(false);
+
+  // ───── Comptes : décomptes pour la sidebar (Comptes / Contacts / Activités)
+  var [sidebarCounts, setSidebarCounts] = React.useState({
+    comptes: 0,
+    contacts: 0,
+    activites: 0
+  });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([window.api.clients.list(), window.api.contacts.list(), window.api.actions.list({
+      status: "todo"
+    })]).then(([cl, co, ac]) => {
+      setSidebarCounts({
+        comptes: (cl || []).length,
+        contacts: (co || []).length,
+        activites: (ac || []).length
+      });
+    }).catch(() => {});
+  }, []);
   React.useEffect(() => {
     if (!window.api) return;
     window.api.clients.list().then(list => {
@@ -224,15 +243,18 @@ var CRMPipeline = () => {
   }, {
     label: "Comptes",
     icon: "◰",
-    href: "/crm#comptes"
+    href: "/crm#comptes",
+    count: sidebarCounts.comptes
   }, {
     label: "Contacts",
     icon: "◉",
-    href: "/crm#contacts"
+    href: "/crm#contacts",
+    count: sidebarCounts.contacts
   }, {
     label: "Activités",
     icon: "✦",
-    href: "/crm#actions"
+    href: "/crm#actions",
+    count: sidebarCounts.activites
   }].map(n => {
     var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -244,7 +266,7 @@ var CRMPipeline = () => {
       style: {
         flex: 1
       }
-    }, n.label), n.count && /*#__PURE__*/React.createElement("span", {
+    }, n.label), n.count > 0 && /*#__PURE__*/React.createElement("span", {
       style: crmStyles.navCount
     }, n.count));
     var styleAct = {

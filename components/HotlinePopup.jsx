@@ -60,8 +60,32 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
     }, 1200);
   };
 
-  const attachTranscript = () => {
+  const attachTranscript = async () => {
     if (!targetTicketId || !transcriptText.trim()) return;
+    // 1. Persiste l'appel + retranscription en BDD si possible
+    if (window.HubData && window.HubData.enabled() && window.HubData.recordCall && window.HubData.saveTranscript) {
+      try {
+        const { data: callRow } = await window.HubData.recordCall({
+          caller_name: call.name,
+          caller_phone: call.phone,
+          duration_sec: call.durationSec || elapsed,
+          direction: "inbound",
+          status: "completed",
+          ticket_id: targetTicketId,
+          started_at: new Date(Date.now() - (call.durationSec || elapsed) * 1000).toISOString(),
+          ended_at: new Date().toISOString(),
+        });
+        await window.HubData.saveTranscript({
+          call_id: callRow && callRow.id,
+          ticket_id: targetTicketId,
+          source: "manual",
+          text: transcriptText.trim(),
+          duration_sec: call.durationSec || elapsed,
+          language: "fr",
+        });
+      } catch (e) { console.warn("[HotlinePopup] persist call:", e); }
+    }
+    // 2. Fallback localStorage via HubAccess.addTranscript (mode démo)
     if (window.HubAccess && window.HubAccess.addTranscript) {
       window.HubAccess.addTranscript(targetTicketId, {
         from: call.name,
@@ -78,11 +102,41 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
     onClose && onClose();
   };
 
-  const submitNewTicket = (e) => {
+  const submitNewTicket = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!form.subject.trim()) return;
     const ticketId = "INC-" + Math.floor(2900 + Math.random() * 99);
-    // Le ticket fraîchement créé reçoit aussi la retranscription
+
+    // 1. Persiste l'appel hotline (table calls) en BDD si possible
+    if (window.HubData && window.HubData.enabled() && window.HubData.recordCall) {
+      try {
+        const startedAt = new Date(Date.now() - (call.durationSec || 0) * 1000).toISOString();
+        const { data: callRow } = await window.HubData.recordCall({
+          caller_name: call.name || "Inconnu",
+          caller_phone: call.phone || "",
+          direction: "inbound",
+          status: "completed",
+          duration_sec: call.durationSec || 0,
+          started_at: startedAt,
+          ended_at: new Date().toISOString(),
+          ticket_id: ticketId,
+          category: form.category || "incident",
+        });
+        // Et la retranscription si présente
+        if (form.desc.trim() && callRow && callRow.id && window.HubData.saveTranscript) {
+          await window.HubData.saveTranscript({
+            call_id: callRow.id,
+            ticket_id: ticketId,
+            source: "manual",
+            text: form.desc.trim(),
+            duration_sec: call.durationSec || 0,
+            language: "fr",
+          });
+        }
+      } catch (err) { console.warn("[HotlinePopup] recordCall:", err); }
+    }
+
+    // 2. Fallback localStorage (mode démo)
     if (window.HubAccess && window.HubAccess.addTranscript && form.desc.trim()) {
       window.HubAccess.addTranscript(ticketId, {
         from: call.name || "Inconnu",

@@ -1229,15 +1229,24 @@ var NewContract = () => {
   }, /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Date de d\xE9but",
     required: true
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: startDate,
-    onChange: e => setStartDate(e.target.value),
-    style: {
-      ...ncStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  })), /*#__PURE__*/React.createElement(NCFormRow, {
+  }, (() => {
+    var V = window.HubValidators;
+    var dateErr = V && V.date(startDate, {
+      notInPast: true
+    });
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      value: startDate,
+      onChange: e => setStartDate(e.target.value),
+      style: {
+        ...ncStyles.input,
+        fontFamily: "'JetBrains Mono', monospace",
+        ...(dateErr ? V.errorStyle(dateErr) : {})
+      }
+    }), dateErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(dateErr)
+    }, dateErr.message));
+  })()), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Date de fin"
   }, /*#__PURE__*/React.createElement("input", {
     type: "date",

@@ -576,12 +576,19 @@ const NewContract = () => {
 
               <div style={ncStyles.formGrid3}>
                 <NCFormRow label="Date de début" required>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    style={{ ...ncStyles.input, fontFamily: "'JetBrains Mono', monospace" }}
-                  />
+                  {(() => {
+                    const V = window.HubValidators;
+                    const dateErr = V && V.date(startDate, { notInPast: true });
+                    return <>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        style={{ ...ncStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(dateErr ? V.errorStyle(dateErr) : {}) }}
+                      />
+                      {dateErr && <div style={V.errorMsgStyle(dateErr)}>{dateErr.message}</div>}
+                    </>;
+                  })()}
                 </NCFormRow>
                 <NCFormRow label="Date de fin">
                   <input

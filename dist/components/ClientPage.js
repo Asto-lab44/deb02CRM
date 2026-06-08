@@ -327,7 +327,7 @@ var ClientPage = () => {
   var allContacts = React.useMemo(() => {
     var colors = ["#0ea5e9", "#f59e0b", "#dc2626", "#10b981", "#8b5cf6"];
     var coIdx = 0;
-    return (customContacts || []).filter(cc => (cc.prenom || cc.nom || cc.email || cc.phone || "").toString().trim()).map(cc => {
+    var fromTable = (customContacts || []).filter(cc => (cc.prenom || cc.nom || cc.email || cc.phone || "").toString().trim()).map(cc => {
       var fullName = ((cc.prenom || "") + " " + (cc.nom || "")).trim() || cc.email || cc.phone || "Contact";
       if (cc.is_principal) {
         return {
@@ -338,7 +338,6 @@ var ClientPage = () => {
           phone: cc.phone || "",
           linkedin: cc.linkedin || "",
           color: "#a855f7",
-          champion: Array.isArray(cc.roles) && cc.roles.includes("Champion"),
           decisionRoles: Array.isArray(cc.roles) ? cc.roles : [],
           hierarchie: cc.hierarchie || "",
           last: "Contact principal",
@@ -358,7 +357,46 @@ var ClientPage = () => {
         _custom: true
       };
     });
-  }, [customContacts]);
+
+    // Fallback legacy : si aucun contact principal en table mais c.contact_principal renseigné
+    var hasPrincipal = fromTable.some(x => x.color === "#a855f7");
+    if (!hasPrincipal && c.contact_principal) {
+      var cp = c.contact_principal;
+      var fullName = ((cp.prenom || "") + " " + (cp.nom || "")).trim();
+      if (fullName || cp.email || cp.phone) {
+        fromTable.unshift({
+          name: fullName || cp.email || cp.phone || "Contact principal",
+          role: cp.fonction || "—",
+          email: cp.email || "",
+          phone: cp.phone || "",
+          linkedin: cp.linkedin || "",
+          color: "#a855f7",
+          decisionRoles: Array.isArray(c.roles) ? c.roles : [],
+          hierarchie: c.fonction || "",
+          last: "Contact principal (legacy)"
+        });
+      }
+    }
+
+    // Fallback legacy : contacts_additionnels saisis directement dans clients.data
+    if (Array.isArray(c.contacts_additionnels)) {
+      c.contacts_additionnels.forEach(x => {
+        if (!(x.prenom || x.nom || x.email || x.phone)) return;
+        var fullName = ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || x.phone || "Contact";
+        if (fromTable.find(t => t.email === x.email && x.email)) return; // dédupe
+        fromTable.push({
+          name: fullName,
+          role: x.fonction || "—",
+          email: x.email || "",
+          phone: x.phone || "",
+          linkedin: x.linkedin || "",
+          color: colors[coIdx++ % colors.length],
+          last: "Co-contact (legacy)"
+        });
+      });
+    }
+    return fromTable;
+  }, [customContacts, c]);
   var [addContactOpen, setAddContactOpen] = React.useState(false);
   var [newContactForm, setNewContactForm] = React.useState({
     prenom: "",

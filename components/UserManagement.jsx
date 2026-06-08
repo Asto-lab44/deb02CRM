@@ -2,11 +2,22 @@
 // Les groupes et l'identité active sont persistés via window.HubAccess (localStorage).
 
 const UserManagement = () => {
-  // Données partagées avec l'Accueil ERP
-  const subscribeStore = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
-  const persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
-  const activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
-  const currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
+  // useState + abonnement manuel (évite useSyncExternalStore = pas de pb de
+  // snapshot stable, donc plus de risque d'écran blanc).
+  const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
+  const [persistedGroups, setPersistedGroups] = React.useState(() => HA && HA.loadGroups ? HA.loadGroups() : []);
+  const [activeGroupId, setActiveGroupId] = React.useState(() => HA && HA.getActiveGroupId ? HA.getActiveGroupId() : "admin");
+  const [currentUser, setCurrentUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
+  React.useEffect(() => {
+    if (!HA || !HA.subscribe) return;
+    const refresh = () => {
+      if (HA.loadGroups) setPersistedGroups(HA.loadGroups());
+      if (HA.getActiveGroupId) setActiveGroupId(HA.getActiveGroupId());
+      if (HA.getCurrentUser) setCurrentUser(HA.getCurrentUser());
+    };
+    refresh();
+    return HA.subscribe(refresh);
+  }, [HA]);
 
   const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
   const [activeTab, setActiveTab] = React.useState("groups");

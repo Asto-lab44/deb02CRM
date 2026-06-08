@@ -1,13 +1,23 @@
 // Page d'accueil ERP — tuiles des modules (filtrées par le groupe actif)
 
 const ERPHome = () => {
-  // Identité active + accès aux tuiles, partagés avec la page Administration.
-  // useSyncExternalStore re-render dès qu'un toggle d'accès change l'état.
-  const subscribe = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
-  const activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
-  const allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
-  const allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
-  const localUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  // useState + abonnement manuel : évite useSyncExternalStore et ses contraintes
+  // de référence stable du snapshot (cause historique d'écran blanc).
+  const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
+  const [activeGroup, setActiveGroup] = React.useState(() => HA && HA.getActiveGroup ? HA.getActiveGroup() : { id: "admin", name: "Administrateurs", color: "#dc2626", access: [] });
+  const [allGroups, setAllGroups] = React.useState(() => HA && HA.loadGroups ? HA.loadGroups() : []);
+  const [localUser, setLocalUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
+  React.useEffect(() => {
+    if (!HA || !HA.subscribe) return;
+    const refresh = () => {
+      if (HA.getActiveGroup) setActiveGroup(HA.getActiveGroup());
+      if (HA.loadGroups) setAllGroups(HA.loadGroups());
+      if (HA.getCurrentUser) setLocalUser(HA.getCurrentUser());
+    };
+    refresh();
+    return HA.subscribe(refresh);
+  }, [HA]);
+  const allowedKeys = React.useMemo(() => new Set(activeGroup.access || []), [activeGroup]);
   // Identité Supabase réelle si dispo, sinon fallback access-store
   const [supaUser, setSupaUser] = React.useState(null);
   React.useEffect(() => {

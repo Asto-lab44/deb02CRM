@@ -93,10 +93,8 @@ const ClientPage = () => {
   const [editOpen, setEditOpen] = React.useState(false);
   const [editDraft, setEditDraft] = React.useState({});
   const ownerListE = [
-    { name: "Nadia Lefèvre",   role: "AE Senior · EMEA", color: "#a855f7" },
-    { name: "Karim Ben Salah", role: "AE Senior · Cyber", color: "#6366f1" },
-    { name: "Tom Verdier",     role: "AE Hub", color: "#f59e0b" },
-    { name: "Émilie Garnier",  role: "AE BENELUX", color: "#10b981" },
+    { name: "Romain Daviaud",  role: "Direction · Achat",      color: "#4f46e5" },
+    { name: "Augustin Morin",  role: "Direction · Commercial", color: "#10b981" },
   ];
   const [actionMenuKey, setActionMenuKey] = React.useState(null);
   const [reschedule, setReschedule] = React.useState(null); // { id, date, time, title }
@@ -546,9 +544,9 @@ const ClientPage = () => {
         <div style={cliStyles.navSection}>
           <div style={cliStyles.navLabel}>Espace</div>
           <a href="/crm" style={{ ...cliStyles.navItem, textDecoration: "none", color: "inherit" }}>
-            <span style={cliStyles.bullet}>▦</span><span style={{ flex: 1 }}>Pipeline</span><span style={cliStyles.navCount}>32</span>
+            <span style={cliStyles.bullet}>▦</span><span style={{ flex: 1 }}>Pipeline</span>
           </a>
-          <div style={{ ...cliStyles.navItem, ...cliStyles.navItemActive }}><span style={cliStyles.bullet}>◰</span><span style={{ flex: 1 }}>Comptes</span><span style={cliStyles.navCount}>412</span></div>
+          <div style={{ ...cliStyles.navItem, ...cliStyles.navItemActive }}><span style={cliStyles.bullet}>◰</span><span style={{ flex: 1 }}>Comptes</span></div>
           <a href="/crm#contacts"
              style={{ ...cliStyles.navItem, textDecoration: "none", color: "inherit" }}>
             <span style={cliStyles.bullet}>◉</span><span style={{ flex: 1 }}>Contacts</span>
@@ -583,10 +581,10 @@ const ClientPage = () => {
         <a href="/administration-utilisateurs"
            title="Profil & préférences"
            style={{ ...cliStyles.userRow, textDecoration: "none", color: "inherit", cursor: "pointer" }}>
-          <Avatar name="Nadia Lefèvre" size={26} color="#a855f7" />
+          <Avatar name="Astorya" size={26} color="#4f46e5" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Nadia Lefèvre</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>AE · EMEA</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Compte connecté</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Voir menu en haut →</div>
           </div>
         </a>
       </aside>
@@ -642,17 +640,10 @@ const ClientPage = () => {
                   <span style={{ fontSize: 12, color: "#64748b" }}>{display.since}</span>
                 </div>
                 <h1 style={cliStyles.h1}>{display.name}</h1>
-                <p style={cliStyles.subtitle}>
-                  Filiale française gestion de patrimoine du groupe AXA. Direction : Émilie Roux (VP Innovation).
-                </p>
+                {display.desc && (
+                  <p style={cliStyles.subtitle}>{display.desc}</p>
+                )}
 
-                {/* tags */}
-                <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                  <span style={cliStyles.tag}># Grand-compte</span>
-                  <span style={cliStyles.tag}># Top-10 Q2</span>
-                  <span style={cliStyles.tag}># Migration Salesforce</span>
-                  <span style={cliStyles.tag}># DORA</span>
-                </div>
               </div>
 
               {/* Quick stats — calculées depuis les données réelles */}
@@ -722,16 +713,22 @@ const ClientPage = () => {
               <span style={{ flex: 1 }} />
               <button onClick={() => {
                 const rows = [["Champ", "Valeur"]];
-                rows.push(["Nom", "AXA Wealth France"]);
-                rows.push(["Référence", "ACC-0184"]);
-                rows.push(["Industrie", "Asset Management"]);
-                rows.push(["Effectif", "12 000 employés"]);
-                rows.push(["Ville", "Paris · La Défense"]);
-                rows.push(["Site web", "axa-im.fr"]);
-                rows.push(["Client depuis", "mars 2024"]);
-                rows.push(["ARR actuel", "184 k€"]);
-                rows.push(["Pipe ouvert", "355 k€"]);
-                rows.push(["Health score", "78 / 100"]);
+                rows.push(["Nom", display.name]);
+                rows.push(["Référence", display.id]);
+                rows.push(["Secteur", display.sector]);
+                rows.push(["Effectif", display.size]);
+                rows.push(["Ville", display.city]);
+                rows.push(["Site web", display.web]);
+                rows.push(["Commercial", display.owner]);
+                rows.push(["SIREN", display.siren]);
+                rows.push(["NAF", display.naf]);
+                rows.push(["TVA", display.tva]);
+                rows.push(["Adresse", display.address]);
+                rows.push(["Code postal", display.cp]);
+                rows.push(["Ville", display.addressCity]);
+                rows.push(["Source", display.source]);
+                rows.push(["Concurrent", display.concurrent]);
+                rows.push(["Tier", display.tier]);
                 rows.push([]);
                 rows.push(["Opportunités"]);
                 rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
@@ -1208,7 +1205,7 @@ const ClientPage = () => {
       />
       <AssetInventoryModal
         open={assetsOpen}
-        client={{ name: "AXA Wealth France" }}
+        client={{ name: display.name }}
         onClose={() => setAssetsOpen(false)}
       />
 

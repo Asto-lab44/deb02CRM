@@ -42,8 +42,8 @@ var SalesTeam = () => {
     }, initials);
   };
 
-  // Équipe Astorya — Romain & Augustin
-  var reps = [{
+  // Équipe Astorya — chargée + stats live depuis Supabase
+  var [reps, setReps] = React.useState([{
     id: 1,
     name: "Romain Daviaud",
     role: "Direction · Achat",
@@ -85,7 +85,31 @@ var SalesTeam = () => {
     rank: 2,
     status: "online",
     topDeal: "—"
-  }];
+  }]);
+  React.useEffect(() => {
+    if (!window.api) return;
+    window.api.opportunities.list().then(opps => {
+      setReps(arr => arr.map(r => {
+        var mine = (opps || []).filter(o => (o.owner || "").toLowerCase().includes(r.name.split(" ")[0].toLowerCase()));
+        var won = mine.filter(o => o.stage === "won");
+        var lost = mine.filter(o => o.stage === "lost");
+        var active = mine.filter(o => o.stage !== "won" && o.stage !== "lost");
+        var sum = (lst, f = "amount_eur") => lst.reduce((s, o) => s + (Number(o[f]) || 0), 0);
+        var topOpp = mine.slice().sort((a, b) => (b.amount_eur || 0) - (a.amount_eur || 0))[0];
+        var winRate = won.length + lost.length > 0 ? Math.round(won.length / (won.length + lost.length) * 100) : 0;
+        return {
+          ...r,
+          deals: mine.length,
+          pipe: Math.round(sum(active) / 1000),
+          won: Math.round(sum(won) / 1000),
+          lost: Math.round(sum(lost) / 1000),
+          quotaDone: Math.round(sum(won) / 1000),
+          winRate,
+          topDeal: topOpp ? `${topOpp.name} · ${Math.round((topOpp.amount_eur || 0) / 1000)} k€` : "—"
+        };
+      }));
+    }).catch(() => {});
+  }, []);
 
   // Team aggregates
   var team = {

@@ -15,11 +15,35 @@ const SalesTeam = () => {
     );
   };
 
-  // Équipe Astorya — Romain & Augustin
-  const reps = [
+  // Équipe Astorya — chargée + stats live depuis Supabase
+  const [reps, setReps] = React.useState([
     { id: 1, name: "Romain Daviaud",  role: "Direction · Achat",  color: "#4f46e5", region: "France", quotaTarget: 0, quotaDone: 0, deals: 0, pipe: 0, won: 0, lost: 0, calls: 0, emails: 0, meetings: 0, winRate: 0, velocity: 0, trend: "up", rank: 1, status: "online", topDeal: "—" },
     { id: 2, name: "Augustin Morin",  role: "Direction · Commercial", color: "#10b981", region: "France", quotaTarget: 0, quotaDone: 0, deals: 0, pipe: 0, won: 0, lost: 0, calls: 0, emails: 0, meetings: 0, winRate: 0, velocity: 0, trend: "up", rank: 2, status: "online", topDeal: "—" },
-  ];
+  ]);
+  React.useEffect(() => {
+    if (!window.api) return;
+    window.api.opportunities.list().then((opps) => {
+      setReps((arr) => arr.map((r) => {
+        const mine = (opps || []).filter((o) => (o.owner || "").toLowerCase().includes(r.name.split(" ")[0].toLowerCase()));
+        const won = mine.filter((o) => o.stage === "won");
+        const lost = mine.filter((o) => o.stage === "lost");
+        const active = mine.filter((o) => o.stage !== "won" && o.stage !== "lost");
+        const sum = (lst, f = "amount_eur") => lst.reduce((s, o) => s + (Number(o[f]) || 0), 0);
+        const topOpp = mine.slice().sort((a, b) => (b.amount_eur || 0) - (a.amount_eur || 0))[0];
+        const winRate = (won.length + lost.length) > 0 ? Math.round((won.length / (won.length + lost.length)) * 100) : 0;
+        return {
+          ...r,
+          deals: mine.length,
+          pipe: Math.round(sum(active) / 1000),
+          won: Math.round(sum(won) / 1000),
+          lost: Math.round(sum(lost) / 1000),
+          quotaDone: Math.round(sum(won) / 1000),
+          winRate,
+          topDeal: topOpp ? `${topOpp.name} · ${Math.round((topOpp.amount_eur || 0) / 1000)} k€` : "—",
+        };
+      }));
+    }).catch(() => {});
+  }, []);
 
   // Team aggregates
   const team = {

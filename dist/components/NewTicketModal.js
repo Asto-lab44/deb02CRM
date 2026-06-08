@@ -197,7 +197,30 @@ var NewTicketModal = ({
   }, "\u2014 Choisir un client \u2014"), clients.map(c => /*#__PURE__*/React.createElement("option", {
     key: c.id,
     value: c.id
-  }, c.name)))), /*#__PURE__*/React.createElement("label", {
+  }, c.name))), (() => {
+    if (!form.client_id) return null;
+    var c = clients.find(x => x.id === form.client_id);
+    if (!c) return null;
+    var activeContract = c.contracts && c.contracts.find && c.contracts.find(ct => ct.status === "active");
+    if (activeContract) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "#065f46",
+          marginTop: 4,
+          fontWeight: 600
+        }
+      }, "\u25CF Contrat de maintenance actif \u2014 intervention couverte");
+    }
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#991b1b",
+        marginTop: 4,
+        fontWeight: 600
+      }
+    }, "\u25CF Pas de contrat actif \u2014 prestation facturable");
+  })()), /*#__PURE__*/React.createElement("label", {
     style: N.field
   }, /*#__PURE__*/React.createElement("span", {
     style: N.fieldLabel

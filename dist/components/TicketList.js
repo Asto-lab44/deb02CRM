@@ -21,8 +21,16 @@ var TicketList = () => {
   // Auto-ouverture si URL contient ?new=1 (depuis le bouton de la fiche détail)
   var [newTicketOpen, setNewTicketOpen] = React.useState(() => {
     if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("new") === "1";
+    var sp = new URLSearchParams(window.location.search);
+    return sp.get("new") === "1" || !!sp.get("client");
   });
+  var newTicketPrefill = React.useMemo(() => {
+    if (typeof window === "undefined") return null;
+    var sp = new URLSearchParams(window.location.search);
+    return sp.get("client") ? {
+      client_id: sp.get("client")
+    } : null;
+  }, []);
   var openNewTicket = () => setNewTicketOpen(true);
 
   // ───── Sélection d'un ticket : ouvre la fiche détail
@@ -1866,9 +1874,9 @@ var TicketList = () => {
   }), /*#__PURE__*/React.createElement(NewTicketModal, {
     open: newTicketOpen,
     onClose: () => setNewTicketOpen(false),
+    prefill: newTicketPrefill,
     onCreated: t => {
       handleTicketCreated(t);
-      // Ouvre la fiche détail du nouveau ticket immédiatement (si DB)
       if (!t._localOnly) setSelectedTicketId(t.id);
     }
   }));

@@ -56,12 +56,12 @@
     return { data: flattenClient(data), error };
   }
 
-  async function fetchTickets({ limit = 50 } = {}) {
+  async function fetchTickets({ limit = 50, client_id } = {}) {
     if (!supa) return { data: null, error: null };
-    if (cache.tickets) return { data: cache.tickets, error: null };
-    const { data, error } = await supa.from("tickets")
+    if (!client_id && cache.tickets) return { data: cache.tickets, error: null };
+    let q = supa.from("tickets")
       .select(`
-        id, title, description, category, status, priority,
+        id, client_id, title, description, category, status, priority,
         lifecycle, billable, billable_note,
         assignee_team, escalated_at, escalated_reason, escalated_group,
         sla_due_at, opened_at, updated_at,
@@ -72,7 +72,9 @@
       `)
       .order("opened_at", { ascending: false })
       .limit(limit);
-    if (data) cache.tickets = data;
+    if (client_id) q = q.eq("client_id", client_id);
+    const { data, error } = await q;
+    if (data && !client_id) cache.tickets = data;
     return { data: cache.tickets, error };
   }
 

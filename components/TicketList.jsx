@@ -21,8 +21,14 @@ const TicketList = () => {
   // Auto-ouverture si URL contient ?new=1 (depuis le bouton de la fiche détail)
   const [newTicketOpen, setNewTicketOpen] = React.useState(() => {
     if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("new") === "1";
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get("new") === "1" || !!sp.get("client");
   });
+  const newTicketPrefill = React.useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get("client") ? { client_id: sp.get("client") } : null;
+  }, []);
   const openNewTicket = () => setNewTicketOpen(true);
 
   // ───── Sélection d'un ticket : ouvre la fiche détail
@@ -725,9 +731,9 @@ const TicketList = () => {
       <NewTicketModal
         open={newTicketOpen}
         onClose={() => setNewTicketOpen(false)}
+        prefill={newTicketPrefill}
         onCreated={(t) => {
           handleTicketCreated(t);
-          // Ouvre la fiche détail du nouveau ticket immédiatement (si DB)
           if (!t._localOnly) setSelectedTicketId(t.id);
         }}
       />

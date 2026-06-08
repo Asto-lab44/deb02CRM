@@ -160,23 +160,15 @@ const ClientPage = () => {
   // ───── Clients récents : top 6 (prospects + clients) depuis localStorage + Supabase
   const [recents, setRecents] = React.useState([]);
   React.useEffect(() => {
-    const local = (() => { try { return JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]"); } catch (e) { return []; } })();
-    const fromLocal = local.map((p) => ({ id: p.id, name: p.raison_sociale || p.name, status: p.status || "prospect", color: "#1e40af" }));
-    if (window.HubData && window.HubData.enabled()) {
-      window.HubData.fetchClients().then(({ data }) => {
-        const fromSupa = (data || []).map((c) => ({ id: c.id, name: c.name, status: "client", color: "#0f766e" }));
-        const seen = new Set();
-        setRecents([...fromLocal, ...fromSupa].filter((c) => seen.has(c.id) ? false : (seen.add(c.id), true)).slice(0, 8));
-      });
-    } else {
-      // Fallback démo si rien
-      const fallback = fromLocal.length > 0 ? fromLocal : [
-        { id: "ACC-0184", name: "AXA Wealth France",  status: "client", color: "#1e40af" },
-        { id: "ACC-0211", name: "MAIF Innovation",    status: "client", color: "#10b981" },
-        { id: "ACC-0156", name: "Crédit Agricole Sud", status: "client", color: "#dc2626" },
-      ];
-      setRecents(fallback.slice(0, 8));
-    }
+    if (!window.api) return;
+    window.api.clients.list().then((list) => {
+      setRecents((list || []).slice(0, 8).map((p) => ({
+        id: p.id,
+        name: p.raison_sociale || p.name,
+        status: p.status || "prospect",
+        color: p.status === "client" ? "#0f766e" : "#1e40af",
+      })));
+    }).catch(() => {});
   }, []);
 
   // Modal opp détail : stage editable + autres champs
@@ -672,7 +664,20 @@ const ClientPage = () => {
           <div style={{ display: "flex", gap: 8 }}>
             <button style={cliStyles.iconBtn}>‹</button>
             <button style={cliStyles.iconBtn}>›</button>
-            <button onClick={() => alert("✓ Vous suivez " + display.name + " — notifications activées pour ce compte.")} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
+            <button onClick={() => {
+              const key = "hubAstorya.followed.v1";
+              let list = []; try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) {}
+              const cid = urlId || display.id;
+              if (list.includes(cid)) {
+                list = list.filter((x) => x !== cid);
+                localStorage.setItem(key, JSON.stringify(list));
+                alert("Vous ne suivez plus " + display.name);
+              } else {
+                list.push(cid);
+                localStorage.setItem(key, JSON.stringify(list));
+                alert("✓ Vous suivez " + display.name);
+              }
+            }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>★ Suivre</button>
             <button style={cliStyles.iconBtn}>⋯</button>
           </div>
         </header>

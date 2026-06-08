@@ -521,11 +521,27 @@
     async list(filter = {}) {
       const s = supa();
       if (s) {
-        let q = s.from("contracts").select("*");
+        let q = s.from("contracts").select("*").is("deleted_at", null);
         if (filter.client_id) q = q.eq("client_id", filter.client_id);
         const { data, error } = await q.order("created_at", { ascending: false });
-        if (error) console.warn("[api.contracts.list]", error.message);
-        return data || [];
+        if (error) {
+          console.warn("[api.contracts.list]", error.message);
+          // Si la colonne deleted_at n'existe pas (vieux schéma), retry sans filtre
+          if (/column.+deleted_at.+does not exist/i.test(error.message || "")) {
+            let q2 = s.from("contracts").select("*");
+            if (filter.client_id) q2 = q2.eq("client_id", filter.client_id);
+            const { data: d2 } = await q2.order("created_at", { ascending: false });
+            return d2 || [];
+          }
+        }
+        // Fusionne avec localStorage si Supabase OK mais vide
+        const supaList = data || [];
+        let local = lsGet("contracts");
+        if (filter.client_id) local = local.filter((c) => c.client_id === filter.client_id);
+        const seen = new Set(supaList.map((c) => c.id));
+        const merged = [...supaList];
+        local.forEach((c) => { if (!seen.has(c.id)) merged.push(c); });
+        return merged;
       }
       let arr = lsGet("contracts");
       if (filter.client_id) arr = arr.filter((c) => c.client_id === filter.client_id);
@@ -537,24 +553,64 @@
       const s = supa();
       if (s) {
         const created_by = await getCurrentUserId();
-        const row = { client_id: full.client_id || null, opp_id: full.opp_id || null,
-          name: full.name || "Contrat", status: full.status || "active",
+        // ⚠ `id` du schéma contracts est uuid auto-généré, pas notre genId.
+        // On laisse PostgreSQL générer l'uuid et on garde full.id en référence
+        // métier dans la colonne `data.ref` pour pouvoir retrouver le contrat.
+        const row = {
+          client_id: full.client_id || null,
+          name: full.name || "Contrat",
+          status: full.status || "active",
           start_date: full.start || null, end_date: full.end || null,
           monthly_eur: full.monthly_eur || null,
           products: full.products || [], total_ht_y1: full.total_ht_y1 || null,
           tcv: full.tcv || null, margin_pct: full.margin_pct || null,
-          notes: full.notes || null, data: full,
+          notes: full.notes || null,
+          data: { ...full, ref: full.id },
         };
+        // opp_id seulement si présent (peut ne pas exister sur vieux schéma)
+        if (full.opp_id) row.opp_id = full.opp_id;
         if (created_by) row.created_by = created_by;
-        const { data, error } = await s.from("contracts").insert(row).select().maybeSingle();
+        let { data, error } = await s.from("contracts").insert(row).select().maybeSingle();
+        // Retry sans colonnes optionnelles si elles n'existent pas
+        if (error && /column.+(opp_id|products|total_ht_y1|tcv|margin_pct|data).+does not exist/i.test(error.message || "")) {
+          const minimal = {
+            client_id: row.client_id, name: row.name, status: row.status,
+            start_date: row.start_date, end_date: row.end_date,
+            monthly_eur: row.monthly_eur, notes: row.notes,
+          };
+          const { data: d2, error: e2 } = await s.from("contracts").insert(minimal).select().maybeSingle();
+          if (!e2) { data = d2; error = null; }
+        }
         if (error) {
           console.warn("[api.contracts.create]", error.message);
-        } else if (data) return data;
+          alert("Erreur de sauvegarde du contrat : " + error.message + "\n\nVérifie que setup-tout.sql a bien été exécuté.");
+          // fallback local
+          const arr = lsGet("contracts");
+          arr.unshift(full);
+          lsSet("contracts", arr);
+          return full;
+        }
+        return data;
       }
       const arr = lsGet("contracts");
       arr.unshift(full);
       lsSet("contracts", arr);
       return full;
+    },
+
+    async remove(id) {
+      const s = supa();
+      if (s) {
+        const { error } = await s.from("contracts").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) {
+          console.warn("[api.contracts.remove]", error.message);
+          if (/column.+deleted_at.+does not exist/i.test(error.message || "")) {
+            await s.from("contracts").delete().eq("id", id);
+          } else throw new Error(error.message);
+        }
+      }
+      const arr = lsGet("contracts").filter((c) => c.id !== id);
+      lsSet("contracts", arr);
     },
   };
 

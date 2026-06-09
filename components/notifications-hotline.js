@@ -113,9 +113,59 @@
       .subscribe();
   }
 
+  // ─── Plan B : URL Launcher 3CX ────────────────────────────────────
+  // 3CX peut être configuré dans Utilisateurs → Options → "Click2Talk"
+  // (URL externe à lancer sur appel entrant). Quand un appel arrive,
+  // le poste 3CX ouvre une URL avec ?caller=%CallerNumber%, ce qui nous
+  // permet de matcher le client et d'afficher le popup CTI immédiatement.
+  async function handleUrlLauncher() {
+    const params = new URLSearchParams(window.location.search);
+    const callerParam = params.get("caller") || params.get("CallerNumber") || params.get("number");
+    if (!callerParam) return false;
+    try {
+      // Attend React + HotlinePopup
+      let tries = 0;
+      while (tries < 30) {
+        if (typeof React !== "undefined" && typeof HotlinePopup !== "undefined") break;
+        await new Promise((r) => setTimeout(r, 200));
+        tries++;
+      }
+      const fakeEv = {
+        id: "url-" + Date.now(),
+        caller_number: callerParam,
+        caller_name: params.get("name") || params.get("CallerName") || null,
+        matched_client_id: null,
+      };
+      // Lookup client par téléphone (toutes variantes FR)
+      const supa = window.HubSupabase && window.HubSupabase.client;
+      if (supa) {
+        const variants = [callerParam];
+        if (callerParam.startsWith("+33")) variants.push("0" + callerParam.slice(3));
+        else if (callerParam.startsWith("0") && callerParam.length === 10) variants.push("+33" + callerParam.slice(1));
+        const { data: clients } = await supa.from("clients")
+          .select("id").or(variants.map((v) => `phone.eq.${v}`).join(","))
+          .limit(1);
+        if (clients && clients.length > 0) fakeEv.matched_client_id = clients[0].id;
+      }
+      const call = await loadCallContext(fakeEv);
+      ensurePopupMounted(call);
+      // Nettoie l'URL pour ne pas re-déclencher au refresh
+      ["caller", "CallerNumber", "number", "name", "CallerName", "dir"].forEach((k) => params.delete(k));
+      const newQs = params.toString();
+      const newUrl = window.location.pathname + (newQs ? "?" + newQs : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
+      return true;
+    } catch (e) { console.warn("[hotline] url-launcher:", e); return false; }
+  }
+
   async function init() {
     if (window.location.pathname.indexOf("/login") === 0) return;
     if (window.location.pathname.indexOf("/bienvenue") === 0) return;
+
+    // Plan B en premier (gérera immédiatement si ?caller= dans l'URL)
+    await handleUrlLauncher();
+
+    // Plan A : realtime call_events (si webhook actif un jour)
     let tries = 0;
     while (tries < 30) {
       if (window.HubSupabase && window.HubSupabase.enabled && window.api && window.api.auth) {

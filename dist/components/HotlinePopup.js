@@ -71,7 +71,7 @@ var HotlinePopup = ({
       } = await supa.from("profiles").select("extension_3cx").eq("id", me.id).single();
       var ext = profile?.extension_3cx;
       if (!ext) throw new Error("Aucune extension 3CX renseignée — admin");
-      var resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control", {
+      var resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/call-control", {
         method: "POST",
         headers: {
           "content-type": "application/json",

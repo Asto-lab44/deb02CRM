@@ -784,7 +784,7 @@ const IntegrationsPanel = () => {
   const [savedTcxCC, setSavedTcxCC] = React.useState({ url: "", id: "", secret: "" });
   const [tcxCCTesting, setTcxCCTesting] = React.useState(false);
   const WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook";
-  const CC_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control";
+  const CC_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/call-control";
 
   React.useEffect(() => {
     const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;

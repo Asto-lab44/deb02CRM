@@ -55,7 +55,7 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
       const { data: profile } = await supa.from("profiles").select("extension_3cx").eq("id", me.id).single();
       const ext = profile?.extension_3cx;
       if (!ext) throw new Error("Aucune extension 3CX renseignée — admin");
-      const resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control", {
+      const resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/call-control", {
         method: "POST",
         headers: { "content-type": "application/json", "Authorization": "Bearer " + jwt },
         body: JSON.stringify({ action, extension: ext }),

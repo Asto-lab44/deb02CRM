@@ -1948,7 +1948,7 @@ var IntegrationsPanel = () => {
   });
   var [tcxCCTesting, setTcxCCTesting] = React.useState(false);
   var WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook";
-  var CC_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control";
+  var CC_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/call-control";
   React.useEffect(() => {
     var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
     if (!supa) return;

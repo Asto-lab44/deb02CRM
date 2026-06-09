@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Template CRM custom 3CX V20 — Hub Astorya
+  ─────────────────────────────────────────────────────────────────────
+  À uploader dans 3CX : Console Admin → Intégrations → CRM
+                    → bouton "Ajouter un modèle" → sélectionner ce .xml
+
+  Une fois importé, sélectionner "HubAstorya" dans le dropdown CRM,
+  renseigner les 2 paramètres (URL + Secret) puis Sauvegarder.
+
+  À chaque appel entrant routé vers le département ASTO, 3CX exécute
+  le scénario "ContactLookup" : un POST JSON est envoyé à l'Edge
+  Function Supabase, qui matche le client + l'agent et déclenche le
+  popup CTI dans le Hub via realtime.
+-->
+<Crm Name="HubAstorya"
+     Version="1"
+     Country="FR"
+     SupportsEmojis="true"
+     ListSeparator=",">
+
+  <Parameters>
+    <Parameter Name="WebhookUrl"
+               Type="String"
+               Parent="General"
+               Editor="String"
+               Title="URL Webhook Hub"
+               Default="https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook" />
+    <Parameter Name="Secret"
+               Type="String"
+               Parent="General"
+               Editor="String"
+               Title="Secret X-3CX-Secret (depuis Admin Hub → Intégrations API → 3CX)"
+               Default="" />
+  </Parameters>
+
+  <Authentication Type="No" />
+
+  <Scenarios>
+    <!-- Scénario unique : lookup contact sur appel entrant.
+         3CX appelle cette URL avec le numéro entrant + l'extension qui sonne.
+         Notre Edge Function ignore le besoin de réponse "contact" et se
+         contente d'inscrire l'événement en BDD pour déclencher le popup. -->
+    <Scenario Id="ContactLookup" Type="REST">
+      <Request SkipIf=""
+               Url="[WebhookUrl]"
+               RequestEncoding="Json"
+               RequestType="POST"
+               ResponseType="Json">
+        <Headers>
+          <Header Key="Content-Type" Value="application/json" />
+          <Header Key="X-3CX-Secret" Value="[Secret]" />
+        </Headers>
+        <PostValues>
+          <Value Key="CallID"      Passed="CallID" />
+          <Value Key="CallerID"    Passed="Number" />
+          <Value Key="CallerName"  Passed="Name" />
+          <Value Key="Extension"   Passed="AgentID" />
+          <Value Key="Direction"   Value="inbound" />
+          <Value Key="Status"      Value="ringing" />
+          <Value Key="Department"  Value="ASTO" />
+        </PostValues>
+      </Request>
+      <Rules>
+        <Rule Type="Any" />
+      </Rules>
+      <Variables />
+      <Outputs AllowEmpty="True" />
+    </Scenario>
+  </Scenarios>
+
+</Crm>

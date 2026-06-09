@@ -30,6 +30,22 @@ const ProjectsKanban = () => {
   const [search, setSearch] = React.useState("");
   const [filter, setFilter] = React.useState({ kind: "all", value: null });
   const [draggedId, setDraggedId] = React.useState(null);
+  const [filterPM, setFilterPM] = React.useState("");      // chef projet
+  const [filterClient, setFilterClient] = React.useState(""); // client_id
+  const [advancedOpen, setAdvancedOpen] = React.useState(false);
+  const [clients, setClients] = React.useState([]);
+  const [pms, setPms] = React.useState([]);
+
+  // Charge la liste des clients + chefs projet pour les selects de filtre
+  React.useEffect(() => {
+    if (!window.api) return;
+    if (window.api.clients) {
+      window.api.clients.list().then((list) => setClients(list || [])).catch(() => {});
+    }
+    if (window.HubData && window.HubData.fetchProfiles) {
+      window.HubData.fetchProfiles().then(({ data }) => setPms(data || []));
+    }
+  }, []);
 
   // User connecté (pour filtre "Mes projets")
   const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
@@ -53,16 +69,21 @@ const ProjectsKanban = () => {
     return projects.filter((p) => {
       if (q && !(p.name || "").toLowerCase().includes(q) && !(p.id || "").toLowerCase().includes(q) && !(p.sage_ref || "").toLowerCase().includes(q)) return false;
       if (filter.kind === "mine") {
-        // user connecté = chef projet
         if (!currentUser) return false;
         return (p.pm_name === currentUser.name) || (p.pm_id && currentUser.id && p.pm_id === currentUser.id);
       }
       if (filter.kind === "overdue") {
         return p.delivery_due && new Date(p.delivery_due) < new Date() && p.stage !== "clos" && p.stage !== "annule";
       }
+      // Filtres avancés
+      if (filterPM && p.pm_id !== filterPM && p.pm_name !== filterPM) return false;
+      if (filterClient && p.client_id !== filterClient) return false;
       return true;
     });
-  }, [projects, search, filter, currentUser]);
+  }, [projects, search, filter, filterPM, filterClient, currentUser]);
+
+  const hasAdvancedFilter = filterPM || filterClient;
+  const clearAdvanced = () => { setFilterPM(""); setFilterClient(""); };
 
   const counts = React.useMemo(() => {
     const c = { all: projects.length, mine: 0, overdue: 0 };
@@ -256,6 +277,9 @@ const ProjectsKanban = () => {
               onChange={(e) => setSearch(e.target.value)}
               style={S.search}
             />
+            <button onClick={() => setAdvancedOpen((v) => !v)} style={{ ...S.btnGhost, ...(hasAdvancedFilter ? { borderColor: "#3730a3", color: "#3730a3", fontWeight: 700 } : {}) }} title="Filtres avancés">
+              ⚙ Filtres{hasAdvancedFilter ? " · " + (Number(!!filterPM) + Number(!!filterClient)) : ""}
+            </button>
             <a href="/projets-calendrier" style={{ ...S.btnGhost, textDecoration: "none" }} title="Vue calendrier mensuelle">📅 Calendrier</a>
             <a href="/projets-gantt" style={{ ...S.btnGhost, textDecoration: "none" }} title="Vue Gantt frise temporelle">📊 Gantt</a>
             <button onClick={downloadTemplate} style={S.btnGhost} title="Télécharger un template CSV vide à remplir">📋 Template CSV</button>
@@ -263,6 +287,33 @@ const ProjectsKanban = () => {
             <input ref={importFileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => handleCSVImport(e.target.files[0])} />
           </div>
         </header>
+
+        {/* Filtres avancés panel */}
+        {advancedOpen && (
+          <div style={{ padding: "14px 28px", background: "#fafbfc", borderBottom: "1px solid #eef1f5", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Filtres avancés :</div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginRight: 6 }}>Chef projet</label>
+              <select value={filterPM} onChange={(e) => setFilterPM(e.target.value)} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "inherit", outline: "none" }}>
+                <option value="">Tous</option>
+                {pms.map((p) => <option key={p.id} value={p.id}>{p.name || p.email}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginRight: 6 }}>Client</label>
+              <select value={filterClient} onChange={(e) => setFilterClient(e.target.value)} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "inherit", outline: "none" }}>
+                <option value="">Tous</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.name || c.raison_sociale}</option>)}
+              </select>
+            </div>
+            {hasAdvancedFilter && (
+              <button onClick={clearAdvanced} style={{ padding: "5px 11px", background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>× Effacer les filtres</button>
+            )}
+            <div style={{ marginLeft: "auto", fontSize: 11.5, color: "#64748b" }}>
+              {filteredProjects.length} projet{filteredProjects.length > 1 ? "s" : ""} visible{filteredProjects.length > 1 ? "s" : ""} / {projects.length}
+            </div>
+          </div>
+        )}
 
         {/* KANBAN */}
         {loading ? (

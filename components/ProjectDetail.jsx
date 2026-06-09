@@ -24,6 +24,8 @@ const ProjectDetail = () => {
   const [profiles, setProfiles] = React.useState([]);
   const [deliveryNotes, setDeliveryNotes] = React.useState([]);
   const [signingBlId, setSigningBlId] = React.useState(null);
+  const [previewBl, setPreviewBl] = React.useState(null);
+  const [previewClient, setPreviewClient] = React.useState(null);
 
   const reload = React.useCallback(async () => {
     if (!urlId || !window.api || !window.api.projects) { setLoading(false); return; }
@@ -355,9 +357,19 @@ const ProjectDetail = () => {
                           </td>
                           <td style={S.td}>
                             <div style={{ display: "flex", gap: 4 }}>
-                              <button onClick={() => setSigningBlId(bl.id)} style={{ padding: "5px 10px", fontSize: 11.5, color: bl.status === "signed" ? "#065f46" : "#3730a3", border: "1px solid " + (bl.status === "signed" ? "#86efac" : "#c7d2fe"), borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 600 }}>
-                                {bl.status === "signed" ? "👁 Voir" : "✍ Signer"}
-                              </button>
+                              {bl.status === "signed" ? (
+                                <button onClick={async () => {
+                                  const full = await window.api.deliveryNotes.getById(bl.id);
+                                  let client = null;
+                                  if (project.client_id && window.api.clients) {
+                                    client = await window.api.clients.getById(project.client_id);
+                                  }
+                                  setPreviewClient(client);
+                                  setPreviewBl(full);
+                                }} style={{ padding: "5px 10px", fontSize: 11.5, color: "#065f46", border: "1px solid #86efac", borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 600 }}>📄 PDF</button>
+                              ) : (
+                                <button onClick={() => setSigningBlId(bl.id)} style={{ padding: "5px 10px", fontSize: 11.5, color: "#3730a3", border: "1px solid #c7d2fe", borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 600 }}>✍ Signer</button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -453,6 +465,16 @@ const ProjectDetail = () => {
           blId={signingBlId}
           onClose={() => setSigningBlId(null)}
           onSigned={() => { setSigningBlId(null); reload(); }}
+        />
+      )}
+
+      {/* Modale preview PDF BL signé */}
+      {previewBl && window.DeliveryNotePreview && (
+        <DeliveryNotePreview
+          bl={previewBl}
+          project={project}
+          client={previewClient}
+          onClose={() => { setPreviewBl(null); setPreviewClient(null); }}
         />
       )}
     </div>

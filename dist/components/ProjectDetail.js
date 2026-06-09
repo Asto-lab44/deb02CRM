@@ -23,6 +23,8 @@ var ProjectDetail = () => {
   var [profiles, setProfiles] = React.useState([]);
   var [deliveryNotes, setDeliveryNotes] = React.useState([]);
   var [signingBlId, setSigningBlId] = React.useState(null);
+  var [previewBl, setPreviewBl] = React.useState(null);
+  var [previewClient, setPreviewClient] = React.useState(null);
   var reload = React.useCallback(async () => {
     if (!urlId || !window.api || !window.api.projects) {
       setLoading(false);
@@ -608,19 +610,39 @@ var ProjectDetail = () => {
         display: "flex",
         gap: 4
       }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => setSigningBlId(bl.id),
+    }, bl.status === "signed" ? /*#__PURE__*/React.createElement("button", {
+      onClick: async () => {
+        var full = await window.api.deliveryNotes.getById(bl.id);
+        var client = null;
+        if (project.client_id && window.api.clients) {
+          client = await window.api.clients.getById(project.client_id);
+        }
+        setPreviewClient(client);
+        setPreviewBl(full);
+      },
       style: {
         padding: "5px 10px",
         fontSize: 11.5,
-        color: bl.status === "signed" ? "#065f46" : "#3730a3",
-        border: "1px solid " + (bl.status === "signed" ? "#86efac" : "#c7d2fe"),
+        color: "#065f46",
+        border: "1px solid #86efac",
         borderRadius: 6,
         background: "#fff",
         cursor: "pointer",
         fontWeight: 600
       }
-    }, bl.status === "signed" ? "👁 Voir" : "✍ Signer"))));
+    }, "\uD83D\uDCC4 PDF") : /*#__PURE__*/React.createElement("button", {
+      onClick: () => setSigningBlId(bl.id),
+      style: {
+        padding: "5px 10px",
+        fontSize: 11.5,
+        color: "#3730a3",
+        border: "1px solid #c7d2fe",
+        borderRadius: 6,
+        background: "#fff",
+        cursor: "pointer",
+        fontWeight: 600
+      }
+    }, "\u270D Signer"))));
   })))), /*#__PURE__*/React.createElement("div", {
     style: S.card
   }, /*#__PURE__*/React.createElement("div", {
@@ -784,6 +806,14 @@ var ProjectDetail = () => {
     onSigned: () => {
       setSigningBlId(null);
       reload();
+    }
+  }), previewBl && window.DeliveryNotePreview && /*#__PURE__*/React.createElement(DeliveryNotePreview, {
+    bl: previewBl,
+    project: project,
+    client: previewClient,
+    onClose: () => {
+      setPreviewBl(null);
+      setPreviewClient(null);
     }
   }));
 };

@@ -1886,17 +1886,63 @@ var S = {
 // ════════════════════════════════════════════════════════════════════
 var IntegrationsPanel = () => {
   var TOKEN_KEY = "hubAstorya.pappers.token";
+  var TEAMS_KEY = "hubAstorya.teams.webhookUrl";
   var [pappersToken, setPappersToken] = React.useState("");
   var [savedToken, setSavedToken] = React.useState("");
   var [testing, setTesting] = React.useState(false);
   var [testResult, setTestResult] = React.useState(null);
+  var [teamsUrl, setTeamsUrl] = React.useState("");
+  var [savedTeamsUrl, setSavedTeamsUrl] = React.useState("");
+  var [teamsTesting, setTeamsTesting] = React.useState(false);
   React.useEffect(() => {
     try {
       var t = localStorage.getItem(TOKEN_KEY) || "";
       setPappersToken(t);
       setSavedToken(t);
+      var w = localStorage.getItem(TEAMS_KEY) || "";
+      setTeamsUrl(w);
+      setSavedTeamsUrl(w);
     } catch (e) {}
   }, []);
+  var saveTeams = () => {
+    try {
+      var cleaned = teamsUrl.trim();
+      if (cleaned && !/^https?:\/\//i.test(cleaned)) {
+        if (window.HubToast) window.HubToast.error("URL invalide — doit commencer par https://");
+        return;
+      }
+      if (cleaned) localStorage.setItem(TEAMS_KEY, cleaned);else localStorage.removeItem(TEAMS_KEY);
+      setSavedTeamsUrl(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Webhook Teams enregistré" : "✓ Webhook Teams retiré");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + e.message);
+    }
+  };
+  var testTeams = async () => {
+    if (!teamsUrl.trim()) {
+      if (window.HubToast) window.HubToast.warn("Colle d'abord une URL de webhook");
+      return;
+    }
+    saveTeams();
+    setTeamsTesting(true);
+    try {
+      if (!window.HubTeams) throw new Error("Module Teams non chargé");
+      await window.HubTeams.test();
+      if (window.HubToast) window.HubToast.success("✓ Message de test envoyé — vérifie ton canal Teams");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + e.message);
+    } finally {
+      setTeamsTesting(false);
+    }
+  };
+  var removeTeams = () => {
+    setTeamsUrl("");
+    try {
+      localStorage.removeItem(TEAMS_KEY);
+    } catch (e) {}
+    setSavedTeamsUrl("");
+    if (window.HubToast) window.HubToast.info("Webhook Teams retiré — plus de notifications canal");
+  };
   var save = () => {
     try {
       var cleaned = pappersToken.trim();
@@ -2174,6 +2220,186 @@ var IntegrationsPanel = () => {
       color: "#94a3b8"
     }
   }, "\uD83D\uDCA1 Plan gratuit : 1000 requ\xEAtes/mois \u2014 largement suffisant avec le cache 7 jours int\xE9gr\xE9.", /*#__PURE__*/React.createElement("br", null), "\u26A0 Le token est stock\xE9 en localStorage et envoy\xE9 depuis le navigateur. Pour un cloisonnement renforc\xE9, voir doc de migration vers une fonction Edge Supabase.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "linear-gradient(135deg, #4f46e5, #6264a7)",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "T"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "Microsoft Teams"), savedTeamsUrl ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ACTIF") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#f1f5f9",
+      color: "#64748b",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CB INACTIF")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Re\xE7ois en temps r\xE9el dans un canal Teams les notifications du Hub (avancement projet, livrables, etc.)."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCCB Comment cr\xE9er le webhook"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      margin: 0,
+      paddingLeft: 18,
+      fontSize: 12.5,
+      color: "#475569",
+      lineHeight: 1.7
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Dans Teams, va dans le canal cible \u2192 ", /*#__PURE__*/React.createElement("strong", null, "\u2026 (Plus)"), " \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Connecteurs")), /*#__PURE__*/React.createElement("li", null, "Cherche ", /*#__PURE__*/React.createElement("strong", null, "\xAB Incoming Webhook \xBB"), " \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Configurer")), /*#__PURE__*/React.createElement("li", null, "Donne un nom (ex : ", /*#__PURE__*/React.createElement("em", null, "Hub Astorya"), ") + une ic\xF4ne, puis ", /*#__PURE__*/React.createElement("strong", null, "Cr\xE9er")), /*#__PURE__*/React.createElement("li", null, "Copie l'URL g\xE9n\xE9r\xE9e (format : ", /*#__PURE__*/React.createElement("code", {
+    style: {
+      background: "#f1f5f9",
+      padding: "1px 4px",
+      borderRadius: 3,
+      fontSize: 10
+    }
+  }, "https://outlook.office.com/webhook/\u2026"), ")"), /*#__PURE__*/React.createElement("li", null, "Colle-la ci-dessous + clique \xAB Enregistrer \xBB"))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "URL du webhook entrant"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: teamsUrl,
+    onChange: e => setTeamsUrl(e.target.value),
+    placeholder: "https://outlook.office.com/webhook/...",
+    spellCheck: false,
+    autoComplete: "off",
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 12,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      outline: "none",
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 12,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: saveTeams,
+    disabled: teamsUrl === savedTeamsUrl,
+    style: {
+      padding: "8px 16px",
+      background: teamsUrl === savedTeamsUrl ? "#cbd5e1" : "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: teamsUrl === savedTeamsUrl ? "default" : "pointer"
+    }
+  }, "\uD83D\uDCBE Enregistrer"), /*#__PURE__*/React.createElement("button", {
+    onClick: testTeams,
+    disabled: teamsTesting || !teamsUrl.trim(),
+    style: {
+      padding: "8px 16px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: teamsTesting || !teamsUrl.trim() ? "wait" : "pointer"
+    }
+  }, teamsTesting ? "⏳ Envoi…" : "🧪 Envoyer un message test"), savedTeamsUrl && /*#__PURE__*/React.createElement("button", {
+    onClick: removeTeams,
+    style: {
+      padding: "8px 16px",
+      background: "transparent",
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      marginLeft: "auto"
+    }
+  }, "\uD83D\uDDD1 Retirer le webhook")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDCA1 Format MessageCard standard Teams (themeColor, title, sections, action OpenUri).", /*#__PURE__*/React.createElement("br", null), "\u26A0 L'URL est stock\xE9e en localStorage du navigateur. Chaque utilisateur configure son propre canal de r\xE9ception.")), /*#__PURE__*/React.createElement("div", {
     style: {
       border: "1px solid #e2e8f0",
       borderRadius: 12,

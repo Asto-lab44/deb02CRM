@@ -746,18 +746,59 @@ const S = {
 // ════════════════════════════════════════════════════════════════════
 const IntegrationsPanel = () => {
   const TOKEN_KEY = "hubAstorya.pappers.token";
+  const TEAMS_KEY = "hubAstorya.teams.webhookUrl";
   const [pappersToken, setPappersToken] = React.useState("");
   const [savedToken, setSavedToken] = React.useState("");
   const [testing, setTesting] = React.useState(false);
   const [testResult, setTestResult] = React.useState(null);
+  const [teamsUrl, setTeamsUrl] = React.useState("");
+  const [savedTeamsUrl, setSavedTeamsUrl] = React.useState("");
+  const [teamsTesting, setTeamsTesting] = React.useState(false);
 
   React.useEffect(() => {
     try {
       const t = localStorage.getItem(TOKEN_KEY) || "";
       setPappersToken(t);
       setSavedToken(t);
+      const w = localStorage.getItem(TEAMS_KEY) || "";
+      setTeamsUrl(w);
+      setSavedTeamsUrl(w);
     } catch (e) {}
   }, []);
+
+  const saveTeams = () => {
+    try {
+      const cleaned = teamsUrl.trim();
+      if (cleaned && !/^https?:\/\//i.test(cleaned)) {
+        if (window.HubToast) window.HubToast.error("URL invalide — doit commencer par https://");
+        return;
+      }
+      if (cleaned) localStorage.setItem(TEAMS_KEY, cleaned);
+      else localStorage.removeItem(TEAMS_KEY);
+      setSavedTeamsUrl(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Webhook Teams enregistré" : "✓ Webhook Teams retiré");
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + e.message); }
+  };
+
+  const testTeams = async () => {
+    if (!teamsUrl.trim()) { if (window.HubToast) window.HubToast.warn("Colle d'abord une URL de webhook"); return; }
+    saveTeams();
+    setTeamsTesting(true);
+    try {
+      if (!window.HubTeams) throw new Error("Module Teams non chargé");
+      await window.HubTeams.test();
+      if (window.HubToast) window.HubToast.success("✓ Message de test envoyé — vérifie ton canal Teams");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + e.message);
+    } finally { setTeamsTesting(false); }
+  };
+
+  const removeTeams = () => {
+    setTeamsUrl("");
+    try { localStorage.removeItem(TEAMS_KEY); } catch (e) {}
+    setSavedTeamsUrl("");
+    if (window.HubToast) window.HubToast.info("Webhook Teams retiré — plus de notifications canal");
+  };
 
   const save = () => {
     try {
@@ -876,6 +917,67 @@ const IntegrationsPanel = () => {
         <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
           💡 Plan gratuit : 1000 requêtes/mois — largement suffisant avec le cache 7 jours intégré.<br/>
           ⚠ Le token est stocké en localStorage et envoyé depuis le navigateur. Pour un cloisonnement renforcé, voir doc de migration vers une fonction Edge Supabase.
+        </div>
+      </div>
+
+      {/* ─── Microsoft Teams ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, #4f46e5, #6264a7)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>T</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>Microsoft Teams</h3>
+              {savedTeamsUrl ? (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ACTIF</span>
+              ) : (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#f1f5f9", color: "#64748b", borderRadius: 999, fontWeight: 700 }}>○ INACTIF</span>
+              )}
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Reçois en temps réel dans un canal Teams les notifications du Hub (avancement projet, livrables, etc.).
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>📋 Comment créer le webhook</div>
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#475569", lineHeight: 1.7 }}>
+            <li>Dans Teams, va dans le canal cible → <strong>… (Plus)</strong> → <strong>Connecteurs</strong></li>
+            <li>Cherche <strong>« Incoming Webhook »</strong> → <strong>Configurer</strong></li>
+            <li>Donne un nom (ex : <em>Hub Astorya</em>) + une icône, puis <strong>Créer</strong></li>
+            <li>Copie l'URL générée (format : <code style={{ background: "#f1f5f9", padding: "1px 4px", borderRadius: 3, fontSize: 10 }}>https://outlook.office.com/webhook/…</code>)</li>
+            <li>Colle-la ci-dessous + clique « Enregistrer »</li>
+          </ol>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>URL du webhook entrant</label>
+        <input
+          type="text"
+          value={teamsUrl}
+          onChange={(e) => setTeamsUrl(e.target.value)}
+          placeholder="https://outlook.office.com/webhook/..."
+          spellCheck={false}
+          autoComplete="off"
+          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
+        />
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <button onClick={saveTeams} disabled={teamsUrl === savedTeamsUrl} style={{ padding: "8px 16px", background: teamsUrl === savedTeamsUrl ? "#cbd5e1" : "#0f172a", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: teamsUrl === savedTeamsUrl ? "default" : "pointer" }}>
+            💾 Enregistrer
+          </button>
+          <button onClick={testTeams} disabled={teamsTesting || !teamsUrl.trim()} style={{ padding: "8px 16px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: teamsTesting || !teamsUrl.trim() ? "wait" : "pointer" }}>
+            {teamsTesting ? "⏳ Envoi…" : "🧪 Envoyer un message test"}
+          </button>
+          {savedTeamsUrl && (
+            <button onClick={removeTeams} style={{ padding: "8px 16px", background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", marginLeft: "auto" }}>
+              🗑 Retirer le webhook
+            </button>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+          💡 Format MessageCard standard Teams (themeColor, title, sections, action OpenUri).<br/>
+          ⚠ L'URL est stockée en localStorage du navigateur. Chaque utilisateur configure son propre canal de réception.
         </div>
       </div>
 

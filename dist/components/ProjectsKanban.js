@@ -52,6 +52,24 @@ var ProjectsKanban = () => {
     value: null
   });
   var [draggedId, setDraggedId] = React.useState(null);
+  var [filterPM, setFilterPM] = React.useState(""); // chef projet
+  var [filterClient, setFilterClient] = React.useState(""); // client_id
+  var [advancedOpen, setAdvancedOpen] = React.useState(false);
+  var [clients, setClients] = React.useState([]);
+  var [pms, setPms] = React.useState([]);
+
+  // Charge la liste des clients + chefs projet pour les selects de filtre
+  React.useEffect(() => {
+    if (!window.api) return;
+    if (window.api.clients) {
+      window.api.clients.list().then(list => setClients(list || [])).catch(() => {});
+    }
+    if (window.HubData && window.HubData.fetchProfiles) {
+      window.HubData.fetchProfiles().then(({
+        data
+      }) => setPms(data || []));
+    }
+  }, []);
 
   // User connecté (pour filtre "Mes projets")
   var currentUser = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
@@ -76,16 +94,23 @@ var ProjectsKanban = () => {
     return projects.filter(p => {
       if (q && !(p.name || "").toLowerCase().includes(q) && !(p.id || "").toLowerCase().includes(q) && !(p.sage_ref || "").toLowerCase().includes(q)) return false;
       if (filter.kind === "mine") {
-        // user connecté = chef projet
         if (!currentUser) return false;
         return p.pm_name === currentUser.name || p.pm_id && currentUser.id && p.pm_id === currentUser.id;
       }
       if (filter.kind === "overdue") {
         return p.delivery_due && new Date(p.delivery_due) < new Date() && p.stage !== "clos" && p.stage !== "annule";
       }
+      // Filtres avancés
+      if (filterPM && p.pm_id !== filterPM && p.pm_name !== filterPM) return false;
+      if (filterClient && p.client_id !== filterClient) return false;
       return true;
     });
-  }, [projects, search, filter, currentUser]);
+  }, [projects, search, filter, filterPM, filterClient, currentUser]);
+  var hasAdvancedFilter = filterPM || filterClient;
+  var clearAdvanced = () => {
+    setFilterPM("");
+    setFilterClient("");
+  };
   var counts = React.useMemo(() => {
     var c = {
       all: projects.length,
@@ -417,7 +442,18 @@ var ProjectsKanban = () => {
     value: search,
     onChange: e => setSearch(e.target.value),
     style: S.search
-  }), /*#__PURE__*/React.createElement("a", {
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAdvancedOpen(v => !v),
+    style: {
+      ...S.btnGhost,
+      ...(hasAdvancedFilter ? {
+        borderColor: "#3730a3",
+        color: "#3730a3",
+        fontWeight: 700
+      } : {})
+    },
+    title: "Filtres avanc\xE9s"
+  }, "\u2699 Filtres", hasAdvancedFilter ? " · " + (Number(!!filterPM) + Number(!!filterClient)) : ""), /*#__PURE__*/React.createElement("a", {
     href: "/projets-calendrier",
     style: {
       ...S.btnGhost,
@@ -446,7 +482,89 @@ var ProjectsKanban = () => {
       display: "none"
     },
     onChange: e => handleCSVImport(e.target.files[0])
-  }))), loading ? /*#__PURE__*/React.createElement("div", {
+  }))), advancedOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 28px",
+      background: "#fafbfc",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      gap: 14,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Filtres avanc\xE9s :"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#64748b",
+      marginRight: 6
+    }
+  }, "Chef projet"), /*#__PURE__*/React.createElement("select", {
+    value: filterPM,
+    onChange: e => setFilterPM(e.target.value),
+    style: {
+      padding: "6px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 6,
+      fontSize: 12,
+      fontFamily: "inherit",
+      outline: "none"
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Tous"), pms.map(p => /*#__PURE__*/React.createElement("option", {
+    key: p.id,
+    value: p.id
+  }, p.name || p.email)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#64748b",
+      marginRight: 6
+    }
+  }, "Client"), /*#__PURE__*/React.createElement("select", {
+    value: filterClient,
+    onChange: e => setFilterClient(e.target.value),
+    style: {
+      padding: "6px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 6,
+      fontSize: 12,
+      fontFamily: "inherit",
+      outline: "none"
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Tous"), clients.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, c.name || c.raison_sociale)))), hasAdvancedFilter && /*#__PURE__*/React.createElement("button", {
+    onClick: clearAdvanced,
+    style: {
+      padding: "5px 11px",
+      background: "transparent",
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 6,
+      fontSize: 11.5,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "\xD7 Effacer les filtres"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 11.5,
+      color: "#64748b"
+    }
+  }, filteredProjects.length, " projet", filteredProjects.length > 1 ? "s" : "", " visible", filteredProjects.length > 1 ? "s" : "", " / ", projects.length)), loading ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",

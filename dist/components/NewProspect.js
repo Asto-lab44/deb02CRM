@@ -583,6 +583,8 @@ var NewProspect = () => {
     style: npStyles.body
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.formCol
+  }, /*#__PURE__*/React.createElement("div", {
+    style: npStyles.pairGrid
   }, /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
@@ -1099,7 +1101,9 @@ var NewProspect = () => {
     style: npStyles.input,
     value: c.phone,
     onChange: e => updateExtraContact(i, "phone", e.target.value)
-  })))))), /*#__PURE__*/React.createElement("section", {
+  }))))))), /*#__PURE__*/React.createElement("div", {
+    style: npStyles.pairGrid
+  }, /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
@@ -1370,7 +1374,7 @@ var NewProspect = () => {
     value: notes,
     onChange: e => setNotes(e.target.value),
     placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
-  }))), /*#__PURE__*/React.createElement("div", {
+  })))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: cancel,
@@ -1766,7 +1770,7 @@ var FormRow = ({
 }, subtitle)), children);
 var npStyles = {
   frame: {
-    width: 1440,
+    minWidth: 1280,
     background: "#fafbfc",
     fontFamily: "'Inter', system-ui, sans-serif",
     color: "#0f172a",
@@ -1852,7 +1856,7 @@ var npStyles = {
   },
   body: {
     display: "grid",
-    gridTemplateColumns: "1fr 340px",
+    gridTemplateColumns: "1fr 320px",
     gap: 0,
     padding: 20,
     gridAutoRows: "min-content"
@@ -1863,8 +1867,14 @@ var npStyles = {
     gap: 14,
     paddingRight: 14
   },
+  pairGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    alignItems: "start"
+  },
   section: {
-    padding: 20,
+    padding: 18,
     background: "#fff",
     border: "1px solid #eef1f5",
     borderRadius: 12

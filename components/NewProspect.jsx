@@ -406,6 +406,9 @@ const NewProspect = () => {
         {/* LEFT — form */}
         <div style={npStyles.formCol}>
 
+          {/* Row 1 : Société + Contact principal côte à côte */}
+          <div style={npStyles.pairGrid}>
+
           {/* SECTION 1 — Société */}
           <section style={npStyles.section}>
             <SectionHead num="01" title="Société" subtitle="Identité et caractéristiques de l'entreprise prospect" status="done" />
@@ -704,6 +707,11 @@ const NewProspect = () => {
             ))}
           </section>
 
+          </div>{/* /Row 1 */}
+
+          {/* Row 2 : Qualification BANT + Origine côte à côte */}
+          <div style={npStyles.pairGrid}>
+
           {/* SECTION 3 — Qualification BANT */}
           <section style={npStyles.section}>
             <SectionHead num="03" title="Qualification commerciale" subtitle="Besoin identifié, concurrent et échéance du projet" status="todo" />
@@ -876,6 +884,8 @@ const NewProspect = () => {
             </FormRow>
           </section>
 
+          </div>{/* /Row 2 */}
+
           {/* Bottom actions */}
           <div style={npStyles.actionsRow}>
             <button onClick={cancel} style={{ ...npStyles.ghostBtn, cursor: "pointer" }}>Annuler</button>
@@ -1007,7 +1017,7 @@ const FormRow = ({ label, subtitle, required, children }) => (
 );
 
 const npStyles = {
-  frame: { width: 1440, background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", display: "flex", flexDirection: "column" },
+  frame: { minWidth: 1280, background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", display: "flex", flexDirection: "column" },
 
   topbar: { padding: "14px 28px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
   refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 4 },
@@ -1020,11 +1030,12 @@ const npStyles = {
   subtitle: { fontSize: 13, color: "#64748b", margin: "4px 0 0" },
   completion: { padding: "10px 14px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8 },
 
-  body: { display: "grid", gridTemplateColumns: "1fr 340px", gap: 0, padding: 20, gridAutoRows: "min-content" },
+  body: { display: "grid", gridTemplateColumns: "1fr 320px", gap: 0, padding: 20, gridAutoRows: "min-content" },
 
   formCol: { display: "flex", flexDirection: "column", gap: 14, paddingRight: 14 },
+  pairGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "start" },
 
-  section: { padding: 20, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
+  section: { padding: 18, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
 
   input: { width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontFamily: "inherit", color: "#0f172a", outline: "none", boxSizing: "border-box" },
   textarea: { width: "100%", padding: 12, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12.5, fontFamily: "inherit", color: "#0f172a", outline: "none", resize: "none", lineHeight: 1.5, boxSizing: "border-box" },

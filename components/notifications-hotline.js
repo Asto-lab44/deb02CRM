@@ -36,17 +36,33 @@
       clientId: ev.matched_client_id,
     };
     if (!s) return ctx;
+    // Match phone number by last 9 digits (idem Edge Function)
+    const last9 = (str) => (str || "").replace(/\D/g, "").slice(-9);
+    const callerLast9 = last9(ev.caller_number);
     try {
       if (ev.matched_client_id) {
         const { data: client } = await s
           .from("clients")
-          .select("id, raison_sociale, name, email, ville, city")
+          .select("id, raison_sociale, name, email, ville, city, phone")
           .eq("id", ev.matched_client_id)
           .single();
         if (client) {
-          ctx.name = ev.caller_name || client.raison_sociale || client.name || ctx.name;
           ctx.org  = client.raison_sociale || client.name || "";
           ctx.email = client.email || "";
+          ctx.name = ctx.org || ctx.name;
+        }
+        // Cherche le contact précis dont le téléphone matche l'appelant
+        const { data: contacts } = await s
+          .from("contacts")
+          .select("id, prenom, nom, fonction, email, phone")
+          .eq("client_id", ev.matched_client_id);
+        const matchedContact = (contacts || []).find((c) => last9(c.phone) === callerLast9);
+        if (matchedContact) {
+          const fullName = [matchedContact.prenom, matchedContact.nom].filter(Boolean).join(" ").trim();
+          if (fullName) ctx.name = fullName;
+          if (matchedContact.email) ctx.email = matchedContact.email;
+          if (matchedContact.fonction) ctx.role = matchedContact.fonction;
+          ctx.contactId = matchedContact.id;
         }
         // Tickets ouverts pour ce client
         const { data: tickets } = await s

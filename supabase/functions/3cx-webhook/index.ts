@@ -117,18 +117,27 @@ Deno.serve(async (req) => {
 
   let matchedClientId: string | null = null;
   try {
-    // 1. Cherche dans clients.phone
+    // 1. Cherche dans clients : phone direct + data.contact_principal.phone
+    //    + data.contacts_additionnels[*].phone (toutes formes JSON possibles)
     const { data: clients } = await supabase
       .from("clients")
-      .select("id, phone")
-      .not("phone", "is", null);
+      .select("id, phone, data");
     for (const c of (clients || [])) {
-      if (last9(c.phone) === callerLast9 && callerLast9.length === 9) {
+      const phonesToCheck: string[] = [];
+      if (c.phone) phonesToCheck.push(c.phone);
+      const d = c.data || {};
+      if (d.contact_principal?.phone) phonesToCheck.push(d.contact_principal.phone);
+      if (Array.isArray(d.contacts_additionnels)) {
+        for (const ca of d.contacts_additionnels) {
+          if (ca?.phone) phonesToCheck.push(ca.phone);
+        }
+      }
+      if (phonesToCheck.some((p) => last9(p) === callerLast9 && callerLast9.length === 9)) {
         matchedClientId = c.id;
         break;
       }
     }
-    // 2. Si rien : cherche dans contacts.phone (puis remonte au client_id)
+    // 2. Si rien : cherche dans la table contacts
     if (!matchedClientId) {
       const { data: contacts } = await supabase
         .from("contacts")

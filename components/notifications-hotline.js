@@ -26,7 +26,7 @@
       id: ev.id,
       name: ev.caller_name || "Appelant inconnu",
       phone: ev.caller_number,
-      org: "",
+      company: "",
       email: "",
       contract: "Standard",
       lastContact: null,
@@ -43,26 +43,37 @@
       if (ev.matched_client_id) {
         const { data: client } = await s
           .from("clients")
-          .select("id, raison_sociale, name, email, ville, city, phone")
+          .select("id, raison_sociale, name, email, ville, city, phone, data")
           .eq("id", ev.matched_client_id)
           .single();
         if (client) {
-          ctx.org  = client.raison_sociale || client.name || "";
+          ctx.company  = client.raison_sociale || client.name || "";
           ctx.email = client.email || "";
-          ctx.name = ctx.org || ctx.name;
+          ctx.name = ctx.company || ctx.name;
         }
-        // Cherche le contact précis dont le téléphone matche l'appelant
-        const { data: contacts } = await s
-          .from("contacts")
-          .select("id, prenom, nom, fonction, email, phone")
-          .eq("client_id", ev.matched_client_id);
-        const matchedContact = (contacts || []).find((c) => last9(c.phone) === callerLast9);
+        // Cherche le contact précis dont le téléphone matche l'appelant.
+        // 3 sources possibles : table contacts, client.data.contact_principal,
+        // client.data.contacts_additionnels[].
+        let matchedContact = null;
+        const d = (client && client.data) || {};
+        const checkContact = (c) => c && last9(c.phone) === callerLast9 && callerLast9.length === 9;
+        if (checkContact(d.contact_principal)) matchedContact = d.contact_principal;
+        if (!matchedContact && Array.isArray(d.contacts_additionnels)) {
+          matchedContact = d.contacts_additionnels.find(checkContact) || null;
+        }
+        if (!matchedContact) {
+          const { data: contacts } = await s
+            .from("contacts")
+            .select("id, prenom, nom, fonction, email, phone")
+            .eq("client_id", ev.matched_client_id);
+          matchedContact = (contacts || []).find(checkContact) || null;
+        }
         if (matchedContact) {
           const fullName = [matchedContact.prenom, matchedContact.nom].filter(Boolean).join(" ").trim();
           if (fullName) ctx.name = fullName;
           if (matchedContact.email) ctx.email = matchedContact.email;
           if (matchedContact.fonction) ctx.role = matchedContact.fonction;
-          ctx.contactId = matchedContact.id;
+          if (matchedContact.id) ctx.contactId = matchedContact.id;
         }
         // Tickets ouverts pour ce client
         const { data: tickets } = await s
@@ -200,7 +211,7 @@
         id: "sim-" + Date.now(),
         name: name || "Test entrant",
         phone: phone || "+33 6 12 34 56 78",
-        org: "Démo", email: "", contract: "Standard",
+        company: "Démo", email: "", contract: "Standard",
         tier: "STANDARD", openTickets: [], transcript: "",
       };
       ensurePopupMounted(call);

@@ -19,61 +19,28 @@
   <div id="root"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
-  <script src="components/supabase-config.js?v=202606090937"></script>
-  <script src="components/supabase-client.js?v=202606090937"></script>
-  <script src="components/api.js?v=202606090937"></script>
-  <script src="components/validators.js?v=202606090937"></script>
-  <script src="components/constants.js?v=202606090937"></script>
-  <script src="components/pappers-config.js?v=202606090937"></script>
-  <script src="components/pappers.js?v=202606090937"></script>
-  <script src="components/bodacc.js?v=202606090937"></script>
-  <script src="components/toast.js?v=202606090937"></script>
-  <script src="components/modal.js?v=202606090937"></script>
-  <script src="components/hub-user-menu.js?v=202606090937"></script>
-  <script src="components/notifications-bell.js?v=202606090937"></script>
-  <script src="components/notifications-teams.js?v=202606090937"></script>
-  <script defer src="dist/components/HotlinePopup.js?v=202606090937"></script>
-  <script src="components/notifications-hotline.js?v=202606090937"></script>
-    <script>
+  <script src="components/supabase-config.js?v=202606091145"></script>
+  <script src="components/supabase-client.js?v=202606091145"></script>
+  <script src="components/api.js?v=202606091145"></script>
+  <script src="components/hub-user-menu.js?v=202606091145"></script>
+  <script>
     window.addEventListener("DOMContentLoaded", function() {
       if (window.api && window.api.auth && window.HubSupabase && window.HubSupabase.enabled) {
         window.api.auth.requireAuth();
       }
     });
   </script>
-  <script src="components/access-store.js?v=202606090937"></script>
-  <script src="components/hub-data.js?v=202606090937"></script>
-  <script src="components/hub-nav.js?v=202606090937"></script>
-  <script defer src="dist/design-canvas.js?v=202606090937"></script>
-  <script defer src="dist/components/LoginModal.js?v=202606090937"></script>
-  <script defer src="dist/components/ERPHome.js?v=202606090937"></script>
+  <script src="components/access-store.js?v=202606091145"></script>
+  <script src="components/hub-data.js?v=202606091145"></script>
+  <script src="components/hub-nav.js?v=202606091145"></script>
+  <script defer src="dist/design-canvas.js?v=202606091145"></script>
+  <script defer src="dist/components/LoginModal.js?v=202606091145"></script>
+  <script defer src="dist/components/ERPHome.js?v=202606091145"></script>
 
     <script defer>
     window.addEventListener("DOMContentLoaded", function() {
-      // Vraie React Error Boundary (class) qui catche les crashes en render.
-      var EB = function(props) { React.Component.call(this, props); this.state = { err: null }; };
-      EB.prototype = Object.create(React.Component.prototype);
-      EB.getDerivedStateFromError = function(err) { return { err: err }; };
-      EB.prototype.componentDidCatch = function(err, info) { console.error("[ErrorBoundary]", err, info); };
-      EB.prototype.render = function() {
-        if (this.state.err) {
-          return React.createElement("div", {
-            style: { padding: 30, fontFamily: "monospace", background: "#fff5f5", color: "#9b1c1c", margin: 30, borderRadius: 10, border: "2px solid #ef4444", maxWidth: 800 }
-          }, [
-            React.createElement("h2", { key: "h", style: { marginTop: 0, fontSize: 18 } }, "❌ Crash React"),
-            React.createElement("pre", { key: "p", style: { whiteSpace: "pre-wrap", fontSize: 12 } }, String(this.state.err && (this.state.err.message || this.state.err))),
-            React.createElement("pre", { key: "s", style: { whiteSpace: "pre-wrap", fontSize: 11, color: "#666", maxHeight: 200, overflow: "auto" } }, String(this.state.err && this.state.err.stack || "")),
-            React.createElement("p", { key: "n" }, [
-              React.createElement("a", { key: "1", href: "/debug.html", style: { color: "#0f172a", fontWeight: 600, marginRight: 16 } }, "→ Diagnostic /debug.html"),
-              React.createElement("a", { key: "2", href: "/ticketing", style: { color: "#0f172a", fontWeight: 600 } }, "→ Aller au Ticketing"),
-            ]),
-          ]);
-        }
-        return this.props.children;
-      };
-      ReactDOM.createRoot(document.getElementById('root')).render(
-        React.createElement(EB, null, React.createElement(ERPHome))
-      );
+      var App = function() { return React.createElement(ERPHome); };
+      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
     });
   </script>
 </body>

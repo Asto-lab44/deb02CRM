@@ -101,7 +101,7 @@
     if (client_id) q = q.eq("client_id", client_id);
     const { data, error } = await q;
     if (data && !client_id) cache.tickets = data;
-    return { data: cache.tickets, error };
+    return { data: client_id ? data : cache.tickets, error };
   }
 
   async function fetchTicketById(id) {

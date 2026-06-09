@@ -108,8 +108,19 @@ Deno.serve(async (req) => {
   const status       = (body.Status    || body.status    || "ringing").toLowerCase();
   const department   = body.Department || body.department || null;
 
-  if (!callerNumber || !calledExt) {
-    return new Response("Missing required fields (CallerID, Extension)", { status: 400 });
+  // En mode TEST 3CX, l'Extension est vide (pas d'appel réel). On répond
+  // OK avec un contact factice pour que la validation 3CX passe — pas
+  // d'INSERT en BDD.
+  if (!callerNumber) {
+    return new Response("Missing CallerID", { status: 400 });
+  }
+  if (!calledExt) {
+    console.log("[3cx-debug] Mode TEST détecté (Extension vide) — réponse mock");
+    return new Response(JSON.stringify({
+      created: "test-" + Date.now(),
+      mode: "test",
+      message: "Configuration OK — Extension sera renseignée lors d'un vrai appel",
+    }), { status: 200, headers: { "content-type": "application/json" } });
   }
 
   // ─── 3. Filtrage département ASTO ───────────────────────────────

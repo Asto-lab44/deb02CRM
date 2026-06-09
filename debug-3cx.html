@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hub Astorya — Diagnostic 3CX</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #fafbfc; font-family: 'Inter', system-ui, sans-serif; color: #0f172a; min-height: 100vh; }
+    .container { max-width: 720px; margin: 32px auto; padding: 24px; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(15,23,42,0.06); }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    .sub { font-size: 13px; color: #64748b; margin-bottom: 22px; }
+    .check { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 8px; margin-bottom: 10px; background: #fafbfc; border: 1px solid #eef1f5; }
+    .check.ok { background: #ecfdf5; border-color: #86efac; }
+    .check.warn { background: #fffbeb; border-color: #fde68a; }
+    .check.err { background: #fef2f2; border-color: #fca5a5; }
+    .check .icon { font-size: 20px; flex-shrink: 0; }
+    .check .body { flex: 1; }
+    .check .title { font-size: 13px; font-weight: 700; color: #0f172a; }
+    .check .detail { font-size: 12px; color: #475569; margin-top: 3px; font-family: 'JetBrains Mono', monospace; word-break: break-all; }
+    .actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+    .btn { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 0; }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-ghost { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 11px; font-family: 'JetBrains Mono', monospace; max-height: 200px; overflow: auto; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
+  <script src="components/supabase-config.js?v=202606093500"></script>
+  <script src="components/supabase-client.js?v=202606093500"></script>
+  <script src="components/api.js?v=202606093500"></script>
+  <script src="components/toast.js?v=202606093500"></script>
+  <script src="components/access-store.js?v=202606093500"></script>
+  <script src="components/hub-data.js?v=202606093500"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script defer src="dist/components/HotlinePopup.js?v=202606093500"></script>
+  <script src="components/notifications-hotline.js?v=202606093500"></script>
+
+  <div class="container">
+    <h1>🔬 Diagnostic 3CX → Hub</h1>
+    <div class="sub">Vérifie en 1 clic que la chaîne notification fonctionne de bout en bout.</div>
+
+    <div id="checks"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="runChecks()">↻ Re-vérifier</button>
+      <button class="btn btn-ghost" onclick="simulateCall()">📞 Simuler popup local</button>
+      <button class="btn btn-ghost" onclick="checkLastCalls()">📜 Voir les 5 derniers events</button>
+    </div>
+
+    <pre id="log">Cliquez sur les boutons ci-dessus pour lancer les vérifs.</pre>
+  </div>
+
+  <script>
+    const log = (msg) => {
+      const el = document.getElementById("log");
+      el.textContent = new Date().toLocaleTimeString() + " " + msg + "\n" + el.textContent;
+    };
+
+    const addCheck = (status, title, detail) => {
+      const icon = status === "ok" ? "✓" : status === "warn" ? "⚠" : "✗";
+      const html = `<div class="check ${status}"><div class="icon">${icon}</div><div class="body"><div class="title">${title}</div><div class="detail">${detail || ""}</div></div></div>`;
+      document.getElementById("checks").insertAdjacentHTML("beforeend", html);
+    };
+
+    async function runChecks() {
+      document.getElementById("checks").innerHTML = "";
+      log("=== Diagnostic démarré ===");
+
+      // 1. Supabase
+      const supaOn = window.HubSupabase && window.HubSupabase.enabled;
+      addCheck(supaOn ? "ok" : "err", "1. Supabase configuré", supaOn ? "Client prêt" : "HubSupabase.enabled = false");
+
+      // 2. Authentification
+      let userId = null, userEmail = null;
+      try {
+        const u = await window.api.auth.getUser();
+        userId = u?.id;
+        userEmail = u?.email;
+      } catch (e) {}
+      addCheck(userId ? "ok" : "err", "2. Authentification", userId ? `${userEmail} → ${userId}` : "Pas connecté — login d'abord");
+
+      // 3. Module HotlinePopup
+      const popupOk = typeof HotlinePopup !== "undefined";
+      addCheck(popupOk ? "ok" : "err", "3. Module HotlinePopup chargé", popupOk ? "OK" : "Script dist/components/HotlinePopup.js non chargé");
+
+      // 4. Module HubHotline
+      const hotlineOk = window.HubHotline && typeof window.HubHotline.simulate === "function";
+      addCheck(hotlineOk ? "ok" : "err", "4. Module HubHotline chargé", hotlineOk ? "window.HubHotline.simulate disponible" : "notifications-hotline.js non chargé");
+
+      // 5. Profile Supabase (lookup self in profiles)
+      if (userId && supaOn) {
+        try {
+          const { data, error } = await window.HubSupabase.client
+            .from("profiles").select("name, email, extension_3cx")
+            .eq("id", userId).single();
+          if (data) {
+            const ext = data.extension_3cx || "❌ NON RENSEIGNÉ";
+            addCheck(data.extension_3cx ? "ok" : "warn", "5. Profile + extension 3CX", `${data.name} (${data.email}) · Ext 3CX : ${ext}`);
+          } else {
+            addCheck("err", "5. Profile", "Pas de ligne dans profiles pour mon user_id");
+          }
+        } catch (e) {
+          addCheck("err", "5. Profile", e.message);
+        }
+      }
+
+      // 6. Test SELECT call_events filtré sur mon user
+      if (userId && supaOn) {
+        try {
+          const { data, error } = await window.HubSupabase.client
+            .from("call_events").select("id, caller_number, status, started_at")
+            .eq("agent_user_id", userId)
+            .order("started_at", { ascending: false })
+            .limit(5);
+          if (error) {
+            addCheck("err", "6. Lecture call_events", "RLS bloque : " + error.message);
+          } else {
+            addCheck(data?.length > 0 ? "ok" : "warn",
+              "6. Lecture call_events filtré sur moi",
+              data?.length ? `${data.length} event(s) trouvé(s) — dernier de ${data[0].caller_number}` : "0 event pour mon user_id");
+          }
+        } catch (e) {
+          addCheck("err", "6. Lecture call_events", e.message);
+        }
+      }
+
+      log("=== Diagnostic terminé ===");
+    }
+
+    function simulateCall() {
+      if (!window.HubHotline) { alert("HubHotline non chargé"); return; }
+      window.HubHotline.simulate("+33685130307", "Test simulé local");
+      log("→ window.HubHotline.simulate() appelé. Le popup CTI devrait s'ouvrir.");
+    }
+
+    async function checkLastCalls() {
+      if (!window.HubSupabase || !window.HubSupabase.enabled) { alert("Supabase non configuré"); return; }
+      const { data, error } = await window.HubSupabase.client
+        .from("call_events").select("caller_number, agent_user_id, status, started_at")
+        .order("started_at", { ascending: false }).limit(5);
+      if (error) { log("ERREUR : " + error.message); return; }
+      log("5 derniers events :\n" + JSON.stringify(data, null, 2));
+    }
+
+    setTimeout(runChecks, 800);
+  </script>
+</body>
+</html>

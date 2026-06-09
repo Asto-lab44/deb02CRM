@@ -55,14 +55,26 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
       const { data: profile } = await supa.from("profiles").select("extension_3cx").eq("id", me.id).single();
       const ext = profile?.extension_3cx;
       if (!ext) throw new Error("Aucune extension 3CX renseignée — admin");
-      const resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/call-control", {
-        method: "POST",
-        headers: { "content-type": "application/json", "Authorization": "Bearer " + jwt },
-        body: JSON.stringify({ action, extension: ext }),
-      });
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json.error || ("HTTP " + resp.status));
-      return { ok: true, json };
+      // Timeout client 4s — si l'Edge Function pédale (typique des
+      // 3CX hostés qui bloquent les IPs Supabase), on rend la main vite
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      try {
+        const resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/call-control", {
+          method: "POST",
+          headers: { "content-type": "application/json", "Authorization": "Bearer " + jwt },
+          body: JSON.stringify({ action, extension: ext }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        const json = await resp.json();
+        if (!resp.ok) throw new Error(json.error || ("HTTP " + resp.status));
+        return { ok: true, json };
+      } catch (e) {
+        clearTimeout(timer);
+        if (e.name === "AbortError") throw new Error("3CX timeout — non joignable");
+        throw e;
+      }
     } catch (e) {
       return { ok: false, error: e.message };
     } finally { setCcBusy(false); }

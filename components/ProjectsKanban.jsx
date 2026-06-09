@@ -256,6 +256,8 @@ const ProjectsKanban = () => {
               onChange={(e) => setSearch(e.target.value)}
               style={S.search}
             />
+            <a href="/projets-calendrier" style={{ ...S.btnGhost, textDecoration: "none" }} title="Vue calendrier mensuelle">📅 Calendrier</a>
+            <a href="/projets-gantt" style={{ ...S.btnGhost, textDecoration: "none" }} title="Vue Gantt frise temporelle">📊 Gantt</a>
             <button onClick={downloadTemplate} style={S.btnGhost} title="Télécharger un template CSV vide à remplir">📋 Template CSV</button>
             <button onClick={() => importFileRef.current && importFileRef.current.click()} style={S.btnGhost}>⇣ Importer CSV</button>
             <input ref={importFileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => handleCSVImport(e.target.files[0])} />

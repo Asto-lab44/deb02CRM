@@ -21,14 +21,19 @@ var ProjectDetail = () => {
   var [project, setProject] = React.useState(null);
   var [loading, setLoading] = React.useState(true);
   var [profiles, setProfiles] = React.useState([]);
+  var [deliveryNotes, setDeliveryNotes] = React.useState([]);
+  var [signingBlId, setSigningBlId] = React.useState(null);
   var reload = React.useCallback(async () => {
     if (!urlId || !window.api || !window.api.projects) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    var p = await window.api.projects.getById(urlId);
+    var [p, bls] = await Promise.all([window.api.projects.getById(urlId), window.api.deliveryNotes ? window.api.deliveryNotes.list({
+      project_id: urlId
+    }) : Promise.resolve([])]);
     setProject(p);
+    setDeliveryNotes(bls || []);
     setLoading(false);
   }, [urlId]);
   React.useEffect(() => {
@@ -499,6 +504,129 @@ var ProjectDetail = () => {
     style: S.cardHead
   }, /*#__PURE__*/React.createElement("h2", {
     style: S.h2
+  }, "\uD83D\uDCCB Bons de livraison (", deliveryNotes.length, ")"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      try {
+        var bl = await window.api.deliveryNotes.createForProject(project.id);
+        if (window.HubToast) window.HubToast.success("✓ BL " + bl.number + " créé");
+        reload();
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      }
+    },
+    style: S.smallBtn
+  }, "+ \xC9mettre un BL")), deliveryNotes.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: S.empty
+  }, "Aucun bon de livraison \xE9mis. Clique \xAB + \xC9mettre un BL \xBB quand tu pr\xE9pares la livraison.") : /*#__PURE__*/React.createElement("table", {
+    style: S.table
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    style: S.th
+  }, "N\xB0 BL"), /*#__PURE__*/React.createElement("th", {
+    style: S.th
+  }, "Date"), /*#__PURE__*/React.createElement("th", {
+    style: S.th
+  }, "Statut"), /*#__PURE__*/React.createElement("th", {
+    style: S.th
+  }, "Signataire"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...S.th,
+      width: 140
+    }
+  }, "Actions"))), /*#__PURE__*/React.createElement("tbody", null, deliveryNotes.map(bl => {
+    var statusMap = {
+      draft: {
+        l: "Brouillon",
+        bg: "#f1f5f9",
+        c: "#475569"
+      },
+      sent: {
+        l: "Envoyé",
+        bg: "#dbeafe",
+        c: "#1e40af"
+      },
+      signed: {
+        l: "✓ Signé",
+        bg: "#dcfce7",
+        c: "#065f46"
+      },
+      refused: {
+        l: "Refusé",
+        bg: "#fee2e2",
+        c: "#991b1b"
+      },
+      cancelled: {
+        l: "Annulé",
+        bg: "#f1f5f9",
+        c: "#64748b"
+      }
+    };
+    var sm = statusMap[bl.status] || statusMap.draft;
+    return /*#__PURE__*/React.createElement("tr", {
+      key: bl.id
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...S.td,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600
+      }
+    }, bl.number), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, fmtDate(bl.delivery_date)), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: sm.bg,
+        color: sm.c,
+        fontWeight: 700,
+        letterSpacing: 0.3
+      }
+    }, sm.l)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...S.td,
+        fontSize: 12
+      }
+    }, bl.signed_by_name ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 600
+      }
+    }, bl.signed_by_name), bl.signed_by_role && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "#64748b"
+      }
+    }, bl.signed_by_role)) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setSigningBlId(bl.id),
+      style: {
+        padding: "5px 10px",
+        fontSize: 11.5,
+        color: bl.status === "signed" ? "#065f46" : "#3730a3",
+        border: "1px solid " + (bl.status === "signed" ? "#86efac" : "#c7d2fe"),
+        borderRadius: 6,
+        background: "#fff",
+        cursor: "pointer",
+        fontWeight: 600
+      }
+    }, bl.status === "signed" ? "👁 Voir" : "✍ Signer"))));
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: S.card
+  }, /*#__PURE__*/React.createElement("div", {
+    style: S.cardHead
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: S.h2
   }, "\uD83D\uDCDC Timeline (", (project.events || []).length, ")"), /*#__PURE__*/React.createElement("button", {
     onClick: addComment,
     style: S.smallBtn
@@ -650,7 +778,14 @@ var ProjectDetail = () => {
     style: {
       color: "#0f172a"
     }
-  }, fmtDateTime(project.closed_at)))))))));
+  }, fmtDateTime(project.closed_at)))))))), signingBlId && window.DeliveryNoteSign && /*#__PURE__*/React.createElement(DeliveryNoteSign, {
+    blId: signingBlId,
+    onClose: () => setSigningBlId(null),
+    onSigned: () => {
+      setSigningBlId(null);
+      reload();
+    }
+  }));
 };
 
 // ───── Sous-composants

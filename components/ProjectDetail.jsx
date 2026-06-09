@@ -22,12 +22,18 @@ const ProjectDetail = () => {
   const [project, setProject] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [profiles, setProfiles] = React.useState([]);
+  const [deliveryNotes, setDeliveryNotes] = React.useState([]);
+  const [signingBlId, setSigningBlId] = React.useState(null);
 
   const reload = React.useCallback(async () => {
     if (!urlId || !window.api || !window.api.projects) { setLoading(false); return; }
     setLoading(true);
-    const p = await window.api.projects.getById(urlId);
+    const [p, bls] = await Promise.all([
+      window.api.projects.getById(urlId),
+      window.api.deliveryNotes ? window.api.deliveryNotes.list({ project_id: urlId }) : Promise.resolve([]),
+    ]);
     setProject(p);
+    setDeliveryNotes(bls || []);
     setLoading(false);
   }, [urlId]);
 
@@ -297,6 +303,71 @@ const ProjectDetail = () => {
             {/* Livrables avec édition inline */}
             <ItemsBlock project={project} reload={reload} fmtEUR={fmtEUR} S={S} />
 
+            {/* Bons de livraison */}
+            <div style={S.card}>
+              <div style={S.cardHead}>
+                <h2 style={S.h2}>📋 Bons de livraison ({deliveryNotes.length})</h2>
+                <button onClick={async () => {
+                  try {
+                    const bl = await window.api.deliveryNotes.createForProject(project.id);
+                    if (window.HubToast) window.HubToast.success("✓ BL " + bl.number + " créé");
+                    reload();
+                  } catch (e) {
+                    if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+                  }
+                }} style={S.smallBtn}>+ Émettre un BL</button>
+              </div>
+              {deliveryNotes.length === 0 ? (
+                <div style={S.empty}>Aucun bon de livraison émis. Clique « + Émettre un BL » quand tu prépares la livraison.</div>
+              ) : (
+                <table style={S.table}>
+                  <thead>
+                    <tr>
+                      <th style={S.th}>N° BL</th>
+                      <th style={S.th}>Date</th>
+                      <th style={S.th}>Statut</th>
+                      <th style={S.th}>Signataire</th>
+                      <th style={{ ...S.th, width: 140 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deliveryNotes.map((bl) => {
+                      const statusMap = {
+                        draft:     { l: "Brouillon", bg: "#f1f5f9", c: "#475569" },
+                        sent:      { l: "Envoyé",    bg: "#dbeafe", c: "#1e40af" },
+                        signed:    { l: "✓ Signé",   bg: "#dcfce7", c: "#065f46" },
+                        refused:   { l: "Refusé",    bg: "#fee2e2", c: "#991b1b" },
+                        cancelled: { l: "Annulé",    bg: "#f1f5f9", c: "#64748b" },
+                      };
+                      const sm = statusMap[bl.status] || statusMap.draft;
+                      return (
+                        <tr key={bl.id}>
+                          <td style={{ ...S.td, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{bl.number}</td>
+                          <td style={S.td}>{fmtDate(bl.delivery_date)}</td>
+                          <td style={S.td}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.c, fontWeight: 700, letterSpacing: 0.3 }}>{sm.l}</span></td>
+                          <td style={{ ...S.td, fontSize: 12 }}>
+                            {bl.signed_by_name ? (
+                              <>
+                                <div style={{ fontWeight: 600 }}>{bl.signed_by_name}</div>
+                                {bl.signed_by_role && <div style={{ fontSize: 10.5, color: "#64748b" }}>{bl.signed_by_role}</div>}
+                              </>
+                            ) : <span style={{ color: "#94a3b8" }}>—</span>}
+                          </td>
+                          <td style={S.td}>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button onClick={() => setSigningBlId(bl.id)} style={{ padding: "5px 10px", fontSize: 11.5, color: bl.status === "signed" ? "#065f46" : "#3730a3", border: "1px solid " + (bl.status === "signed" ? "#86efac" : "#c7d2fe"), borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 600 }}>
+                                {bl.status === "signed" ? "👁 Voir" : "✍ Signer"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
             {/* Timeline */}
             <div style={S.card}>
               <div style={S.cardHead}>
@@ -375,6 +446,15 @@ const ProjectDetail = () => {
           </aside>
         </div>
       </main>
+
+      {/* Modale signature BL */}
+      {signingBlId && window.DeliveryNoteSign && (
+        <DeliveryNoteSign
+          blId={signingBlId}
+          onClose={() => setSigningBlId(null)}
+          onSigned={() => { setSigningBlId(null); reload(); }}
+        />
+      )}
     </div>
   );
 };

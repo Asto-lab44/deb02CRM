@@ -452,6 +452,53 @@ create or replace view public.v_actions_todo as
   group by assigned_to;
 
 -- ════════════════════════════════════════════════════════════════════
+-- 12.3 DELIVERY_NOTES — Bons de livraison émis par projet
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.delivery_notes (
+  id              text primary key,                     -- "BL-2026-1234"
+  project_id      text not null references public.projects(id) on delete cascade,
+  client_id       text references public.clients(id) on delete set null,
+  number          text not null,                        -- numéro affiché ex "BL-2026-001"
+  status          text default 'draft' check (status in ('draft','sent','signed','refused','cancelled')),
+  delivery_date   date,
+  delivery_address text,
+  delivery_contact text,
+  notes           text,
+  signed_at       timestamptz,
+  signed_by_name  text,
+  signed_by_role  text,
+  signature_url   text,                                  -- URL Supabase Storage de la signature dataURL
+  pdf_url         text,                                  -- URL du PDF généré
+  data            jsonb default '{}'::jsonb,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now(),
+  deleted_at      timestamptz,
+  created_by      uuid references auth.users(id) on delete set null
+);
+create unique index if not exists idx_delivery_notes_number on public.delivery_notes(number) where deleted_at is null;
+create index if not exists idx_delivery_notes_project on public.delivery_notes(project_id) where deleted_at is null;
+create index if not exists idx_delivery_notes_status  on public.delivery_notes(status) where deleted_at is null;
+create index if not exists idx_delivery_notes_created on public.delivery_notes(created_at desc);
+
+drop trigger if exists trg_delivery_notes_touch on public.delivery_notes;
+create trigger trg_delivery_notes_touch before update on public.delivery_notes
+  for each row execute function public.touch_updated_at();
+
+-- Lignes d'un BL : référence à un project_item + qty livrée effective
+create table if not exists public.delivery_note_items (
+  id              uuid primary key default gen_random_uuid(),
+  delivery_note_id text not null references public.delivery_notes(id) on delete cascade,
+  project_item_id uuid references public.project_items(id) on delete set null,
+  designation     text not null,
+  quantity        numeric(10,3) default 1,
+  unit            text default 'u',
+  serial_numbers  text[],                                -- SN livrés
+  verified        boolean default false,                  -- coché par le client à la signature
+  created_at      timestamptz default now()
+);
+create index if not exists idx_delivery_note_items_note on public.delivery_note_items(delivery_note_id);
+
+-- ════════════════════════════════════════════════════════════════════
 -- 12.4 NOTIFICATIONS — Notifications in-app multi-utilisateurs
 -- ════════════════════════════════════════════════════════════════════
 create table if not exists public.notifications (
@@ -623,6 +670,8 @@ alter table public.project_items    enable row level security;
 alter table public.project_team     enable row level security;
 alter table public.project_events   enable row level security;
 alter table public.notifications    enable row level security;
+alter table public.delivery_notes   enable row level security;
+alter table public.delivery_note_items enable row level security;
 
 -- Politique : tout user authentifié peut tout faire (les 2 users Astorya
 -- sont co-administrateurs). À durcir plus tard avec current_user_groups()
@@ -634,7 +683,8 @@ begin
     'profiles','groups','profile_groups','clients','contract_templates','contracts','assets',
     'tickets','comments','opportunities','contacts','actions',
     'calls','call_transcripts',
-    'projects','project_items','project_team','project_events','notifications'
+    'projects','project_items','project_team','project_events','notifications',
+    'delivery_notes','delivery_note_items'
   ])
   loop
     execute format('drop policy if exists "authenticated_read" on public.%I', t);

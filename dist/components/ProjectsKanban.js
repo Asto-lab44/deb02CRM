@@ -417,7 +417,21 @@ var ProjectsKanban = () => {
     value: search,
     onChange: e => setSearch(e.target.value),
     style: S.search
-  }), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("a", {
+    href: "/projets-calendrier",
+    style: {
+      ...S.btnGhost,
+      textDecoration: "none"
+    },
+    title: "Vue calendrier mensuelle"
+  }, "\uD83D\uDCC5 Calendrier"), /*#__PURE__*/React.createElement("a", {
+    href: "/projets-gantt",
+    style: {
+      ...S.btnGhost,
+      textDecoration: "none"
+    },
+    title: "Vue Gantt frise temporelle"
+  }, "\uD83D\uDCCA Gantt"), /*#__PURE__*/React.createElement("button", {
     onClick: downloadTemplate,
     style: S.btnGhost,
     title: "T\xE9l\xE9charger un template CSV vide \xE0 remplir"

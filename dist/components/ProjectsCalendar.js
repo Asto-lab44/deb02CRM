@@ -156,7 +156,14 @@ var ProjectsCalendar = () => {
       ...S.viewBtn,
       ...S.viewBtnActive
     }
-  }, "\uD83D\uDCC5 Vue Calendrier"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCC5 Vue Calendrier"), /*#__PURE__*/React.createElement("a", {
+    href: "/projets-gantt",
+    style: {
+      ...S.viewBtn,
+      ...S.viewBtnGhost,
+      textDecoration: "none"
+    }
+  }, "\uD83D\uDCCA Vue Gantt"), /*#__PURE__*/React.createElement("div", {
     style: S.statsCard
   }, /*#__PURE__*/React.createElement("div", {
     style: S.statLabel

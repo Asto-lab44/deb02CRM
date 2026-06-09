@@ -102,6 +102,7 @@ const ProjectsCalendar = () => {
         </a>
         <a href="/projets" style={{ ...S.viewBtn, ...S.viewBtnGhost, textDecoration: "none" }}>📋 Vue Kanban</a>
         <div style={{ ...S.viewBtn, ...S.viewBtnActive }}>📅 Vue Calendrier</div>
+        <a href="/projets-gantt" style={{ ...S.viewBtn, ...S.viewBtnGhost, textDecoration: "none" }}>📊 Vue Gantt</a>
 
         <div style={S.statsCard}>
           <div style={S.statLabel}>{monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}</div>

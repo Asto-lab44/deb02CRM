@@ -977,6 +977,163 @@
   };
 
   // ───────────────────────────────────────────────────────────────────
+  // §6.65 DELIVERY NOTES — Bons de livraison
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Workflow : draft → sent → signed (ou refused/cancelled)
+  // Méthodes : list, getById, createForProject, addItem, send, sign, remove
+  const deliveryNotes = {
+    async list({ project_id, status } = {}) {
+      const s = supa();
+      if (!s) return [];
+      let q = s.from("delivery_notes").select("*").is("deleted_at", null);
+      if (project_id) q = q.eq("project_id", project_id);
+      if (status) q = q.eq("status", status);
+      const { data } = await q.order("created_at", { ascending: false });
+      return data || [];
+    },
+
+    async getById(id) {
+      const s = supa();
+      if (!s) return null;
+      const [{ data: bl }, { data: items }] = await Promise.all([
+        s.from("delivery_notes").select("*").eq("id", id).maybeSingle(),
+        s.from("delivery_note_items").select("*").eq("delivery_note_id", id).order("created_at"),
+      ]);
+      if (!bl) return null;
+      return { ...bl, items: items || [] };
+    },
+
+    /** Crée un BL à partir d'un projet : prend tous les project_items pas
+     *  encore livrés et les transforme en delivery_note_items. */
+    async createForProject(projectId) {
+      const s = supa();
+      if (!s) throw new Error("Supabase non configuré");
+      // Récupère le projet + ses items
+      const project = await projects.getById(projectId);
+      if (!project) throw new Error("Projet introuvable");
+      const items = (project.items || []).filter((it) => it.status !== "delivered" && it.status !== "validated" && it.status !== "cancelled");
+      if (items.length === 0) throw new Error("Aucun livrable à émettre (tous déjà livrés/validés)");
+      // Génère un numéro
+      const year = new Date().getFullYear();
+      // Compte des BL de l'année pour numéroter
+      const { count } = await s.from("delivery_notes").select("id", { count: "exact", head: true });
+      const number = "BL-" + year + "-" + String((count || 0) + 1).padStart(4, "0");
+      const id = number;
+      const created_by = await getCurrentUserId();
+      const row = {
+        id, number,
+        project_id: projectId,
+        client_id: project.client_id || null,
+        status: "draft",
+        delivery_date: new Date().toISOString().slice(0, 10),
+        delivery_address: project.data?.delivery_address || null,
+        delivery_contact: project.pm_name || null,
+        data: { project_name: project.name, project_sage_ref: project.sage_ref },
+      };
+      if (created_by) row.created_by = created_by;
+      const { data: blRow, error } = await s.from("delivery_notes").insert(row).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      // Insère les items
+      const itemRows = items.map((it) => ({
+        delivery_note_id: id,
+        project_item_id: it.id,
+        designation: it.designation,
+        quantity: it.quantity,
+        unit: it.unit || "u",
+        serial_numbers: it.serial_numbers || null,
+      }));
+      await s.from("delivery_note_items").insert(itemRows);
+      // Log event projet
+      await s.from("project_events").insert({
+        project_id: projectId, type: "delivery_note_created",
+        payload: { delivery_note_id: id, items_count: items.length },
+        author_id: created_by, author_name: getCurrentUserName(),
+      });
+      return blRow;
+    },
+
+    async update(id, patch) {
+      const s = supa();
+      if (!s) return null;
+      const { data, error } = await s.from("delivery_notes").update(patch).eq("id", id).select().maybeSingle();
+      if (error) console.warn("[api.deliveryNotes.update]", error.message);
+      return data;
+    },
+
+    async send(id) {
+      return await deliveryNotes.update(id, { status: "sent" });
+    },
+
+    /** Signe le BL avec signature (dataURL base64), nom + rôle du signataire. */
+    async sign(id, { name, role, signatureDataURL, items }) {
+      const s = supa();
+      if (!s) throw new Error("Supabase non configuré");
+      // Upload signature dans Storage si fournie
+      let signature_url = null;
+      if (signatureDataURL) {
+        try {
+          // dataURL → Blob
+          const res = await fetch(signatureDataURL);
+          const blob = await res.blob();
+          const path = "signatures/" + id + "-" + Date.now() + ".png";
+          // S'assure que le bucket existe
+          const up = await s.storage.from("delivery-signatures").upload(path, blob, { contentType: "image/png", upsert: true });
+          if (up.error && /bucket not found/i.test(up.error.message || "")) {
+            await s.storage.createBucket("delivery-signatures", { public: true });
+            await s.storage.from("delivery-signatures").upload(path, blob, { contentType: "image/png", upsert: true });
+          }
+          const { data: urlData } = s.storage.from("delivery-signatures").getPublicUrl(path);
+          signature_url = urlData ? urlData.publicUrl : null;
+        } catch (e) { console.warn("[deliveryNotes.sign] upload signature:", e); }
+      }
+      const patch = {
+        status: "signed",
+        signed_at: new Date().toISOString(),
+        signed_by_name: name,
+        signed_by_role: role || null,
+        signature_url,
+      };
+      const { data, error } = await s.from("delivery_notes").update(patch).eq("id", id).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      // Update verified pour les items cochés à la signature
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          await s.from("delivery_note_items").update({ verified: !!item.verified }).eq("id", item.id);
+          // Si verified, marque le project_item correspondant comme livré
+          if (item.verified && item.project_item_id) {
+            await s.from("project_items").update({ status: "delivered", delivered_qty: item.quantity }).eq("id", item.project_item_id);
+          }
+        }
+      }
+      // Log event projet
+      const cuId = await getCurrentUserId();
+      await s.from("project_events").insert({
+        project_id: data.project_id, type: "delivery_note_signed",
+        payload: { delivery_note_id: id, signer: name },
+        author_id: cuId, author_name: getCurrentUserName(),
+      });
+      // Notification au chef projet
+      await s.from("notifications").insert({
+        type: "delivery_signed",
+        title: "BL " + data.number + " signé par " + name,
+        body: "Le bon de livraison a été signé. Le projet peut avancer en « Livré ».",
+        link: "/projet?id=" + data.project_id,
+        severity: "success",
+        recipient_id: null,
+      });
+      return data;
+    },
+
+    async remove(id) {
+      const s = supa();
+      if (!s) return;
+      const { error } = await s.from("delivery_notes").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+  };
+
+  // ───────────────────────────────────────────────────────────────────
   // §6.7 NOTIFICATIONS — in-app notifications (cloche top-right)
   // ───────────────────────────────────────────────────────────────────
   const notifications = {
@@ -1087,5 +1244,5 @@
   // ───────────────────────────────────────────────────────────────────
   // §8. EXPORT global
   // ───────────────────────────────────────────────────────────────────
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, notifications, auth };
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth };
 })();

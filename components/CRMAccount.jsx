@@ -22,10 +22,10 @@ const CRMAccount = () => {
   const activities = [
     {
       type: "task", kind: "future", at: "Dans 2 jours · jeu. 28 mai · 14h00", title: "Comité achats — présentation finale",
-      meta: "Visio Teams · 4 participants AXA · présentation 30 min", who: "Nadia Lefèvre", icon: "📅", color: "#4f46e5",
+      meta: "Visio Teams · 4 participants AXA · présentation 30 min", who: "Augustin Morin", icon: "📅", color: "#4f46e5",
       attendees: ["Émilie Roux", "Antoine Mercier", "Sophie Aubry"],
     },
-    { type: "task", kind: "future", at: "Dans 5 jours · dim. 31 mai", title: "Envoyer proposition v3 mise à jour", who: "Nadia Lefèvre", icon: "✓", color: "#f59e0b" },
+    { type: "task", kind: "future", at: "Dans 5 jours · dim. 31 mai", title: "Envoyer proposition v3 mise à jour", who: "Augustin Morin", icon: "✓", color: "#f59e0b" },
     { type: "divider", label: "Aujourd'hui · mar. 26 mai" },
     {
       type: "email", at: "10:42", from: "Émilie Roux", role: "VP Innovation, AXA Wealth", subject: "Re: Proposition Astorya Suite v2 — questions techniques",
@@ -40,12 +40,12 @@ const CRMAccount = () => {
     },
     { type: "call", at: "09:18", title: "Appel sortant — 22 min", who: "Romain Daviaud → Antoine Mercier (CISO)", note: "Validation du périmètre sécurité. Ouvert à un POC sur 50 utilisateurs.", color: "#10b981" },
     { type: "divider", label: "Hier · lun. 25 mai" },
-    { type: "note", at: "16:30", who: "Nadia Lefèvre", title: "Note privée", body: "Sentiment positif côté Direction. Le CFO veut voir le ROI à 18 mois. Préparer slide dédié pour jeudi.", color: "#64748b" },
+    { type: "note", at: "16:30", who: "Augustin Morin", title: "Note privée", body: "Sentiment positif côté Direction. Le CFO veut voir le ROI à 18 mois. Préparer slide dédié pour jeudi.", color: "#64748b" },
     {
       type: "stage", at: "11:05", title: "Étape avancée",
-      from: "Discovery", to: "Proposition", who: "Nadia Lefèvre",
+      from: "Discovery", to: "Proposition", who: "Augustin Morin",
     },
-    { type: "email", at: "09:22", from: "Nadia Lefèvre", outbound: true, role: "Account Executive", subject: "Proposition Astorya Suite — version 2", body: "Bonjour Émilie, suite à notre échange de jeudi, vous trouverez ci-joint la proposition commerciale ajustée…", attachments: [{ name: "Proposition-AXA-v2.pdf", size: "1,8 Mo" }], color: "#a855f7" },
+    { type: "email", at: "09:22", from: "Augustin Morin", outbound: true, role: "Direction", subject: "Proposition Astorya Suite — version 2", body: "Bonjour Émilie, suite à notre échange de jeudi, vous trouverez ci-joint la proposition commerciale ajustée…", attachments: [{ name: "Proposition-AXA-v2.pdf", size: "1,8 Mo" }], color: "#a855f7" },
     { type: "divider", label: "Sem. dernière" },
     { type: "meeting", at: "jeu. 21 mai · 10h", title: "Démo Astorya Suite", who: "5 participants AXA · 60 min", note: "Démo des modules Dashboard et Reporting. Très bon retour sur l'UX.", color: "#0ea5e9" },
   ];
@@ -75,10 +75,10 @@ const CRMAccount = () => {
         </div>
         <div style={{ flex: 1 }} />
         <div style={accStyles.userRow}>
-          <Avatar name="Nadia Lefèvre" size={26} color="#a855f7" />
+          <Avatar name="Romain Daviaud" size={26} color="#6366f1" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Nadia Lefèvre</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>AE · EMEA</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Romain Daviaud</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Direction · Astorya</div>
           </div>
         </div>
       </aside>
@@ -385,8 +385,8 @@ const CRMAccount = () => {
                 <div style={accStyles.sideHead}>Détails</div>
                 <Field label="Owner" value={
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <Avatar name="Nadia Lefèvre" size={20} color="#a855f7" />
-                    <span style={{ fontSize: 12.5, fontWeight: 500 }}>Nadia Lefèvre</span>
+                    <Avatar name="Augustin Morin" size={20} color="#a855f7" />
+                    <span style={{ fontSize: 12.5, fontWeight: 500 }}>Augustin Morin</span>
                   </div>
                 } />
                 <Field label="Co-owner" value={

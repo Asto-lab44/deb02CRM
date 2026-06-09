@@ -251,10 +251,10 @@ const CRMPipeline = () => {
         <div style={{ flex: 1 }} />
 
         <div style={crmStyles.userRow}>
-          <Avatar name="Nadia Lefèvre" size={26} color="#a855f7" />
+          <Avatar name="Romain Daviaud" size={26} color="#6366f1" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Nadia Lefèvre</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Account Executive · EMEA</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Romain Daviaud</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Direction · Astorya</div>
           </div>
           <span style={{ color: "#94a3b8", fontSize: 14 }}>⋯</span>
         </div>

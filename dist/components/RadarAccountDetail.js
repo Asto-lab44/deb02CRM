@@ -324,7 +324,7 @@ var RadarAccountDetail = () => {
     type: "hot",
     date: "il y a 10 j · 16 mai",
     source: "LinkedIn Sales Nav.",
-    title: "Élise Vasseur (VP Tech) ajoute Nadia Lefèvre",
+    title: "Élise Vasseur (VP Tech) ajoute Augustin Morin",
     desc: "Connexion acceptée immédiatement. Bio mise à jour : « Modernisation SI mutualiste – chantier 2026 ».",
     auto: true
   }, {
@@ -424,19 +424,19 @@ var RadarAccountDetail = () => {
     style: radStyles.steps
   }, [{
     done: true,
-    who: "Nadia Lefèvre",
+    who: "Augustin Morin",
     when: "21 mai",
     title: "Connexion LinkedIn Élise Vasseur",
     desc: "Acceptée. Envoyer message ressources DORA."
   }, {
     done: true,
-    who: "Nadia Lefèvre",
+    who: "Augustin Morin",
     when: "24 mai",
     title: "Brief équipe + génération battle card",
     desc: "Battle card SF mise à jour, équipe pré-vente alertée."
   }, {
     active: true,
-    who: "Nadia Lefèvre",
+    who: "Augustin Morin",
     when: "28 mai",
     title: "Premier RDV — Pitch DORA + différenciants",
     desc: "14h00 visio · 30 min. Préparer : démo Cyber, calcul TCO comparatif, témoignage Crédit Mutuel Océan."
@@ -527,9 +527,9 @@ var RadarAccountDetail = () => {
       padding: "8px 0"
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Nadia Lef\xE8vre",
+    name: "Romain Daviaud",
     size: 36,
-    color: "#a855f7"
+    color: "#6366f1"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
@@ -539,12 +539,12 @@ var RadarAccountDetail = () => {
       fontSize: 13,
       fontWeight: 600
     }
-  }, "Nadia Lef\xE8vre"), /*#__PURE__*/React.createElement("div", {
+  }, "Romain Daviaud"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "AE Senior \xB7 EMEA")), /*#__PURE__*/React.createElement("button", {
+  }, "Direction \xB7 Astorya")), /*#__PURE__*/React.createElement("button", {
     style: radStyles.iconMini
   }, "\u2709")), /*#__PURE__*/React.createElement("div", {
     style: {

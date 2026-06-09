@@ -45,7 +45,7 @@ const DisplacementDashboard = () => {
 
   // Recent displacements
   const recent = [
-    { type: "win", co: "Crédit Mutuel Océan", logo: "CM", logoBg: "#0f766e", from: "salesforce", value: 142, date: "il y a 8 j", owner: "Nadia Lefèvre", ownerColor: "#a855f7", reason: "Conformité DORA + TCO", cycle: 84 },
+    { type: "win", co: "Crédit Mutuel Océan", logo: "CM", logoBg: "#0f766e", from: "salesforce", value: 142, date: "il y a 8 j", owner: "Augustin Morin", ownerColor: "#a855f7", reason: "Conformité DORA + TCO", cycle: 84 },
     { type: "win", co: "BNP Asset Management", logo: "BP", logoBg: "#0f766e", from: "pega", value: 168, date: "il y a 12 j", owner: "Romain Daviaud", ownerColor: "#6366f1", reason: "Time-to-value 3 mois", cycle: 102 },
     { type: "loss", co: "Macif Métropole", logo: "MM", logoBg: "#dc2626", from: "msft", value: 96, date: "il y a 14 j", owner: "Tom Verdier", ownerColor: "#f59e0b", reason: "Préférence statu-quo Microsoft", cycle: 124 },
     { type: "win", co: "Aviva Investors FR", logo: "AV", logoBg: "#fbbf24", from: "salesforce", value: 88, date: "il y a 18 j", owner: "Romain Daviaud", ownerColor: "#6366f1", reason: "Pricing add-ons SF rédhibitoire", cycle: 76 },

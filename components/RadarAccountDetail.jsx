@@ -112,7 +112,7 @@ const RadarAccountDetail = () => {
               {[
                 { type: "hot", date: "il y a 6 j · 20 mai", source: "Site appels d'offres", title: "RFP CRM/CDP publié", desc: "Cahier des charges : modernisation outil commercial, conformité DORA, hébergement UE obligatoire, time-to-value < 4 mois. Date de remise : 18 juillet.", auto: true },
                 { type: "hot", date: "il y a 8 j · 18 mai", source: "Activité Hub Astorya", title: "VP Tech Élise Vasseur ouvre 4 white papers", desc: "Téléchargement de : « DORA pour mutuelles », « Migrer de Salesforce », « ROI CRM 18 mois », « Hub Astorya vs SF FinServ ». Visite x3 site Astorya.", auto: true },
-                { type: "hot", date: "il y a 10 j · 16 mai", source: "LinkedIn Sales Nav.", title: "Élise Vasseur (VP Tech) ajoute Nadia Lefèvre", desc: "Connexion acceptée immédiatement. Bio mise à jour : « Modernisation SI mutualiste – chantier 2026 ».", auto: true },
+                { type: "hot", date: "il y a 10 j · 16 mai", source: "LinkedIn Sales Nav.", title: "Élise Vasseur (VP Tech) ajoute Augustin Morin", desc: "Connexion acceptée immédiatement. Bio mise à jour : « Modernisation SI mutualiste – chantier 2026 ».", auto: true },
                 { type: "neutral", date: "il y a 14 j · 12 mai", source: "Presse spécialisée", title: "L'Argus de l'Assurance — interview DG", desc: "« Notre CRM actuel ne répond plus aux exigences DORA. Une refonte est sur la table pour Q3 2026. »", auto: true },
                 { type: "neutral", date: "il y a 21 j · 05 mai", source: "Crawl publique", title: "Recrutement Chef de projet CRM (CDI)", desc: "Annonce sur LinkedIn + APEC. Profil cherché : expérience implémentation CRM nouvelle génération, conformité DORA.", auto: true },
                 { type: "hot", date: "il y a 28 j · 28 avril", source: "Renseignement commercial", title: "Insatisfaction interne Salesforce", desc: "Source informelle (consultant ex-MutuHDS) : « Plus personne en interne ne défend Salesforce. Le module FSC ne couvre pas les spécificités mutualistes. » Tom Verdier · note de RDV salon.", auto: false },
@@ -153,9 +153,9 @@ const RadarAccountDetail = () => {
 
             <div style={radStyles.steps}>
               {[
-                { done: true, who: "Nadia Lefèvre", when: "21 mai", title: "Connexion LinkedIn Élise Vasseur", desc: "Acceptée. Envoyer message ressources DORA." },
-                { done: true, who: "Nadia Lefèvre", when: "24 mai", title: "Brief équipe + génération battle card", desc: "Battle card SF mise à jour, équipe pré-vente alertée." },
-                { active: true, who: "Nadia Lefèvre", when: "28 mai", title: "Premier RDV — Pitch DORA + différenciants", desc: "14h00 visio · 30 min. Préparer : démo Cyber, calcul TCO comparatif, témoignage Crédit Mutuel Océan." },
+                { done: true, who: "Augustin Morin", when: "21 mai", title: "Connexion LinkedIn Élise Vasseur", desc: "Acceptée. Envoyer message ressources DORA." },
+                { done: true, who: "Augustin Morin", when: "24 mai", title: "Brief équipe + génération battle card", desc: "Battle card SF mise à jour, équipe pré-vente alertée." },
+                { active: true, who: "Augustin Morin", when: "28 mai", title: "Premier RDV — Pitch DORA + différenciants", desc: "14h00 visio · 30 min. Préparer : démo Cyber, calcul TCO comparatif, témoignage Crédit Mutuel Océan." },
                 { who: "Romain Daviaud", when: "06 juin", title: "Réponse RFP", desc: "Date butoir : 18 juillet (avant échéance contrat SF — possible négociation reconduction)." },
                 { who: "Augustin Morin", when: "12 juin", title: "Date pivot — fin contrat SF", desc: "Disponibilité immédiate Astorya garantie en SLA." },
               ].map((s, i) => (
@@ -191,10 +191,10 @@ const RadarAccountDetail = () => {
           <section style={radStyles.sideBlock}>
             <div style={radStyles.sideHead}>Owner & équipe</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
-              <Avatar name="Nadia Lefèvre" size={36} color="#a855f7" />
+              <Avatar name="Romain Daviaud" size={36} color="#6366f1" />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>Nadia Lefèvre</div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>AE Senior · EMEA</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Romain Daviaud</div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>Direction · Astorya</div>
               </div>
               <button style={radStyles.iconMini}>✉</button>
             </div>

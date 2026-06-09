@@ -428,9 +428,9 @@ var CRMPipeline = () => {
   }), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.userRow
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Nadia Lef\xE8vre",
+    name: "Romain Daviaud",
     size: 26,
-    color: "#a855f7"
+    color: "#6366f1"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -442,12 +442,12 @@ var CRMPipeline = () => {
       fontWeight: 600,
       color: "#0f172a"
     }
-  }, "Nadia Lef\xE8vre"), /*#__PURE__*/React.createElement("div", {
+  }, "Romain Daviaud"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Account Executive \xB7 EMEA")), /*#__PURE__*/React.createElement("span", {
+  }, "Direction \xB7 Astorya")), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#94a3b8",
       fontSize: 14

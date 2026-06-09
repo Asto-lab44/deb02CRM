@@ -66,7 +66,7 @@ var CRMAccount = () => {
     at: "Dans 2 jours · jeu. 28 mai · 14h00",
     title: "Comité achats — présentation finale",
     meta: "Visio Teams · 4 participants AXA · présentation 30 min",
-    who: "Nadia Lefèvre",
+    who: "Augustin Morin",
     icon: "📅",
     color: "#4f46e5",
     attendees: ["Émilie Roux", "Antoine Mercier", "Sophie Aubry"]
@@ -75,7 +75,7 @@ var CRMAccount = () => {
     kind: "future",
     at: "Dans 5 jours · dim. 31 mai",
     title: "Envoyer proposition v3 mise à jour",
-    who: "Nadia Lefèvre",
+    who: "Augustin Morin",
     icon: "✓",
     color: "#f59e0b"
   }, {
@@ -112,7 +112,7 @@ var CRMAccount = () => {
   }, {
     type: "note",
     at: "16:30",
-    who: "Nadia Lefèvre",
+    who: "Augustin Morin",
     title: "Note privée",
     body: "Sentiment positif côté Direction. Le CFO veut voir le ROI à 18 mois. Préparer slide dédié pour jeudi.",
     color: "#64748b"
@@ -122,13 +122,13 @@ var CRMAccount = () => {
     title: "Étape avancée",
     from: "Discovery",
     to: "Proposition",
-    who: "Nadia Lefèvre"
+    who: "Augustin Morin"
   }, {
     type: "email",
     at: "09:22",
-    from: "Nadia Lefèvre",
+    from: "Augustin Morin",
     outbound: true,
-    role: "Account Executive",
+    role: "Direction",
     subject: "Proposition Astorya Suite — version 2",
     body: "Bonjour Émilie, suite à notre échange de jeudi, vous trouverez ci-joint la proposition commerciale ajustée…",
     attachments: [{
@@ -277,9 +277,9 @@ var CRMAccount = () => {
   }), /*#__PURE__*/React.createElement("div", {
     style: accStyles.userRow
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Nadia Lef\xE8vre",
+    name: "Romain Daviaud",
     size: 26,
-    color: "#a855f7"
+    color: "#6366f1"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -290,12 +290,12 @@ var CRMAccount = () => {
       fontSize: 12.5,
       fontWeight: 600
     }
-  }, "Nadia Lef\xE8vre"), /*#__PURE__*/React.createElement("div", {
+  }, "Romain Daviaud"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "AE \xB7 EMEA")))), /*#__PURE__*/React.createElement("main", {
+  }, "Direction \xB7 Astorya")))), /*#__PURE__*/React.createElement("main", {
     style: accStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: accStyles.topbar
@@ -1094,7 +1094,7 @@ var CRMAccount = () => {
         gap: 7
       }
     }, /*#__PURE__*/React.createElement(Avatar, {
-      name: "Nadia Lef\xE8vre",
+      name: "Augustin Morin",
       size: 20,
       color: "#a855f7"
     }), /*#__PURE__*/React.createElement("span", {
@@ -1102,7 +1102,7 @@ var CRMAccount = () => {
         fontSize: 12.5,
         fontWeight: 500
       }
-    }, "Nadia Lef\xE8vre"))
+    }, "Augustin Morin"))
   }), /*#__PURE__*/React.createElement(Field, {
     label: "Co-owner",
     value: /*#__PURE__*/React.createElement("div", {

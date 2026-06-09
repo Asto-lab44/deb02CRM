@@ -170,7 +170,7 @@ var DisplacementDashboard = () => {
     from: "salesforce",
     value: 142,
     date: "il y a 8 j",
-    owner: "Nadia Lefèvre",
+    owner: "Augustin Morin",
     ownerColor: "#a855f7",
     reason: "Conformité DORA + TCO",
     cycle: 84

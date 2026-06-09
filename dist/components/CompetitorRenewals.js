@@ -120,7 +120,7 @@ var CompetitorRenewals = () => {
       type: "hot",
       label: "VP Tech contacté Nadia sur LinkedIn"
     }],
-    owner: "Nadia Lefèvre",
+    owner: "Romain Daviaud",
     ownerColor: "#a855f7",
     contacts: 3,
     lastTouch: "il y a 2 j",
@@ -243,7 +243,7 @@ var CompetitorRenewals = () => {
       type: "hot",
       label: "DSI ex-client Astorya chez Aviva"
     }],
-    owner: "Nadia Lefèvre",
+    owner: "Romain Daviaud",
     ownerColor: "#a855f7",
     contacts: 5,
     lastTouch: "il y a 4 j",

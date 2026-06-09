@@ -22,7 +22,7 @@ create table if not exists public.call_events (
   caller_name       text,                         -- nom affiché par 3CX (si dispo)
   called_extension  text not null,                -- poste appelé (ex. "201")
   agent_user_id     uuid references public.profiles(id) on delete set null,
-  matched_client_id uuid references public.clients(id) on delete set null,
+  matched_client_id text references public.clients(id) on delete set null,
   direction         text not null default 'inbound' check (direction in ('inbound','outbound')),
   status            text not null default 'ringing' check (status in ('ringing','answered','missed','hangup')),
   department        text,                         -- département 3CX (filtré : ASTO uniquement)

@@ -348,10 +348,100 @@ var HotlinePopup = ({
       color: "#dc2626",
       marginTop: 4
     }
-  }, "Aucun client trouv\xE9 pour ce num\xE9ro. Cr\xE9er une fiche apr\xE8s l'appel ?")), !isUnknown && /*#__PURE__*/React.createElement("a", {
-    href: `/fiche-client`,
+  }, "Aucun client trouv\xE9 pour ce num\xE9ro. Cr\xE9er une fiche apr\xE8s l'appel ?")), !isUnknown && call.clientId && /*#__PURE__*/React.createElement("a", {
+    href: `/fiche-client?id=${encodeURIComponent(call.clientId)}`,
     style: H.linkBtn
-  }, "Fiche client \u2192")), phase === "ringing" && /*#__PURE__*/React.createElement("div", {
+  }, "Fiche client \u2192")), phase === "ringing" && !isUnknown && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 20px 4px"
+    }
+  }, call.openTickets && call.openTickets.length > 0 ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#dc2626",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 8
+    }
+  }, "\uD83C\uDFAB ", call.openTickets.length, " ticket", call.openTickets.length > 1 ? "s" : "", " en cours"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, call.openTickets.slice(0, 3).map(t => {
+    var prioStyle = t.prio === "critique" ? {
+      bg: "#fdecec",
+      color: "#dc2626"
+    } : t.prio === "haute" ? {
+      bg: "#fef0e6",
+      color: "#ea580c"
+    } : t.prio === "normale" ? {
+      bg: "#eef1f5",
+      color: "#475569"
+    } : {
+      bg: "#f1f5f9",
+      color: "#64748b"
+    };
+    return /*#__PURE__*/React.createElement("a", {
+      key: t.id,
+      href: `/ticketing?id=${encodeURIComponent(t.id)}`,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 10px",
+        border: "1px solid #eef1f5",
+        borderRadius: 8,
+        textDecoration: "none",
+        background: "#fff"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontFamily: "'JetBrains Mono', monospace",
+        color: "#64748b",
+        flexShrink: 0
+      }
+    }, t.id), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#0f172a",
+        fontWeight: 500,
+        flex: 1,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, t.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        padding: "1px 6px",
+        borderRadius: 4,
+        fontWeight: 700,
+        background: prioStyle.bg,
+        color: prioStyle.color,
+        textTransform: "uppercase",
+        letterSpacing: 0.3,
+        flexShrink: 0
+      }
+    }, t.prio || "—"));
+  }), call.openTickets.length > 3 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      textAlign: "center",
+      marginTop: 2
+    }
+  }, "+ ", call.openTickets.length - 3, " autres"))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#94a3b8",
+      textAlign: "center",
+      padding: "4px 0"
+    }
+  }, "\u25CF Aucun ticket en cours pour ce client")), phase === "ringing" && /*#__PURE__*/React.createElement("div", {
     style: H.ringingFoot
   }, /*#__PURE__*/React.createElement("button", {
     onClick: decline,

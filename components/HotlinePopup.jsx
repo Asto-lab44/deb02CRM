@@ -266,10 +266,48 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
               </div>
             )}
           </div>
-          {!isUnknown && (
-            <a href={`/fiche-client`} style={H.linkBtn}>Fiche client →</a>
+          {!isUnknown && call.clientId && (
+            <a href={`/fiche-client?id=${encodeURIComponent(call.clientId)}`} style={H.linkBtn}>Fiche client →</a>
           )}
         </div>
+
+        {/* Encart tickets ouverts — visible dès la sonnerie pour anticiper le contexte */}
+        {phase === "ringing" && !isUnknown && (
+          <div style={{ padding: "12px 20px 4px" }}>
+            {call.openTickets && call.openTickets.length > 0 ? (
+              <div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "#dc2626", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
+                  🎫 {call.openTickets.length} ticket{call.openTickets.length > 1 ? "s" : ""} en cours
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {call.openTickets.slice(0, 3).map((t) => {
+                    const prioStyle = t.prio === "critique" ? { bg: "#fdecec", color: "#dc2626" }
+                                    : t.prio === "haute"    ? { bg: "#fef0e6", color: "#ea580c" }
+                                    : t.prio === "normale"  ? { bg: "#eef1f5", color: "#475569" }
+                                    : { bg: "#f1f5f9", color: "#64748b" };
+                    return (
+                      <a key={t.id} href={`/ticketing?id=${encodeURIComponent(t.id)}`}
+                         style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", border: "1px solid #eef1f5", borderRadius: 8, textDecoration: "none", background: "#fff" }}>
+                        <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#64748b", flexShrink: 0 }}>{t.id}</span>
+                        <span style={{ fontSize: 12.5, color: "#0f172a", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
+                        <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 4, fontWeight: 700, background: prioStyle.bg, color: prioStyle.color, textTransform: "uppercase", letterSpacing: 0.3, flexShrink: 0 }}>{t.prio || "—"}</span>
+                      </a>
+                    );
+                  })}
+                  {call.openTickets.length > 3 && (
+                    <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", marginTop: 2 }}>
+                      + {call.openTickets.length - 3} autres
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", padding: "4px 0" }}>
+                ● Aucun ticket en cours pour ce client
+              </div>
+            )}
+          </div>
+        )}
 
         {/* PHASE RINGING — boutons décrocher/refuser */}
         {phase === "ringing" && (

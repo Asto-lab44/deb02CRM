@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Hub Astorya — Projets & Livrables</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; background: #f3f5f8; font-family: 'Inter', system-ui, sans-serif; }
     #root { min-height: 100vh; }
@@ -15,29 +15,31 @@
 <body>
   <div id="root"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
-  <script src="components/supabase-config.js?v=202606092900"></script>
-  <script src="components/supabase-client.js?v=202606092900"></script>
-  <script src="components/api.js?v=202606092900"></script>
-  <script src="components/validators.js?v=202606092900"></script>
-  <script src="components/constants.js?v=202606092900"></script>
-  <script src="components/pappers-config.js?v=202606092900"></script>
-  <script src="components/pappers.js?v=202606092900"></script>
-  <script src="components/bodacc.js?v=202606092900"></script>
-  <script src="components/toast.js?v=202606092900"></script>
-  <script src="components/modal.js?v=202606092900"></script>
-  <script src="components/access-store.js?v=202606092900"></script>
-  <script defer src="dist/components/BientotPage.js?v=202606092900"></script>
+  <script src="components/supabase-config.js?v=202606093000"></script>
+  <script src="components/supabase-client.js?v=202606093000"></script>
+  <script src="components/api.js?v=202606093000"></script>
+  <script src="components/validators.js?v=202606093000"></script>
+  <script src="components/constants.js?v=202606093000"></script>
+  <script src="components/pappers-config.js?v=202606093000"></script>
+  <script src="components/pappers.js?v=202606093000"></script>
+  <script src="components/bodacc.js?v=202606093000"></script>
+  <script src="components/toast.js?v=202606093000"></script>
+  <script src="components/modal.js?v=202606093000"></script>
+  <script src="components/hub-user-menu.js?v=202606093000"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", function() {
+      if (window.api && window.api.auth && window.HubSupabase && window.HubSupabase.enabled) {
+        window.api.auth.requireAuth();
+      }
+    });
+  </script>
+  <script src="components/access-store.js?v=202606093000"></script>
+  <script src="components/hub-data.js?v=202606093000"></script>
+  <script src="components/hub-nav.js?v=202606093000"></script>
+  <script defer src="dist/components/ProjectsKanban.js?v=202606093000"></script>
   <script defer>
     window.addEventListener("DOMContentLoaded", function() {
-      ReactDOM.createRoot(document.getElementById('root')).render(
-        React.createElement(BientotPage, {
-          moduleName: "Projets & Livrables",
-          moduleIcon: "📦",
-          moduleColor: "#a855f7",
-          description: "Pilotez vos projets clients de bout en bout : roadmap, livrables, jalons.",
-          roadmap: ["Vue Kanban des projets clients", "Jalons et deadlines automatisés", "Time tracking par projet", "Reporting d'avancement", "Gestion des risques par projet", "Synchronisation avec Microsoft Project"]
-        })
-      );
+      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ProjectsKanban));
     });
   </script>
 </body>

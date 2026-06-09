@@ -465,6 +465,99 @@ as $$
 $$;
 
 -- ════════════════════════════════════════════════════════════════════
+-- 12.7 PROJECTS — Projets & Livrables (sync depuis Sage Gestion Co 50c)
+-- ════════════════════════════════════════════════════════════════════
+-- Cycle de vie 7 stages :
+--   recu → devis_valide → preparation → pret_livrer → livre → installe → clos
+-- 1 commande Sage = 1 projet Hub. Les lignes produits = project_items.
+-- ════════════════════════════════════════════════════════════════════
+
+create table if not exists public.projects (
+  id              text primary key,                     -- "PRJ-2026-1234" ou ref Sage
+  sage_ref        text unique,                          -- numéro commande Sage (clé d'idempotence)
+  client_id       text references public.clients(id) on delete set null,
+  opp_id          text references public.opportunities(id) on delete set null,
+  contract_id     uuid references public.contracts(id) on delete set null,
+  name            text not null,
+  description     text,
+  stage           text default 'recu' check (stage in ('recu','devis_valide','preparation','pret_livrer','livre','installe','clos','annule')),
+  priority        text default 'normale' check (priority in ('critique','haute','normale','basse')),
+  amount_ht       numeric(14,2),
+  amount_ttc      numeric(14,2),
+  delivery_due    date,                                 -- date de livraison souhaitée
+  delivery_done   date,                                 -- date livraison effective
+  install_done    date,                                 -- date d'installation
+  recette_done    date,                                 -- date de recette client
+  closed_at       timestamptz,
+  pm_id           uuid references public.profiles(id) on delete set null,  -- chef de projet
+  pm_name         text,                                                     -- cache du nom (si profil supprimé)
+  notes           text,
+  data            jsonb default '{}'::jsonb,             -- payload Sage brut + extras
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now(),
+  deleted_at      timestamptz,
+  created_by      uuid references auth.users(id) on delete set null
+);
+create index if not exists idx_projects_stage   on public.projects(stage) where deleted_at is null;
+create index if not exists idx_projects_client  on public.projects(client_id) where deleted_at is null;
+create index if not exists idx_projects_pm      on public.projects(pm_id) where deleted_at is null;
+create index if not exists idx_projects_sage    on public.projects(sage_ref) where deleted_at is null;
+create index if not exists idx_projects_due     on public.projects(delivery_due) where deleted_at is null and delivery_due is not null;
+create index if not exists idx_projects_created on public.projects(created_at desc) where deleted_at is null;
+
+drop trigger if exists trg_projects_touch on public.projects;
+create trigger trg_projects_touch before update on public.projects
+  for each row execute function public.touch_updated_at();
+
+-- ── 12.7.1 PROJECT_ITEMS : lignes produits / livrables d'un projet ──
+create table if not exists public.project_items (
+  id              uuid primary key default gen_random_uuid(),
+  project_id      text not null references public.projects(id) on delete cascade,
+  sage_line_ref   text,                              -- ref ligne Sage si applicable
+  ref_produit     text,                              -- SKU produit Astorya ou Sage
+  designation     text not null,
+  quantity        numeric(10,3) default 1,
+  unit            text default 'u',                  -- u, h, jour, mois, kg…
+  unit_price_ht   numeric(14,2),
+  total_ht        numeric(14,2),
+  delivered_qty   numeric(10,3) default 0,
+  status          text default 'todo' check (status in ('todo','in_progress','delivered','installed','validated','cancelled')),
+  serial_numbers  text[],                             -- numéros de série livrés (matériel IT)
+  notes           text,
+  data            jsonb default '{}'::jsonb,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+create index if not exists idx_project_items_project on public.project_items(project_id);
+create index if not exists idx_project_items_status  on public.project_items(status);
+
+drop trigger if exists trg_project_items_touch on public.project_items;
+create trigger trg_project_items_touch before update on public.project_items
+  for each row execute function public.touch_updated_at();
+
+-- ── 12.7.2 PROJECT_TEAM : équipe affectée à un projet ──
+create table if not exists public.project_team (
+  project_id   text not null references public.projects(id) on delete cascade,
+  profile_id   uuid not null references public.profiles(id) on delete cascade,
+  role         text default 'membre' check (role in ('chef','technicien','livreur','installateur','support','membre')),
+  added_at     timestamptz default now(),
+  primary key (project_id, profile_id)
+);
+create index if not exists idx_project_team_profile on public.project_team(profile_id);
+
+-- ── 12.7.3 PROJECT_EVENTS : historique des actions sur un projet ──
+create table if not exists public.project_events (
+  id           uuid primary key default gen_random_uuid(),
+  project_id   text not null references public.projects(id) on delete cascade,
+  type         text not null,                          -- "stage_change", "comment", "delivery", "assign"…
+  payload      jsonb default '{}'::jsonb,
+  author_id    uuid references public.profiles(id) on delete set null,
+  author_name  text,
+  created_at   timestamptz default now()
+);
+create index if not exists idx_project_events_project on public.project_events(project_id, created_at desc);
+
+-- ════════════════════════════════════════════════════════════════════
 -- 12.6 CONTRACT_TEMPLATES — modèles de contrat avec CGV uploadées en PDF
 -- ════════════════════════════════════════════════════════════════════
 create table if not exists public.contract_templates (
@@ -506,6 +599,10 @@ alter table public.contacts         enable row level security;
 alter table public.actions          enable row level security;
 alter table public.calls            enable row level security;
 alter table public.call_transcripts enable row level security;
+alter table public.projects         enable row level security;
+alter table public.project_items    enable row level security;
+alter table public.project_team     enable row level security;
+alter table public.project_events   enable row level security;
 
 -- Politique : tout user authentifié peut tout faire (les 2 users Astorya
 -- sont co-administrateurs). À durcir plus tard avec current_user_groups()
@@ -516,7 +613,8 @@ begin
   for t in select unnest(array[
     'profiles','groups','profile_groups','clients','contract_templates','contracts','assets',
     'tickets','comments','opportunities','contacts','actions',
-    'calls','call_transcripts'
+    'calls','call_transcripts',
+    'projects','project_items','project_team','project_events'
   ])
   loop
     execute format('drop policy if exists "authenticated_read" on public.%I', t);
@@ -604,6 +702,9 @@ begin
   begin alter publication supabase_realtime add table public.comments;     exception when others then null; end;
   begin alter publication supabase_realtime add table public.actions;      exception when others then null; end;
   begin alter publication supabase_realtime add table public.opportunities; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.projects;     exception when others then null; end;
+  begin alter publication supabase_realtime add table public.project_items; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.project_events; exception when others then null; end;
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════

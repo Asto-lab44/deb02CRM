@@ -735,6 +735,203 @@
   };
 
   // ───────────────────────────────────────────────────────────────────
+  // §6.6 PROJECTS — Projets & Livrables (commande Sage → workflow Hub)
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Tables : projects + project_items + project_team + project_events
+  // Cycle 7 stages : recu → devis_valide → preparation → pret_livrer
+  //                → livre → installe → clos
+  // Méthodes :
+  //   list({stage?,client_id?,pm_id?})  → projets actifs
+  //   getById(id)                       → projet + items + team + events
+  //   create(payload)                   → crée projet (+items via items=[…])
+  //   update(id, patch)                 → maj projet
+  //   changeStage(id, stage)            → maj stage + log event
+  //   addTeamMember(id, profileId, role)
+  //   removeTeamMember(id, profileId)
+  //   addEvent(id, type, payload)       → log event manuel
+  //   syncFromSage(sageOrder)           → upsert depuis import Sage (idempotent
+  //                                        via sage_ref)
+  //   remove(id)                        → SOFT delete
+  const projects = {
+    /** Stages du workflow, dans l'ordre du kanban. */
+    STAGES: [
+      { k: "recu",          label: "Reçu",            color: "#94a3b8" },
+      { k: "devis_valide",  label: "Devis validé",    color: "#3b82f6" },
+      { k: "preparation",   label: "En préparation",  color: "#a855f7" },
+      { k: "pret_livrer",   label: "Prêt à livrer",   color: "#ea580c" },
+      { k: "livre",         label: "Livré",           color: "#f59e0b" },
+      { k: "installe",      label: "Installé",        color: "#0ea5e9" },
+      { k: "clos",          label: "Clos",            color: "#10b981" },
+    ],
+
+    async list(filter = {}) {
+      const s = supa();
+      if (s) {
+        let q = s.from("projects").select("*").is("deleted_at", null);
+        if (filter.stage) q = q.eq("stage", filter.stage);
+        if (filter.client_id) q = q.eq("client_id", filter.client_id);
+        if (filter.pm_id) q = q.eq("pm_id", filter.pm_id);
+        const { data, error } = await q.order("created_at", { ascending: false });
+        if (error) { console.warn("[api.projects.list]", error.message); return lsGet("projects"); }
+        return data || [];
+      }
+      let arr = lsGet("projects");
+      if (filter.stage) arr = arr.filter((p) => p.stage === filter.stage);
+      if (filter.client_id) arr = arr.filter((p) => p.client_id === filter.client_id);
+      return arr;
+    },
+
+    async getById(id) {
+      const s = supa();
+      if (s) {
+        const [{ data: proj }, { data: items }, { data: team }, { data: events }] = await Promise.all([
+          s.from("projects").select("*").eq("id", id).maybeSingle(),
+          s.from("project_items").select("*").eq("project_id", id).order("created_at"),
+          s.from("project_team").select("*, profile:profiles(id, name, email, role, team)").eq("project_id", id),
+          s.from("project_events").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(50),
+        ]);
+        if (!proj) return null;
+        return { ...proj, items: items || [], team: team || [], events: events || [] };
+      }
+      return lsGet("projects").find((p) => p.id === id) || null;
+    },
+
+    async create(payload) {
+      const id = payload.id || genId("PRJ");
+      const items = payload.items || [];
+      const full = { ...payload, id, created_at: new Date().toISOString(), stage: payload.stage || "recu" };
+      delete full.items;
+      const s = supa();
+      if (s) {
+        const created_by = await getCurrentUserId();
+        const row = { ...full, data: full.data || {} };
+        if (created_by) row.created_by = created_by;
+        const { data, error } = await s.from("projects").insert(row).select().maybeSingle();
+        if (error) {
+          console.warn("[api.projects.create]", error.message);
+          alert("Sauvegarde projet impossible : " + error.message);
+          const arr = lsGet("projects"); arr.unshift({ ...full, items });
+          lsSet("projects", arr); return full;
+        }
+        // Items
+        if (items.length > 0) {
+          const rows = items.map((it) => ({ ...it, project_id: id }));
+          await s.from("project_items").insert(rows);
+        }
+        // Event "création"
+        const cuName = getCurrentUserName();
+        await s.from("project_events").insert({
+          project_id: id, type: "created",
+          payload: { stage: row.stage, items_count: items.length },
+          author_id: created_by || null,
+          author_name: cuName,
+        });
+        return data;
+      }
+      const arr = lsGet("projects"); arr.unshift({ ...full, items });
+      lsSet("projects", arr); return full;
+    },
+
+    async update(id, patch) {
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("projects").update(patch).eq("id", id).select().maybeSingle();
+        if (error) console.warn("[api.projects.update]", error.message);
+        if (data) return data;
+      }
+      const arr = lsGet("projects");
+      const idx = arr.findIndex((p) => p.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], ...patch }; lsSet("projects", arr); return arr[idx]; }
+      return null;
+    },
+
+    async changeStage(id, newStage, reason) {
+      const s = supa();
+      if (!s) return null;
+      const patch = { stage: newStage };
+      // Auto-fill des dates clés selon le stage
+      if (newStage === "livre" && !patch.delivery_done) patch.delivery_done = new Date().toISOString().slice(0, 10);
+      if (newStage === "installe" && !patch.install_done) patch.install_done = new Date().toISOString().slice(0, 10);
+      if (newStage === "clos") { patch.closed_at = new Date().toISOString(); patch.recette_done = new Date().toISOString().slice(0, 10); }
+      const { data, error } = await s.from("projects").update(patch).eq("id", id).select().maybeSingle();
+      if (error) { console.warn("[api.projects.changeStage]", error.message); return null; }
+      // Log event
+      const cuId = await getCurrentUserId();
+      const cuName = getCurrentUserName();
+      await s.from("project_events").insert({
+        project_id: id, type: "stage_change",
+        payload: { to: newStage, reason: reason || null },
+        author_id: cuId, author_name: cuName,
+      });
+      return data;
+    },
+
+    async addTeamMember(projectId, profileId, role) {
+      const s = supa();
+      if (!s) return null;
+      const { data, error } = await s.from("project_team").upsert({
+        project_id: projectId, profile_id: profileId, role: role || "membre",
+      }).select().maybeSingle();
+      if (error) { console.warn("[api.projects.addTeamMember]", error.message); return null; }
+      const cuId = await getCurrentUserId();
+      await s.from("project_events").insert({
+        project_id: projectId, type: "team_add",
+        payload: { profile_id: profileId, role },
+        author_id: cuId, author_name: getCurrentUserName(),
+      });
+      return data;
+    },
+
+    async removeTeamMember(projectId, profileId) {
+      const s = supa();
+      if (!s) return;
+      await s.from("project_team").delete().eq("project_id", projectId).eq("profile_id", profileId);
+    },
+
+    async addEvent(projectId, type, payload) {
+      const s = supa();
+      if (!s) return null;
+      const cuId = await getCurrentUserId();
+      const { data, error } = await s.from("project_events").insert({
+        project_id: projectId, type, payload: payload || {},
+        author_id: cuId, author_name: getCurrentUserName(),
+      }).select().maybeSingle();
+      if (error) console.warn("[api.projects.addEvent]", error.message);
+      return data;
+    },
+
+    /** Upsert depuis une commande Sage. Idempotent via sage_ref.
+     *  Si le projet existe déjà (même sage_ref) → update. Sinon → create. */
+    async syncFromSage(sageOrder) {
+      if (!sageOrder || !sageOrder.sage_ref) throw new Error("sage_ref obligatoire pour la sync");
+      const s = supa();
+      if (!s) throw new Error("Supabase non configuré");
+      const { data: existing } = await s.from("projects").select("id").eq("sage_ref", sageOrder.sage_ref).maybeSingle();
+      if (existing) {
+        // Update : on ne touche pas au stage si déjà avancé
+        const patch = { ...sageOrder };
+        delete patch.id; delete patch.sage_ref; delete patch.stage; delete patch.items;
+        await s.from("projects").update(patch).eq("id", existing.id);
+        return { id: existing.id, mode: "updated" };
+      }
+      // Create
+      const created = await projects.create({ ...sageOrder, stage: "recu" });
+      return { id: created.id, mode: "created" };
+    },
+
+    async remove(id) {
+      const s = supa();
+      if (s) {
+        const { error } = await s.from("projects").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw new Error(error.message);
+      }
+      const arr = lsGet("projects").filter((p) => p.id !== id);
+      lsSet("projects", arr);
+    },
+  };
+
+  // ───────────────────────────────────────────────────────────────────
   // §7. AUTH — wrapper Supabase Auth
   // ───────────────────────────────────────────────────────────────────
   //
@@ -783,5 +980,5 @@
   // ───────────────────────────────────────────────────────────────────
   // §8. EXPORT global
   // ───────────────────────────────────────────────────────────────────
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, auth };
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, auth };
 })();

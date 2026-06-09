@@ -660,11 +660,27 @@
 
       const path = "templates/" + Date.now() + "-" + (file.name || "template.pdf").replace(/[^\w.-]/g, "_");
       // 1. Upload du PDF dans Storage
-      const { error: upErr } = await s.storage.from("contract-templates").upload(path, file, {
+      let { error: upErr } = await s.storage.from("contract-templates").upload(path, file, {
         cacheControl: "3600",
         upsert: false,
         contentType: "application/pdf",
       });
+      // Si le bucket n'existe pas → on tente de le créer puis on retry
+      if (upErr && /bucket not found|not_found/i.test(upErr.message || "")) {
+        const { error: createErr } = await s.storage.createBucket("contract-templates", {
+          public: true,
+          fileSizeLimit: 10 * 1024 * 1024, // 10 Mo
+          allowedMimeTypes: ["application/pdf"],
+        });
+        if (createErr && !/already exists/i.test(createErr.message || "")) {
+          throw new Error("Création du bucket Storage impossible : " + createErr.message + "\n\nCrée-le manuellement dans Supabase Dashboard → Storage → New bucket → 'contract-templates' (Public, 10 MB).");
+        }
+        // Retry l'upload
+        const retry = await s.storage.from("contract-templates").upload(path, file, {
+          cacheControl: "3600", upsert: false, contentType: "application/pdf",
+        });
+        upErr = retry.error;
+      }
       if (upErr) throw new Error("Upload échoué : " + upErr.message);
       const { data: urlData } = s.storage.from("contract-templates").getPublicUrl(path);
       const pdf_url = urlData ? urlData.publicUrl : null;

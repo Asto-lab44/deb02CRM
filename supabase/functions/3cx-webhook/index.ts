@@ -22,12 +22,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.0";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Normalise un numéro FR : 0612345678 → +33612345678, garde +33 inchangé
+// Normalise un numéro FR vers E.164 : 0612345678 ou 33612345678 → +33612345678
 function normalizeFR(raw: string): string {
   if (!raw) return "";
   const digits = raw.replace(/[^\d+]/g, "");
   if (digits.startsWith("+")) return digits;
   if (digits.startsWith("00")) return "+" + digits.slice(2);
+  // 3CX envoie souvent "33685130307" (sans +) — on ajoute le +
+  if (digits.startsWith("33") && digits.length === 11) return "+" + digits;
   if (digits.startsWith("0") && digits.length === 10) return "+33" + digits.slice(1);
   return digits;
 }
@@ -105,17 +107,41 @@ Deno.serve(async (req) => {
   }
 
   // ─── 4. Normalisation + lookup client ───────────────────────────
+  // Stratégie : on garde les 9 derniers chiffres (mantisse du numéro FR)
+  // et on compare avec les 9 derniers chiffres des téléphones en BDD,
+  // côté JS pour ignorer espaces, points, tirets, parenthèses, +33/0/33…
   const normalized = normalizeFR(callerNumber);
   const variants   = phoneVariants(normalized);
+  const callerLast9 = normalized.replace(/\D/g, "").slice(-9);
+  const last9 = (s: string | null | undefined) => (s || "").replace(/\D/g, "").slice(-9);
 
   let matchedClientId: string | null = null;
   try {
+    // 1. Cherche dans clients.phone
     const { data: clients } = await supabase
       .from("clients")
       .select("id, phone")
-      .or(variants.map((v) => `phone.eq.${v}`).join(","))
-      .limit(1);
-    if (clients && clients.length > 0) matchedClientId = clients[0].id;
+      .not("phone", "is", null);
+    for (const c of (clients || [])) {
+      if (last9(c.phone) === callerLast9 && callerLast9.length === 9) {
+        matchedClientId = c.id;
+        break;
+      }
+    }
+    // 2. Si rien : cherche dans contacts.phone (puis remonte au client_id)
+    if (!matchedClientId) {
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("client_id, phone")
+        .not("phone", "is", null);
+      for (const c of (contacts || [])) {
+        if (last9(c.phone) === callerLast9 && callerLast9.length === 9) {
+          matchedClientId = c.client_id;
+          break;
+        }
+      }
+    }
+    console.log("[3cx] lookup", callerNumber, "→", callerLast9, "→ client", matchedClientId || "(aucun match)");
   } catch (e) {
     console.warn("[3cx] client lookup error:", e);
   }

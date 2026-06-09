@@ -1862,13 +1862,19 @@ var ClientPage = () => {
       },
       style: cliStyles.menuItem
     }, done ? "↺ Marquer à faire" : "✓ Marquer terminée"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        var newTitle = prompt("Nouveau titre :", a.title);
-        if (newTitle && a.id) {
+      onClick: async () => {
+        var newTitle = window.HubModal ? await window.HubModal.prompt({
+          title: "Renommer l'action",
+          label: "Nouveau titre",
+          default: a.title,
+          okLabel: "Renommer"
+        }) : prompt("Nouveau titre :", a.title);
+        if (newTitle && newTitle.trim() && a.id) {
           setExtraActions(arr => arr.map(x => x.id === a.id ? {
             ...x,
-            title: newTitle
+            title: newTitle.trim()
           } : x));
+          if (window.HubToast) window.HubToast.success("✓ Action renommée");
         }
         setActionMenuKey(null);
       },

@@ -404,12 +404,14 @@ const UserManagement = () => {
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {savedFlash && <span style={{ fontSize: 11.5, fontWeight: 600, color: "#10b981" }}>✓ {savedFlash}</span>}
                 <button
-                  onClick={() => {
-                    const name = prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
+                  onClick={async () => {
+                    const name = window.HubModal
+                      ? await window.HubModal.prompt({ title: "Renommer le groupe", label: "Nouveau nom", default: selectedGroup.name || selectedGroup.label, okLabel: "Renommer" })
+                      : prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
                     if (!name || !name.trim()) return;
                     const next = persistedGroups.map((g) => g.id === selectedGroup.id ? { ...g, label: name.trim(), name: name.trim() } : g);
                     window.HubAccess.saveGroups(next);
-                    flash("Groupe renommé");
+                    if (window.HubToast) window.HubToast.success("✓ Groupe renommé en « " + name.trim() + " »");
                   }}
                   style={{ ...S.btnGhost, cursor: "pointer" }}
                 >Renommer</button>

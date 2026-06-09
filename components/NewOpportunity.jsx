@@ -515,8 +515,10 @@ const NewOpportunity = () => {
                       </span>
                     ))}
                     <button
-                      onClick={() => {
-                        const t = prompt("Nouvelle étiquette :");
+                      onClick={async () => {
+                        const t = window.HubModal
+                          ? await window.HubModal.prompt({ title: "Nouvelle étiquette", label: "Tag", placeholder: "ex : Hot deal Q2", okLabel: "Ajouter" })
+                          : prompt("Nouvelle étiquette :");
                         if (t && t.trim()) setOppTags((arr) => [...arr, t.trim()]);
                       }}
                       style={{ ...noStyles.addChip, cursor: "pointer" }}

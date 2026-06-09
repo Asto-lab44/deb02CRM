@@ -876,8 +876,13 @@ var NewOpportunity = () => {
       fontSize: 13
     }
   }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var t = prompt("Nouvelle étiquette :");
+    onClick: async () => {
+      var t = window.HubModal ? await window.HubModal.prompt({
+        title: "Nouvelle étiquette",
+        label: "Tag",
+        placeholder: "ex : Hot deal Q2",
+        okLabel: "Ajouter"
+      }) : prompt("Nouvelle étiquette :");
       if (t && t.trim()) setOppTags(arr => [...arr, t.trim()]);
     },
     style: {

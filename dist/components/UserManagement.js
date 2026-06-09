@@ -963,8 +963,13 @@ var UserManagement = () => {
       color: "#10b981"
     }
   }, "\u2713 ", savedFlash), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var name = prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
+    onClick: async () => {
+      var name = window.HubModal ? await window.HubModal.prompt({
+        title: "Renommer le groupe",
+        label: "Nouveau nom",
+        default: selectedGroup.name || selectedGroup.label,
+        okLabel: "Renommer"
+      }) : prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
       if (!name || !name.trim()) return;
       var next = persistedGroups.map(g => g.id === selectedGroup.id ? {
         ...g,
@@ -972,7 +977,7 @@ var UserManagement = () => {
         name: name.trim()
       } : g);
       window.HubAccess.saveGroups(next);
-      flash("Groupe renommé");
+      if (window.HubToast) window.HubToast.success("✓ Groupe renommé en « " + name.trim() + " »");
     },
     style: {
       ...S.btnGhost,

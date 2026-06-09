@@ -71,19 +71,19 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
     try { localStorage.setItem(MSG_KEY, JSON.stringify(addedMessages)); } catch (e) {}
   }, [addedMessages, MSG_KEY, dataOn]);
 
-  // Données du ticket : prop si fournie (depuis TicketList), sinon valeurs par défaut
-  // pour la maquette INC-2837 (Camille Dufour, VPN).
+  // Données du ticket : prop si fournie (depuis TicketList), sinon depuis Supabase.
+  // Pas de fallback mock — un ticket sans données affiche des valeurs neutres.
   const t = loadedTicket || ticketData || {};
   const display = {
-    title:    t.title || "VPN se déconnecte toutes les 10 minutes",
-    status:   t.status || "in_progress",
-    priority: t.priority || t.prio || "haute",
-    category: t.category || t.cat || "Réseau · VPN",
-    client:   (t.client && t.client.name) || "Client inconnu",
+    title:    t.title || "—",
+    status:   t.status || "open",
+    priority: t.priority || t.prio || "normale",
+    category: t.category || t.cat || "—",
+    client:   (t.client && t.client.name) || "—",
     clientId: (t.client && t.client.id) || null,
     contract: t.client && t.client.contracts && t.client.contracts[0] ? t.client.contracts[0] :
               (t.client && t.client.maintenance ? { status: t.client.maintenance, name: t.client.contract } : null),
-    requester: t.requester_name || "Camille Dufour",
+    requester: t.requester_name || t.caller_name || "—",
     escalated: t.escalated_at ? { at: t.escalated_at, group: t.escalated_group, reason: t.escalated_reason } : (t.escalated || null),
     sla_due_at: t.sla_due_at || null,
     opened_at: t.opened_at || null,
@@ -272,43 +272,39 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
     );
   };
 
-  const events = [
-    { type: "system", at: "il y a 2 j · 09:14", text: "Ticket créé par Camille Dufour depuis le portail self-service.", icon: "+" },
-    {
-      type: "msg", from: "Camille Dufour", role: "user", at: "il y a 2 j · 09:14", color: "#6366f1",
-      body: "Bonjour, depuis ce matin mon VPN se déconnecte toutes les 10 minutes environ. Cela m'oblige à me reconnecter en plein milieu de mes appels Teams. J'ai redémarré le poste, sans amélioration.",
-      meta: "Envoyé depuis le portail · DESKTOP-CD24 · Windows 11 23H2",
-      attachments: [{ name: "vpn-log-extract.txt", size: "12 Ko" }],
-    },
-    { type: "system", at: "il y a 2 j · 09:18", text: "Auto-classification : Réseau · VPN · priorité Haute (impact individuel, urgence haute).", icon: "◇" },
-    { type: "system", at: "il y a 2 j · 09:18", text: "Assigné automatiquement à Tom Verdier (Support N2 — Réseau).", icon: "◉", actor: "Tom Verdier" },
-    {
-      type: "msg", from: "Tom Verdier", role: "agent", at: "il y a 2 j · 10:02", color: "#f59e0b",
-      body: "Bonjour Camille, merci pour le log. Je vois plusieurs renégociations IKEv2 toutes les 8–10 min. Pouvez-vous tester en filaire (port Ethernet du dock) sur la même journée et me dire si le problème persiste ? En parallèle je regarde côté concentrateur Astorya-VPN-02.",
-      reactions: [{ emoji: "👍", count: 1 }],
-    },
-    {
-      type: "msg", from: "Camille Dufour", role: "user", at: "il y a 1 j · 11:47", color: "#6366f1",
-      body: "Testé en filaire toute la matinée — aucune coupure. Donc effectivement c'est bien le Wi-Fi qui pose problème.",
-    },
-    { type: "status", at: "il y a 1 j · 14:20", text: "Statut passé de Ouvert à En cours.", actor: "Tom Verdier", from: "Ouvert", to: "En cours" },
-    {
-      type: "msg", from: "Tom Verdier", role: "agent", at: "il y a 1 j · 14:22", color: "#f59e0b",
-      body: "J'ai identifié un correctif : mise à jour du driver Intel AX211 vers la 23.50.1. Je pousse l'update via Intune ce soir 19h00, redémarrage automatique. Pourriez-vous laisser le poste allumé et branché ce soir ?",
-      attachments: [{ name: "intune-deployment-AX211.png", size: "184 Ko" }],
-    },
-    { type: "system", at: "hier · 19:03", text: "Déploiement Intune appliqué — driver Wi-Fi v23.50.1 installé.", icon: "✓", actor: "Système" },
-    {
-      type: "escalation", at: "il y a 35 min",
-      from: "Tom Verdier", to: "Léa Marchand", group: "Administrateur · Supervision",
-      reason: "Récurrence détectée sur 3 utilisateurs dock Dell étage 4. SLA résolution < 30 min, demande arbitrage Supervision pour déploiement groupé en heures ouvrées.",
-    },
-    {
-      type: "msg", from: "Hub Assistant", role: "bot", at: "il y a 35 min", color: "#0f172a",
-      body: "Bonjour Camille, j'ai détecté que le correctif a été appliqué hier soir. Le ticket est-il résolu de votre côté ? Vous pouvez répondre par oui / non, ou marquer comme résolu directement.",
-      isBot: true,
-    },
-  ];
+  // Fil de conversation construit dynamiquement depuis la base.
+  // Événements système issus du ticket réel uniquement (création, description,
+  // escalade éventuelle). Les messages humains arrivent via `addedMessages`
+  // (table comments, chargée par loadComments + subscribeCommentsForTicket).
+  const events = React.useMemo(() => {
+    if (!t || !t.id) return [];
+    const list = [];
+    if (display.opened_at) {
+      list.push({
+        type: "system", icon: "+",
+        at: fmtWhen(display.opened_at),
+        text: "Ticket créé" + (display.requester && display.requester !== "—" ? " par " + display.requester : "") + ".",
+      });
+    }
+    if (t.description && t.description.trim()) {
+      list.push({
+        type: "msg", from: display.requester !== "—" ? display.requester : "Demandeur",
+        role: "user", color: "#6366f1",
+        at: fmtWhen(display.opened_at),
+        body: t.description,
+      });
+    }
+    if (display.escalated) {
+      list.push({
+        type: "escalation", from: "—",
+        to: display.escalated.group || "Supervision",
+        group: display.escalated.group || "Supervision",
+        at: fmtWhen(display.escalated.at),
+        reason: display.escalated.reason || "—",
+      });
+    }
+    return list;
+  }, [t.id, t.description, display.opened_at, display.requester, display.escalated]);
 
   return (
     <div style={tdStyles.frame}>
@@ -459,7 +455,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
               </div>
               <h1 style={tdStyles.h1}>{display.title}</h1>
               <p style={tdStyles.subtitle}>
-                Ticket <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{TICKET_ID}</span> · Demandeur {display.requester} · {(t.msgs != null ? t.msgs : 11)} messages
+                Ticket <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{TICKET_ID}</span> · Demandeur {display.requester} · {addedMessages.length} message{addedMessages.length > 1 ? "s" : ""}
               </p>
 
               {/* SLA strip — calculé depuis sla_due_at + opened_at,

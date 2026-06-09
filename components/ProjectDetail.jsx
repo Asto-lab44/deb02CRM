@@ -296,7 +296,6 @@ const ProjectDetail = () => {
 
             {/* Livrables avec édition inline */}
             <ItemsBlock project={project} reload={reload} fmtEUR={fmtEUR} S={S} />
-            </div>
 
             {/* Timeline */}
             <div style={S.card}>

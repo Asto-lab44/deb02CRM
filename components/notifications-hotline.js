@@ -43,12 +43,12 @@
       if (ev.matched_client_id) {
         const { data: client } = await s
           .from("clients")
-          .select("id, raison_sociale, name, email, ville, city, phone, data")
+          .select("id, name, city, website, data")
           .eq("id", ev.matched_client_id)
           .single();
         if (client) {
-          ctx.company  = client.raison_sociale || client.name || "";
-          ctx.email = client.email || "";
+          // raison_sociale est dans le jsonb data, name est la colonne directe
+          ctx.company  = (client.data && client.data.raison_sociale) || client.name || "";
           ctx.name = ctx.company || ctx.name;
         }
         // Cherche le contact précis dont le téléphone matche l'appelant.

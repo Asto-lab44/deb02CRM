@@ -1,48 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Template CRM custom 3CX V20 — Hub Astorya (v2)
-  ─────────────────────────────────────────────────────────────────────
-  Schéma aligné sur la version officielle (Salesforce/HubSpot).
-  Ajouts par rapport à v1 : XmlOnlyParams, RuleValue, Variable, Output.
--->
-<Crm Name="HubAstorya" Version="1" Country="FR" SupportsEmojis="true" ListSeparator="," XmlOnlyParams="True">
-
+<Crm xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Country="FR" Name="HubAstorya" Version="1" SupportsEmojis="true" SupportsTranscription="false" ListPageSize="0">
+  <Number Prefix="Off" MaxLength="" />
+  <Connection MaxConcurrentRequests="16" />
   <Parameters>
-    <Parameter Name="WebhookUrl" Type="String" Parent="General" Editor="String" Title="URL Webhook Hub" Default="https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook" />
-    <Parameter Name="Secret" Type="String" Parent="General" Editor="String" Title="Secret X-3CX-Secret" Default="" />
+    <Parameter Name="WebhookUrl" Type="String" Parent="General Configuration" Editor="String" Title="URL Webhook Hub:" Validation="" Default="https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook" ListValues="" RequestUrl="" RequestUrlParameters="" ResponseScenario="" />
+    <Parameter Name="Secret" Type="String" Parent="General Configuration" Editor="String" Title="Secret X-3CX-Secret:" Validation="" Default="" ListValues="" RequestUrl="" RequestUrlParameters="" ResponseScenario="" />
   </Parameters>
-
   <Authentication Type="No" />
-
   <Scenarios>
-    <Scenario Id="ContactLookup" Type="REST">
-      <Request SkipIf="" Url="[WebhookUrl]" RequestEncoding="Json" RequestType="POST" ResponseType="Json">
-        <Headers>
-          <Header Key="Content-Type" Value="application/json" />
-          <Header Key="X-3CX-Secret" Value="[Secret]" />
-        </Headers>
-        <PostValues>
-          <Value Key="CallerID"   Passed="Number" />
-          <Value Key="Extension"  Passed="AgentID" />
-          <Value Key="Direction"  Value="inbound" />
-          <Value Key="Status"     Value="ringing" />
-          <Value Key="Department" Value="ASTO" />
+    <Scenario Id="" Type="REST" EntityId="Contacts" EntityOrder="">
+      <Request SkipIf="" Url="[WebhookUrl]" MessagePasses="0" Message="" RequestContentType="" RequestEncoding="Json" RequestType="Post" ResponseType="Json">
+        <PostValues Key="" If="" SkipIf="">
+          <Value Key="Secret" If="" SkipIf="" Passes="0" Type="String">[Secret]</Value>
+          <Value Key="CallerID" If="" SkipIf="" Passes="0" Type="String">[Number]</Value>
+          <Value Key="Extension" If="" SkipIf="" Passes="0" Type="String">[Agent]</Value>
+          <Value Key="Direction" If="" SkipIf="" Passes="0" Type="String">inbound</Value>
+          <Value Key="Status" If="" SkipIf="" Passes="0" Type="String">ringing</Value>
+          <Value Key="Department" If="" SkipIf="" Passes="0" Type="String">ASTO</Value>
         </PostValues>
       </Request>
       <Rules>
-        <Rule Type="Any">
-          <RuleValue Path="created" />
-        </Rule>
+        <Rule Type="Any" Ethalon="">created</Rule>
       </Rules>
       <Variables>
-        <Variable Name="EventID" Path="created" />
+        <Variable Name="EventId" LookupValue="" Path="created"><Filter /></Variable>
       </Variables>
       <Outputs AllowEmpty="true">
-        <Output Type="ContactUrl" Passed="created" />
-        <Output Type="FirstName"  Value="Hub" />
-        <Output Type="LastName"   Value="Astorya" />
+        <Output Type="ContactUrl" Passes="0" Value="https://deb02-crm.vercel.app/" />
+        <Output Type="FirstName" Passes="0" Value="Hub" />
+        <Output Type="LastName" Passes="0" Value="Astorya" />
       </Outputs>
     </Scenario>
   </Scenarios>
-
 </Crm>

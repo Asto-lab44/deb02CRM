@@ -60,8 +60,18 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-  // ─── 1. Vérification du secret ──────────────────────────────────
-  const providedSecret = req.headers.get("x-3cx-secret") || "";
+  // ─── 1. Parse du payload (avant secret car 3CX V20 envoie le secret
+  //        dans le body, pas dans un header custom) ──
+  let body: any = null;
+  try {
+    body = await req.json();
+  } catch (e) {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  // ─── 2. Vérification du secret (header OU body — V20 ne supporte
+  //        pas bien les headers custom dans les templates CRM) ──
+  const providedSecret = req.headers.get("x-3cx-secret") || body?.Secret || body?.secret || "";
   const { data: secretRow } = await supabase
     .from("app_settings")
     .select("value")
@@ -72,14 +82,6 @@ Deno.serve(async (req) => {
   if (!expectedSecret || providedSecret !== expectedSecret) {
     console.warn("[3cx] secret mismatch");
     return new Response("Unauthorized", { status: 401 });
-  }
-
-  // ─── 2. Parse du payload ────────────────────────────────────────
-  let body: any = null;
-  try {
-    body = await req.json();
-  } catch (e) {
-    return new Response("Invalid JSON", { status: 400 });
   }
 
   // Champs 3CX (V20 Enterprise — schéma standard CRM integration)

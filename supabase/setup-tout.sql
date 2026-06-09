@@ -452,6 +452,25 @@ create or replace view public.v_actions_todo as
   group by assigned_to;
 
 -- ════════════════════════════════════════════════════════════════════
+-- 12.4 NOTIFICATIONS — Notifications in-app multi-utilisateurs
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.notifications (
+  id            uuid primary key default gen_random_uuid(),
+  recipient_id  uuid references public.profiles(id) on delete cascade,
+  -- Si recipient_id est null → broadcast à tout le monde
+  type          text not null,                          -- "project_stage", "ticket_escalated", "client_proc_collective"…
+  title         text not null,
+  body          text,
+  link          text,                                    -- URL à ouvrir au clic
+  severity      text default 'info' check (severity in ('info','success','warn','error')),
+  read_at       timestamptz,
+  created_at    timestamptz default now(),
+  payload       jsonb default '{}'::jsonb
+);
+create index if not exists idx_notifications_recipient on public.notifications(recipient_id, read_at, created_at desc);
+create index if not exists idx_notifications_unread    on public.notifications(recipient_id) where read_at is null;
+
+-- ════════════════════════════════════════════════════════════════════
 -- 12.5 HELPER : groupes de l'utilisateur courant (après que profile_groups existe)
 -- ════════════════════════════════════════════════════════════════════
 create or replace function public.current_user_groups()
@@ -603,6 +622,7 @@ alter table public.projects         enable row level security;
 alter table public.project_items    enable row level security;
 alter table public.project_team     enable row level security;
 alter table public.project_events   enable row level security;
+alter table public.notifications    enable row level security;
 
 -- Politique : tout user authentifié peut tout faire (les 2 users Astorya
 -- sont co-administrateurs). À durcir plus tard avec current_user_groups()
@@ -614,7 +634,7 @@ begin
     'profiles','groups','profile_groups','clients','contract_templates','contracts','assets',
     'tickets','comments','opportunities','contacts','actions',
     'calls','call_transcripts',
-    'projects','project_items','project_team','project_events'
+    'projects','project_items','project_team','project_events','notifications'
   ])
   loop
     execute format('drop policy if exists "authenticated_read" on public.%I', t);
@@ -705,6 +725,7 @@ begin
   begin alter publication supabase_realtime add table public.projects;     exception when others then null; end;
   begin alter publication supabase_realtime add table public.project_items; exception when others then null; end;
   begin alter publication supabase_realtime add table public.project_events; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.notifications;  exception when others then null; end;
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════

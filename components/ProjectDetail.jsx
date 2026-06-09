@@ -194,6 +194,17 @@ const ProjectDetail = () => {
 
   return (
     <div style={S.frame}>
+      {/* Styles impression PDF */}
+      <style>{`
+        @media print {
+          aside, .topbar-actions, .pdf-hide { display: none !important; }
+          body * { visibility: hidden; }
+          .pdf-page, .pdf-page * { visibility: visible; }
+          .pdf-page { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; box-shadow: none !important; }
+          .pdf-page table, .pdf-page .card { box-shadow: none !important; }
+          @page { margin: 12mm; }
+        }
+      `}</style>
       {/* SIDEBAR */}
       <aside style={S.sidebar}>
         <a href="/" style={{ ...S.brand, textDecoration: "none", color: "inherit" }}>
@@ -220,7 +231,7 @@ const ProjectDetail = () => {
       </aside>
 
       {/* MAIN */}
-      <main style={S.main}>
+      <main style={S.main} className="pdf-page">
         {/* Topbar */}
         <header style={S.topbar}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -234,6 +245,7 @@ const ProjectDetail = () => {
             {overdue && <span style={S.overdueBadge}>⏰ EN RETARD</span>}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => window.print()} style={S.btnGhost} title="Télécharger en PDF (via dialog impression)">↓ PDF</button>
             {project.stage !== "clos" && project.stage !== "annule" && (
               <>
                 <button onClick={cancel} style={S.btnDanger}>✕ Annuler</button>
@@ -282,41 +294,8 @@ const ProjectDetail = () => {
               </div>
             </div>
 
-            {/* Livrables */}
-            <div style={S.card}>
-              <div style={S.cardHead}>
-                <h2 style={S.h2}>📦 Livrables ({(project.items || []).length})</h2>
-              </div>
-              {(project.items || []).length === 0 ? (
-                <div style={S.empty}>Aucun livrable. Ils sont créés à la sync depuis Sage ou manuellement.</div>
-              ) : (
-                <table style={S.table}>
-                  <thead>
-                    <tr>
-                      <th style={S.th}>Désignation</th>
-                      <th style={{ ...S.th, textAlign: "right" }}>Qté</th>
-                      <th style={{ ...S.th, textAlign: "right" }}>PU HT</th>
-                      <th style={{ ...S.th, textAlign: "right" }}>Total HT</th>
-                      <th style={S.th}>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {project.items.map((it) => (
-                      <tr key={it.id}>
-                        <td style={S.td}>
-                          <div style={{ fontWeight: 600 }}>{it.designation}</div>
-                          {it.ref_produit && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{it.ref_produit}</div>}
-                          {it.serial_numbers && it.serial_numbers.length > 0 && <div style={{ fontSize: 10.5, color: "#0e7a55", marginTop: 2 }}>SN : {it.serial_numbers.join(", ")}</div>}
-                        </td>
-                        <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
-                        <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(it.unit_price_ht)}</td>
-                        <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{fmtEUR(it.total_ht)}</td>
-                        <td style={S.td}><ItemStatusBadge status={it.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+            {/* Livrables avec édition inline */}
+            <ItemsBlock project={project} reload={reload} fmtEUR={fmtEUR} S={S} />
             </div>
 
             {/* Timeline */}
@@ -402,6 +381,160 @@ const ProjectDetail = () => {
 };
 
 // ───── Sous-composants
+const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
+  const [editingId, setEditingId] = React.useState(null);
+  const [draft, setDraft] = React.useState({});
+
+  const startEdit = (it) => {
+    setEditingId(it.id);
+    setDraft({ ...it });
+  };
+  const cancelEdit = () => { setEditingId(null); setDraft({}); };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    // Recalcule total_ht à partir de quantity * unit_price_ht
+    const qty = parseFloat(draft.quantity) || 0;
+    const pu = parseFloat(draft.unit_price_ht) || 0;
+    const total = qty * pu;
+    const patch = {
+      designation: draft.designation,
+      quantity: qty,
+      unit: draft.unit || "u",
+      unit_price_ht: pu,
+      total_ht: total,
+      status: draft.status,
+      ref_produit: draft.ref_produit || null,
+      delivered_qty: parseFloat(draft.delivered_qty) || 0,
+    };
+    await window.api.projects.updateItem(editingId, patch);
+    if (window.HubToast) window.HubToast.success("✓ Livrable mis à jour");
+    cancelEdit();
+    reload();
+  };
+
+  const addItem = async () => {
+    if (!window.HubModal) return;
+    const designation = await window.HubModal.prompt({ title: "Nouveau livrable", label: "Désignation", placeholder: "ex : Astorya Suite Enterprise 250 licences", okLabel: "Continuer" });
+    if (!designation || !designation.trim()) return;
+    try {
+      await window.api.projects.addItem(project.id, {
+        designation: designation.trim(),
+        quantity: 1, unit: "u", unit_price_ht: 0, total_ht: 0, status: "todo",
+      });
+      if (window.HubToast) window.HubToast.success("✓ Livrable ajouté — édite les détails inline");
+      reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+
+  const removeItem = async (it) => {
+    const ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Supprimer ce livrable ?", message: it.designation,
+      okLabel: "Supprimer", okStyle: "danger",
+    }) : confirm("Supprimer ?");
+    if (!ok) return;
+    await window.api.projects.removeItem(it.id);
+    if (window.HubToast) window.HubToast.success("✓ Livrable supprimé");
+    reload();
+  };
+
+  const cellInput = { width: "100%", border: "1px solid #cbd5e1", padding: "4px 8px", borderRadius: 5, fontSize: 12, fontFamily: "inherit", outline: "none", background: "#fff" };
+
+  return (
+    <div style={S.card}>
+      <div style={S.cardHead}>
+        <h2 style={S.h2}>📦 Livrables ({(project.items || []).length})</h2>
+        <button onClick={addItem} style={S.smallBtn}>+ Ajouter un livrable</button>
+      </div>
+      {(project.items || []).length === 0 ? (
+        <div style={S.empty}>Aucun livrable. Clique « + Ajouter un livrable » ou importe via CSV.</div>
+      ) : (
+        <table style={S.table}>
+          <thead>
+            <tr>
+              <th style={S.th}>Désignation</th>
+              <th style={{ ...S.th, textAlign: "right", width: 70 }}>Qté</th>
+              <th style={{ ...S.th, textAlign: "right", width: 100 }}>PU HT</th>
+              <th style={{ ...S.th, textAlign: "right", width: 100 }}>Total HT</th>
+              <th style={{ ...S.th, width: 110 }}>Statut</th>
+              <th style={{ ...S.th, width: 60 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {project.items.map((it) => {
+              const isEdit = editingId === it.id;
+              if (isEdit) {
+                return (
+                  <tr key={it.id} style={{ background: "#fafbfc" }}>
+                    <td style={S.td}>
+                      <input value={draft.designation || ""} onChange={(e) => setDraft({ ...draft, designation: e.target.value })} style={cellInput} placeholder="Désignation" />
+                      <input value={draft.ref_produit || ""} onChange={(e) => setDraft({ ...draft, ref_produit: e.target.value })} style={{ ...cellInput, marginTop: 4, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} placeholder="Ref produit (optionnel)" />
+                    </td>
+                    <td style={{ ...S.td, textAlign: "right" }}>
+                      <input type="number" value={draft.quantity || 0} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }} />
+                    </td>
+                    <td style={{ ...S.td, textAlign: "right" }}>
+                      <input type="number" step="0.01" value={draft.unit_price_ht || 0} onChange={(e) => setDraft({ ...draft, unit_price_ht: e.target.value })} style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }} />
+                    </td>
+                    <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+                      {fmtEUR((parseFloat(draft.quantity) || 0) * (parseFloat(draft.unit_price_ht) || 0))}
+                    </td>
+                    <td style={S.td}>
+                      <select value={draft.status || "todo"} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={cellInput}>
+                        <option value="todo">À faire</option>
+                        <option value="in_progress">En cours</option>
+                        <option value="delivered">Livré</option>
+                        <option value="installed">Installé</option>
+                        <option value="validated">Validé</option>
+                        <option value="cancelled">Annulé</option>
+                      </select>
+                    </td>
+                    <td style={S.td}>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button onClick={saveEdit} title="Enregistrer" style={{ padding: "4px 8px", background: "#10b981", color: "#fff", border: 0, borderRadius: 5, fontSize: 11, cursor: "pointer" }}>✓</button>
+                        <button onClick={cancelEdit} title="Annuler" style={{ padding: "4px 8px", background: "transparent", color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 5, fontSize: 11, cursor: "pointer" }}>×</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+              return (
+                <tr key={it.id} onDoubleClick={() => startEdit(it)} title="Double-clique pour éditer">
+                  <td style={S.td}>
+                    <div style={{ fontWeight: 600 }}>{it.designation}</div>
+                    {it.ref_produit && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{it.ref_produit}</div>}
+                    {it.serial_numbers && it.serial_numbers.length > 0 && <div style={{ fontSize: 10.5, color: "#0e7a55", marginTop: 2 }}>SN : {it.serial_numbers.join(", ")}</div>}
+                  </td>
+                  <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
+                  <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(it.unit_price_ht)}</td>
+                  <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{fmtEUR(it.total_ht)}</td>
+                  <td style={S.td}><ItemStatusBadge status={it.status} /></td>
+                  <td style={S.td}>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => startEdit(it)} title="Éditer" style={{ padding: "4px 8px", background: "transparent", color: "#3730a3", border: "1px solid #c7d2fe", borderRadius: 5, fontSize: 11, cursor: "pointer" }}>✎</button>
+                      <button onClick={() => removeItem(it)} title="Supprimer" style={{ padding: "4px 8px", background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 5, fontSize: 11, cursor: "pointer" }}>×</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {/* Total ligne */}
+            <tr style={{ background: "#fafbfc", borderTop: "2px solid #0f172a" }}>
+              <td colSpan={3} style={{ ...S.td, textAlign: "right", fontWeight: 700, color: "#0f172a", textTransform: "uppercase", fontSize: 11, letterSpacing: 0.5 }}>TOTAL HT</td>
+              <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
+                {fmtEUR((project.items || []).reduce((s, it) => s + (Number(it.total_ht) || 0), 0))}
+              </td>
+              <td colSpan={2} style={S.td}></td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
 const Meta = ({ label, val, strong, editable, onClick }) => (
   <div style={{ padding: 10, background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, cursor: editable ? "pointer" : "default" }} onClick={onClick}>
     <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</div>
@@ -470,6 +603,7 @@ const S = {
   overdueBadge: { fontSize: 10, padding: "3px 8px", borderRadius: 999, background: "#fee2e2", color: "#991b1b", fontWeight: 800, letterSpacing: 0.4 },
   btnPrimary: { padding: "8px 16px", background: "#0f172a", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
   btnDanger: { padding: "8px 12px", background: "#fff", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  btnGhost: { padding: "8px 12px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" },
 
   stepperWrap: { display: "flex", padding: "20px 28px", background: "#fff", borderBottom: "1px solid #eef1f5", gap: 0, overflowX: "auto" },
   stepperItem: { flex: 1, minWidth: 90, position: "relative", display: "flex", flexDirection: "column", alignItems: "center" },

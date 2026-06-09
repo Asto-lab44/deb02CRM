@@ -864,6 +864,20 @@
         payload: { to: newStage, reason: reason || null },
         author_id: cuId, author_name: cuName,
       });
+      // Notification au chef de projet (si défini et différent de l'auteur)
+      const stageLabels = { recu: "Reçu", devis_valide: "Devis validé", preparation: "En préparation", pret_livrer: "Prêt à livrer", livre: "Livré", installe: "Installé", clos: "Clos", annule: "Annulé" };
+      const severity = newStage === "clos" ? "success" : newStage === "annule" ? "error" : (newStage === "livre" || newStage === "installe" ? "success" : "info");
+      const targetId = (data && data.pm_id && data.pm_id !== cuId) ? data.pm_id : null;
+      // Si pas de chef projet → broadcast (recipient_id null)
+      await s.from("notifications").insert({
+        recipient_id: targetId,
+        type: "project_stage",
+        title: "Projet " + (data?.sage_ref || data?.name || id) + " → " + (stageLabels[newStage] || newStage),
+        body: (cuName || "Quelqu'un") + " a fait avancer le projet" + (reason ? " · " + reason : ""),
+        link: "/projet?id=" + id,
+        severity,
+        payload: { project_id: id, from: data?.stage, to: newStage, author: cuName },
+      });
       return data;
     },
 
@@ -901,6 +915,37 @@
       return data;
     },
 
+    /** Ajoute/modifie/supprime un livrable (project_item). */
+    async addItem(projectId, item) {
+      const s = supa();
+      if (!s) return null;
+      const row = { ...item, project_id: projectId };
+      delete row.id;
+      const { data, error } = await s.from("project_items").insert(row).select().maybeSingle();
+      if (error) { console.warn("[api.projects.addItem]", error.message); return null; }
+      const cuId = await getCurrentUserId();
+      await s.from("project_events").insert({
+        project_id: projectId, type: "item_add",
+        payload: { designation: row.designation, qty: row.quantity },
+        author_id: cuId, author_name: getCurrentUserName(),
+      });
+      return data;
+    },
+
+    async updateItem(itemId, patch) {
+      const s = supa();
+      if (!s) return null;
+      const { data, error } = await s.from("project_items").update(patch).eq("id", itemId).select().maybeSingle();
+      if (error) console.warn("[api.projects.updateItem]", error.message);
+      return data;
+    },
+
+    async removeItem(itemId) {
+      const s = supa();
+      if (!s) return;
+      await s.from("project_items").delete().eq("id", itemId);
+    },
+
     /** Upsert depuis une commande Sage. Idempotent via sage_ref.
      *  Si le projet existe déjà (même sage_ref) → update. Sinon → create. */
     async syncFromSage(sageOrder) {
@@ -928,6 +973,68 @@
       }
       const arr = lsGet("projects").filter((p) => p.id !== id);
       lsSet("projects", arr);
+    },
+  };
+
+  // ───────────────────────────────────────────────────────────────────
+  // §6.7 NOTIFICATIONS — in-app notifications (cloche top-right)
+  // ───────────────────────────────────────────────────────────────────
+  const notifications = {
+    /** Liste les notifs pour l'user courant (ou broadcast). */
+    async list({ unreadOnly } = {}) {
+      const s = supa();
+      if (!s) return [];
+      const uid = await getCurrentUserId();
+      let q = s.from("notifications").select("*").order("created_at", { ascending: false }).limit(30);
+      if (uid) q = q.or("recipient_id.eq." + uid + ",recipient_id.is.null");
+      else q = q.is("recipient_id", null);
+      if (unreadOnly) q = q.is("read_at", null);
+      const { data, error } = await q;
+      if (error) { console.warn("[api.notifications.list]", error.message); return []; }
+      return data || [];
+    },
+
+    async unreadCount() {
+      const s = supa();
+      if (!s) return 0;
+      const uid = await getCurrentUserId();
+      let q = s.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null);
+      if (uid) q = q.or("recipient_id.eq." + uid + ",recipient_id.is.null");
+      else q = q.is("recipient_id", null);
+      const { count } = await q;
+      return count || 0;
+    },
+
+    async markRead(id) {
+      const s = supa();
+      if (!s) return;
+      await s.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
+    },
+
+    async markAllRead() {
+      const s = supa();
+      if (!s) return;
+      const uid = await getCurrentUserId();
+      let q = s.from("notifications").update({ read_at: new Date().toISOString() }).is("read_at", null);
+      if (uid) q = q.or("recipient_id.eq." + uid + ",recipient_id.is.null");
+      await q;
+    },
+
+    /** Crée une notification ciblée ou broadcast. */
+    async create({ recipient_id, type, title, body, link, severity, payload }) {
+      const s = supa();
+      if (!s) return null;
+      const { data, error } = await s.from("notifications").insert({
+        recipient_id: recipient_id || null,
+        type: type || "info",
+        title: title || "Notification",
+        body: body || null,
+        link: link || null,
+        severity: severity || "info",
+        payload: payload || {},
+      }).select().maybeSingle();
+      if (error) console.warn("[api.notifications.create]", error.message);
+      return data;
     },
   };
 
@@ -980,5 +1087,5 @@
   // ───────────────────────────────────────────────────────────────────
   // §8. EXPORT global
   // ───────────────────────────────────────────────────────────────────
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, auth };
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, notifications, auth };
 })();

@@ -1417,6 +1417,20 @@ const ClientPage = () => {
             )}
           </section>
 
+          {/* ─── MODULE TECHNIQUE ──────────────────────────────────────
+              Sections cf. tableau Monday "ERP Astorya > Base client".
+              Données stockées dans clients.data.tech (jsonb). */}
+          <TechModule
+            clientId={urlId}
+            value={(loadedClient && loadedClient.tech) || {}}
+            onChange={async (tech) => {
+              try {
+                const updated = await window.api.clients.update(urlId, { tech });
+                if (updated) setLoadedClient(updated);
+              } catch (e) { console.warn("[ClientPage] save tech:", e); }
+            }}
+          />
+
           <div style={{ height: 24 }} />
         </div>
       </main>
@@ -2029,6 +2043,178 @@ const cliStyles = {
   iconMini: { width: 24, height: 24, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, color: "#94a3b8", cursor: "pointer", fontSize: 11 },
 
   fieldChip: { fontSize: 12, padding: "1px 8px", borderRadius: 4, background: "#eef1f5", color: "#475569", fontWeight: 500 },
+};
+
+// ════════════════════════════════════════════════════════════════════
+// TechModule — État technique du client (cf. Monday "Base client")
+// Sections : Infrastructure, Sauvegarde, Cybersécurité, Mail, Logiciels,
+//            Téléphonie, Web, Lien internet
+// Stockage : clients.data.tech = { [fieldId]: status }
+// ════════════════════════════════════════════════════════════════════
+const TECH_SECTIONS = [
+  { icon: "🖥", title: "Infrastructure & serveur", color: "#4f46e5", fields: [
+    { id: "serveur_physique",  label: "Serveur Physique" },
+    { id: "serveur_cloud",     label: "Serveur CLOUD" },
+    { id: "owncloud",          label: "Owncloud" },
+    { id: "nas",               label: "NAS" },
+    { id: "maintenance",       label: "Maintenance / Infogérance" },
+    { id: "imprimante",        label: "Imprimante (équipement)" },
+    { id: "wifi",              label: "Wifi" },
+    { id: "firewall",          label: "Firewall" },
+    { id: "onduleur",          label: "Onduleur" },
+  ]},
+  { icon: "💾", title: "Sauvegarde", color: "#0ea5e9", fields: [
+    { id: "sauvegarde_serveur_local",  label: "Sauvegarde serveur local" },
+    { id: "sauvegarde_serveur_cloud",  label: "Sauvegarde serveur CLOUD" },
+    { id: "sauvegarde_externe_local",  label: "Sauvegarde externe du serveur local" },
+    { id: "sauvegarde_c2",             label: "Sauvegarde C2" },
+    { id: "nas_offsite",               label: "NAS Offsite" },
+    { id: "sauvegarde_3_2_1",          label: "Sauvegarde 3.2.1" },
+  ]},
+  { icon: "🛡", title: "Cybersécurité", color: "#dc2626", fields: [
+    { id: "antivirus_edr",       label: "Antivirus EDR poste" },
+    { id: "antispam",            label: "Antispam" },
+    { id: "passbolt",            label: "Passbolt / coffre numérique" },
+    { id: "bitlockage",          label: "Bitlockage" },
+    { id: "phishing",            label: "Campagne de phishing" },
+    { id: "formation_rsync",     label: "Formation RSYNC" },
+  ]},
+  { icon: "📧", title: "Mail", color: "#a855f7", fields: [
+    { id: "mail_pop_imap",     label: "Mail POP / IMAP" },
+    { id: "exchange",          label: "Exchange Plan1 / Plan2" },
+    { id: "o365",              label: "Microsoft 365" },
+    { id: "google_workspace",  label: "Google Workspace" },
+  ]},
+  { icon: "🧮", title: "Logiciels métier", color: "#10b981", fields: [
+    { id: "sage",       label: "Sage" },
+    { id: "ebp",        label: "EBP" },
+    { id: "factorial",  label: "Factorial" },
+  ]},
+  { icon: "📞", title: "Téléphonie", color: "#f59e0b", fields: [
+    { id: "telephonie_ovh",     label: "Téléphonie (OVH)" },
+    { id: "mobile_telephonie",  label: "Mobile téléphonie" },
+    { id: "teams_phone",        label: "Teams & Phone" },
+  ]},
+  { icon: "🌐", title: "Web", color: "#0891b2", fields: [
+    { id: "nom_de_domaine",   label: "Nom de domaine" },
+    { id: "hebergement_web",  label: "Hébergement Web" },
+  ]},
+  { icon: "🔌", title: "Lien internet", color: "#8b5cf6", fields: [
+    { id: "lien_internet",            label: "Lien internet principal" },
+    { id: "type_lien_internet",       label: "Type de lien (ADSL / VDSL / FTTH …)" },
+    { id: "partenaire_lien_internet", label: "Partenaire (OVH, Free Pro …)" },
+    { id: "lien_internet_secours",    label: "Lien internet (secours)" },
+  ]},
+];
+
+const TECH_STATUSES = [
+  { value: "",            label: "—",            bg: "#fafbfc", color: "#94a3b8" },
+  { value: "actif",       label: "● Actif",      bg: "#dcfce7", color: "#065f46" },
+  { value: "inactif",     label: "○ Inactif",    bg: "#fee2e2", color: "#991b1b" },
+  { value: "a_installer", label: "▲ À installer",bg: "#fef3c7", color: "#92400e" },
+  { value: "non_concerne",label: "✕ Non concerné",bg: "#f1f5f9", color: "#64748b" },
+  { value: "a_verifier",  label: "? À vérifier", bg: "#dbeafe", color: "#1e40af" },
+];
+
+const TechModule = ({ clientId, value, onChange }) => {
+  const [tech, setTech] = React.useState(value || {});
+  React.useEffect(() => { setTech(value || {}); }, [value]);
+  const [openSections, setOpenSections] = React.useState(() => new Set(TECH_SECTIONS.slice(0, 3).map((s) => s.title)));
+  const [saving, setSaving] = React.useState(false);
+
+  const setField = (id, v) => {
+    const next = { ...tech, [id]: v };
+    setTech(next);
+    // Debounce sauvegarde 400ms
+    if (setField._timer) clearTimeout(setField._timer);
+    setField._timer = setTimeout(async () => {
+      setSaving(true);
+      try { await onChange(next); } finally { setSaving(false); }
+    }, 400);
+  };
+
+  const toggleSection = (title) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title); else next.add(title);
+      return next;
+    });
+  };
+
+  // Compteur global
+  const totalFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.length, 0);
+  const filledFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.filter((f) => tech[f.id] && tech[f.id] !== "").length, 0);
+
+  return (
+    <section style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 18, marginTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.3 }}>
+            🛠 Module technique
+          </h2>
+          <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0" }}>
+            État du parc IT du client · {filledFields}/{totalFields} champs renseignés
+          </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {saving && <span style={{ fontSize: 11, color: "#10b981" }}>● Sauvegarde…</span>}
+          <span style={{ fontSize: 10.5, padding: "2px 8px", background: "#eef2ff", color: "#3730a3", borderRadius: 999, fontWeight: 700 }}>
+            {Math.round((filledFields / totalFields) * 100)}%
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {TECH_SECTIONS.map((sec) => {
+          const isOpen = openSections.has(sec.title);
+          const secFilled = sec.fields.filter((f) => tech[f.id] && tech[f.id] !== "").length;
+          return (
+            <div key={sec.title} style={{ border: "1px solid #eef1f5", borderRadius: 10, overflow: "hidden" }}>
+              <button
+                onClick={() => toggleSection(sec.title)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 14px", background: isOpen ? sec.color + "0d" : "#fafbfc",
+                  border: 0, cursor: "pointer", textAlign: "left",
+                }}
+              >
+                <span style={{ fontSize: 16 }}>{sec.icon}</span>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{sec.title}</span>
+                <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{secFilled}/{sec.fields.length}</span>
+                <span style={{ fontSize: 12, color: "#94a3b8" }}>{isOpen ? "▾" : "▸"}</span>
+              </button>
+              {isOpen && (
+                <div style={{ padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {sec.fields.map((f) => {
+                    const v = tech[f.id] || "";
+                    const meta = TECH_STATUSES.find((s) => s.value === v) || TECH_STATUSES[0];
+                    return (
+                      <label key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8 }}>
+                        <span style={{ flex: 1, fontSize: 12, color: "#0f172a", fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.label}</span>
+                        <select
+                          value={v}
+                          onChange={(e) => setField(f.id, e.target.value)}
+                          style={{
+                            padding: "3px 6px", border: "1px solid " + (v ? meta.color + "40" : "#e2e8f0"),
+                            borderRadius: 5, fontSize: 11, fontWeight: 700,
+                            background: meta.bg, color: meta.color, cursor: "pointer", outline: "none",
+                          }}
+                        >
+                          {TECH_STATUSES.map((s) => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 };
 
 window.ClientPage = ClientPage;

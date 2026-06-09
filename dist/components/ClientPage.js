@@ -2822,7 +2822,20 @@ var ClientPage = () => {
         color: "#64748b"
       }
     }, t.opened_at ? new Date(t.opened_at).toLocaleDateString("fr-FR") : "—"));
-  }))))), /*#__PURE__*/React.createElement("div", {
+  }))))), /*#__PURE__*/React.createElement(TechModule, {
+    clientId: urlId,
+    value: loadedClient && loadedClient.tech || {},
+    onChange: async tech => {
+      try {
+        var updated = await window.api.clients.update(urlId, {
+          tech
+        });
+        if (updated) setLoadedClient(updated);
+      } catch (e) {
+        console.warn("[ClientPage] save tech:", e);
+      }
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 24
     }
@@ -4582,5 +4595,387 @@ var cliStyles = {
     color: "#475569",
     fontWeight: 500
   }
+};
+
+// ════════════════════════════════════════════════════════════════════
+// TechModule — État technique du client (cf. Monday "Base client")
+// Sections : Infrastructure, Sauvegarde, Cybersécurité, Mail, Logiciels,
+//            Téléphonie, Web, Lien internet
+// Stockage : clients.data.tech = { [fieldId]: status }
+// ════════════════════════════════════════════════════════════════════
+var TECH_SECTIONS = [{
+  icon: "🖥",
+  title: "Infrastructure & serveur",
+  color: "#4f46e5",
+  fields: [{
+    id: "serveur_physique",
+    label: "Serveur Physique"
+  }, {
+    id: "serveur_cloud",
+    label: "Serveur CLOUD"
+  }, {
+    id: "owncloud",
+    label: "Owncloud"
+  }, {
+    id: "nas",
+    label: "NAS"
+  }, {
+    id: "maintenance",
+    label: "Maintenance / Infogérance"
+  }, {
+    id: "imprimante",
+    label: "Imprimante (équipement)"
+  }, {
+    id: "wifi",
+    label: "Wifi"
+  }, {
+    id: "firewall",
+    label: "Firewall"
+  }, {
+    id: "onduleur",
+    label: "Onduleur"
+  }]
+}, {
+  icon: "💾",
+  title: "Sauvegarde",
+  color: "#0ea5e9",
+  fields: [{
+    id: "sauvegarde_serveur_local",
+    label: "Sauvegarde serveur local"
+  }, {
+    id: "sauvegarde_serveur_cloud",
+    label: "Sauvegarde serveur CLOUD"
+  }, {
+    id: "sauvegarde_externe_local",
+    label: "Sauvegarde externe du serveur local"
+  }, {
+    id: "sauvegarde_c2",
+    label: "Sauvegarde C2"
+  }, {
+    id: "nas_offsite",
+    label: "NAS Offsite"
+  }, {
+    id: "sauvegarde_3_2_1",
+    label: "Sauvegarde 3.2.1"
+  }]
+}, {
+  icon: "🛡",
+  title: "Cybersécurité",
+  color: "#dc2626",
+  fields: [{
+    id: "antivirus_edr",
+    label: "Antivirus EDR poste"
+  }, {
+    id: "antispam",
+    label: "Antispam"
+  }, {
+    id: "passbolt",
+    label: "Passbolt / coffre numérique"
+  }, {
+    id: "bitlockage",
+    label: "Bitlockage"
+  }, {
+    id: "phishing",
+    label: "Campagne de phishing"
+  }, {
+    id: "formation_rsync",
+    label: "Formation RSYNC"
+  }]
+}, {
+  icon: "📧",
+  title: "Mail",
+  color: "#a855f7",
+  fields: [{
+    id: "mail_pop_imap",
+    label: "Mail POP / IMAP"
+  }, {
+    id: "exchange",
+    label: "Exchange Plan1 / Plan2"
+  }, {
+    id: "o365",
+    label: "Microsoft 365"
+  }, {
+    id: "google_workspace",
+    label: "Google Workspace"
+  }]
+}, {
+  icon: "🧮",
+  title: "Logiciels métier",
+  color: "#10b981",
+  fields: [{
+    id: "sage",
+    label: "Sage"
+  }, {
+    id: "ebp",
+    label: "EBP"
+  }, {
+    id: "factorial",
+    label: "Factorial"
+  }]
+}, {
+  icon: "📞",
+  title: "Téléphonie",
+  color: "#f59e0b",
+  fields: [{
+    id: "telephonie_ovh",
+    label: "Téléphonie (OVH)"
+  }, {
+    id: "mobile_telephonie",
+    label: "Mobile téléphonie"
+  }, {
+    id: "teams_phone",
+    label: "Teams & Phone"
+  }]
+}, {
+  icon: "🌐",
+  title: "Web",
+  color: "#0891b2",
+  fields: [{
+    id: "nom_de_domaine",
+    label: "Nom de domaine"
+  }, {
+    id: "hebergement_web",
+    label: "Hébergement Web"
+  }]
+}, {
+  icon: "🔌",
+  title: "Lien internet",
+  color: "#8b5cf6",
+  fields: [{
+    id: "lien_internet",
+    label: "Lien internet principal"
+  }, {
+    id: "type_lien_internet",
+    label: "Type de lien (ADSL / VDSL / FTTH …)"
+  }, {
+    id: "partenaire_lien_internet",
+    label: "Partenaire (OVH, Free Pro …)"
+  }, {
+    id: "lien_internet_secours",
+    label: "Lien internet (secours)"
+  }]
+}];
+var TECH_STATUSES = [{
+  value: "",
+  label: "—",
+  bg: "#fafbfc",
+  color: "#94a3b8"
+}, {
+  value: "actif",
+  label: "● Actif",
+  bg: "#dcfce7",
+  color: "#065f46"
+}, {
+  value: "inactif",
+  label: "○ Inactif",
+  bg: "#fee2e2",
+  color: "#991b1b"
+}, {
+  value: "a_installer",
+  label: "▲ À installer",
+  bg: "#fef3c7",
+  color: "#92400e"
+}, {
+  value: "non_concerne",
+  label: "✕ Non concerné",
+  bg: "#f1f5f9",
+  color: "#64748b"
+}, {
+  value: "a_verifier",
+  label: "? À vérifier",
+  bg: "#dbeafe",
+  color: "#1e40af"
+}];
+var TechModule = ({
+  clientId,
+  value,
+  onChange
+}) => {
+  var [tech, setTech] = React.useState(value || {});
+  React.useEffect(() => {
+    setTech(value || {});
+  }, [value]);
+  var [openSections, setOpenSections] = React.useState(() => new Set(TECH_SECTIONS.slice(0, 3).map(s => s.title)));
+  var [saving, setSaving] = React.useState(false);
+  var setField = (id, v) => {
+    var next = {
+      ...tech,
+      [id]: v
+    };
+    setTech(next);
+    // Debounce sauvegarde 400ms
+    if (setField._timer) clearTimeout(setField._timer);
+    setField._timer = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await onChange(next);
+      } finally {
+        setSaving(false);
+      }
+    }, 400);
+  };
+  var toggleSection = title => {
+    setOpenSections(prev => {
+      var next = new Set(prev);
+      if (next.has(title)) next.delete(title);else next.add(title);
+      return next;
+    });
+  };
+
+  // Compteur global
+  var totalFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.length, 0);
+  var filledFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.filter(f => tech[f.id] && tech[f.id] !== "").length, 0);
+  return /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 18,
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0,
+      letterSpacing: -0.3
+    }
+  }, "\uD83D\uDEE0 Module technique"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "3px 0 0"
+    }
+  }, "\xC9tat du parc IT du client \xB7 ", filledFields, "/", totalFields, " champs renseign\xE9s")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, saving && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#10b981"
+    }
+  }, "\u25CF Sauvegarde\u2026"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      padding: "2px 8px",
+      background: "#eef2ff",
+      color: "#3730a3",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, Math.round(filledFields / totalFields * 100), "%"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, TECH_SECTIONS.map(sec => {
+    var isOpen = openSections.has(sec.title);
+    var secFilled = sec.fields.filter(f => tech[f.id] && tech[f.id] !== "").length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: sec.title,
+      style: {
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => toggleSection(sec.title),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 14px",
+        background: isOpen ? sec.color + "0d" : "#fafbfc",
+        border: 0,
+        cursor: "pointer",
+        textAlign: "left"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 16
+      }
+    }, sec.icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, sec.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, secFilled, "/", sec.fields.length), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#94a3b8"
+      }
+    }, isOpen ? "▾" : "▸")), isOpen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 14px",
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8
+      }
+    }, sec.fields.map(f => {
+      var v = tech[f.id] || "";
+      var meta = TECH_STATUSES.find(s => s.value === v) || TECH_STATUSES[0];
+      return /*#__PURE__*/React.createElement("label", {
+        key: f.id,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 10px",
+          background: "#fafbfc",
+          border: "1px solid #eef1f5",
+          borderRadius: 8
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          flex: 1,
+          fontSize: 12,
+          color: "#0f172a",
+          fontWeight: 500,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, f.label), /*#__PURE__*/React.createElement("select", {
+        value: v,
+        onChange: e => setField(f.id, e.target.value),
+        style: {
+          padding: "3px 6px",
+          border: "1px solid " + (v ? meta.color + "40" : "#e2e8f0"),
+          borderRadius: 5,
+          fontSize: 11,
+          fontWeight: 700,
+          background: meta.bg,
+          color: meta.color,
+          cursor: "pointer",
+          outline: "none"
+        }
+      }, TECH_STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+        key: s.value,
+        value: s.value
+      }, s.label))));
+    })));
+  })));
 };
 window.ClientPage = ClientPage;

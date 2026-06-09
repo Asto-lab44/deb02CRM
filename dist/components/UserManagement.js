@@ -217,9 +217,11 @@ var UserManagement = () => {
           pg = pgData || [];
         }
         var next = data.map(p => ({
+          id: p.id,
           name: p.name || p.email,
           email: p.email,
           role: p.role || "—",
+          extension: p.extension_3cx || "",
           groups: pg.filter(x => x.profile_id === p.id).map(x => x.group_id),
           status: p.status === "active" ? "online" : p.status === "inactive" ? "offline" : "away",
           last: "—"
@@ -1298,6 +1300,8 @@ var UserManagement = () => {
     style: S.th
   }, "Groupes"), /*#__PURE__*/React.createElement("th", {
     style: S.th
+  }, "Ext. 3CX"), /*#__PURE__*/React.createElement("th", {
+    style: S.th
   }, "Statut"), /*#__PURE__*/React.createElement("th", {
     style: S.th
   }, "Derni\xE8re connexion"), /*#__PURE__*/React.createElement("th", {
@@ -1317,7 +1321,7 @@ var UserManagement = () => {
     var slice = filtered.slice((pageSafe - 1) * USER_PAGE_SIZE, pageSafe * USER_PAGE_SIZE);
     if (filtered.length === 0) {
       return /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-        colSpan: 5,
+        colSpan: 7,
         style: {
           padding: 24,
           textAlign: "center",
@@ -1385,6 +1389,44 @@ var UserManagement = () => {
       var g = groups.find(x => x.id === gid);
       return g ? groupChip(g) : null;
     }))), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      defaultValue: u.extension || "",
+      placeholder: "ex : 201",
+      maxLength: 6,
+      onBlur: async e => {
+        var v = e.target.value.trim();
+        if (v === (u.extension || "")) return;
+        if (!u.id) {
+          if (window.HubToast) window.HubToast.warn("Profil non synchronisé Supabase");
+          return;
+        }
+        var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+        if (!supa) return;
+        var {
+          error
+        } = await supa.from("profiles").update({
+          extension_3cx: v || null
+        }).eq("id", u.id);
+        if (error) {
+          if (window.HubToast) window.HubToast.error("Erreur : " + error.message);
+        } else {
+          if (window.HubToast) window.HubToast.success(v ? `Extension ${v} liée à ${u.name}` : "Extension retirée");
+          u.extension = v;
+        }
+      },
+      style: {
+        width: 80,
+        padding: "4px 8px",
+        border: "1px solid #e2e8f0",
+        borderRadius: 6,
+        fontSize: 12,
+        fontFamily: "'JetBrains Mono', monospace",
+        outline: "none",
+        textAlign: "center"
+      }
+    })), /*#__PURE__*/React.createElement("td", {
       style: S.td
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1894,6 +1936,54 @@ var IntegrationsPanel = () => {
   var [teamsUrl, setTeamsUrl] = React.useState("");
   var [savedTeamsUrl, setSavedTeamsUrl] = React.useState("");
   var [teamsTesting, setTeamsTesting] = React.useState(false);
+  var [tcxSecret, setTcxSecret] = React.useState("");
+  var [tcxSimPhone, setTcxSimPhone] = React.useState("");
+  var WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-webhook";
+  React.useEffect(() => {
+    var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    supa.from("app_settings").select("value").eq("key", "3cx_webhook_secret").maybeSingle().then(({
+      data
+    }) => {
+      if (data && data.value) setTcxSecret(data.value);
+    }).catch(() => {});
+  }, []);
+  var regenTcxSecret = async () => {
+    var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    var ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Régénérer le secret 3CX ?",
+      message: "L'ancien secret sera invalidé immédiatement. Tu devras le remettre à jour côté console 3CX.",
+      okLabel: "Régénérer",
+      okStyle: "danger"
+    }) : confirm("Régénérer le secret 3CX ? L'ancien sera invalidé.");
+    if (!ok) return;
+    var newSecret = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, "0")).join("");
+    var {
+      error
+    } = await supa.from("app_settings").upsert({
+      key: "3cx_webhook_secret",
+      value: newSecret
+    });
+    if (error) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + error.message);
+      return;
+    }
+    setTcxSecret(newSecret);
+    if (window.HubToast) window.HubToast.success("✓ Nouveau secret généré — mets-le à jour côté 3CX");
+  };
+  var copyToClip = (txt, label) => {
+    navigator.clipboard.writeText(txt).then(() => {
+      if (window.HubToast) window.HubToast.success("✓ " + (label || "Copié"));
+    });
+  };
+  var simulateCall = () => {
+    if (!window.HubHotline || !window.HubHotline.simulate) {
+      if (window.HubToast) window.HubToast.error("Module hotline non chargé");
+      return;
+    }
+    window.HubHotline.simulate(tcxSimPhone.trim() || "+33 6 12 34 56 78", "Appel test (local)");
+  };
   React.useEffect(() => {
     try {
       var t = localStorage.getItem(TOKEN_KEY) || "";
@@ -2400,6 +2490,258 @@ var IntegrationsPanel = () => {
       color: "#94a3b8"
     }
   }, "\uD83D\uDCA1 Format MessageCard standard Teams (themeColor, title, sections, action OpenUri).", /*#__PURE__*/React.createElement("br", null), "\u26A0 L'URL est stock\xE9e en localStorage du navigateur. Chaque utilisateur configure son propre canal de r\xE9ception.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "linear-gradient(135deg, #10b981, #047857)",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "\u260E"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "T\xE9l\xE9phonie 3CX"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ENTERPRISE")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Popup CTI temps r\xE9el sur appel entrant. Webhook 3CX \u2192 Supabase \u2192 notification au bon agent (extension match\xE9e), filtr\xE9 d\xE9partement ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), "."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCCB Config c\xF4t\xE9 3CX (Console admin)"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      margin: 0,
+      paddingLeft: 18,
+      fontSize: 12.5,
+      color: "#475569",
+      lineHeight: 1.7
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Ouvre ", /*#__PURE__*/React.createElement("a", {
+    href: "https://telcomastorya.my3cx.fr:5001/#/app/integrations/crm",
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "telcomastorya.my3cx.fr:5001 \u2192 Integrations \u2192 CRM \u2197")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("strong", null, "+ Add"), " \u2192 ", /*#__PURE__*/React.createElement("em", null, "Server side CRM integration"), " \u2192 ", /*#__PURE__*/React.createElement("em", null, "Generic Web Server")), /*#__PURE__*/React.createElement("li", null, "Colle l'URL du webhook et le secret ci-dessous (header ", /*#__PURE__*/React.createElement("code", null, "X-3CX-Secret"), ")"), /*#__PURE__*/React.createElement("li", null, "Method ", /*#__PURE__*/React.createElement("strong", null, "POST"), ", Content-type ", /*#__PURE__*/React.createElement("strong", null, "application/json")), /*#__PURE__*/React.createElement("li", null, "Department ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), " uniquement (autres d\xE9partements ignor\xE9s c\xF4t\xE9 Edge)"), /*#__PURE__*/React.createElement("li", null, "Renseigne l'extension 3CX de chaque utilisateur dans l'onglet ", /*#__PURE__*/React.createElement("em", null, "Utilisateurs"), " du Hub"))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "URL du webhook (\xE0 coller dans 3CX)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    readOnly: true,
+    value: WEBHOOK_URL,
+    style: {
+      flex: 1,
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 11.5,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      background: "#fafbfc",
+      outline: "none"
+    },
+    onFocus: e => e.target.select()
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => copyToClip(WEBHOOK_URL, "URL copiée"),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDCCB Copier")), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "Secret partag\xE9 (header X-3CX-Secret)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    readOnly: true,
+    value: tcxSecret || "— Non configuré (lance d'abord supabase/3cx-integration.sql) —",
+    style: {
+      flex: 1,
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 11.5,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: tcxSecret ? "#0f172a" : "#94a3b8",
+      background: "#fafbfc",
+      outline: "none"
+    },
+    onFocus: e => e.target.select()
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => copyToClip(tcxSecret, "Secret copié"),
+    disabled: !tcxSecret,
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: tcxSecret ? "pointer" : "not-allowed",
+      opacity: tcxSecret ? 1 : 0.5,
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDCCB Copier"), /*#__PURE__*/React.createElement("button", {
+    onClick: regenTcxSecret,
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "\u21BB R\xE9g\xE9n\xE9rer")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      padding: 12,
+      background: "#eff6ff",
+      border: "1px solid #bfdbfe",
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#1e40af",
+      marginBottom: 6
+    }
+  }, "\uD83E\uDDEA Tester en local (sans 3CX)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: tcxSimPhone,
+    onChange: e => setTcxSimPhone(e.target.value),
+    placeholder: "Num\xE9ro \xE0 simuler (ex : +33 6 12 34 56 78)",
+    style: {
+      flex: 1,
+      padding: "8px 12px",
+      border: "1px solid #bfdbfe",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      background: "#fff",
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: simulateCall,
+    style: {
+      padding: "8px 14px",
+      background: "#1d4ed8",
+      color: "#fff",
+      border: 0,
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDCDE Simuler appel"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11,
+      color: "#94a3b8"
+    }
+  }, "\u26A0 Seul le d\xE9partement ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), " est rout\xE9 vers le Hub. Les autres d\xE9partements 3CX re\xE7oivent un 200 + ignored.")), /*#__PURE__*/React.createElement("div", {
     style: {
       border: "1px solid #e2e8f0",
       borderRadius: 12,

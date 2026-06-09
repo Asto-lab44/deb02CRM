@@ -123,7 +123,7 @@
   async function fetchProfiles() {
     if (!supa) return { data: null, error: null };
     const { data, error } = await supa.from("profiles")
-      .select("id, name, role, team, email")
+      .select("id, name, role, team, email, extension_3cx")
       .eq("status", "active")
       .order("name");
     return { data, error };

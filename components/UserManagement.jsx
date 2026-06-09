@@ -109,9 +109,11 @@ const UserManagement = () => {
           pg = pgData || [];
         }
         const next = data.map((p) => ({
+          id: p.id,
           name: p.name || p.email,
           email: p.email,
           role: p.role || "—",
+          extension: p.extension_3cx || "",
           groups: pg.filter((x) => x.profile_id === p.id).map((x) => x.group_id),
           status: p.status === "active" ? "online" : (p.status === "inactive" ? "offline" : "away"),
           last: "—",
@@ -575,6 +577,7 @@ const UserManagement = () => {
                 <th style={S.th}>Utilisateur</th>
                 <th style={S.th}>Rôle</th>
                 <th style={S.th}>Groupes</th>
+                <th style={S.th}>Ext. 3CX</th>
                 <th style={S.th}>Statut</th>
                 <th style={S.th}>Dernière connexion</th>
                 <th style={{ ...S.th, textAlign: "right" }}>Actions</th>
@@ -593,7 +596,7 @@ const UserManagement = () => {
                 const slice = filtered.slice((pageSafe - 1) * USER_PAGE_SIZE, pageSafe * USER_PAGE_SIZE);
                 if (filtered.length === 0) {
                   return (
-                    <tr><td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Aucun utilisateur ne correspond.</td></tr>
+                    <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Aucun utilisateur ne correspond.</td></tr>
                   );
                 }
                 return slice.map((u) => (
@@ -618,6 +621,25 @@ const UserManagement = () => {
                         return g ? groupChip(g) : null;
                       })}
                     </div>
+                  </td>
+                  <td style={S.td}>
+                    <input
+                      type="text"
+                      defaultValue={u.extension || ""}
+                      placeholder="ex : 201"
+                      maxLength={6}
+                      onBlur={async (e) => {
+                        const v = e.target.value.trim();
+                        if (v === (u.extension || "")) return;
+                        if (!u.id) { if (window.HubToast) window.HubToast.warn("Profil non synchronisé Supabase"); return; }
+                        const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+                        if (!supa) return;
+                        const { error } = await supa.from("profiles").update({ extension_3cx: v || null }).eq("id", u.id);
+                        if (error) { if (window.HubToast) window.HubToast.error("Erreur : " + error.message); }
+                        else { if (window.HubToast) window.HubToast.success(v ? `Extension ${v} liée à ${u.name}` : "Extension retirée"); u.extension = v; }
+                      }}
+                      style={{ width: 80, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", outline: "none", textAlign: "center" }}
+                    />
                   </td>
                   <td style={S.td}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569", textTransform: "capitalize" }}>
@@ -754,6 +776,46 @@ const IntegrationsPanel = () => {
   const [teamsUrl, setTeamsUrl] = React.useState("");
   const [savedTeamsUrl, setSavedTeamsUrl] = React.useState("");
   const [teamsTesting, setTeamsTesting] = React.useState(false);
+  const [tcxSecret, setTcxSecret] = React.useState("");
+  const [tcxSimPhone, setTcxSimPhone] = React.useState("");
+  const WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-webhook";
+
+  React.useEffect(() => {
+    const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    supa.from("app_settings").select("value").eq("key", "3cx_webhook_secret").maybeSingle()
+      .then(({ data }) => { if (data && data.value) setTcxSecret(data.value); })
+      .catch(() => {});
+  }, []);
+
+  const regenTcxSecret = async () => {
+    const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    const ok = window.HubModal
+      ? await window.HubModal.confirm({ title: "Régénérer le secret 3CX ?", message: "L'ancien secret sera invalidé immédiatement. Tu devras le remettre à jour côté console 3CX.", okLabel: "Régénérer", okStyle: "danger" })
+      : confirm("Régénérer le secret 3CX ? L'ancien sera invalidé.");
+    if (!ok) return;
+    const newSecret = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      .map((b) => b.toString(16).padStart(2, "0")).join("");
+    const { error } = await supa.from("app_settings").upsert({ key: "3cx_webhook_secret", value: newSecret });
+    if (error) { if (window.HubToast) window.HubToast.error("Erreur : " + error.message); return; }
+    setTcxSecret(newSecret);
+    if (window.HubToast) window.HubToast.success("✓ Nouveau secret généré — mets-le à jour côté 3CX");
+  };
+
+  const copyToClip = (txt, label) => {
+    navigator.clipboard.writeText(txt).then(() => {
+      if (window.HubToast) window.HubToast.success("✓ " + (label || "Copié"));
+    });
+  };
+
+  const simulateCall = () => {
+    if (!window.HubHotline || !window.HubHotline.simulate) {
+      if (window.HubToast) window.HubToast.error("Module hotline non chargé");
+      return;
+    }
+    window.HubHotline.simulate(tcxSimPhone.trim() || "+33 6 12 34 56 78", "Appel test (local)");
+  };
 
   React.useEffect(() => {
     try {
@@ -978,6 +1040,72 @@ const IntegrationsPanel = () => {
         <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
           💡 Format MessageCard standard Teams (themeColor, title, sections, action OpenUri).<br/>
           ⚠ L'URL est stockée en localStorage du navigateur. Chaque utilisateur configure son propre canal de réception.
+        </div>
+      </div>
+
+      {/* ─── 3CX (téléphonie) ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, #10b981, #047857)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>☎</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>Téléphonie 3CX</h3>
+              <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ENTERPRISE</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Popup CTI temps réel sur appel entrant. Webhook 3CX → Supabase → notification au bon agent (extension matchée), filtré département <strong>ASTO</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>📋 Config côté 3CX (Console admin)</div>
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#475569", lineHeight: 1.7 }}>
+            <li>Ouvre <a href="https://telcomastorya.my3cx.fr:5001/#/app/integrations/crm" target="_blank" rel="noopener" style={{ color: "#3730a3", fontWeight: 600 }}>telcomastorya.my3cx.fr:5001 → Integrations → CRM ↗</a></li>
+            <li><strong>+ Add</strong> → <em>Server side CRM integration</em> → <em>Generic Web Server</em></li>
+            <li>Colle l'URL du webhook et le secret ci-dessous (header <code>X-3CX-Secret</code>)</li>
+            <li>Method <strong>POST</strong>, Content-type <strong>application/json</strong></li>
+            <li>Department <strong>ASTO</strong> uniquement (autres départements ignorés côté Edge)</li>
+            <li>Renseigne l'extension 3CX de chaque utilisateur dans l'onglet <em>Utilisateurs</em> du Hub</li>
+          </ol>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>URL du webhook (à coller dans 3CX)</label>
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <input
+            type="text" readOnly value={WEBHOOK_URL}
+            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fafbfc", outline: "none" }}
+            onFocus={(e) => e.target.select()}
+          />
+          <button onClick={() => copyToClip(WEBHOOK_URL, "URL copiée")} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>📋 Copier</button>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Secret partagé (header X-3CX-Secret)</label>
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <input
+            type="text" readOnly value={tcxSecret || "— Non configuré (lance d'abord supabase/3cx-integration.sql) —"}
+            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", color: tcxSecret ? "#0f172a" : "#94a3b8", background: "#fafbfc", outline: "none" }}
+            onFocus={(e) => e.target.select()}
+          />
+          <button onClick={() => copyToClip(tcxSecret, "Secret copié")} disabled={!tcxSecret} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: tcxSecret ? "pointer" : "not-allowed", opacity: tcxSecret ? 1 : 0.5, whiteSpace: "nowrap" }}>📋 Copier</button>
+          <button onClick={regenTcxSecret} style={{ padding: "8px 14px", background: "#fff", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>↻ Régénérer</button>
+        </div>
+
+        <div style={{ marginTop: 14, padding: 12, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#1e40af", marginBottom: 6 }}>🧪 Tester en local (sans 3CX)</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="text" value={tcxSimPhone}
+              onChange={(e) => setTcxSimPhone(e.target.value)}
+              placeholder="Numéro à simuler (ex : +33 6 12 34 56 78)"
+              style={{ flex: 1, padding: "8px 12px", border: "1px solid #bfdbfe", borderRadius: 7, fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fff", outline: "none" }}
+            />
+            <button onClick={simulateCall} style={{ padding: "8px 14px", background: "#1d4ed8", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>📞 Simuler appel</button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+          ⚠ Seul le département <strong>ASTO</strong> est routé vers le Hub. Les autres départements 3CX reçoivent un 200 + ignored.
         </div>
       </div>
 

@@ -736,6 +736,8 @@ var NewContract = () => {
     style: ncStyles.bodyGrid
   }, /*#__PURE__*/React.createElement("div", {
     style: ncStyles.formCol
+  }, /*#__PURE__*/React.createElement("div", {
+    style: ncStyles.pairGrid
   }, /*#__PURE__*/React.createElement("section", {
     style: ncStyles.section
   }, /*#__PURE__*/React.createElement(NCSectionHead, {
@@ -922,7 +924,7 @@ var NewContract = () => {
       background: "transparent",
       color: "#64748b"
     }
-  })))))), /*#__PURE__*/React.createElement("section", {
+  }))))))), /*#__PURE__*/React.createElement("section", {
     style: {
       ...ncStyles.section,
       ...ncStyles.sectionActive
@@ -1266,7 +1268,9 @@ var NewContract = () => {
       color: "#86efac",
       marginTop: 2
     }
-  }, fmtEUR(sums.margin), " \xB7 ", sums.marginPct, " %"))))))), /*#__PURE__*/React.createElement("section", {
+  }, fmtEUR(sums.margin), " \xB7 ", sums.marginPct, " %"))))))), /*#__PURE__*/React.createElement("div", {
+    style: ncStyles.pairGrid
+  }, /*#__PURE__*/React.createElement("section", {
     style: ncStyles.section
   }, /*#__PURE__*/React.createElement(NCSectionHead, {
     num: "04",
@@ -1529,7 +1533,7 @@ var NewContract = () => {
       color: signMethod === m.k ? "#64748b" : "#94a3b8",
       marginTop: 3
     }
-  }, m.desc))))))), /*#__PURE__*/React.createElement("div", {
+  }, m.desc)))))))), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => history.back(),
@@ -1984,6 +1988,12 @@ var ncStyles = {
     flexDirection: "column",
     gap: 14,
     minWidth: 0
+  },
+  pairGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    alignItems: "start"
   },
   section: {
     padding: 20,

@@ -287,6 +287,8 @@ var NewOpportunity = () => {
     style: noStyles.bodyGrid
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.formCol
+  }, /*#__PURE__*/React.createElement("div", {
+    style: noStyles.pairGrid
   }, /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
@@ -645,7 +647,9 @@ var NewOpportunity = () => {
       color: "#94a3b8",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, oppNotes.length, " / 2 000")))), /*#__PURE__*/React.createElement("section", {
+  }, oppNotes.length, " / 2 000"))))), /*#__PURE__*/React.createElement("div", {
+    style: noStyles.pairGrid
+  }, /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
@@ -889,7 +893,7 @@ var NewOpportunity = () => {
       ...noStyles.addChip,
       cursor: "pointer"
     }
-  }, "+ Ajouter")))), /*#__PURE__*/React.createElement("div", {
+  }, "+ Ajouter"))))), /*#__PURE__*/React.createElement("div", {
     style: noStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => {
@@ -1615,7 +1619,13 @@ var noStyles = {
     padding: "20px 24px 24px",
     display: "flex",
     flexDirection: "column",
-    gap: 20
+    gap: 16
+  },
+  pairGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    alignItems: "start"
   },
   section: {
     padding: 18,

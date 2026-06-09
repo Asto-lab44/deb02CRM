@@ -195,6 +195,9 @@ const NewOpportunity = () => {
             {/* LEFT — form fields */}
             <div style={noStyles.formCol}>
 
+              {/* Row 1 : Compte + Détails opportunité */}
+              <div style={noStyles.pairGrid}>
+
               {/* SECTION 1 — Compte */}
               <section style={noStyles.section}>
                 <SectionHead num="01" title="Compte & demandeur" subtitle="Lié à un compte existant" required done />
@@ -391,6 +394,11 @@ const NewOpportunity = () => {
                 </FormRow>
               </section>
 
+              </div>{/* /Row 1 */}
+
+              {/* Row 2 : Montant & timing + Commercial & étiquettes */}
+              <div style={noStyles.pairGrid}>
+
               {/* SECTION 3 — Montant & timing */}
               <section style={noStyles.section}>
                 <SectionHead num="03" title="Montant & timing" subtitle="Indicateurs financiers et calendaires" required />
@@ -526,6 +534,8 @@ const NewOpportunity = () => {
                   </div>
                 </FormRow>
               </section>
+
+              </div>{/* /Row 2 */}
 
               {/* Bottom actions */}
               <div style={noStyles.actionsRow}>
@@ -742,7 +752,8 @@ const noStyles = {
   // Body
   body: { flex: 1, overflowY: "auto" },
   bodyGrid: { display: "grid", gridTemplateColumns: "1fr 340px", minHeight: "100%" },
-  formCol: { padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 20 },
+  formCol: { padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 16 },
+  pairGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "start" },
 
   section: { padding: 18, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
 

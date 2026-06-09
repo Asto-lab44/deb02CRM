@@ -384,6 +384,9 @@ const NewContract = () => {
           {/* LEFT — form */}
           <div style={ncStyles.formCol}>
 
+            {/* Row 1 : Type & rattachement + Client signataire */}
+            <div style={ncStyles.pairGrid}>
+
             {/* SECTION 1 */}
             <section style={ncStyles.section}>
               <NCSectionHead num="01" title="Type & rattachement" subtitle="Nature du contrat et opportunité d'origine" status="done" />
@@ -473,7 +476,9 @@ const NewContract = () => {
               </div>
             </section>
 
-            {/* SECTION 3 */}
+            </div>{/* /Row 1 */}
+
+            {/* SECTION 3 — pleine largeur (table) */}
             <section style={{ ...ncStyles.section, ...ncStyles.sectionActive }}>
               <NCSectionHead num="03" title="Produits & pricing" subtitle="Lignes du contrat, remises, abonnement" status="active" />
 
@@ -630,6 +635,9 @@ const NewContract = () => {
               </div>
             </section>
 
+            {/* Row 3 : Conditions + Signature */}
+            <div style={ncStyles.pairGrid}>
+
             {/* SECTION 4 */}
             <section style={ncStyles.section}>
               <NCSectionHead num="04" title="Conditions juridiques & dates" subtitle="Cadre légal et calendrier contractuel" status="todo" />
@@ -766,6 +774,8 @@ const NewContract = () => {
                 </div>
               </NCFormRow>
             </section>
+
+            </div>{/* /Row 3 */}
 
             {/* Bottom actions */}
             <div style={ncStyles.actionsRow}>
@@ -929,6 +939,7 @@ const ncStyles = {
   body: { padding: 20 },
   bodyGrid: { display: "grid", gridTemplateColumns: "1fr 340px", gap: 14, gridAutoRows: "min-content" },
   formCol: { display: "flex", flexDirection: "column", gap: 14, minWidth: 0 },
+  pairGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "start" },
 
   section: { padding: 20, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
   sectionActive: { boxShadow: "0 0 0 1px rgba(79,70,229,0.08), 0 4px 16px rgba(79,70,229,0.06)" },

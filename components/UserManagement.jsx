@@ -778,7 +778,7 @@ const IntegrationsPanel = () => {
   const [teamsTesting, setTeamsTesting] = React.useState(false);
   const [tcxSecret, setTcxSecret] = React.useState("");
   const [tcxSimPhone, setTcxSimPhone] = React.useState("");
-  const WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-webhook";
+  const WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook";
 
   React.useEffect(() => {
     const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;

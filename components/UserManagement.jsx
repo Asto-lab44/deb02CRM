@@ -778,13 +778,31 @@ const IntegrationsPanel = () => {
   const [teamsTesting, setTeamsTesting] = React.useState(false);
   const [tcxSecret, setTcxSecret] = React.useState("");
   const [tcxSimPhone, setTcxSimPhone] = React.useState("");
+  const [tcxServerUrl, setTcxServerUrl] = React.useState("https://telcomastorya.my3cx.fr:5001");
+  const [tcxClientId, setTcxClientId] = React.useState("");
+  const [tcxClientSecret, setTcxClientSecret] = React.useState("");
+  const [savedTcxCC, setSavedTcxCC] = React.useState({ url: "", id: "", secret: "" });
+  const [tcxCCTesting, setTcxCCTesting] = React.useState(false);
   const WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook";
+  const CC_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control";
 
   React.useEffect(() => {
     const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
     if (!supa) return;
-    supa.from("app_settings").select("value").eq("key", "3cx_webhook_secret").maybeSingle()
-      .then(({ data }) => { if (data && data.value) setTcxSecret(data.value); })
+    supa.from("app_settings").select("key, value")
+      .in("key", ["3cx_webhook_secret", "3cx_server_url", "3cx_client_id", "3cx_client_secret"])
+      .then(({ data }) => {
+        const cfg = Object.fromEntries((data || []).map((s) => [s.key, s.value]));
+        if (cfg["3cx_webhook_secret"]) setTcxSecret(cfg["3cx_webhook_secret"]);
+        if (cfg["3cx_server_url"])     setTcxServerUrl(cfg["3cx_server_url"]);
+        if (cfg["3cx_client_id"])      setTcxClientId(cfg["3cx_client_id"]);
+        if (cfg["3cx_client_secret"])  setTcxClientSecret(cfg["3cx_client_secret"]);
+        setSavedTcxCC({
+          url:    cfg["3cx_server_url"]     || "",
+          id:     cfg["3cx_client_id"]      || "",
+          secret: cfg["3cx_client_secret"]  || "",
+        });
+      })
       .catch(() => {});
   }, []);
 
@@ -801,6 +819,43 @@ const IntegrationsPanel = () => {
     if (error) { if (window.HubToast) window.HubToast.error("Erreur : " + error.message); return; }
     setTcxSecret(newSecret);
     if (window.HubToast) window.HubToast.success("✓ Nouveau secret généré — mets-le à jour côté 3CX");
+  };
+
+  const saveTcxCC = async () => {
+    const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    const rows = [
+      { key: "3cx_server_url",    value: tcxServerUrl.trim() },
+      { key: "3cx_client_id",     value: tcxClientId.trim() },
+      { key: "3cx_client_secret", value: tcxClientSecret.trim() },
+    ];
+    const { error } = await supa.from("app_settings").upsert(rows);
+    if (error) { if (window.HubToast) window.HubToast.error("Erreur : " + error.message); return; }
+    setSavedTcxCC({ url: tcxServerUrl.trim(), id: tcxClientId.trim(), secret: tcxClientSecret.trim() });
+    if (window.HubToast) window.HubToast.success("✓ Config Call Control sauvegardée");
+  };
+
+  const testTcxCC = async () => {
+    setTcxCCTesting(true);
+    try {
+      const { data: session } = await window.HubSupabase.client.auth.getSession();
+      const jwt = session?.session?.access_token;
+      if (!jwt) throw new Error("Pas de session — reconnecte-toi");
+      const me = await window.api.auth.getUser();
+      const { data: profile } = await window.HubSupabase.client
+        .from("profiles").select("extension_3cx").eq("id", me.id).single();
+      if (!profile?.extension_3cx) throw new Error("Aucune extension renseignée pour ton user");
+      const resp = await fetch(CC_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json", "Authorization": "Bearer " + jwt },
+        body: JSON.stringify({ action: "status", extension: profile.extension_3cx }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || ("HTTP " + resp.status));
+      if (window.HubToast) window.HubToast.success("✓ Connexion 3CX OK — extension " + profile.extension_3cx + (json.active_call ? " (appel actif détecté)" : " (au repos)"));
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + e.message);
+    } finally { setTcxCCTesting(false); }
   };
 
   const copyToClip = (txt, label) => {
@@ -1106,6 +1161,58 @@ const IntegrationsPanel = () => {
 
         <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
           ⚠ Seul le département <strong>ASTO</strong> est routé vers le Hub. Les autres départements 3CX reçoivent un 200 + ignored.
+        </div>
+
+        {/* ─── Sous-section : Pilotage téléphonie (Call Control API) ─── */}
+        <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #cbd5e1" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: 16 }}>🎛</span>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", margin: 0 }}>Pilotage téléphonie (Call Control API)</h4>
+              <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0" }}>
+                Permet de répondre / raccrocher un appel <strong>directement depuis le popup CTI du Hub</strong> (sans utiliser le 3CX Web Client). Optionnel — sans ça, le popup reste informatif.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, padding: 12, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>📋 Comment obtenir les identifiants</div>
+            <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#475569", lineHeight: 1.7 }}>
+              <li>Console 3CX → <strong>Intégrations</strong> → <strong>API</strong> → <strong>+ Ajouter</strong></li>
+              <li>Nom (ex : <em>Hub Astorya</em>) → coche <strong>Activer l'accès à l'API 3CX Call Control</strong></li>
+              <li>Département : <strong>ASTO</strong> · Rôle : <strong>Utilisateur</strong></li>
+              <li><strong>Sélectionner les extensions</strong> → ajoute Romain (704), Augustin, etc.</li>
+              <li>Sauvegarder — 3CX affiche un <strong>Client ID</strong> et un <strong>Client Secret</strong></li>
+              <li>Colle les valeurs ci-dessous et sauvegarde</li>
+            </ol>
+          </div>
+
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>URL serveur 3CX</label>
+          <input type="text" value={tcxServerUrl} onChange={(e) => setTcxServerUrl(e.target.value)} placeholder="https://telcomastorya.my3cx.fr:5001"
+            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", marginBottom: 10, boxSizing: "border-box" }} />
+
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>Client ID</label>
+          <input type="text" value={tcxClientId} onChange={(e) => setTcxClientId(e.target.value)} placeholder="ID généré par 3CX"
+            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", marginBottom: 10, boxSizing: "border-box" }} />
+
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>Client Secret</label>
+          <input type="password" value={tcxClientSecret} onChange={(e) => setTcxClientSecret(e.target.value)} placeholder="Secret généré par 3CX"
+            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", marginBottom: 12, boxSizing: "border-box" }} />
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={saveTcxCC}
+              disabled={tcxServerUrl === savedTcxCC.url && tcxClientId === savedTcxCC.id && tcxClientSecret === savedTcxCC.secret}
+              style={{ padding: "8px 16px", background: (tcxServerUrl === savedTcxCC.url && tcxClientId === savedTcxCC.id && tcxClientSecret === savedTcxCC.secret) ? "#cbd5e1" : "#0f172a", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: (tcxServerUrl === savedTcxCC.url && tcxClientId === savedTcxCC.id && tcxClientSecret === savedTcxCC.secret) ? "default" : "pointer" }}>
+              💾 Sauvegarder
+            </button>
+            <button onClick={testTcxCC} disabled={tcxCCTesting || !savedTcxCC.id}
+              style={{ padding: "8px 16px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: (tcxCCTesting || !savedTcxCC.id) ? "wait" : "pointer" }}>
+              {tcxCCTesting ? "⏳ Test…" : "🧪 Tester la connexion 3CX"}
+            </button>
+            <span style={{ fontSize: 11, color: "#94a3b8", alignSelf: "center" }}>
+              {savedTcxCC.id ? "● Configuré" : "○ Non configuré (popup reste informatif)"}
+            </span>
+          </div>
         </div>
       </div>
 

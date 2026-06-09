@@ -48,18 +48,85 @@ var HotlinePopup = ({
   // Le DesignCanvas applique un transform sur l'ancêtre, ce qui casse les
   // position:fixed. On rend la popup directement sur document.body.
   var portalTarget = typeof document !== "undefined" ? document.body : null;
-  var answer = () => {
+
+  // Pilotage 3CX : appel à l'Edge Function 3cx-call-control (proxy OAuth)
+  // pour décrocher / raccrocher l'appel directement depuis le Hub.
+  // Si la config Call Control n'est pas renseignée (settings vides), on
+  // bascule sur le comportement informatif (passage à phase "answered"
+  // sans toucher la téléphonie).
+  var [ccBusy, setCcBusy] = React.useState(false);
+  var callControl = async action => {
+    setCcBusy(true);
+    try {
+      var supa = window.HubSupabase && window.HubSupabase.client;
+      if (!supa) throw new Error("Supabase non configuré");
+      var {
+        data: sess
+      } = await supa.auth.getSession();
+      var jwt = sess?.session?.access_token;
+      if (!jwt) throw new Error("Non authentifié");
+      var me = await window.api.auth.getUser();
+      var {
+        data: profile
+      } = await supa.from("profiles").select("extension_3cx").eq("id", me.id).single();
+      var ext = profile?.extension_3cx;
+      if (!ext) throw new Error("Aucune extension 3CX renseignée — admin");
+      var resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Authorization": "Bearer " + jwt
+        },
+        body: JSON.stringify({
+          action,
+          extension: ext
+        })
+      });
+      var json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || "HTTP " + resp.status);
+      return {
+        ok: true,
+        json
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e.message
+      };
+    } finally {
+      setCcBusy(false);
+    }
+  };
+  var answer = async () => {
+    // Tente d'abord de décrocher la ligne via 3CX Call Control
+    var r = await callControl("answer");
+    if (!r.ok) {
+      if (window.HubToast) {
+        window.HubToast.warn("Décrochage 3CX indispo (" + r.error + ") — popup informatif uniquement");
+      }
+    } else if (window.HubToast) {
+      window.HubToast.success("✓ Ligne décrochée");
+    }
+    // Dans tous les cas on passe en mode fiche client / nouveau ticket
     if (call.openTickets && call.openTickets.length > 0) {
       setPhase("answered");
     } else {
-      // Pas de ticket → on saute direct au formulaire en pré-remplissant la
-      // description avec la retranscription si elle existe.
       setForm(f => ({
         ...f,
         desc: call.transcript || ""
       }));
       setPhase("newTicket");
     }
+  };
+  var decline = async () => {
+    // Tente de raccrocher la ligne via 3CX Call Control
+    var r = await callControl("drop");
+    if (!r.ok && window.HubToast) {
+      window.HubToast.warn("Raccrochage 3CX indispo : " + r.error);
+    } else if (window.HubToast) {
+      window.HubToast.success("✓ Appel refusé");
+    }
+    if (onClose) onClose();
   };
   var fmtElapsed = () => `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
   var fmtDuration = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -287,18 +354,24 @@ var HotlinePopup = ({
   }, "Fiche client \u2192")), phase === "ringing" && /*#__PURE__*/React.createElement("div", {
     style: H.ringingFoot
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
+    onClick: decline,
+    disabled: ccBusy,
     style: {
       ...H.btn,
-      ...H.btnDecline
+      ...H.btnDecline,
+      opacity: ccBusy ? 0.6 : 1,
+      cursor: ccBusy ? "wait" : "pointer"
     }
-  }, "\u2715 Refuser"), /*#__PURE__*/React.createElement("button", {
+  }, ccBusy ? "⏳" : "✕ Refuser"), /*#__PURE__*/React.createElement("button", {
     onClick: answer,
+    disabled: ccBusy,
     style: {
       ...H.btn,
-      ...H.btnAnswer
+      ...H.btnAnswer,
+      opacity: ccBusy ? 0.6 : 1,
+      cursor: ccBusy ? "wait" : "pointer"
     }
-  }, "\uD83D\uDCDE D\xE9crocher")), phase === "answered" && /*#__PURE__*/React.createElement("div", {
+  }, ccBusy ? "⏳ Décrochage…" : "📞 Décrocher")), phase === "answered" && /*#__PURE__*/React.createElement("div", {
     style: H.body
   }, /*#__PURE__*/React.createElement("div", {
     style: H.sectionHead

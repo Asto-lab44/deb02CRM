@@ -1938,14 +1938,33 @@ var IntegrationsPanel = () => {
   var [teamsTesting, setTeamsTesting] = React.useState(false);
   var [tcxSecret, setTcxSecret] = React.useState("");
   var [tcxSimPhone, setTcxSimPhone] = React.useState("");
+  var [tcxServerUrl, setTcxServerUrl] = React.useState("https://telcomastorya.my3cx.fr:5001");
+  var [tcxClientId, setTcxClientId] = React.useState("");
+  var [tcxClientSecret, setTcxClientSecret] = React.useState("");
+  var [savedTcxCC, setSavedTcxCC] = React.useState({
+    url: "",
+    id: "",
+    secret: ""
+  });
+  var [tcxCCTesting, setTcxCCTesting] = React.useState(false);
   var WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/phone-webhook";
+  var CC_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control";
   React.useEffect(() => {
     var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
     if (!supa) return;
-    supa.from("app_settings").select("value").eq("key", "3cx_webhook_secret").maybeSingle().then(({
+    supa.from("app_settings").select("key, value").in("key", ["3cx_webhook_secret", "3cx_server_url", "3cx_client_id", "3cx_client_secret"]).then(({
       data
     }) => {
-      if (data && data.value) setTcxSecret(data.value);
+      var cfg = Object.fromEntries((data || []).map(s => [s.key, s.value]));
+      if (cfg["3cx_webhook_secret"]) setTcxSecret(cfg["3cx_webhook_secret"]);
+      if (cfg["3cx_server_url"]) setTcxServerUrl(cfg["3cx_server_url"]);
+      if (cfg["3cx_client_id"]) setTcxClientId(cfg["3cx_client_id"]);
+      if (cfg["3cx_client_secret"]) setTcxClientSecret(cfg["3cx_client_secret"]);
+      setSavedTcxCC({
+        url: cfg["3cx_server_url"] || "",
+        id: cfg["3cx_client_id"] || "",
+        secret: cfg["3cx_client_secret"] || ""
+      });
     }).catch(() => {});
   }, []);
   var regenTcxSecret = async () => {
@@ -1971,6 +1990,66 @@ var IntegrationsPanel = () => {
     }
     setTcxSecret(newSecret);
     if (window.HubToast) window.HubToast.success("✓ Nouveau secret généré — mets-le à jour côté 3CX");
+  };
+  var saveTcxCC = async () => {
+    var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    var rows = [{
+      key: "3cx_server_url",
+      value: tcxServerUrl.trim()
+    }, {
+      key: "3cx_client_id",
+      value: tcxClientId.trim()
+    }, {
+      key: "3cx_client_secret",
+      value: tcxClientSecret.trim()
+    }];
+    var {
+      error
+    } = await supa.from("app_settings").upsert(rows);
+    if (error) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + error.message);
+      return;
+    }
+    setSavedTcxCC({
+      url: tcxServerUrl.trim(),
+      id: tcxClientId.trim(),
+      secret: tcxClientSecret.trim()
+    });
+    if (window.HubToast) window.HubToast.success("✓ Config Call Control sauvegardée");
+  };
+  var testTcxCC = async () => {
+    setTcxCCTesting(true);
+    try {
+      var {
+        data: session
+      } = await window.HubSupabase.client.auth.getSession();
+      var jwt = session?.session?.access_token;
+      if (!jwt) throw new Error("Pas de session — reconnecte-toi");
+      var me = await window.api.auth.getUser();
+      var {
+        data: profile
+      } = await window.HubSupabase.client.from("profiles").select("extension_3cx").eq("id", me.id).single();
+      if (!profile?.extension_3cx) throw new Error("Aucune extension renseignée pour ton user");
+      var resp = await fetch(CC_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Authorization": "Bearer " + jwt
+        },
+        body: JSON.stringify({
+          action: "status",
+          extension: profile.extension_3cx
+        })
+      });
+      var json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || "HTTP " + resp.status);
+      if (window.HubToast) window.HubToast.success("✓ Connexion 3CX OK — extension " + profile.extension_3cx + (json.active_call ? " (appel actif détecté)" : " (au repos)"));
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + e.message);
+    } finally {
+      setTcxCCTesting(false);
+    }
   };
   var copyToClip = (txt, label) => {
     navigator.clipboard.writeText(txt).then(() => {
@@ -2741,7 +2820,179 @@ var IntegrationsPanel = () => {
       fontSize: 11,
       color: "#94a3b8"
     }
-  }, "\u26A0 Seul le d\xE9partement ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), " est rout\xE9 vers le Hub. Les autres d\xE9partements 3CX re\xE7oivent un 200 + ignored.")), /*#__PURE__*/React.createElement("div", {
+  }, "\u26A0 Seul le d\xE9partement ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), " est rout\xE9 vers le Hub. Les autres d\xE9partements 3CX re\xE7oivent un 200 + ignored."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 20,
+      paddingTop: 18,
+      borderTop: "1px dashed #cbd5e1"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\uD83C\uDF9B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("h4", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "Pilotage t\xE9l\xE9phonie (Call Control API)"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b",
+      margin: "2px 0 0"
+    }
+  }, "Permet de r\xE9pondre / raccrocher un appel ", /*#__PURE__*/React.createElement("strong", null, "directement depuis le popup CTI du Hub"), " (sans utiliser le 3CX Web Client). Optionnel \u2014 sans \xE7a, le popup reste informatif."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCCB Comment obtenir les identifiants"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      margin: 0,
+      paddingLeft: 18,
+      fontSize: 12,
+      color: "#475569",
+      lineHeight: 1.7
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Console 3CX \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Int\xE9grations"), " \u2192 ", /*#__PURE__*/React.createElement("strong", null, "API"), " \u2192 ", /*#__PURE__*/React.createElement("strong", null, "+ Ajouter")), /*#__PURE__*/React.createElement("li", null, "Nom (ex : ", /*#__PURE__*/React.createElement("em", null, "Hub Astorya"), ") \u2192 coche ", /*#__PURE__*/React.createElement("strong", null, "Activer l'acc\xE8s \xE0 l'API 3CX Call Control")), /*#__PURE__*/React.createElement("li", null, "D\xE9partement : ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), " \xB7 R\xF4le : ", /*#__PURE__*/React.createElement("strong", null, "Utilisateur")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("strong", null, "S\xE9lectionner les extensions"), " \u2192 ajoute Romain (704), Augustin, etc."), /*#__PURE__*/React.createElement("li", null, "Sauvegarder \u2014 3CX affiche un ", /*#__PURE__*/React.createElement("strong", null, "Client ID"), " et un ", /*#__PURE__*/React.createElement("strong", null, "Client Secret")), /*#__PURE__*/React.createElement("li", null, "Colle les valeurs ci-dessous et sauvegarde"))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 4
+    }
+  }, "URL serveur 3CX"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: tcxServerUrl,
+    onChange: e => setTcxServerUrl(e.target.value),
+    placeholder: "https://telcomastorya.my3cx.fr:5001",
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12,
+      fontFamily: "'JetBrains Mono', monospace",
+      marginBottom: 10,
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 4
+    }
+  }, "Client ID"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: tcxClientId,
+    onChange: e => setTcxClientId(e.target.value),
+    placeholder: "ID g\xE9n\xE9r\xE9 par 3CX",
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12,
+      fontFamily: "'JetBrains Mono', monospace",
+      marginBottom: 10,
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 4
+    }
+  }, "Client Secret"), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: tcxClientSecret,
+    onChange: e => setTcxClientSecret(e.target.value),
+    placeholder: "Secret g\xE9n\xE9r\xE9 par 3CX",
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12,
+      fontFamily: "'JetBrains Mono', monospace",
+      marginBottom: 12,
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: saveTcxCC,
+    disabled: tcxServerUrl === savedTcxCC.url && tcxClientId === savedTcxCC.id && tcxClientSecret === savedTcxCC.secret,
+    style: {
+      padding: "8px 16px",
+      background: tcxServerUrl === savedTcxCC.url && tcxClientId === savedTcxCC.id && tcxClientSecret === savedTcxCC.secret ? "#cbd5e1" : "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: tcxServerUrl === savedTcxCC.url && tcxClientId === savedTcxCC.id && tcxClientSecret === savedTcxCC.secret ? "default" : "pointer"
+    }
+  }, "\uD83D\uDCBE Sauvegarder"), /*#__PURE__*/React.createElement("button", {
+    onClick: testTcxCC,
+    disabled: tcxCCTesting || !savedTcxCC.id,
+    style: {
+      padding: "8px 16px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: tcxCCTesting || !savedTcxCC.id ? "wait" : "pointer"
+    }
+  }, tcxCCTesting ? "⏳ Test…" : "🧪 Tester la connexion 3CX"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      alignSelf: "center"
+    }
+  }, savedTcxCC.id ? "● Configuré" : "○ Non configuré (popup reste informatif)")))), /*#__PURE__*/React.createElement("div", {
     style: {
       border: "1px solid #e2e8f0",
       borderRadius: 12,

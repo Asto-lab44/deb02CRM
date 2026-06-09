@@ -37,15 +37,65 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
   // position:fixed. On rend la popup directement sur document.body.
   const portalTarget = typeof document !== "undefined" ? document.body : null;
 
-  const answer = () => {
+  // Pilotage 3CX : appel à l'Edge Function 3cx-call-control (proxy OAuth)
+  // pour décrocher / raccrocher l'appel directement depuis le Hub.
+  // Si la config Call Control n'est pas renseignée (settings vides), on
+  // bascule sur le comportement informatif (passage à phase "answered"
+  // sans toucher la téléphonie).
+  const [ccBusy, setCcBusy] = React.useState(false);
+  const callControl = async (action) => {
+    setCcBusy(true);
+    try {
+      const supa = window.HubSupabase && window.HubSupabase.client;
+      if (!supa) throw new Error("Supabase non configuré");
+      const { data: sess } = await supa.auth.getSession();
+      const jwt = sess?.session?.access_token;
+      if (!jwt) throw new Error("Non authentifié");
+      const me = await window.api.auth.getUser();
+      const { data: profile } = await supa.from("profiles").select("extension_3cx").eq("id", me.id).single();
+      const ext = profile?.extension_3cx;
+      if (!ext) throw new Error("Aucune extension 3CX renseignée — admin");
+      const resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-call-control", {
+        method: "POST",
+        headers: { "content-type": "application/json", "Authorization": "Bearer " + jwt },
+        body: JSON.stringify({ action, extension: ext }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || ("HTTP " + resp.status));
+      return { ok: true, json };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    } finally { setCcBusy(false); }
+  };
+
+  const answer = async () => {
+    // Tente d'abord de décrocher la ligne via 3CX Call Control
+    const r = await callControl("answer");
+    if (!r.ok) {
+      if (window.HubToast) {
+        window.HubToast.warn("Décrochage 3CX indispo (" + r.error + ") — popup informatif uniquement");
+      }
+    } else if (window.HubToast) {
+      window.HubToast.success("✓ Ligne décrochée");
+    }
+    // Dans tous les cas on passe en mode fiche client / nouveau ticket
     if (call.openTickets && call.openTickets.length > 0) {
       setPhase("answered");
     } else {
-      // Pas de ticket → on saute direct au formulaire en pré-remplissant la
-      // description avec la retranscription si elle existe.
       setForm((f) => ({ ...f, desc: call.transcript || "" }));
       setPhase("newTicket");
     }
+  };
+
+  const decline = async () => {
+    // Tente de raccrocher la ligne via 3CX Call Control
+    const r = await callControl("drop");
+    if (!r.ok && window.HubToast) {
+      window.HubToast.warn("Raccrochage 3CX indispo : " + r.error);
+    } else if (window.HubToast) {
+      window.HubToast.success("✓ Appel refusé");
+    }
+    if (onClose) onClose();
   };
   const fmtElapsed = () => `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
   const fmtDuration = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -224,8 +274,12 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
         {/* PHASE RINGING — boutons décrocher/refuser */}
         {phase === "ringing" && (
           <div style={H.ringingFoot}>
-            <button onClick={onClose} style={{ ...H.btn, ...H.btnDecline }}>✕ Refuser</button>
-            <button onClick={answer} style={{ ...H.btn, ...H.btnAnswer }}>📞 Décrocher</button>
+            <button onClick={decline} disabled={ccBusy} style={{ ...H.btn, ...H.btnDecline, opacity: ccBusy ? 0.6 : 1, cursor: ccBusy ? "wait" : "pointer" }}>
+              {ccBusy ? "⏳" : "✕ Refuser"}
+            </button>
+            <button onClick={answer} disabled={ccBusy} style={{ ...H.btn, ...H.btnAnswer, opacity: ccBusy ? 0.6 : 1, cursor: ccBusy ? "wait" : "pointer" }}>
+              {ccBusy ? "⏳ Décrochage…" : "📞 Décrocher"}
+            </button>
           </div>
         )}
 

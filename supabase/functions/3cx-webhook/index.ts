@@ -60,28 +60,16 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-  // ─── DEBUG : log de tout ce qu'on reçoit (URL + headers + body brut) ─
-  const rawBody = await req.text();
-  const headersObj: Record<string, string> = {};
-  req.headers.forEach((v, k) => { headersObj[k] = v; });
-  console.log("[3cx-debug] === Requête reçue ===");
-  console.log("[3cx-debug] URL:", req.url);
-  console.log("[3cx-debug] Method:", req.method);
-  console.log("[3cx-debug] Headers:", JSON.stringify(headersObj));
-  console.log("[3cx-debug] Body brut (premiers 2000 char):", rawBody.slice(0, 2000));
-
   // ─── 1. Parse du payload ──
   let body: any = null;
   try {
-    body = JSON.parse(rawBody);
-    console.log("[3cx-debug] Parsed JSON:", JSON.stringify(body));
+    body = await req.json();
   } catch (e) {
-    console.warn("[3cx-debug] Body non-JSON ou vide");
-    body = {};
+    return new Response("Invalid JSON", { status: 400 });
   }
 
-  // ─── 2. Vérification du secret (mode debug : on log mais on ne bloque
-  //        plus pour pouvoir capturer le payload exact de 3CX) ──
+  // ─── 2. Vérification du secret (header OU body — 3CX V20 templates
+  //        ne supportent pas bien les headers custom) ──
   const providedSecret = req.headers.get("x-3cx-secret") || body?.Secret || body?.secret || "";
   const { data: secretRow } = await supabase
     .from("app_settings")
@@ -91,11 +79,8 @@ Deno.serve(async (req) => {
   const expectedSecret = secretRow?.value || "";
 
   if (!expectedSecret || providedSecret !== expectedSecret) {
-    console.warn("[3cx-debug] Secret mismatch — providedSecret=", providedSecret.slice(0, 8), "...expectedSecret=", expectedSecret.slice(0, 8), "...");
-    // DEBUG : on continue quand même pour voir ce que 3CX envoie
-    // return new Response("Unauthorized", { status: 401 });
-  } else {
-    console.log("[3cx-debug] ✓ Secret valide");
+    console.warn("[3cx] secret mismatch");
+    return new Response("Unauthorized", { status: 401 });
   }
 
   // Champs 3CX (V20 Enterprise — schéma standard CRM integration)

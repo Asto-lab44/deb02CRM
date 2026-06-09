@@ -21,7 +21,7 @@ const BattleCard = () => {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span style={bcStyles.badge}>Concurrent #1</span>
               <span style={bcStyles.badgeSecondary}>Threat level: élevé</span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>Mise à jour il y a 4 j par Claire Renaud</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>Mise à jour il y a 4 j par Romain Daviaud</span>
             </div>
             <h1 style={bcStyles.h1}>Salesforce</h1>
             <p style={bcStyles.subtitle}>Sales Cloud, Service Cloud, Financial Services Cloud — leader US implanté en France depuis 2008</p>

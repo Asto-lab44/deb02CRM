@@ -157,7 +157,7 @@ const RadarAccountDetail = () => {
                 { done: true, who: "Nadia Lefèvre", when: "24 mai", title: "Brief équipe + génération battle card", desc: "Battle card SF mise à jour, équipe pré-vente alertée." },
                 { active: true, who: "Nadia Lefèvre", when: "28 mai", title: "Premier RDV — Pitch DORA + différenciants", desc: "14h00 visio · 30 min. Préparer : démo Cyber, calcul TCO comparatif, témoignage Crédit Mutuel Océan." },
                 { who: "Romain Daviaud", when: "06 juin", title: "Réponse RFP", desc: "Date butoir : 18 juillet (avant échéance contrat SF — possible négociation reconduction)." },
-                { who: "Claire Renaud", when: "12 juin", title: "Date pivot — fin contrat SF", desc: "Disponibilité immédiate Astorya garantie en SLA." },
+                { who: "Augustin Morin", when: "12 juin", title: "Date pivot — fin contrat SF", desc: "Disponibilité immédiate Astorya garantie en SLA." },
               ].map((s, i) => (
                 <div key={i} style={{ ...radStyles.step, ...(s.active ? radStyles.stepActive : {}), ...(s.done ? radStyles.stepDone : {}) }}>
                   <div style={{

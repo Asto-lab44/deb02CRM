@@ -589,8 +589,8 @@ const AdvanceOpportunity = () => {
             <div style={{ fontSize: 11, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Notifier à l'avancement</div>
             <div style={aoStyles.notifyRow}>
               <input type="checkbox" defaultChecked />
-              <AOAvatar name="Claire Renaud" size={20} color="#dc2626" />
-              <span style={{ fontSize: 11.5, flex: 1 }}>Claire Renaud · VP Sales</span>
+              <AOAvatar name="Augustin Morin" size={20} color="#0e7a55" />
+              <span style={{ fontSize: 11.5, flex: 1 }}>Augustin Morin · Astorya</span>
             </div>
             <div style={aoStyles.notifyRow}>
               <input type="checkbox" defaultChecked />

@@ -65,7 +65,7 @@ var BattleCard = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Mise \xE0 jour il y a 4 j par Claire Renaud")), /*#__PURE__*/React.createElement("h1", {
+  }, "Mise \xE0 jour il y a 4 j par Romain Daviaud")), /*#__PURE__*/React.createElement("h1", {
     style: bcStyles.h1
   }, "Salesforce"), /*#__PURE__*/React.createElement("p", {
     style: bcStyles.subtitle

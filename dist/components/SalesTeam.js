@@ -297,9 +297,9 @@ var SalesTeam = () => {
   }), /*#__PURE__*/React.createElement("div", {
     style: teamStyles.userRow
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Claire Renaud",
+    name: "Augustin Morin",
     size: 26,
-    color: "#dc2626"
+    color: "#0e7a55"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -310,12 +310,12 @@ var SalesTeam = () => {
       fontSize: 12.5,
       fontWeight: 600
     }
-  }, "Claire Renaud"), /*#__PURE__*/React.createElement("div", {
+  }, "Augustin Morin"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "VP Sales \xB7 EMEA")))), /*#__PURE__*/React.createElement("main", {
+  }, "Astorya \xB7 Nantes")))), /*#__PURE__*/React.createElement("main", {
     style: teamStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: teamStyles.topbar

@@ -446,7 +446,7 @@ var RadarAccountDetail = () => {
     title: "Réponse RFP",
     desc: "Date butoir : 18 juillet (avant échéance contrat SF — possible négociation reconduction)."
   }, {
-    who: "Claire Renaud",
+    who: "Augustin Morin",
     when: "12 juin",
     title: "Date pivot — fin contrat SF",
     desc: "Disponibilité immédiate Astorya garantie en SLA."

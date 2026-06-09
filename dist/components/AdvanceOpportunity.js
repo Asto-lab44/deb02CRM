@@ -1269,15 +1269,15 @@ var AdvanceOpportunity = () => {
     type: "checkbox",
     defaultChecked: true
   }), /*#__PURE__*/React.createElement(AOAvatar, {
-    name: "Claire Renaud",
+    name: "Augustin Morin",
     size: 20,
-    color: "#dc2626"
+    color: "#0e7a55"
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
       flex: 1
     }
-  }, "Claire Renaud \xB7 VP Sales")), /*#__PURE__*/React.createElement("div", {
+  }, "Augustin Morin \xB7 Astorya")), /*#__PURE__*/React.createElement("div", {
     style: aoStyles.notifyRow
   }, /*#__PURE__*/React.createElement("input", {
     type: "checkbox",

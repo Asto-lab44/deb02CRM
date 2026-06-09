@@ -958,15 +958,19 @@ var ERPHome = () => {
   }), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.heroGlow2
   }), /*#__PURE__*/React.createElement("div", {
+    style: erpStyles.heroInner
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      zIndex: 1
+      zIndex: 1,
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
+      fontSize: 12.5,
       color: "rgba(255,255,255,0.65)",
-      marginBottom: 6,
+      marginBottom: 4,
       fontWeight: 500
     }
   }, "Bonjour ", currentUser ? currentUser.name.split(" ")[0].split("@")[0] : "", " \u2014 voici votre tableau de bord"), /*#__PURE__*/React.createElement("h1", {
@@ -980,58 +984,43 @@ var ERPHome = () => {
     }
   }, ".")), /*#__PURE__*/React.createElement("p", {
     style: erpStyles.heroSub
-  }, crmStats.opps, " opportunit\xE9", crmStats.opps > 1 ? "s" : "", " en cours \xB7 ", crmStats.clients, " compte", crmStats.clients > 1 ? "s" : "", " en base"))), /*#__PURE__*/React.createElement("section", {
-    style: erpStyles.pulseRow
+  }, crmStats.opps, " opportunit\xE9", crmStats.opps > 1 ? "s" : "", " en cours \xB7 ", crmStats.clients, " compte", crmStats.clients > 1 ? "s" : "", " en base")), /*#__PURE__*/React.createElement("div", {
+    style: erpStyles.heroPulse
   }, /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.pulseHead
-  }, /*#__PURE__*/React.createElement("h2", {
-    style: erpStyles.h2
-  }, "Pouls du jour"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#10b981",
-      fontWeight: 600
-    }
-  }, "\u25CF Live")), /*#__PURE__*/React.createElement("div", {
-    style: erpStyles.pulseGrid
-  }, [{
-    k: "Comptes",
-    v: String(crmStats.clients),
-    color: "#4f46e5"
-  }, {
-    k: "Opportunités",
-    v: String(crmStats.opps),
-    color: "#a855f7"
-  }, {
-    k: "Signées",
-    v: String(crmStats.won),
-    color: "#10b981"
-  }].map(p => /*#__PURE__*/React.createElement("div", {
-    key: p.k,
-    style: erpStyles.pulse
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    }
+    style: erpStyles.heroPulseHead
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10.5,
-      color: "#94a3b8",
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: 0.4
-    }
-  }, p.k)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
+      color: "rgba(255,255,255,0.6)",
       fontWeight: 700,
-      color: "#0f172a",
-      letterSpacing: -0.4,
-      marginTop: 4
+      textTransform: "uppercase",
+      letterSpacing: 0.6
     }
-  }, p.v))))), /*#__PURE__*/React.createElement("section", {
+  }, "Pouls du jour"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#34d399",
+      fontWeight: 700
+    }
+  }, "\u25CF LIVE")), /*#__PURE__*/React.createElement("div", {
+    style: erpStyles.heroPulseGrid
+  }, [{
+    k: "Comptes",
+    v: String(crmStats.clients)
+  }, {
+    k: "Opportunités",
+    v: String(crmStats.opps)
+  }, {
+    k: "Signées",
+    v: String(crmStats.won)
+  }].map(p => /*#__PURE__*/React.createElement("div", {
+    key: p.k,
+    style: erpStyles.heroPulseCell
+  }, /*#__PURE__*/React.createElement("div", {
+    style: erpStyles.heroPulseV
+  }, p.v), /*#__PURE__*/React.createElement("div", {
+    style: erpStyles.heroPulseK
+  }, p.k))))))), /*#__PURE__*/React.createElement("section", {
     style: erpStyles.modulesSection
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.sectionHead
@@ -1042,7 +1031,7 @@ var ERPHome = () => {
   }, "Acc\xE9dez \xE0 vos espaces de travail \xB7 \xE9pinglez vos favoris en haut"))), categories.map(cat => /*#__PURE__*/React.createElement("div", {
     key: cat,
     style: {
-      marginBottom: 22
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.catHead
@@ -1235,12 +1224,12 @@ var MiniSparkline = ({
 };
 var erpStyles = {
   frame: {
-    width: 1440,
+    minWidth: 1280,
     display: "flex",
     background: "#fafbfc",
     fontFamily: "'Inter', system-ui, sans-serif",
     color: "#0f172a",
-    minHeight: 1700
+    minHeight: "100vh"
   },
   sidebar: {
     width: 248,
@@ -1253,8 +1242,7 @@ var erpStyles = {
     flexShrink: 0,
     position: "sticky",
     top: 0,
-    height: "100vh",
-    minHeight: 1700
+    height: "100vh"
   },
   brandRow: {
     display: "flex",
@@ -1407,15 +1395,23 @@ var erpStyles = {
     borderRadius: 999,
     border: "1.5px solid #fff"
   },
-  // Hero
+  // Hero (banner horizontal greeting + KPI)
   hero: {
-    margin: "20px 28px 16px",
-    padding: "30px 32px",
-    borderRadius: 18,
+    margin: "18px 28px 14px",
+    padding: "22px 28px",
+    borderRadius: 16,
     background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4338ca 100%)",
     color: "#fff",
     position: "relative",
     overflow: "hidden"
+  },
+  heroInner: {
+    position: "relative",
+    zIndex: 1,
+    display: "flex",
+    alignItems: "center",
+    gap: 28,
+    flexWrap: "wrap"
   },
   heroGlow1: {
     position: "absolute",
@@ -1438,18 +1434,59 @@ var erpStyles = {
     pointerEvents: "none"
   },
   heroH1: {
-    fontSize: 38,
+    fontSize: 30,
     fontWeight: 700,
-    letterSpacing: -1.2,
+    letterSpacing: -1,
     margin: 0,
     color: "#fff",
     lineHeight: 1.05
   },
   heroSub: {
-    fontSize: 14,
+    fontSize: 13,
     color: "rgba(255,255,255,0.75)",
-    margin: "10px 0 0",
+    margin: "8px 0 0",
     lineHeight: 1.5
+  },
+  heroPulse: {
+    position: "relative",
+    zIndex: 1,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: 12,
+    padding: "12px 16px",
+    backdropFilter: "blur(8px)",
+    minWidth: 360
+  },
+  heroPulseHead: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8
+  },
+  heroPulseGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: 14
+  },
+  heroPulseCell: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start"
+  },
+  heroPulseV: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: "#fff",
+    letterSpacing: -0.5,
+    lineHeight: 1
+  },
+  heroPulseK: {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.6)",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontWeight: 600,
+    marginTop: 4
   },
   quickActions: {
     display: "flex",
@@ -1516,13 +1553,13 @@ var erpStyles = {
   },
   // Modules
   modulesSection: {
-    padding: "20px 28px 14px"
+    padding: "8px 28px 14px"
   },
   sectionHead: {
     display: "flex",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    marginBottom: 18
+    marginBottom: 14
   },
   viewBtn: {
     padding: "5px 10px",
@@ -1565,10 +1602,10 @@ var erpStyles = {
   tiles: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
-    gap: 14
+    gap: 12
   },
   tile: {
-    padding: 18,
+    padding: 16,
     background: "#fff",
     border: "1px solid #eef1f5",
     borderRadius: 14,
@@ -1577,8 +1614,8 @@ var erpStyles = {
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    gap: 14,
-    minHeight: 200
+    gap: 12,
+    minHeight: 178
   },
   tileGlow: {
     position: "absolute",

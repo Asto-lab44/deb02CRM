@@ -108,26 +108,15 @@ Deno.serve(async (req) => {
   const status       = (body.Status    || body.status    || "ringing").toLowerCase();
   const department   = body.Department || body.department || null;
 
-  // En mode TEST 3CX, l'Extension est vide (pas d'appel réel). On répond
-  // OK avec un contact factice pour que la validation 3CX passe — pas
-  // d'INSERT en BDD.
+  // 3CX V20 envoie Extension="" pendant le routage département (avant que
+  // l'extension cible ne soit décidée). On accepte ça et on broadcast à
+  // tous les agents ASTO ayant une extension configurée.
   if (!callerNumber) {
-    return new Response("Missing CallerID", { status: 400 });
-  }
-  if (!calledExt) {
-    console.log("[3cx-debug] Mode TEST détecté (Extension vide) — réponse mock");
+    console.log("[3cx-debug] Pas de CallerID — réponse mock");
     return new Response(JSON.stringify({
-      created: "test-" + Date.now(),
-      mode: "test",
-      message: "Configuration OK — Extension sera renseignée lors d'un vrai appel",
+      created: "noop-" + Date.now(),
+      mode: "no-caller",
     }), { status: 200, headers: { "content-type": "application/json" } });
-  }
-
-  // ─── 3. Filtrage département ASTO ───────────────────────────────
-  if (department && String(department).toUpperCase() !== "ASTO") {
-    return new Response(JSON.stringify({ ignored: true, reason: "department_not_asto" }), {
-      status: 200, headers: { "content-type": "application/json" },
-    });
   }
 
   // ─── 4. Normalisation + lookup client ───────────────────────────
@@ -146,26 +135,42 @@ Deno.serve(async (req) => {
     console.warn("[3cx] client lookup error:", e);
   }
 
-  // ─── 5. Lookup agent par extension ──────────────────────────────
-  let agentUserId: string | null = null;
+  // ─── 5. Lookup agent(s) à notifier ──────────────────────────────
+  // Si Extension fournie : un seul agent ciblé.
+  // Sinon (3CX V20 lookup déclenché avant routage) : broadcast à tous
+  // les agents ASTO ayant une extension_3cx configurée.
+  let targetAgents: string[] = [];
   try {
-    const { data: agents } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("extension_3cx", calledExt)
-      .limit(1);
-    if (agents && agents.length > 0) agentUserId = agents[0].id;
+    if (calledExt) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("extension_3cx", calledExt)
+        .limit(1);
+      if (data && data.length) targetAgents = data.map((a) => a.id);
+    }
+    if (targetAgents.length === 0) {
+      // Broadcast à tous les agents ayant une extension configurée
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .not("extension_3cx", "is", null);
+      if (data) targetAgents = data.map((a) => a.id);
+      console.log("[3cx-debug] Broadcast à", targetAgents.length, "agent(s)");
+    }
   } catch (e) {
     console.warn("[3cx] agent lookup error:", e);
   }
 
+  // Si aucun agent configuré, on insert quand même une ligne sans agent
+  // (utile pour debug + permet à un futur listener no-filter de voir l'event)
+  if (targetAgents.length === 0) targetAgents = [null as any];
+
   // ─── 6. Insert / Update event ───────────────────────────────────
-  // Dédup par call_id_3cx — un même appel peut envoyer ringing puis answered puis hangup
   const baseRow = {
     caller_number: normalized,
     caller_name: callerName,
     called_extension: calledExt,
-    agent_user_id: agentUserId,
     matched_client_id: matchedClientId,
     direction: direction === "outbound" ? "outbound" : "inbound",
     status,
@@ -174,36 +179,32 @@ Deno.serve(async (req) => {
     payload_raw: body,
   };
 
-  if (callId) {
-    // Upsert sur call_id_3cx
-    const { data: existing } = await supabase
-      .from("call_events")
-      .select("id, status")
-      .eq("call_id_3cx", callId)
-      .limit(1)
-      .maybeSingle();
-
-    if (existing) {
-      const updates: any = { status };
-      if (status === "answered") updates.answered_at = new Date().toISOString();
-      if (status === "hangup" || status === "missed") {
-        updates.ended_at = new Date().toISOString();
-        if (body.DurationSec || body.duration_sec) {
-          updates.duration_sec = Number(body.DurationSec || body.duration_sec);
-        }
+  if (callId && status !== "ringing") {
+    // Status change (answered/hangup/missed) → update les lignes existantes
+    const updates: any = { status };
+    if (status === "answered") updates.answered_at = new Date().toISOString();
+    if (status === "hangup" || status === "missed") {
+      updates.ended_at = new Date().toISOString();
+      if (body.DurationSec || body.duration_sec) {
+        updates.duration_sec = Number(body.DurationSec || body.duration_sec);
       }
-      await supabase.from("call_events").update(updates).eq("id", existing.id);
-      return new Response(JSON.stringify({ updated: existing.id, status }), {
-        status: 200, headers: { "content-type": "application/json" },
-      });
     }
+    const { data: updated } = await supabase
+      .from("call_events")
+      .update(updates)
+      .eq("call_id_3cx", callId)
+      .select("id");
+    return new Response(JSON.stringify({ updated: updated?.length || 0, status }), {
+      status: 200, headers: { "content-type": "application/json" },
+    });
   }
 
+  // Insertion : une ligne par agent ciblé (broadcast)
+  const rows = targetAgents.map((agentId) => ({ ...baseRow, agent_user_id: agentId }));
   const { data: inserted, error: insErr } = await supabase
     .from("call_events")
-    .insert(baseRow)
-    .select("id")
-    .single();
+    .insert(rows)
+    .select("id");
 
   if (insErr) {
     console.error("[3cx] insert error:", insErr);
@@ -212,7 +213,11 @@ Deno.serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify({ created: inserted?.id, agent: agentUserId, client: matchedClientId }), {
-    status: 200, headers: { "content-type": "application/json" },
-  });
+  console.log("[3cx-debug] ✓ Inséré", inserted?.length, "ligne(s) call_events");
+  return new Response(JSON.stringify({
+    created: inserted?.[0]?.id,
+    rows: inserted?.length,
+    agents: targetAgents.length,
+    client: matchedClientId,
+  }), { status: 200, headers: { "content-type": "application/json" } });
 });

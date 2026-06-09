@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hub Astorya — Trésorerie</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <title>Hub Astorya — Projet</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; background: #f3f5f8; font-family: 'Inter', system-ui, sans-serif; }
     #root { min-height: 100vh; }
@@ -25,19 +25,21 @@
   <script src="components/bodacc.js?v=202606093100"></script>
   <script src="components/toast.js?v=202606093100"></script>
   <script src="components/modal.js?v=202606093100"></script>
+  <script src="components/hub-user-menu.js?v=202606093100"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", function() {
+      if (window.api && window.api.auth && window.HubSupabase && window.HubSupabase.enabled) {
+        window.api.auth.requireAuth();
+      }
+    });
+  </script>
   <script src="components/access-store.js?v=202606093100"></script>
-  <script defer src="dist/components/BientotPage.js?v=202606093100"></script>
+  <script src="components/hub-data.js?v=202606093100"></script>
+  <script src="components/hub-nav.js?v=202606093100"></script>
+  <script defer src="dist/components/ProjectDetail.js?v=202606093100"></script>
   <script defer>
     window.addEventListener("DOMContentLoaded", function() {
-      ReactDOM.createRoot(document.getElementById('root')).render(
-        React.createElement(BientotPage, {
-          moduleName: "Trésorerie",
-          moduleIcon: "💰",
-          moduleColor: "#0e7a55",
-          description: "Suivi des comptes bancaires, prévisionnel et virements SEPA.",
-          roadmap: ["Multi-comptes bancaires", "Rapprochement bancaire auto", "Prévisionnel cash 90 jours", "Virements SEPA + URSSAF", "Tableau de bord trésorerie", "Alertes solde bas"]
-        })
-      );
+      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ProjectDetail));
     });
   </script>
 </body>

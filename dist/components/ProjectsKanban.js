@@ -143,6 +143,75 @@ var ProjectsKanban = () => {
     }
   };
 
+  // Import CSV : parse les commandes et les insère dans la BDD
+  var importFileRef = React.useRef(null);
+  var handleCSVImport = async file => {
+    if (!file) return;
+    try {
+      var text = await file.text();
+      var lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) {
+        if (window.HubToast) window.HubToast.warn("Fichier vide");
+        return;
+      }
+      // Détection séparateur ; ou ,
+      var sep = lines[0].split(";").length > lines[0].split(",").length ? ";" : ",";
+      var header = lines[0].split(sep).map(h => h.trim().toLowerCase());
+      var requiredCols = ["sage_ref", "name"];
+      for (var r of requiredCols) {
+        if (!header.includes(r)) {
+          if (window.HubToast) window.HubToast.error("Colonne obligatoire manquante : " + r);
+          return;
+        }
+      }
+      var created = 0,
+        updated = 0;
+      var _loop = async function () {
+        var cells = lines[i].split(sep);
+        var row = {};
+        header.forEach((h, idx) => {
+          row[h] = (cells[idx] || "").trim().replace(/^"|"$/g, "");
+        });
+        if (!row.sage_ref || !row.name) return 1; // continue
+        var payload = {
+          sage_ref: row.sage_ref,
+          name: row.name,
+          client_id: row.client_id || null,
+          amount_ht: row.amount_ht ? parseFloat(row.amount_ht) : null,
+          amount_ttc: row.amount_ttc ? parseFloat(row.amount_ttc) : null,
+          delivery_due: row.delivery_due || null,
+          description: row.description || null
+        };
+        var res = await window.api.projects.syncFromSage(payload);
+        if (res.mode === "created") created++;else updated++;
+      };
+      for (var i = 1; i < lines.length; i++) {
+        if (await _loop()) continue;
+      }
+      if (window.HubToast) window.HubToast.success("✓ Import OK — " + created + " créés, " + updated + " mis à jour");
+      reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur import : " + (e.message || e));
+    } finally {
+      if (importFileRef.current) importFileRef.current.value = "";
+    }
+  };
+  var downloadTemplate = () => {
+    var sample = "sage_ref;name;client_id;amount_ht;amount_ttc;delivery_due;description\n" + "CMD-2026-001;Migration AD AXA;;15000;18000;2026-07-15;Migration Active Directory\n" + "CMD-2026-002;Déploiement Astorya Cyber;;42000;50400;2026-08-01;Déploiement module Cyber 250 postes\n";
+    var blob = new Blob(["﻿" + sample], {
+      type: "text/csv;charset=utf-8;"
+    });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "import-projets-template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (window.HubToast) window.HubToast.info("Template téléchargé — colle tes lignes Sage dedans puis ré-importe");
+  };
+
   // Aperçu compact d'une carte projet
   var ProjectCard = ({
     p
@@ -349,11 +418,21 @@ var ProjectsKanban = () => {
     onChange: e => setSearch(e.target.value),
     style: S.search
   }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (window.HubToast) window.HubToast.info("Sync Sage manuelle — branchement script ODBC à venir. Documentation dans /scripts/sage-sync.md");
-    },
+    onClick: downloadTemplate,
+    style: S.btnGhost,
+    title: "T\xE9l\xE9charger un template CSV vide \xE0 remplir"
+  }, "\uD83D\uDCCB Template CSV"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => importFileRef.current && importFileRef.current.click(),
     style: S.btnGhost
-  }, "\u21E3 Importer Sage"))), loading ? /*#__PURE__*/React.createElement("div", {
+  }, "\u21E3 Importer CSV"), /*#__PURE__*/React.createElement("input", {
+    ref: importFileRef,
+    type: "file",
+    accept: ".csv,text/csv",
+    style: {
+      display: "none"
+    },
+    onChange: e => handleCSVImport(e.target.files[0])
+  }))), loading ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",

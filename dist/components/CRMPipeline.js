@@ -1624,14 +1624,12 @@ var CRMAccountsList = () => {
       display: "flex",
       alignItems: "center",
       gap: 8,
-      flex: 1,
-      maxWidth: 560,
-      minWidth: 320
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      flex: 1
+      width: 320
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1644,7 +1642,7 @@ var CRMAccountsList = () => {
   }, "\u2315"), /*#__PURE__*/React.createElement("input", {
     value: search,
     onChange: e => setSearch(e.target.value),
-    placeholder: "Rechercher (raison sociale, ville, SIREN, secteur\u2026)",
+    placeholder: "Rechercher (raison sociale, ville, SIREN\u2026)",
     style: {
       width: "100%",
       padding: "8px 12px 8px 32px",
@@ -1652,7 +1650,8 @@ var CRMAccountsList = () => {
       borderRadius: 8,
       fontSize: 13,
       outline: "none",
-      background: "#fff"
+      background: "#fff",
+      boxSizing: "border-box"
     }
   })), /*#__PURE__*/React.createElement("a", {
     href: "/nouveau-prospect",

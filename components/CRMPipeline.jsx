@@ -652,12 +652,12 @@ const CRMAccountsList = () => {
             {merged.length} compte{merged.length > 1 ? "s" : ""} ({localProspects.length} créé{localProspects.length > 1 ? "s" : ""} récemment · {supaClients.length} en base)
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 560, minWidth: 320 }}>
-          <div style={{ position: "relative", flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <div style={{ position: "relative", width: 320 }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
             <input value={search} onChange={(e) => setSearch(e.target.value)}
-                   placeholder="Rechercher (raison sociale, ville, SIREN, secteur…)"
-                   style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff" }} />
+                   placeholder="Rechercher (raison sociale, ville, SIREN…)"
+                   style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }} />
           </div>
           <a href="/nouveau-prospect" style={{ padding: "8px 14px", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>+ Nouveau prospect</a>
         </div>

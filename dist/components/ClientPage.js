@@ -2119,20 +2119,65 @@ var ClientPage = () => {
       color: r === "Champion" ? "#a65f00" : r === "Bloqueur" ? "#dc2626" : r === "Décideur" ? "#4338ca" : "#475569",
       border: r === "Champion" ? "1px solid #fde68a" : "none"
     }
-  }, r))), /*#__PURE__*/React.createElement("div", {
+  }, r))), p.email && /*#__PURE__*/React.createElement("a", {
+    href: "mailto:" + p.email,
     style: {
       fontSize: 11,
       color: "#475569",
       marginTop: 6,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontFamily: "'JetBrains Mono', monospace",
+      textDecoration: "none",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#3730a3",
+    onMouseLeave: e => e.currentTarget.style.color = "#475569",
+    title: "Envoyer un email à " + p.name
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10
     }
-  }, p.email), /*#__PURE__*/React.createElement("div", {
+  }, "\u2709"), p.email), p.phone && /*#__PURE__*/React.createElement("a", {
+    href: "#",
+    onClick: e => {
+      e.preventDefault();
+      var tel = (p.phone || "").replace(/[^\d+]/g, "");
+      if (!tel) return;
+      // Récupère l'URL du serveur 3CX configurée dans app_settings,
+      // fallback sur l'URL connue du Hub Astorya
+      var supa = window.HubSupabase && window.HubSupabase.client;
+      var launch = server => {
+        var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+        window.open(url, "3cx-webclient");
+        if (window.HubToast) window.HubToast.info("📞 Appel de " + p.name + " via 3CX");
+      };
+      if (supa) {
+        supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+          data
+        }) => launch(data && data.value)).catch(() => launch(null));
+      } else {
+        launch(null);
+      }
+    },
     style: {
       fontSize: 11,
       color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontFamily: "'JetBrains Mono', monospace",
+      textDecoration: "none",
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      cursor: "pointer"
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#10b981",
+    onMouseLeave: e => e.currentTarget.style.color = "#475569",
+    title: "Appeler " + p.name + " via 3CX (" + p.phone + ")"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10
     }
-  }, p.phone), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCDE"), p.phone), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "#94a3b8",
@@ -2155,16 +2200,32 @@ var ClientPage = () => {
       justifyContent: "center",
       cursor: "pointer"
     }
-  }, "\u2709"), /*#__PURE__*/React.createElement("a", {
-    href: "tel:" + (p.phone || "").replace(/[^\d+]/g, ""),
-    title: "Appeler " + p.name,
+  }, "\u2709"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var tel = (p.phone || "").replace(/[^\d+]/g, "");
+      if (!tel) {
+        if (window.HubToast) window.HubToast.warn("Aucun téléphone renseigné");
+        return;
+      }
+      var supa = window.HubSupabase && window.HubSupabase.client;
+      var launch = server => {
+        var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+        window.open(url, "3cx-webclient");
+        if (window.HubToast) window.HubToast.info("📞 Appel de " + p.name + " via 3CX");
+      };
+      if (supa) {
+        supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+          data
+        }) => launch(data && data.value)).catch(() => launch(null));
+      } else {
+        launch(null);
+      }
+    },
+    title: "Appeler " + p.name + " via 3CX",
     style: {
       ...cliStyles.iconMini,
-      textDecoration: "none",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer"
+      cursor: "pointer",
+      border: 0
     }
   }, "\u260E"), p._custom && /*#__PURE__*/React.createElement("button", {
     onClick: () => removeContact(p.id),

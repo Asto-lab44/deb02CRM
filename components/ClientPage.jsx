@@ -1215,13 +1215,60 @@ const ClientPage = () => {
                               ))}
                             </div>
                           )}
-                          <div style={{ fontSize: 11, color: "#475569", marginTop: 6, fontFamily: "'JetBrains Mono', monospace" }}>{p.email}</div>
-                          <div style={{ fontSize: 11, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{p.phone}</div>
+                          {p.email && (
+                            <a href={"mailto:" + p.email}
+                               style={{ fontSize: 11, color: "#475569", marginTop: 6, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
+                               onMouseEnter={(e) => e.currentTarget.style.color = "#3730a3"}
+                               onMouseLeave={(e) => e.currentTarget.style.color = "#475569"}
+                               title={"Envoyer un email à " + p.name}>
+                              <span style={{ fontSize: 10 }}>✉</span>{p.email}
+                            </a>
+                          )}
+                          {p.phone && (
+                            <a href="#"
+                               onClick={(e) => {
+                                 e.preventDefault();
+                                 const tel = (p.phone || "").replace(/[^\d+]/g, "");
+                                 if (!tel) return;
+                                 // Récupère l'URL du serveur 3CX configurée dans app_settings,
+                                 // fallback sur l'URL connue du Hub Astorya
+                                 const supa = window.HubSupabase && window.HubSupabase.client;
+                                 const launch = (server) => {
+                                   const url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+                                   window.open(url, "3cx-webclient");
+                                   if (window.HubToast) window.HubToast.info("📞 Appel de " + p.name + " via 3CX");
+                                 };
+                                 if (supa) {
+                                   supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle()
+                                     .then(({ data }) => launch(data && data.value))
+                                     .catch(() => launch(null));
+                                 } else { launch(null); }
+                               }}
+                               style={{ fontSize: 11, color: "#475569", fontFamily: "'JetBrains Mono', monospace", textDecoration: "none", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
+                               onMouseEnter={(e) => e.currentTarget.style.color = "#10b981"}
+                               onMouseLeave={(e) => e.currentTarget.style.color = "#475569"}
+                               title={"Appeler " + p.name + " via 3CX (" + p.phone + ")"}>
+                              <span style={{ fontSize: 10 }}>📞</span>{p.phone}
+                            </a>
+                          )}
                           <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 6 }}>Dernier contact · {p.last}</div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           <a href={"mailto:" + p.email} title={"Email à " + p.name} style={{ ...cliStyles.iconMini, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>✉</a>
-                          <a href={"tel:" + (p.phone || "").replace(/[^\d+]/g, "")} title={"Appeler " + p.name} style={{ ...cliStyles.iconMini, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>☎</a>
+                          <button onClick={() => {
+                            const tel = (p.phone || "").replace(/[^\d+]/g, "");
+                            if (!tel) { if (window.HubToast) window.HubToast.warn("Aucun téléphone renseigné"); return; }
+                            const supa = window.HubSupabase && window.HubSupabase.client;
+                            const launch = (server) => {
+                              const url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+                              window.open(url, "3cx-webclient");
+                              if (window.HubToast) window.HubToast.info("📞 Appel de " + p.name + " via 3CX");
+                            };
+                            if (supa) {
+                              supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle()
+                                .then(({ data }) => launch(data && data.value)).catch(() => launch(null));
+                            } else { launch(null); }
+                          }} title={"Appeler " + p.name + " via 3CX"} style={{ ...cliStyles.iconMini, cursor: "pointer", border: 0 }}>☎</button>
                           {p._custom && <button onClick={() => removeContact(p.id)} title="Retirer" style={{ ...cliStyles.iconMini, cursor: "pointer", color: "#dc2626" }}>×</button>}
                         </div>
                       </div>

@@ -347,6 +347,73 @@ var ClientPage = () => {
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
   var defaultContacts = [];
   var [customContacts, setCustomContacts] = React.useState([]);
+  var [editingContact, setEditingContact] = React.useState(null);
+  // User auth Supabase pour la sidebar (au lieu du fallback "Utilisateur —")
+  var [supaUser, setSupaUser] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then(u => {
+      if (u) setSupaUser(u);
+    }).catch(() => {});
+  }, []);
+  var reloadCustomContacts = async () => {
+    if (!urlId || !window.api || !window.api.contacts) return;
+    try {
+      var conts = await window.api.contacts.list({
+        client_id: urlId
+      });
+      setCustomContacts(conts || []);
+    } catch (e) {}
+  };
+  var saveContactEdit = async form => {
+    if (!form) return;
+    // Cas 1 : contact existe en table contacts → update direct
+    if (form.id) {
+      await window.api.contacts.update(form.id, {
+        prenom: form.prenom,
+        nom: form.nom,
+        fonction: form.fonction,
+        email: form.email,
+        phone: form.phone,
+        linkedin: form.linkedin
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact mis à jour");
+      await reloadCustomContacts();
+      setEditingContact(null);
+      return;
+    }
+    // Cas 2 : legacy contact_principal stocké dans clients.data → patch client
+    if (form._legacyPrincipal) {
+      await window.api.clients.update(urlId, {
+        contact_principal: {
+          prenom: form.prenom,
+          nom: form.nom,
+          fonction: form.fonction,
+          email: form.email,
+          phone: form.phone,
+          linkedin: form.linkedin
+        }
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact principal mis à jour");
+      setEditingContact(null);
+      window.location.reload();
+      return;
+    }
+    // Cas 3 : legacy contact_additionnel dans clients.data → on le crée en table contacts
+    var newContact = await window.api.contacts.create({
+      client_id: urlId,
+      prenom: form.prenom,
+      nom: form.nom,
+      fonction: form.fonction,
+      email: form.email,
+      phone: form.phone,
+      linkedin: form.linkedin,
+      is_principal: false
+    });
+    if (newContact && window.HubToast) window.HubToast.success("✓ Contact mis à jour");
+    await reloadCustomContacts();
+    setEditingContact(null);
+  };
   // Déclaration de loadedClient ICI (avant useMemo allContacts) pour éviter
   // que le useMemo ne lise une closure undefined lors du 1er rendu.
   var [loadedClient, setLoadedClient] = React.useState(null);
@@ -956,9 +1023,13 @@ var ClientPage = () => {
       flex: 1
     }
   }), (() => {
-    var cu = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
-    var nm = cu && cu.name || "Utilisateur";
-    var rl = cu && cu.role || "—";
+    // Priorité : Supabase auth (fetché en useEffect) puis HubAccess legacy
+    var cu = supaUser ? {
+      name: supaUser.user_metadata?.name || supaUser.email,
+      role: "Astorya"
+    } : window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
+    var nm = cu && cu.name || "Non connecté";
+    var rl = cu && cu.role || "Cliquer pour s'identifier";
     return /*#__PURE__*/React.createElement("a", {
       href: "/administration-utilisateurs",
       title: "Profil & pr\xE9f\xE9rences",
@@ -2109,12 +2180,36 @@ var ClientPage = () => {
       gap: 5,
       flexWrap: "wrap"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var parts = (p.name || "").split(" ");
+      var prenom = parts.shift() || "";
+      var nom = parts.join(" ");
+      setEditingContact({
+        id: p.id || null,
+        _legacyPrincipal: !p.id && p.last && p.last.indexOf("principal") >= 0,
+        prenom: p.prenom || prenom,
+        nom: p.nom || nom,
+        fonction: p.role || "",
+        email: p.email || "",
+        phone: p.phone || "",
+        linkedin: p.linkedin || "",
+        color: p.color
+      });
+    },
     style: {
+      background: "transparent",
+      border: 0,
+      padding: 0,
       fontSize: 13,
       fontWeight: 600,
-      color: "#0f172a"
-    }
+      color: "#0f172a",
+      cursor: "pointer",
+      textAlign: "left"
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#3730a3",
+    onMouseLeave: e => e.currentTarget.style.color = "#0f172a",
+    title: "Modifier ce contact"
   }, p.name), p.champion && /*#__PURE__*/React.createElement("span", {
     style: cliStyles.championPill
   }, "\u2605 Champion"), p.coldZone && /*#__PURE__*/React.createElement("span", {
@@ -2935,7 +3030,11 @@ var ClientPage = () => {
     style: {
       height: 24
     }
-  }))), /*#__PURE__*/React.createElement(CallStatsModal, {
+  }))), editingContact && /*#__PURE__*/React.createElement(ContactEditModal, {
+    contact: editingContact,
+    onClose: () => setEditingContact(null),
+    onSave: saveContactEdit
+  }), /*#__PURE__*/React.createElement(CallStatsModal, {
     open: statsOpen,
     client: {
       name: display.name
@@ -5073,5 +5172,295 @@ var TechModule = ({
       }, s.label))));
     })));
   })));
+};
+
+// ════════════════════════════════════════════════════════════════════
+// ContactEditModal — formulaire d'édition d'un contact existant
+// Permet de modifier prénom, nom, fonction, email, phone, linkedin
+// Sauvegarde via api.contacts.update (ou api.clients.update si legacy
+// contact_principal stocké dans clients.data).
+// ════════════════════════════════════════════════════════════════════
+var ContactEditModal = ({
+  contact,
+  onClose,
+  onSave
+}) => {
+  var [form, setForm] = React.useState(contact);
+  var [saving, setSaving] = React.useState(false);
+  React.useEffect(() => {
+    var onKey = e => {
+      if (e.key === "Escape") onClose && onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  var submit = async e => {
+    if (e && e.preventDefault) e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+  var portalTarget = typeof document !== "undefined" ? document.body : null;
+  var tree = /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: CE.backdrop
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: CE.modal
+  }, /*#__PURE__*/React.createElement("div", {
+    style: CE.head
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...CE.icon,
+      background: (form.color || "#3730a3") + "20",
+      color: form.color || "#3730a3"
+    }
+  }, ((form.prenom || "").slice(0, 1) + (form.nom || "").slice(0, 1)).toUpperCase() || "?"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: CE.eyebrow
+  }, "Fiche client \xB7 Contact"), /*#__PURE__*/React.createElement("div", {
+    style: CE.title
+  }, "Modifier le contact"))), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: CE.close
+  }, "\xD7")), /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit,
+    style: CE.body
+  }, /*#__PURE__*/React.createElement("div", {
+    style: CE.row
+  }, /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Pr\xE9nom"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.prenom || "",
+    onChange: e => setForm({
+      ...form,
+      prenom: e.target.value
+    }),
+    style: CE.input,
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Nom"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.nom || "",
+    onChange: e => setForm({
+      ...form,
+      nom: e.target.value
+    }),
+    style: CE.input
+  }))), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Fonction"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.fonction || "",
+    onChange: e => setForm({
+      ...form,
+      fonction: e.target.value
+    }),
+    placeholder: "Ex : CFO / Directeur financier",
+    style: CE.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: CE.row
+  }, /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: form.email || "",
+    onChange: e => setForm({
+      ...form,
+      email: e.target.value
+    }),
+    placeholder: "prenom.nom@entreprise.fr",
+    style: CE.input
+  })), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "T\xE9l\xE9phone"), /*#__PURE__*/React.createElement("input", {
+    type: "tel",
+    value: form.phone || "",
+    onChange: e => setForm({
+      ...form,
+      phone: e.target.value
+    }),
+    placeholder: "+33 6 12 34 56 78",
+    style: {
+      ...CE.input,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }))), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "LinkedIn"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.linkedin || "",
+    onChange: e => setForm({
+      ...form,
+      linkedin: e.target.value
+    }),
+    placeholder: "linkedin.com/in/prenom-nom",
+    style: {
+      ...CE.input,
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 12
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: CE.foot
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClose,
+    style: CE.btnGhost
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    disabled: saving,
+    style: {
+      ...CE.btnPrimary,
+      opacity: saving ? 0.6 : 1,
+      cursor: saving ? "wait" : "pointer"
+    }
+  }, saving ? "Enregistrement…" : "💾 Enregistrer")))));
+  return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
+};
+var CE = {
+  backdrop: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15,23,42,0.55)",
+    backdropFilter: "blur(4px)",
+    zIndex: 3000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20
+  },
+  modal: {
+    width: "100%",
+    maxWidth: 560,
+    maxHeight: "92vh",
+    overflowY: "auto",
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 25px 60px rgba(0,0,0,.3)",
+    display: "flex",
+    flexDirection: "column"
+  },
+  head: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "20px 24px 16px",
+    borderBottom: "1px solid #f1f5f9"
+  },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 14,
+    fontWeight: 700
+  },
+  eyebrow: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: 700,
+    color: "#0f172a",
+    marginTop: 2
+  },
+  close: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    background: "transparent",
+    border: 0,
+    fontSize: 22,
+    color: "#94a3b8",
+    cursor: "pointer"
+  },
+  body: {
+    padding: "16px 24px 20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12
+  },
+  row: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 5
+  },
+  label: {
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: 0.4
+  },
+  input: {
+    padding: "9px 12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 7,
+    fontSize: 13,
+    color: "#0f172a",
+    outline: "none",
+    background: "#fff",
+    boxSizing: "border-box"
+  },
+  foot: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 8,
+    paddingTop: 12,
+    borderTop: "1px solid #f1f5f9"
+  },
+  btnGhost: {
+    padding: "9px 14px",
+    background: "#fff",
+    color: "#334155",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer"
+  },
+  btnPrimary: {
+    padding: "9px 18px",
+    background: "#3730a3",
+    color: "#fff",
+    border: 0,
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 700
+  }
 };
 window.ClientPage = ClientPage;

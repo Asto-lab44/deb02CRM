@@ -252,6 +252,59 @@ const ClientPage = () => {
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
   const defaultContacts = [];
   const [customContacts, setCustomContacts] = React.useState([]);
+  const [editingContact, setEditingContact] = React.useState(null);
+  // User auth Supabase pour la sidebar (au lieu du fallback "Utilisateur —")
+  const [supaUser, setSupaUser] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then((u) => { if (u) setSupaUser(u); }).catch(() => {});
+  }, []);
+
+  const reloadCustomContacts = async () => {
+    if (!urlId || !window.api || !window.api.contacts) return;
+    try {
+      const conts = await window.api.contacts.list({ client_id: urlId });
+      setCustomContacts(conts || []);
+    } catch (e) {}
+  };
+
+  const saveContactEdit = async (form) => {
+    if (!form) return;
+    // Cas 1 : contact existe en table contacts → update direct
+    if (form.id) {
+      await window.api.contacts.update(form.id, {
+        prenom: form.prenom, nom: form.nom, fonction: form.fonction,
+        email: form.email, phone: form.phone, linkedin: form.linkedin,
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact mis à jour");
+      await reloadCustomContacts();
+      setEditingContact(null);
+      return;
+    }
+    // Cas 2 : legacy contact_principal stocké dans clients.data → patch client
+    if (form._legacyPrincipal) {
+      await window.api.clients.update(urlId, {
+        contact_principal: {
+          prenom: form.prenom, nom: form.nom, fonction: form.fonction,
+          email: form.email, phone: form.phone, linkedin: form.linkedin,
+        },
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact principal mis à jour");
+      setEditingContact(null);
+      window.location.reload();
+      return;
+    }
+    // Cas 3 : legacy contact_additionnel dans clients.data → on le crée en table contacts
+    const newContact = await window.api.contacts.create({
+      client_id: urlId,
+      prenom: form.prenom, nom: form.nom, fonction: form.fonction,
+      email: form.email, phone: form.phone, linkedin: form.linkedin,
+      is_principal: false,
+    });
+    if (newContact && window.HubToast) window.HubToast.success("✓ Contact mis à jour");
+    await reloadCustomContacts();
+    setEditingContact(null);
+  };
   // Déclaration de loadedClient ICI (avant useMemo allContacts) pour éviter
   // que le useMemo ne lise une closure undefined lors du 1er rendu.
   const [loadedClient, setLoadedClient] = React.useState(null);
@@ -639,9 +692,12 @@ const ClientPage = () => {
         <div style={{ flex: 1 }} />
 
         {(() => {
-          const cu = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;
-          const nm = (cu && cu.name) || "Utilisateur";
-          const rl = (cu && cu.role) || "—";
+          // Priorité : Supabase auth (fetché en useEffect) puis HubAccess legacy
+          const cu = supaUser
+            ? { name: supaUser.user_metadata?.name || supaUser.email, role: "Astorya" }
+            : ((window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null);
+          const nm = (cu && cu.name) || "Non connecté";
+          const rl = (cu && cu.role) || "Cliquer pour s'identifier";
           return (
         <a href="/administration-utilisateurs"
            title="Profil & préférences"
@@ -1233,7 +1289,27 @@ const ClientPage = () => {
                         <Avatar name={p.name} size={36} color={p.color} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{p.name}</span>
+                            <button onClick={() => {
+                              const parts = (p.name || "").split(" ");
+                              const prenom = parts.shift() || "";
+                              const nom = parts.join(" ");
+                              setEditingContact({
+                                id: p.id || null,
+                                _legacyPrincipal: !p.id && p.last && p.last.indexOf("principal") >= 0,
+                                prenom: p.prenom || prenom,
+                                nom: p.nom || nom,
+                                fonction: p.role || "",
+                                email: p.email || "",
+                                phone: p.phone || "",
+                                linkedin: p.linkedin || "",
+                                color: p.color,
+                              });
+                            }}
+                                    style={{ background: "transparent", border: 0, padding: 0, fontSize: 13, fontWeight: 600, color: "#0f172a", cursor: "pointer", textAlign: "left" }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = "#3730a3"}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = "#0f172a"}
+                                    title="Modifier ce contact"
+                            >{p.name}</button>
                             {p.champion && <span style={cliStyles.championPill}>★ Champion</span>}
                             {p.coldZone && <span style={cliStyles.coldPill}>❄ Froid</span>}
                           </div>
@@ -1522,6 +1598,8 @@ const ClientPage = () => {
           <div style={{ height: 24 }} />
         </div>
       </main>
+
+      {editingContact && <ContactEditModal contact={editingContact} onClose={() => setEditingContact(null)} onSave={saveContactEdit} />}
 
       <CallStatsModal
         open={statsOpen}
@@ -2303,6 +2381,102 @@ const TechModule = ({ clientId, value, onChange }) => {
       </div>
     </section>
   );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// ContactEditModal — formulaire d'édition d'un contact existant
+// Permet de modifier prénom, nom, fonction, email, phone, linkedin
+// Sauvegarde via api.contacts.update (ou api.clients.update si legacy
+// contact_principal stocké dans clients.data).
+// ════════════════════════════════════════════════════════════════════
+const ContactEditModal = ({ contact, onClose, onSave }) => {
+  const [form, setForm] = React.useState(contact);
+  const [saving, setSaving] = React.useState(false);
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose && onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const submit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setSaving(true);
+    try { await onSave(form); }
+    finally { setSaving(false); }
+  };
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
+  const tree = (
+    <div onClick={onClose} style={CE.backdrop}>
+      <div onClick={(e) => e.stopPropagation()} style={CE.modal}>
+        <div style={CE.head}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ ...CE.icon, background: (form.color || "#3730a3") + "20", color: form.color || "#3730a3" }}>
+              {((form.prenom || "").slice(0, 1) + (form.nom || "").slice(0, 1)).toUpperCase() || "?"}
+            </div>
+            <div>
+              <div style={CE.eyebrow}>Fiche client · Contact</div>
+              <div style={CE.title}>Modifier le contact</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={CE.close}>×</button>
+        </div>
+        <form onSubmit={submit} style={CE.body}>
+          <div style={CE.row}>
+            <label style={CE.field}>
+              <span style={CE.label}>Prénom</span>
+              <input type="text" value={form.prenom || ""} onChange={(e) => setForm({ ...form, prenom: e.target.value })} style={CE.input} autoFocus />
+            </label>
+            <label style={CE.field}>
+              <span style={CE.label}>Nom</span>
+              <input type="text" value={form.nom || ""} onChange={(e) => setForm({ ...form, nom: e.target.value })} style={CE.input} />
+            </label>
+          </div>
+          <label style={CE.field}>
+            <span style={CE.label}>Fonction</span>
+            <input type="text" value={form.fonction || ""} onChange={(e) => setForm({ ...form, fonction: e.target.value })} placeholder="Ex : CFO / Directeur financier" style={CE.input} />
+          </label>
+          <div style={CE.row}>
+            <label style={CE.field}>
+              <span style={CE.label}>Email</span>
+              <input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="prenom.nom@entreprise.fr" style={CE.input} />
+            </label>
+            <label style={CE.field}>
+              <span style={CE.label}>Téléphone</span>
+              <input type="tel" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+33 6 12 34 56 78" style={{ ...CE.input, fontFamily: "'JetBrains Mono', monospace" }} />
+            </label>
+          </div>
+          <label style={CE.field}>
+            <span style={CE.label}>LinkedIn</span>
+            <input type="text" value={form.linkedin || ""} onChange={(e) => setForm({ ...form, linkedin: e.target.value })} placeholder="linkedin.com/in/prenom-nom" style={{ ...CE.input, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }} />
+          </label>
+          <div style={CE.foot}>
+            <button type="button" onClick={onClose} style={CE.btnGhost}>Annuler</button>
+            <button type="submit" disabled={saving} style={{ ...CE.btnPrimary, opacity: saving ? 0.6 : 1, cursor: saving ? "wait" : "pointer" }}>
+              {saving ? "Enregistrement…" : "💾 Enregistrer"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+  return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
+};
+
+const CE = {
+  backdrop: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
+  modal: { width: "100%", maxWidth: 560, maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 16, boxShadow: "0 25px 60px rgba(0,0,0,.3)", display: "flex", flexDirection: "column" },
+  head: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #f1f5f9" },
+  icon: { width: 40, height: 40, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700 },
+  eyebrow: { fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 },
+  title: { fontSize: 17, fontWeight: 700, color: "#0f172a", marginTop: 2 },
+  close: { width: 32, height: 32, borderRadius: 8, background: "transparent", border: 0, fontSize: 22, color: "#94a3b8", cursor: "pointer" },
+  body: { padding: "16px 24px 20px", display: "flex", flexDirection: "column", gap: 12 },
+  row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  field: { display: "flex", flexDirection: "column", gap: 5 },
+  label: { fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 },
+  input: { padding: "9px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, color: "#0f172a", outline: "none", background: "#fff", boxSizing: "border-box" },
+  foot: { display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8, paddingTop: 12, borderTop: "1px solid #f1f5f9" },
+  btnGhost: { padding: "9px 14px", background: "#fff", color: "#334155", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer" },
+  btnPrimary: { padding: "9px 18px", background: "#3730a3", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 700 },
 };
 
 window.ClientPage = ClientPage;

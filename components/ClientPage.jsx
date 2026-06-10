@@ -1127,51 +1127,80 @@ const ClientPage = () => {
                         textDecoration: done ? "line-through" : "none",
                       }}>
                         {(() => {
-                          // Action de type email : icône cliquable → ouvre le client mail
-                          // par défaut (Outlook desktop, Outlook web, Gmail, etc.) avec
-                          // destinataire + sujet + corps pré-remplis.
-                          const isEmail = (a.tag || "").toLowerCase() === "email" ||
-                                          (a.title || "").toLowerCase().includes("email") ||
+                          // Détection du type d'action :
+                          //  - email → ouvre mailto:
+                          //  - call/appel → ouvre 3CX Web Client avec le numéro
+                          const tagL = (a.tag || "").toLowerCase();
+                          const titleL = (a.title || "").toLowerCase();
+                          const isEmail = tagL === "email" || titleL.includes("email") ||
                                           a.icon === "✉" || a.icon === "📧";
+                          const isCall = tagL === "appel" || tagL === "call" || tagL === "phone" ||
+                                         titleL.includes("appel") || titleL.includes("relance") ||
+                                         a.icon === "📞" || a.icon === "☎";
                           const baseStyle = {
                             ...cliStyles.actionIcon,
                             background: a.priority === "ai" ? "#0f172a" : "#fff",
                             color: a.priority === "ai" ? "#fff" : "#475569",
                             borderColor: a.priority === "ai" ? "#0f172a" : "#eef1f5",
                           };
-                          if (!isEmail) return <div style={baseStyle}>{a.icon}</div>;
-                          // Détermine le destinataire : contact principal du client, sinon
-                          // email du compte, sinon vide (l'agent renseigne dans le client).
-                          const recipient = (allContacts && allContacts[0] && allContacts[0].email) || display.email || "";
-                          const subject = a.title || "Prise de contact — Astorya";
-                          const bodyLines = [
-                            "Bonjour" + (allContacts && allContacts[0] && allContacts[0].name ? " " + allContacts[0].name.split(" ")[0] : "") + ",",
-                            "",
-                            a.meta || "",
-                            "",
-                            "Bien cordialement,",
-                            "Romain Daviaud — Astorya",
-                          ];
-                          const body = bodyLines.filter(Boolean).join("\n\n");
-                          const href = "mailto:" + encodeURIComponent(recipient) +
-                            "?subject=" + encodeURIComponent(subject) +
-                            "&body=" + encodeURIComponent(body);
-                          return (
-                            <a href={href}
-                               title={recipient ? ("Ouvrir un mail pour " + recipient) : "Ouvrir un nouveau mail (aucun destinataire renseigné)"}
-                               onClick={(e) => {
-                                 if (!recipient && window.HubToast) window.HubToast.warn("Aucun email renseigné pour ce client — ajoute un contact d'abord");
-                               }}
-                               style={{
-                                 ...baseStyle,
-                                 textDecoration: "none",
-                                 cursor: "pointer",
-                                 transition: "transform 120ms, box-shadow 120ms",
-                               }}
-                               onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,0.12)"; }}
-                               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "none"; }}
-                            >{a.icon}</a>
-                          );
+                          const hoverStyle = {
+                            ...baseStyle,
+                            textDecoration: "none",
+                            cursor: "pointer",
+                            transition: "transform 120ms, box-shadow 120ms",
+                          };
+                          const hoverOn = (e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,0.12)"; };
+                          const hoverOff = (e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "none"; };
+                          if (isEmail) {
+                            const recipient = (allContacts && allContacts[0] && allContacts[0].email) || display.email || "";
+                            const subject = a.title || "Prise de contact — Astorya";
+                            const bodyLines = [
+                              "Bonjour" + (allContacts && allContacts[0] && allContacts[0].name ? " " + allContacts[0].name.split(" ")[0] : "") + ",",
+                              "",
+                              a.meta || "",
+                              "",
+                              "Bien cordialement,",
+                              "Romain Daviaud — Astorya",
+                            ];
+                            const body = bodyLines.filter(Boolean).join("\n\n");
+                            const href = "mailto:" + encodeURIComponent(recipient) +
+                              "?subject=" + encodeURIComponent(subject) +
+                              "&body=" + encodeURIComponent(body);
+                            return (
+                              <a href={href}
+                                 title={recipient ? ("Ouvrir un mail pour " + recipient) : "Aucun destinataire renseigné"}
+                                 onClick={() => { if (!recipient && window.HubToast) window.HubToast.warn("Aucun email — ajoute un contact d'abord"); }}
+                                 style={hoverStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                              >{a.icon}</a>
+                            );
+                          }
+                          if (isCall) {
+                            // Numéro : contact principal d'abord, sinon téléphone du client
+                            const targetPhone = (allContacts && allContacts[0] && allContacts[0].phone) ||
+                                                display.phone || "";
+                            const targetName = (allContacts && allContacts[0] && allContacts[0].name) || display.name;
+                            return (
+                              <button onClick={() => {
+                                if (!targetPhone) { if (window.HubToast) window.HubToast.warn("Aucun téléphone renseigné — ajoute un contact"); return; }
+                                const tel = targetPhone.replace(/[^\d+]/g, "");
+                                const supa = window.HubSupabase && window.HubSupabase.client;
+                                const launch = (server) => {
+                                  const url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+                                  window.open(url, "3cx-webclient");
+                                  if (window.HubToast) window.HubToast.info("📞 Appel de " + targetName + " via 3CX");
+                                };
+                                if (supa) {
+                                  supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle()
+                                    .then(({ data }) => launch(data && data.value)).catch(() => launch(null));
+                                } else { launch(null); }
+                              }}
+                                      title={"Appeler " + targetName + " via 3CX" + (targetPhone ? " (" + targetPhone + ")" : "")}
+                                      style={{ ...hoverStyle, border: 0 }}
+                                      onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                              >{a.icon}</button>
+                            );
+                          }
+                          return <div style={baseStyle}>{a.icon}</div>;
                         })()}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>

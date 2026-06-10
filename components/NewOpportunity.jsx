@@ -34,6 +34,12 @@ const NewOpportunity = () => {
   const [oppAmount, setOppAmount] = React.useState("");
   const [oppDate, setOppDate]     = React.useState("");
   const [oppNotes, setOppNotes]   = React.useState("");
+  // Qualification commerciale — déplacée depuis NewProspect : une qualif
+  // par opportunité (besoin, concurrent, échéance).
+  const [oppBesoin, setOppBesoin]                 = React.useState("");
+  const [oppConcurrent, setOppConcurrent]         = React.useState("");
+  const [oppConcurrentAmount, setOppConcurrentAmount] = React.useState("");
+  const [oppProjectDate, setOppProjectDate]       = React.useState("");
   const [oppType, setOppType]     = React.useState("new"); // new | extension | renewal | upsell
   const [oppProduit, setOppProduit] = React.useState("Astorya Suite");
   const [oppModules, setOppModules] = React.useState([]); // ["Cyber", "Hub", ...]
@@ -94,6 +100,11 @@ const NewOpportunity = () => {
       proba,
       owner: oppOwner,
       tags: oppTags,
+      // Qualification commerciale
+      besoin: oppBesoin || null,
+      concurrent: oppConcurrent || null,
+      concurrent_amount: oppConcurrentAmount || null,
+      project_date: oppProjectDate || null,
     };
     try {
       await window.api.opportunities.create(opp);
@@ -536,6 +547,46 @@ const NewOpportunity = () => {
               </section>
 
               </div>{/* /Row 2 */}
+
+              {/* SECTION 5 — Qualification commerciale */}
+              <section style={noStyles.section}>
+                <SectionHead num="05" title="Qualification commerciale" subtitle="Besoin, contexte concurrentiel et échéance du projet" />
+                <FormRow label="Besoin exprimé / problème à résoudre">
+                  <textarea
+                    style={{ ...noStyles.input, fontFamily: "inherit", resize: "vertical", minHeight: 70 }}
+                    rows="3"
+                    value={oppBesoin}
+                    onChange={(e) => setOppBesoin(e.target.value)}
+                    placeholder="Modernisation, contraintes, contexte concurrentiel…"
+                  />
+                </FormRow>
+                <div style={noStyles.formGrid2}>
+                  <FormRow label="Concurrent actuel">
+                    <input
+                      style={noStyles.input}
+                      value={oppConcurrent}
+                      onChange={(e) => setOppConcurrent(e.target.value)}
+                      placeholder="Ex. Salesforce, Pega, HubSpot…"
+                    />
+                    <div style={{ ...noStyles.inputWithSuffix, marginTop: 6 }}>
+                      <input
+                        style={{ ...noStyles.input, border: "none", padding: "0 4px" }}
+                        value={oppConcurrentAmount}
+                        onChange={(e) => setOppConcurrentAmount(e.target.value)}
+                        placeholder="Montant annuel"
+                      />
+                      <span style={noStyles.suffix}>k€/an</span>
+                    </div>
+                  </FormRow>
+                  <FormRow label="Échéance du projet">
+                    <div style={noStyles.dateInput}>
+                      <span style={{ color: "#94a3b8" }}>📅</span>
+                      <input type="date" style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                             value={oppProjectDate} onChange={(e) => setOppProjectDate(e.target.value)} />
+                    </div>
+                  </FormRow>
+                </div>
+              </section>
 
               {/* Bottom actions */}
               <div style={noStyles.actionsRow}>

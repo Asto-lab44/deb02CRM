@@ -886,15 +886,6 @@ var ClientPage = () => {
       color: "#64748b"
     }
   }, "CRM commercial"))), /*#__PURE__*/React.createElement("a", {
-    href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id),
-    style: {
-      ...cliStyles.newBtn,
-      textDecoration: "none",
-      cursor: "pointer"
-    }
-  }, "+ Nouvelle opportunit\xE9 ", /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.kbd
-  }, "N")), /*#__PURE__*/React.createElement("a", {
     href: "/nouveau-prospect",
     style: {
       ...cliStyles.newBtn,
@@ -902,8 +893,7 @@ var ClientPage = () => {
       cursor: "pointer",
       background: "#fff",
       color: "#0f172a",
-      border: "1px solid #e2e8f0",
-      marginTop: -8
+      border: "1px solid #e2e8f0"
     }
   }, "+ Nouveau prospect ", /*#__PURE__*/React.createElement("span", {
     style: {
@@ -911,7 +901,17 @@ var ClientPage = () => {
       background: "#f1f5f9",
       color: "#475569"
     }
-  }, "P")), /*#__PURE__*/React.createElement("div", {
+  }, "P")), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id),
+    style: {
+      ...cliStyles.newBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      marginTop: -8
+    }
+  }, "+ Nouvelle opportunit\xE9 ", /*#__PURE__*/React.createElement("span", {
+    style: cliStyles.kbd
+  }, "N")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel

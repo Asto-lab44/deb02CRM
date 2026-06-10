@@ -1137,6 +1137,9 @@ const ClientPage = () => {
                           const isCall = tagL === "appel" || tagL === "call" || tagL === "phone" ||
                                          titleL.includes("appel") || titleL.includes("relance") ||
                                          a.icon === "📞" || a.icon === "☎";
+                          const isMeeting = tagL === "rdv" || tagL === "visio" || tagL === "meeting" ||
+                                            titleL.includes("rdv") || titleL.includes("rendez-vous") ||
+                                            a.icon === "📅" || a.icon === "🗓" || a.icon === "💻";
                           const baseStyle = {
                             ...cliStyles.actionIcon,
                             background: a.priority === "ai" ? "#0f172a" : "#fff",
@@ -1195,6 +1198,48 @@ const ClientPage = () => {
                                 } else { launch(null); }
                               }}
                                       title={"Appeler " + targetName + " via 3CX" + (targetPhone ? " (" + targetPhone + ")" : "")}
+                                      style={{ ...hoverStyle, border: 0 }}
+                                      onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                              >{a.icon}</button>
+                            );
+                          }
+                          if (isMeeting) {
+                            // Ouvre Outlook Calendar pour créer un événement avec
+                            // l'invité (contact principal) + titre + corps pré-remplis.
+                            // Date : extraite de a.due si possible (sinon J+1 par défaut).
+                            const attendeeEmail = (allContacts && allContacts[0] && allContacts[0].email) || "";
+                            const attendeeName = (allContacts && allContacts[0] && allContacts[0].name) || display.name;
+                            // Tentative de parser la date depuis a.due (ex: "ven. 12 juin")
+                            // Fallback : J+1 09h
+                            const now = new Date();
+                            const tomorrow = new Date(now.getTime() + 24 * 3600 * 1000);
+                            tomorrow.setHours(9, 0, 0, 0);
+                            const start = tomorrow;
+                            const end = new Date(start.getTime() + 60 * 60 * 1000); // +1h
+                            const toIso = (d) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+                            const subject = (a.title || "Rendez-vous") + " — " + (display.name || "");
+                            const body = [
+                              a.meta || "",
+                              "",
+                              "Préparé via Hub Astorya",
+                            ].filter(Boolean).join("\n");
+                            const params = new URLSearchParams({
+                              subject,
+                              body,
+                              startdt: toIso(start),
+                              enddt: toIso(end),
+                              location: "Visio (à confirmer)",
+                              path: "/calendar/action/compose",
+                              rru: "addevent",
+                            });
+                            if (attendeeEmail) params.set("to", attendeeEmail);
+                            const url = "https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString();
+                            return (
+                              <button onClick={() => {
+                                window.open(url, "_blank", "noopener");
+                                if (window.HubToast) window.HubToast.info("📅 RDV à planifier avec " + attendeeName + " — Outlook ouvert");
+                              }}
+                                      title={"Créer un RDV Outlook avec " + attendeeName + (attendeeEmail ? " (" + attendeeEmail + ")" : "")}
                                       style={{ ...hoverStyle, border: 0 }}
                                       onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                               >{a.icon}</button>

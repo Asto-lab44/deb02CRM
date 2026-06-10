@@ -954,50 +954,6 @@ const ClientPage = () => {
             </div>
           </section>
 
-          {/* QUALIFICATION COMMERCIALE — besoin + concurrent + échéance */}
-          {(display.besoin || (display.concurrent && display.concurrent !== "—") || display.concurrentAmount || display.projectDate || display.source !== "—") && (
-            <section style={cliStyles.block}>
-              <div style={cliStyles.blockHead}>
-                <div>
-                  <h2 style={cliStyles.h2}>🎯 Qualification commerciale</h2>
-                  <p style={cliStyles.h2sub}>Besoin identifié, contexte concurrentiel et calendrier projet</p>
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                {display.besoin && (
-                  <div style={{ gridColumn: "1 / -1", padding: 14, background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 10 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>💡 Besoin exprimé</div>
-                    <div style={{ fontSize: 13.5, color: "#0f172a", lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{display.besoin}</div>
-                  </div>
-                )}
-                {display.concurrent && display.concurrent !== "—" && (
-                  <div style={{ padding: 14, background: "#fdecec", border: "1px solid #fecaca", borderRadius: 10 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#991b1b", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>⚔ Concurrent actuel</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#dc2626" }}>{display.concurrent}</div>
-                    {display.concurrentAmount && (
-                      <div style={{ fontSize: 12, color: "#475569", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{display.concurrentAmount} k€/an</div>
-                    )}
-                    {display.concurrentEnd && (
-                      <div style={{ fontSize: 11.5, color: "#94a3b8", marginTop: 4 }}>Fin contrat : {new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}</div>
-                    )}
-                  </div>
-                )}
-                {display.projectDate && (
-                  <div style={{ padding: 14, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#1e40af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>📅 Échéance projet</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#1e40af", fontFamily: "'JetBrains Mono', monospace" }}>{new Date(display.projectDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>
-                  </div>
-                )}
-                {display.source && display.source !== "—" && (
-                  <div style={{ padding: 14, background: "#f5efff", border: "1px solid #ddd6fe", borderRadius: 10 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5b21b6", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>🌱 Source du prospect</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: "#5b21b6" }}>{display.source}</div>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
           {/* PIPE — Contrats / opportunités */}
           <section style={cliStyles.block}>
             <div style={cliStyles.blockHead}>

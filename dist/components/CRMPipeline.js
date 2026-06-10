@@ -1660,7 +1660,8 @@ var CRMAccountsList = () => {
       alignItems: "center",
       gap: 8,
       flex: 1,
-      maxWidth: 480
+      maxWidth: 560,
+      minWidth: 320
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1698,7 +1699,8 @@ var CRMAccountsList = () => {
       fontSize: 12.5,
       fontWeight: 600,
       textDecoration: "none",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      flexShrink: 0
     }
   }, "+ Nouveau prospect"))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {

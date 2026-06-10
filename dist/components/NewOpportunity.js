@@ -62,16 +62,58 @@ var NewOpportunity = () => {
   }, []);
   var [flash, setFlash] = React.useState(null);
 
-  // Résolution du dossier prospect complet (pour récupérer contact_principal + contacts_additionnels)
+  // Résolution du dossier prospect complet : contacts depuis Supabase
+  // en priorité (table contacts), fallback localStorage legacy si rien.
+  var [clientContacts, setClientContacts] = React.useState([]);
+  React.useEffect(() => {
+    if (!selectedClient || !selectedClient.id) {
+      setClientContacts([]);
+      return;
+    }
+    (async () => {
+      try {
+        var conts = await window.api.contacts.list({
+          client_id: selectedClient.id
+        });
+        setClientContacts(conts || []);
+      } catch (e) {
+        setClientContacts([]);
+      }
+    })();
+  }, [selectedClient && selectedClient.id]);
   var fullProspect = React.useMemo(() => {
     if (!selectedClient) return null;
+    // Construit un fullProspect virtuel à partir des contacts BDD
+    var principal = clientContacts.find(c => c.is_principal);
+    var additionnels = clientContacts.filter(c => !c.is_principal);
+    if (clientContacts.length > 0) {
+      return {
+        id: selectedClient.id,
+        contact_principal: principal ? {
+          prenom: principal.prenom || "",
+          nom: principal.nom || "",
+          fonction: principal.fonction || "",
+          email: principal.email || "",
+          phone: principal.phone || ""
+        } : null,
+        contacts_additionnels: additionnels.map(c => ({
+          prenom: c.prenom || "",
+          nom: c.nom || "",
+          fonction: c.fonction || "",
+          email: c.email || "",
+          phone: c.phone || ""
+        })),
+        roles: principal && principal.roles || []
+      };
+    }
+    // Fallback localStorage legacy
     try {
       var local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
       return local.find(p => p.id === selectedClient.id) || null;
     } catch (e) {
       return null;
     }
-  }, [selectedClient]);
+  }, [selectedClient, clientContacts]);
 
   // Probabilité auto selon étape
   var stageProba = {

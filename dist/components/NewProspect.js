@@ -17,6 +17,13 @@ var NewProspect = () => {
   var [besoin, setBesoin] = React.useState("");
   var [notes, setNotes] = React.useState("");
   var [tags, setTags] = React.useState([]);
+  var [tagMenuOpen, setTagMenuOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!tagMenuOpen) return;
+    var close = () => setTagMenuOpen(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [tagMenuOpen]);
   // Détection live de doublons : nom approchant ou SIREN identique
   var [allClients, setAllClients] = React.useState([]);
   React.useEffect(() => {
@@ -914,7 +921,25 @@ var NewProspect = () => {
     onChange: e => setContactRole(e.target.value)
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "\u2014 Choisir une fonction \u2014"), /*#__PURE__*/React.createElement("option", null, "CEO / Directeur g\xE9n\xE9ral"), /*#__PURE__*/React.createElement("option", null, "COO / Directeur des op\xE9rations"), /*#__PURE__*/React.createElement("option", null, "CFO / Directeur financier"), /*#__PURE__*/React.createElement("option", null, "CTO / Directeur technique"), /*#__PURE__*/React.createElement("option", null, "CIO / DSI"), /*#__PURE__*/React.createElement("option", null, "CISO / RSSI"), /*#__PURE__*/React.createElement("option", null, "CMO / Directeur marketing"), /*#__PURE__*/React.createElement("option", null, "CHRO / DRH"), /*#__PURE__*/React.createElement("option", null, "Directeur des achats"), /*#__PURE__*/React.createElement("option", null, "Directeur de la transformation digitale"), /*#__PURE__*/React.createElement("option", null, "Responsable IT / Manager SI"), /*#__PURE__*/React.createElement("option", null, "Responsable infrastructure"), /*#__PURE__*/React.createElement("option", null, "Chef de projet"), /*#__PURE__*/React.createElement("option", null, "Architecte SI"), /*#__PURE__*/React.createElement("option", null, "Consultant / Expert"), /*#__PURE__*/React.createElement("option", null, "Acheteur"), /*#__PURE__*/React.createElement("option", null, "Juriste / DPO"), /*#__PURE__*/React.createElement("option", null, "Autre \u2014 pr\xE9ciser dans notes"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "\u2014 Choisir une fonction \u2014"), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Direction g\xE9n\xE9rale"
+  }, /*#__PURE__*/React.createElement("option", null, "CEO / Directeur g\xE9n\xE9ral"), /*#__PURE__*/React.createElement("option", null, "G\xE9rant / Dirigeant"), /*#__PURE__*/React.createElement("option", null, "COO / Directeur des op\xE9rations"), /*#__PURE__*/React.createElement("option", null, "Directeur de la transformation digitale"), /*#__PURE__*/React.createElement("option", null, "Directeur de site / d'agence"), /*#__PURE__*/React.createElement("option", null, "Secr\xE9taire g\xE9n\xE9ral")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Finance & Comptabilit\xE9"
+  }, /*#__PURE__*/React.createElement("option", null, "CFO / Directeur financier"), /*#__PURE__*/React.createElement("option", null, "Directeur administratif et financier (DAF)"), /*#__PURE__*/React.createElement("option", null, "Chef comptable"), /*#__PURE__*/React.createElement("option", null, "Comptable"), /*#__PURE__*/React.createElement("option", null, "Contr\xF4leur de gestion"), /*#__PURE__*/React.createElement("option", null, "Responsable tr\xE9sorerie"), /*#__PURE__*/React.createElement("option", null, "Cr\xE9dit manager"), /*#__PURE__*/React.createElement("option", null, "Auditeur interne")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "IT & Tech"
+  }, /*#__PURE__*/React.createElement("option", null, "CTO / Directeur technique"), /*#__PURE__*/React.createElement("option", null, "CIO / DSI"), /*#__PURE__*/React.createElement("option", null, "CISO / RSSI"), /*#__PURE__*/React.createElement("option", null, "Responsable IT / Manager SI"), /*#__PURE__*/React.createElement("option", null, "Responsable infrastructure"), /*#__PURE__*/React.createElement("option", null, "Architecte SI"), /*#__PURE__*/React.createElement("option", null, "Chef de projet IT"), /*#__PURE__*/React.createElement("option", null, "DevOps / SRE"), /*#__PURE__*/React.createElement("option", null, "Lead d\xE9veloppeur"), /*#__PURE__*/React.createElement("option", null, "Administrateur syst\xE8me / r\xE9seaux"), /*#__PURE__*/React.createElement("option", null, "Technicien support / Helpdesk"), /*#__PURE__*/React.createElement("option", null, "Data Officer (CDO) / Data Engineer")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Marketing & Communication"
+  }, /*#__PURE__*/React.createElement("option", null, "CMO / Directeur marketing"), /*#__PURE__*/React.createElement("option", null, "Responsable marketing"), /*#__PURE__*/React.createElement("option", null, "Charg\xE9 de marketing"), /*#__PURE__*/React.createElement("option", null, "Brand manager"), /*#__PURE__*/React.createElement("option", null, "Product marketing manager"), /*#__PURE__*/React.createElement("option", null, "Responsable digital / SEO"), /*#__PURE__*/React.createElement("option", null, "Community / Social media manager"), /*#__PURE__*/React.createElement("option", null, "Charg\xE9 de communication"), /*#__PURE__*/React.createElement("option", null, "Directeur de la communication")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Commercial & Ventes"
+  }, /*#__PURE__*/React.createElement("option", null, "Directeur commercial / Sales Director"), /*#__PURE__*/React.createElement("option", null, "VP Sales"), /*#__PURE__*/React.createElement("option", null, "Account Executive"), /*#__PURE__*/React.createElement("option", null, "Business Developer"), /*#__PURE__*/React.createElement("option", null, "Commercial terrain"), /*#__PURE__*/React.createElement("option", null, "Inside Sales / SDR"), /*#__PURE__*/React.createElement("option", null, "Key Account Manager"), /*#__PURE__*/React.createElement("option", null, "Responsable agence commerciale"), /*#__PURE__*/React.createElement("option", null, "Charg\xE9 d'affaires"), /*#__PURE__*/React.createElement("option", null, "Customer Success Manager")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "RH & Paie"
+  }, /*#__PURE__*/React.createElement("option", null, "CHRO / DRH"), /*#__PURE__*/React.createElement("option", null, "Responsable RH"), /*#__PURE__*/React.createElement("option", null, "Charg\xE9 de recrutement"), /*#__PURE__*/React.createElement("option", null, "Responsable paie"), /*#__PURE__*/React.createElement("option", null, "Gestionnaire de paie"), /*#__PURE__*/React.createElement("option", null, "Responsable formation"), /*#__PURE__*/React.createElement("option", null, "Responsable QVT / RSE")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Op\xE9rations & Production"
+  }, /*#__PURE__*/React.createElement("option", null, "Directeur des op\xE9rations"), /*#__PURE__*/React.createElement("option", null, "Directeur d'usine / Site manager"), /*#__PURE__*/React.createElement("option", null, "Responsable production"), /*#__PURE__*/React.createElement("option", null, "Responsable qualit\xE9 / QHSE"), /*#__PURE__*/React.createElement("option", null, "Responsable logistique / Supply chain"), /*#__PURE__*/React.createElement("option", null, "Responsable maintenance"), /*#__PURE__*/React.createElement("option", null, "Chef d'atelier")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Achats & Juridique"
+  }, /*#__PURE__*/React.createElement("option", null, "Directeur des achats"), /*#__PURE__*/React.createElement("option", null, "Responsable achats"), /*#__PURE__*/React.createElement("option", null, "Acheteur"), /*#__PURE__*/React.createElement("option", null, "Approvisionneur"), /*#__PURE__*/React.createElement("option", null, "Directeur juridique"), /*#__PURE__*/React.createElement("option", null, "Juriste / DPO")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Autre"
+  }, /*#__PURE__*/React.createElement("option", null, "Assistant(e) de direction"), /*#__PURE__*/React.createElement("option", null, "Office manager"), /*#__PURE__*/React.createElement("option", null, "Consultant / Expert"), /*#__PURE__*/React.createElement("option", null, "Chef de projet"), /*#__PURE__*/React.createElement("option", null, "Autre \u2014 pr\xE9ciser dans notes")))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Niveau hi\xE9rarchique"
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.segCtrl
@@ -1327,13 +1352,14 @@ var NewProspect = () => {
     }, a.hint)));
   }))), /*#__PURE__*/React.createElement(FormRow, {
     label: "\xC9tiquettes",
-    subtitle: "Tags libres pour cat\xE9goriser ce prospect"
+    subtitle: "Tags pour cat\xE9goriser ce prospect"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
       flexWrap: "wrap",
-      alignItems: "center"
+      alignItems: "center",
+      position: "relative"
     }
   }, tags.map((t, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
@@ -1352,20 +1378,143 @@ var NewProspect = () => {
       marginLeft: 2
     }
   }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: async () => {
-      var v = window.HubModal ? await window.HubModal.prompt({
-        title: "Nouvelle étiquette",
-        label: "Tag",
-        placeholder: "ex : Hot prospect Q2",
-        okLabel: "Ajouter"
-      }) : prompt("Nouvelle étiquette :");
-      if (v && v.trim()) setTags(arr => [...arr, v.trim()]);
+    onClick: e => {
+      e.stopPropagation();
+      setTagMenuOpen(v => !v);
     },
     style: {
       ...npStyles.addChip,
       cursor: "pointer"
     }
-  }, "+ Ajouter"))), /*#__PURE__*/React.createElement(FormRow, {
+  }, "+ Ajouter \u25BE"), tagMenuOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "absolute",
+      top: "calc(100% + 4px)",
+      left: 0,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      boxShadow: "0 12px 32px rgba(15,23,42,0.16)",
+      zIndex: 100,
+      minWidth: 240,
+      padding: 6,
+      maxHeight: 320,
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      padding: "6px 10px 4px"
+    }
+  }, "\xC9tiquettes courantes"), [{
+    label: "🔥 Hot prospect Q2",
+    color: "#dc2626"
+  }, {
+    label: "🔥 Hot prospect Q3",
+    color: "#dc2626"
+  }, {
+    label: "⏰ Renouvellement à venir",
+    color: "#f59e0b"
+  }, {
+    label: "⚔ Fin contrat concurrent",
+    color: "#a855f7"
+  }, {
+    label: "📞 Demande spontanée",
+    color: "#10b981"
+  }, {
+    label: "🤝 Recommandation client",
+    color: "#0ea5e9"
+  }, {
+    label: "💼 Salon professionnel",
+    color: "#3730a3"
+  }, {
+    label: "🛡 DORA / conformité",
+    color: "#0e7a55"
+  }, {
+    label: "☁ Migration cloud",
+    color: "#0891b2"
+  }, {
+    label: "💡 Modernisation SI",
+    color: "#8b5cf6"
+  }].map(opt => {
+    var already = tags.includes(opt.label);
+    return /*#__PURE__*/React.createElement("button", {
+      key: opt.label,
+      disabled: already,
+      onClick: () => {
+        setTags(arr => [...arr, opt.label]);
+        setTagMenuOpen(false);
+      },
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        width: "100%",
+        padding: "7px 10px",
+        border: 0,
+        background: already ? "#f1f5f9" : "transparent",
+        borderRadius: 6,
+        fontSize: 12.5,
+        color: already ? "#94a3b8" : "#0f172a",
+        textAlign: "left",
+        cursor: already ? "default" : "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: opt.color,
+        flexShrink: 0
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, opt.label), already && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#94a3b8"
+      }
+    }, "\u2713"));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "#eef1f5",
+      margin: "6px 8px"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      setTagMenuOpen(false);
+      var v = window.HubModal ? await window.HubModal.prompt({
+        title: "Étiquette personnalisée",
+        label: "Tag libre",
+        placeholder: "ex : VIP Q4 2026",
+        okLabel: "Ajouter"
+      }) : prompt("Étiquette personnalisée :");
+      if (v && v.trim()) setTags(arr => [...arr, v.trim()]);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      width: "100%",
+      padding: "7px 10px",
+      border: 0,
+      background: "transparent",
+      borderRadius: 6,
+      fontSize: 12.5,
+      color: "#3730a3",
+      textAlign: "left",
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "\u270F Saisir une \xE9tiquette personnalis\xE9e\u2026")))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Notes internes",
     subtitle: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
   }, /*#__PURE__*/React.createElement("textarea", {

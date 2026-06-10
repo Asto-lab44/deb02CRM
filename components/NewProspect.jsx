@@ -17,6 +17,13 @@ const NewProspect = () => {
   const [besoin,        setBesoin]        = React.useState("");
   const [notes,         setNotes]         = React.useState("");
   const [tags,          setTags]          = React.useState([]);
+  const [tagMenuOpen,   setTagMenuOpen]   = React.useState(false);
+  React.useEffect(() => {
+    if (!tagMenuOpen) return;
+    const close = () => setTagMenuOpen(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [tagMenuOpen]);
   // Détection live de doublons : nom approchant ou SIREN identique
   const [allClients, setAllClients] = React.useState([]);
   React.useEffect(() => {
@@ -596,24 +603,94 @@ const NewProspect = () => {
               <FormRow label="Fonction" required>
                 <select style={npStyles.input} value={contactRole} onChange={(e) => setContactRole(e.target.value)}>
                   <option value="">— Choisir une fonction —</option>
-                  <option>CEO / Directeur général</option>
-                  <option>COO / Directeur des opérations</option>
-                  <option>CFO / Directeur financier</option>
-                  <option>CTO / Directeur technique</option>
-                  <option>CIO / DSI</option>
-                  <option>CISO / RSSI</option>
-                  <option>CMO / Directeur marketing</option>
-                  <option>CHRO / DRH</option>
-                  <option>Directeur des achats</option>
-                  <option>Directeur de la transformation digitale</option>
-                  <option>Responsable IT / Manager SI</option>
-                  <option>Responsable infrastructure</option>
-                  <option>Chef de projet</option>
-                  <option>Architecte SI</option>
-                  <option>Consultant / Expert</option>
-                  <option>Acheteur</option>
-                  <option>Juriste / DPO</option>
-                  <option>Autre — préciser dans notes</option>
+                  <optgroup label="Direction générale">
+                    <option>CEO / Directeur général</option>
+                    <option>Gérant / Dirigeant</option>
+                    <option>COO / Directeur des opérations</option>
+                    <option>Directeur de la transformation digitale</option>
+                    <option>Directeur de site / d'agence</option>
+                    <option>Secrétaire général</option>
+                  </optgroup>
+                  <optgroup label="Finance & Comptabilité">
+                    <option>CFO / Directeur financier</option>
+                    <option>Directeur administratif et financier (DAF)</option>
+                    <option>Chef comptable</option>
+                    <option>Comptable</option>
+                    <option>Contrôleur de gestion</option>
+                    <option>Responsable trésorerie</option>
+                    <option>Crédit manager</option>
+                    <option>Auditeur interne</option>
+                  </optgroup>
+                  <optgroup label="IT & Tech">
+                    <option>CTO / Directeur technique</option>
+                    <option>CIO / DSI</option>
+                    <option>CISO / RSSI</option>
+                    <option>Responsable IT / Manager SI</option>
+                    <option>Responsable infrastructure</option>
+                    <option>Architecte SI</option>
+                    <option>Chef de projet IT</option>
+                    <option>DevOps / SRE</option>
+                    <option>Lead développeur</option>
+                    <option>Administrateur système / réseaux</option>
+                    <option>Technicien support / Helpdesk</option>
+                    <option>Data Officer (CDO) / Data Engineer</option>
+                  </optgroup>
+                  <optgroup label="Marketing & Communication">
+                    <option>CMO / Directeur marketing</option>
+                    <option>Responsable marketing</option>
+                    <option>Chargé de marketing</option>
+                    <option>Brand manager</option>
+                    <option>Product marketing manager</option>
+                    <option>Responsable digital / SEO</option>
+                    <option>Community / Social media manager</option>
+                    <option>Chargé de communication</option>
+                    <option>Directeur de la communication</option>
+                  </optgroup>
+                  <optgroup label="Commercial & Ventes">
+                    <option>Directeur commercial / Sales Director</option>
+                    <option>VP Sales</option>
+                    <option>Account Executive</option>
+                    <option>Business Developer</option>
+                    <option>Commercial terrain</option>
+                    <option>Inside Sales / SDR</option>
+                    <option>Key Account Manager</option>
+                    <option>Responsable agence commerciale</option>
+                    <option>Chargé d'affaires</option>
+                    <option>Customer Success Manager</option>
+                  </optgroup>
+                  <optgroup label="RH & Paie">
+                    <option>CHRO / DRH</option>
+                    <option>Responsable RH</option>
+                    <option>Chargé de recrutement</option>
+                    <option>Responsable paie</option>
+                    <option>Gestionnaire de paie</option>
+                    <option>Responsable formation</option>
+                    <option>Responsable QVT / RSE</option>
+                  </optgroup>
+                  <optgroup label="Opérations & Production">
+                    <option>Directeur des opérations</option>
+                    <option>Directeur d'usine / Site manager</option>
+                    <option>Responsable production</option>
+                    <option>Responsable qualité / QHSE</option>
+                    <option>Responsable logistique / Supply chain</option>
+                    <option>Responsable maintenance</option>
+                    <option>Chef d'atelier</option>
+                  </optgroup>
+                  <optgroup label="Achats & Juridique">
+                    <option>Directeur des achats</option>
+                    <option>Responsable achats</option>
+                    <option>Acheteur</option>
+                    <option>Approvisionneur</option>
+                    <option>Directeur juridique</option>
+                    <option>Juriste / DPO</option>
+                  </optgroup>
+                  <optgroup label="Autre">
+                    <option>Assistant(e) de direction</option>
+                    <option>Office manager</option>
+                    <option>Consultant / Expert</option>
+                    <option>Chef de projet</option>
+                    <option>Autre — préciser dans notes</option>
+                  </optgroup>
                 </select>
               </FormRow>
               <FormRow label="Niveau hiérarchique">
@@ -853,23 +930,57 @@ const NewProspect = () => {
               </div>
             </FormRow>
 
-            <FormRow label="Étiquettes" subtitle="Tags libres pour catégoriser ce prospect">
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <FormRow label="Étiquettes" subtitle="Tags pour catégoriser ce prospect">
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", position: "relative" }}>
                 {tags.map((t, i) => (
                   <span key={i} style={{ ...npStyles.tag, display: "inline-flex", alignItems: "center", gap: 4 }}>
                     # {t}
                     <span onClick={() => setTags((arr) => arr.filter((_, j) => j !== i))} style={{ cursor: "pointer", color: "#cbd5e1", fontSize: 13, marginLeft: 2 }}>×</span>
                   </span>
                 ))}
-                <button
-                  onClick={async () => {
-                    const v = window.HubModal
-                      ? await window.HubModal.prompt({ title: "Nouvelle étiquette", label: "Tag", placeholder: "ex : Hot prospect Q2", okLabel: "Ajouter" })
-                      : prompt("Nouvelle étiquette :");
-                    if (v && v.trim()) setTags((arr) => [...arr, v.trim()]);
-                  }}
-                  style={{ ...npStyles.addChip, cursor: "pointer" }}
-                >+ Ajouter</button>
+                <button onClick={(e) => { e.stopPropagation(); setTagMenuOpen((v) => !v); }}
+                        style={{ ...npStyles.addChip, cursor: "pointer" }}
+                >+ Ajouter ▾</button>
+                {tagMenuOpen && (
+                  <div onClick={(e) => e.stopPropagation()}
+                       style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 12px 32px rgba(15,23,42,0.16)", zIndex: 100, minWidth: 240, padding: 6, maxHeight: 320, overflowY: "auto" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "6px 10px 4px" }}>Étiquettes courantes</div>
+                    {[
+                      { label: "🔥 Hot prospect Q2",     color: "#dc2626" },
+                      { label: "🔥 Hot prospect Q3",     color: "#dc2626" },
+                      { label: "⏰ Renouvellement à venir", color: "#f59e0b" },
+                      { label: "⚔ Fin contrat concurrent", color: "#a855f7" },
+                      { label: "📞 Demande spontanée",   color: "#10b981" },
+                      { label: "🤝 Recommandation client", color: "#0ea5e9" },
+                      { label: "💼 Salon professionnel",   color: "#3730a3" },
+                      { label: "🛡 DORA / conformité",     color: "#0e7a55" },
+                      { label: "☁ Migration cloud",        color: "#0891b2" },
+                      { label: "💡 Modernisation SI",      color: "#8b5cf6" },
+                    ].map((opt) => {
+                      const already = tags.includes(opt.label);
+                      return (
+                        <button key={opt.label} disabled={already}
+                                onClick={() => { setTags((arr) => [...arr, opt.label]); setTagMenuOpen(false); }}
+                                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "7px 10px", border: 0, background: already ? "#f1f5f9" : "transparent", borderRadius: 6, fontSize: 12.5, color: already ? "#94a3b8" : "#0f172a", textAlign: "left", cursor: already ? "default" : "pointer" }}>
+                          <span style={{ width: 6, height: 6, borderRadius: 999, background: opt.color, flexShrink: 0 }} />
+                          <span style={{ flex: 1 }}>{opt.label}</span>
+                          {already && <span style={{ fontSize: 10, color: "#94a3b8" }}>✓</span>}
+                        </button>
+                      );
+                    })}
+                    <div style={{ height: 1, background: "#eef1f5", margin: "6px 8px" }} />
+                    <button onClick={async () => {
+                              setTagMenuOpen(false);
+                              const v = window.HubModal
+                                ? await window.HubModal.prompt({ title: "Étiquette personnalisée", label: "Tag libre", placeholder: "ex : VIP Q4 2026", okLabel: "Ajouter" })
+                                : prompt("Étiquette personnalisée :");
+                              if (v && v.trim()) setTags((arr) => [...arr, v.trim()]);
+                            }}
+                            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "7px 10px", border: 0, background: "transparent", borderRadius: 6, fontSize: 12.5, color: "#3730a3", textAlign: "left", cursor: "pointer", fontWeight: 600 }}>
+                      ✏ Saisir une étiquette personnalisée…
+                    </button>
+                  </div>
+                )}
               </div>
             </FormRow>
 

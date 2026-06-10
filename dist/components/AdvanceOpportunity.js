@@ -375,6 +375,24 @@ var AdvanceOpportunity = () => {
 
   // Update fields
   var [newAmount, setNewAmount] = React.useState(opp.amount);
+  // Champs de l'opportunité éditables à chaque étape de passage
+  var [editName, setEditName] = React.useState("");
+  var [editBesoin, setEditBesoin] = React.useState("");
+  var [editConcurrent, setEditConcurrent] = React.useState("");
+  var [editConcurrentAmount, setEditConcurrentAmount] = React.useState("");
+  var [editProjectDate, setEditProjectDate] = React.useState("");
+  var [editSource, setEditSource] = React.useState("");
+  var [editNotes, setEditNotes] = React.useState("");
+  React.useEffect(() => {
+    if (!oppData) return;
+    setEditName(oppData.name || "");
+    setEditBesoin(oppData.besoin || oppData.data && oppData.data.besoin || "");
+    setEditConcurrent(oppData.concurrent || oppData.data && oppData.data.concurrent || "");
+    setEditConcurrentAmount(oppData.concurrent_amount || oppData.data && oppData.data.concurrent_amount || "");
+    setEditProjectDate(oppData.project_date || oppData.data && oppData.data.project_date || "");
+    setEditSource(oppData.source || oppData.data && oppData.data.source || "");
+    setEditNotes(oppData.notes || oppData.data && oppData.data.notes || "");
+  }, [oppData]);
   var [newClose, setNewClose] = React.useState(opp.close);
   var [comment, setComment] = React.useState("");
 
@@ -493,7 +511,14 @@ var AdvanceOpportunity = () => {
         proba: asLost ? 0 : target.proba,
         amount_eur: amountNum,
         close_date: newClose || null,
-        notes: comment || null
+        notes: comment || editNotes || null,
+        // Champs métier modifiables à chaque passage d'étape
+        name: editName || opp.name,
+        besoin: editBesoin || null,
+        concurrent: editConcurrent || null,
+        concurrent_amount: editConcurrentAmount || null,
+        project_date: editProjectDate || null,
+        source: editSource || null
       });
     } catch (e) {
       console.warn("confirmAdvance:", e);
@@ -975,6 +1000,207 @@ var AdvanceOpportunity = () => {
     rows: "3",
     placeholder: "Contexte du passage d'\xE9tape, points cl\xE9s, prochaines actions\u2026"
   }))), /*#__PURE__*/React.createElement("section", {
+    style: aoStyles.section
+  }, /*#__PURE__*/React.createElement("div", {
+    style: aoStyles.sectionHead
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: aoStyles.h2
+  }, "\uD83C\uDFAF Informations de l'opportunit\xE9"), /*#__PURE__*/React.createElement("p", {
+    style: aoStyles.h2sub
+  }, "Affinez la qualification au fur et \xE0 mesure que l'opp avance")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 7px",
+      borderRadius: 4,
+      background: "#fef3c7",
+      color: "#a16207",
+      fontWeight: 700,
+      letterSpacing: 0.3
+    }
+  }, "MODIFIABLE")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Nom de l'opportunit\xE9"), /*#__PURE__*/React.createElement("input", {
+    value: editName,
+    onChange: e => setEditName(e.target.value),
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      marginTop: 5,
+      outline: "none",
+      boxSizing: "border-box"
+    },
+    placeholder: "ex : Migration CRM Astorya Suite"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "\uD83D\uDCA1 Besoin exprim\xE9"), /*#__PURE__*/React.createElement("textarea", {
+    value: editBesoin,
+    onChange: e => setEditBesoin(e.target.value),
+    rows: "3",
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      marginTop: 5,
+      outline: "none",
+      boxSizing: "border-box",
+      resize: "vertical",
+      fontFamily: "inherit"
+    },
+    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "\u2694 Concurrent actuel"), /*#__PURE__*/React.createElement("input", {
+    value: editConcurrent,
+    onChange: e => setEditConcurrent(e.target.value),
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      marginTop: 5,
+      outline: "none",
+      boxSizing: "border-box"
+    },
+    placeholder: "Salesforce, Pega, HubSpot\u2026"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Montant concurrent (k\u20AC/an)"), /*#__PURE__*/React.createElement("input", {
+    value: editConcurrentAmount,
+    onChange: e => setEditConcurrentAmount(e.target.value),
+    type: "number",
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      marginTop: 5,
+      outline: "none",
+      boxSizing: "border-box",
+      fontFamily: "'JetBrains Mono', monospace"
+    },
+    placeholder: "ex : 80"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "\uD83D\uDCC5 \xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: editProjectDate,
+    onChange: e => setEditProjectDate(e.target.value),
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      marginTop: 5,
+      outline: "none",
+      boxSizing: "border-box",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "\uD83C\uDF31 Source du prospect"), /*#__PURE__*/React.createElement("select", {
+    value: editSource,
+    onChange: e => setEditSource(e.target.value),
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      marginTop: 5,
+      outline: "none",
+      boxSizing: "border-box",
+      background: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir \u2014"), /*#__PURE__*/React.createElement("option", null, "Recommandation client"), /*#__PURE__*/React.createElement("option", null, "LinkedIn / Sales Navigator"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Cold call sortant"), /*#__PURE__*/React.createElement("option", null, "Cold email sortant"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau partenaires"), /*#__PURE__*/React.createElement("option", null, "Radar fin de contrat concurrent"), /*#__PURE__*/React.createElement("option", null, "Autre")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "\uD83D\uDCDD Notes internes"), /*#__PURE__*/React.createElement("textarea", {
+    value: editNotes,
+    onChange: e => setEditNotes(e.target.value),
+    rows: "3",
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 13,
+      marginTop: 5,
+      outline: "none",
+      boxSizing: "border-box",
+      resize: "vertical",
+      fontFamily: "inherit"
+    },
+    placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
+  })))), /*#__PURE__*/React.createElement("section", {
     style: aoStyles.section
   }, /*#__PURE__*/React.createElement("div", {
     style: aoStyles.sectionHead

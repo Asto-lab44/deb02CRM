@@ -159,6 +159,24 @@ const AdvanceOpportunity = () => {
 
   // Update fields
   const [newAmount, setNewAmount] = React.useState(opp.amount);
+  // Champs de l'opportunité éditables à chaque étape de passage
+  const [editName, setEditName] = React.useState("");
+  const [editBesoin, setEditBesoin] = React.useState("");
+  const [editConcurrent, setEditConcurrent] = React.useState("");
+  const [editConcurrentAmount, setEditConcurrentAmount] = React.useState("");
+  const [editProjectDate, setEditProjectDate] = React.useState("");
+  const [editSource, setEditSource] = React.useState("");
+  const [editNotes, setEditNotes] = React.useState("");
+  React.useEffect(() => {
+    if (!oppData) return;
+    setEditName(oppData.name || "");
+    setEditBesoin(oppData.besoin || (oppData.data && oppData.data.besoin) || "");
+    setEditConcurrent(oppData.concurrent || (oppData.data && oppData.data.concurrent) || "");
+    setEditConcurrentAmount(oppData.concurrent_amount || (oppData.data && oppData.data.concurrent_amount) || "");
+    setEditProjectDate(oppData.project_date || (oppData.data && oppData.data.project_date) || "");
+    setEditSource(oppData.source || (oppData.data && oppData.data.source) || "");
+    setEditNotes(oppData.notes || (oppData.data && oppData.data.notes) || "");
+  }, [oppData]);
   const [newClose, setNewClose] = React.useState(opp.close);
   const [comment, setComment] = React.useState("");
 
@@ -223,7 +241,14 @@ const AdvanceOpportunity = () => {
         proba: asLost ? 0 : target.proba,
         amount_eur: amountNum,
         close_date: newClose || null,
-        notes: comment || null,
+        notes: comment || editNotes || null,
+        // Champs métier modifiables à chaque passage d'étape
+        name: editName || opp.name,
+        besoin: editBesoin || null,
+        concurrent: editConcurrent || null,
+        concurrent_amount: editConcurrentAmount || null,
+        project_date: editProjectDate || null,
+        source: editSource || null,
       });
     } catch (e) {
       console.warn("confirmAdvance:", e);
@@ -462,6 +487,79 @@ const AdvanceOpportunity = () => {
                 rows="3"
                 placeholder="Contexte du passage d'étape, points clés, prochaines actions…"
               />
+            </div>
+          </section>
+
+          {/* INFORMATIONS DE L'OPPORTUNITÉ — éditables à chaque étape */}
+          <section style={aoStyles.section}>
+            <div style={aoStyles.sectionHead}>
+              <div>
+                <h2 style={aoStyles.h2}>🎯 Informations de l'opportunité</h2>
+                <p style={aoStyles.h2sub}>Affinez la qualification au fur et à mesure que l'opp avance</p>
+              </div>
+              <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "#fef3c7", color: "#a16207", fontWeight: 700, letterSpacing: 0.3 }}>MODIFIABLE</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Nom de l'opportunité</span>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)}
+                       style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, marginTop: 5, outline: "none", boxSizing: "border-box" }}
+                       placeholder="ex : Migration CRM Astorya Suite" />
+              </div>
+
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>💡 Besoin exprimé</span>
+                <textarea value={editBesoin} onChange={(e) => setEditBesoin(e.target.value)} rows="3"
+                          style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, marginTop: 5, outline: "none", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }}
+                          placeholder="Modernisation, contraintes, contexte concurrentiel…" />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>⚔ Concurrent actuel</span>
+                  <input value={editConcurrent} onChange={(e) => setEditConcurrent(e.target.value)}
+                         style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, marginTop: 5, outline: "none", boxSizing: "border-box" }}
+                         placeholder="Salesforce, Pega, HubSpot…" />
+                </div>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Montant concurrent (k€/an)</span>
+                  <input value={editConcurrentAmount} onChange={(e) => setEditConcurrentAmount(e.target.value)} type="number"
+                         style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, marginTop: 5, outline: "none", boxSizing: "border-box", fontFamily: "'JetBrains Mono', monospace" }}
+                         placeholder="ex : 80" />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>📅 Échéance projet</span>
+                  <input type="date" value={editProjectDate} onChange={(e) => setEditProjectDate(e.target.value)}
+                         style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, marginTop: 5, outline: "none", boxSizing: "border-box", fontFamily: "'JetBrains Mono', monospace" }} />
+                </div>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>🌱 Source du prospect</span>
+                  <select value={editSource} onChange={(e) => setEditSource(e.target.value)}
+                          style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, marginTop: 5, outline: "none", boxSizing: "border-box", background: "#fff" }}>
+                    <option value="">— Choisir —</option>
+                    <option>Recommandation client</option>
+                    <option>LinkedIn / Sales Navigator</option>
+                    <option>Salon professionnel</option>
+                    <option>Inbound site web</option>
+                    <option>Cold call sortant</option>
+                    <option>Cold email sortant</option>
+                    <option>Réseau partenaires</option>
+                    <option>Radar fin de contrat concurrent</option>
+                    <option>Autre</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>📝 Notes internes</span>
+                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows="3"
+                          style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, marginTop: 5, outline: "none", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }}
+                          placeholder="Contexte additionnel, contacts mutuels, anecdotes…" />
+              </div>
             </div>
           </section>
 

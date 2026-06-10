@@ -417,7 +417,10 @@ const ERPHome = () => {
             </div>
             <button
               onClick={async () => {
-                if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return;
+                const ok = window.HubModal
+                  ? await window.HubModal.confirm({ title: "Se déconnecter ?", message: "Tu reviendras sur la page de connexion.", okLabel: "Déconnexion", okStyle: "danger" })
+                  : confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
+                if (!ok) return;
                 if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
                 if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
                 window.location.href = "/login";

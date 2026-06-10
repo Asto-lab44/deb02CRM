@@ -813,7 +813,14 @@ const ClientPage = () => {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                   <span style={cliStyles.industryChip}>{display.sector}</span>
-                  <span style={cliStyles.metaChip}>Grand compte</span>
+                  {display.tier && (() => {
+                    const tierLabels = { A: "Grand compte", B: "Compte secondaire", C: "Tactique" };
+                    const tierColors = { A: { bg: "#fef3c7", color: "#a16207" }, B: { bg: "#eef2ff", color: "#3730a3" }, C: { bg: "#f1f5f9", color: "#475569" } };
+                    const t = String(display.tier).toUpperCase();
+                    const lbl = tierLabels[t] || display.tier;
+                    const col = tierColors[t] || { bg: "#eef1f5", color: "#475569" };
+                    return <span style={{ ...cliStyles.metaChip, background: col.bg, color: col.color, fontWeight: 600 }}>Tier {t} — {lbl}</span>;
+                  })()}
                   <span style={cliStyles.metaChip}>{display.size}</span>
                   {/* Badge BODACC — affiché dès qu'on a un SIREN, auto-check 7j */}
                   {display.siren && window.ProcedureBadge && (

@@ -1252,9 +1252,41 @@ var ClientPage = () => {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.industryChip
-  }, display.sector), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.metaChip
-  }, "Grand compte"), /*#__PURE__*/React.createElement("span", {
+  }, display.sector), display.tier && (() => {
+    var tierLabels = {
+      A: "Grand compte",
+      B: "Compte secondaire",
+      C: "Tactique"
+    };
+    var tierColors = {
+      A: {
+        bg: "#fef3c7",
+        color: "#a16207"
+      },
+      B: {
+        bg: "#eef2ff",
+        color: "#3730a3"
+      },
+      C: {
+        bg: "#f1f5f9",
+        color: "#475569"
+      }
+    };
+    var t = String(display.tier).toUpperCase();
+    var lbl = tierLabels[t] || display.tier;
+    var col = tierColors[t] || {
+      bg: "#eef1f5",
+      color: "#475569"
+    };
+    return /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...cliStyles.metaChip,
+        background: col.bg,
+        color: col.color,
+        fontWeight: 600
+      }
+    }, "Tier ", t, " \u2014 ", lbl);
+  })(), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.metaChip
   }, display.size), display.siren && window.ProcedureBadge && /*#__PURE__*/React.createElement(ProcedureBadge, {
     siren: display.siren,

@@ -1737,14 +1737,49 @@ var ClientPage = () => {
         opacity: done ? 0.5 : 1,
         textDecoration: done ? "line-through" : "none"
       }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
+    }, (() => {
+      // Action de type email : icône cliquable → ouvre le client mail
+      // par défaut (Outlook desktop, Outlook web, Gmail, etc.) avec
+      // destinataire + sujet + corps pré-remplis.
+      var isEmail = (a.tag || "").toLowerCase() === "email" || (a.title || "").toLowerCase().includes("email") || a.icon === "✉" || a.icon === "📧";
+      var baseStyle = {
         ...cliStyles.actionIcon,
         background: a.priority === "ai" ? "#0f172a" : "#fff",
         color: a.priority === "ai" ? "#fff" : "#475569",
         borderColor: a.priority === "ai" ? "#0f172a" : "#eef1f5"
-      }
-    }, a.icon), /*#__PURE__*/React.createElement("div", {
+      };
+      if (!isEmail) return /*#__PURE__*/React.createElement("div", {
+        style: baseStyle
+      }, a.icon);
+      // Détermine le destinataire : contact principal du client, sinon
+      // email du compte, sinon vide (l'agent renseigne dans le client).
+      var recipient = allContacts && allContacts[0] && allContacts[0].email || display.email || "";
+      var subject = a.title || "Prise de contact — Astorya";
+      var bodyLines = ["Bonjour" + (allContacts && allContacts[0] && allContacts[0].name ? " " + allContacts[0].name.split(" ")[0] : "") + ",", "", a.meta || "", "", "Bien cordialement,", "Romain Daviaud — Astorya"];
+      var body = bodyLines.filter(Boolean).join("\n\n");
+      var href = "mailto:" + encodeURIComponent(recipient) + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+      return /*#__PURE__*/React.createElement("a", {
+        href: href,
+        title: recipient ? "Ouvrir un mail pour " + recipient : "Ouvrir un nouveau mail (aucun destinataire renseigné)",
+        onClick: e => {
+          if (!recipient && window.HubToast) window.HubToast.warn("Aucun email renseigné pour ce client — ajoute un contact d'abord");
+        },
+        style: {
+          ...baseStyle,
+          textDecoration: "none",
+          cursor: "pointer",
+          transition: "transform 120ms, box-shadow 120ms"
+        },
+        onMouseEnter: e => {
+          e.currentTarget.style.transform = "scale(1.1)";
+          e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,0.12)";
+        },
+        onMouseLeave: e => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.boxShadow = "none";
+        }
+      }, a.icon);
+    })(), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0

@@ -393,7 +393,7 @@ const NewOpportunity = () => {
                   <FormRow label="Type d'opportunité" required>
                     <div style={noStyles.radioGroup}>
                       {[
-                        { k: "new",       label: "Nouveau client" },
+                        { k: "new",       label: "Nouveau produit" },
                         { k: "extension", label: "Extension" },
                         { k: "renewal",   label: "Renouvellement" },
                         { k: "upsell",    label: "Up-sell" },

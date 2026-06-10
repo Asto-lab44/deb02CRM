@@ -641,7 +641,7 @@ var NewOpportunity = () => {
     style: noStyles.radioGroup
   }, [{
     k: "new",
-    label: "Nouveau client"
+    label: "Nouveau produit"
   }, {
     k: "extension",
     label: "Extension"

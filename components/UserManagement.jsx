@@ -44,6 +44,9 @@ const UserManagement = () => {
       const access = mutator(g.access);
       return { ...g, access };
     });
+    // Met à jour le state React (sinon les toggles paraissent figés)
+    // ET persiste via HubAccess (localStorage + Supabase)
+    setPersistedGroups(next);
     window.HubAccess.saveGroups(next);
   };
 
@@ -322,7 +325,9 @@ const UserManagement = () => {
                     accessibleModules: [],
                     description: "Nouveau groupe créé manuellement",
                   };
-                  window.HubAccess.saveGroups([...persistedGroups, newGroup]);
+                  const nextGroups = [...persistedGroups, newGroup];
+                  setPersistedGroups(nextGroups);
+                  window.HubAccess.saveGroups(nextGroups);
                   setSelectedGroupId(id);
                   flash("Groupe « " + label + " » créé");
                 }}
@@ -413,6 +418,7 @@ const UserManagement = () => {
                       : prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
                     if (!name || !name.trim()) return;
                     const next = persistedGroups.map((g) => g.id === selectedGroup.id ? { ...g, label: name.trim(), name: name.trim() } : g);
+                    setPersistedGroups(next);
                     window.HubAccess.saveGroups(next);
                     if (window.HubToast) window.HubToast.success("✓ Groupe renommé en « " + name.trim() + " »");
                   }}
@@ -462,6 +468,7 @@ const UserManagement = () => {
                       onClick={() => {
                         if (!confirm(`Retirer « ${m} » du groupe ${selectedGroup.name || selectedGroup.label} ?`)) return;
                         const next = persistedGroups.map((g) => g.id === selectedGroup.id ? { ...g, members: (g.members || []).filter((x) => x !== m) } : g);
+                        setPersistedGroups(next);
                         window.HubAccess.saveGroups(next);
                         flash("✓ Membre retiré du groupe");
                       }}

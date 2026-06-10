@@ -44,6 +44,9 @@ var UserManagement = () => {
         access
       };
     });
+    // Met à jour le state React (sinon les toggles paraissent figés)
+    // ET persiste via HubAccess (localStorage + Supabase)
+    setPersistedGroups(next);
     window.HubAccess.saveGroups(next);
   };
   var toggleTile = (groupId, key) => {
@@ -760,7 +763,9 @@ var UserManagement = () => {
         accessibleModules: [],
         description: "Nouveau groupe créé manuellement"
       };
-      window.HubAccess.saveGroups([...persistedGroups, newGroup]);
+      var nextGroups = [...persistedGroups, newGroup];
+      setPersistedGroups(nextGroups);
+      window.HubAccess.saveGroups(nextGroups);
       setSelectedGroupId(id);
       flash("Groupe « " + label + " » créé");
     },
@@ -979,6 +984,7 @@ var UserManagement = () => {
         label: name.trim(),
         name: name.trim()
       } : g);
+      setPersistedGroups(next);
       window.HubAccess.saveGroups(next);
       if (window.HubToast) window.HubToast.success("✓ Groupe renommé en « " + name.trim() + " »");
     },
@@ -1076,6 +1082,7 @@ var UserManagement = () => {
         ...g,
         members: (g.members || []).filter(x => x !== m)
       } : g);
+      setPersistedGroups(next);
       window.HubAccess.saveGroups(next);
       flash("✓ Membre retiré du groupe");
     },

@@ -74,6 +74,52 @@ var CRMPipeline = () => {
     }).catch(() => {});
   }, []);
   var [searchOpps, setSearchOpps] = React.useState([]);
+  var [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!userMenuOpen) return;
+    var onDoc = () => setUserMenuOpen(false);
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, [userMenuOpen]);
+
+  // Applique le filtre sidebar (Vues sauvegardées / Produits) sur les opps
+  var filteredOpps = React.useMemo(() => {
+    var all = searchOpps || [];
+    if (crmFilter.kind === "all") return all;
+    if (crmFilter.kind === "view") {
+      var now = Date.now();
+      switch (crmFilter.value) {
+        case "q2":
+          return all.filter(o => {
+            if (!o.close_date) return false;
+            var d = new Date(o.close_date);
+            return d.getFullYear() === new Date().getFullYear() && d.getMonth() >= 3 && d.getMonth() <= 5;
+          });
+        case "big":
+          return all.filter(o => (Number(o.amount_eur) || 0) >= 50000);
+        case "follow":
+          return all.filter(o => {
+            if (!o.updated_at) return true;
+            return now - new Date(o.updated_at).getTime() > 7 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+          });
+        case "stale":
+          return all.filter(o => {
+            if (!o.updated_at) return false;
+            return now - new Date(o.updated_at).getTime() > 14 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+          });
+        default:
+          return all;
+      }
+    }
+    if (crmFilter.kind === "product") {
+      var tag = String(crmFilter.value || "").toLowerCase();
+      return all.filter(o => {
+        var blob = ((o.modules || []).join(" ") + " " + (o.produit || "") + " " + (o.name || "")).toLowerCase();
+        return blob.includes(tag.replace("astorya ", ""));
+      });
+    }
+    return all;
+  }, [searchOpps, crmFilter]);
   // Charge initial + s'abonne aux changements realtime (multi-onglets).
   React.useEffect(() => {
     if (!window.api) return;
@@ -175,7 +221,7 @@ var CRMPipeline = () => {
     return "Suite";
   };
   var columns = stageMeta.map((s, idx) => {
-    var stageOpps = (searchOpps || []).filter(o => (o.stage || "qualif") === s.key);
+    var stageOpps = (filteredOpps || []).filter(o => (o.stage || "qualif") === s.key);
     var total = stageOpps.reduce((sum, o) => sum + (Number(o.amount_eur) || 0), 0);
     return {
       ...s,
@@ -426,7 +472,10 @@ var CRMPipeline = () => {
       flex: 1
     }
   }), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.userRow
+    style: {
+      ...crmStyles.userRow,
+      position: "relative"
+    }
   }, /*#__PURE__*/React.createElement(Avatar, {
     name: "Romain Daviaud",
     size: 26,
@@ -447,12 +496,69 @@ var CRMPipeline = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Direction \xB7 Astorya")), /*#__PURE__*/React.createElement("span", {
+  }, "Direction \xB7 Astorya")), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setUserMenuOpen(v => !v);
+    },
+    title: "Menu utilisateur",
     style: {
+      background: "transparent",
+      border: 0,
       color: "#94a3b8",
-      fontSize: 14
+      fontSize: 14,
+      cursor: "pointer",
+      padding: 4,
+      borderRadius: 6
     }
-  }, "\u22EF"))), /*#__PURE__*/React.createElement("main", {
+  }, "\u22EF"), userMenuOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "absolute",
+      bottom: "calc(100% + 6px)",
+      right: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      boxShadow: "0 12px 32px rgba(15,23,42,0.16)",
+      zIndex: 1000,
+      minWidth: 200,
+      padding: 6
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/administration-utilisateurs",
+    style: crmStyles.userMenuItem
+  }, "\uD83D\uDC64 Administration"), /*#__PURE__*/React.createElement("a", {
+    href: "/",
+    style: crmStyles.userMenuItem
+  }, "\uD83C\uDFE0 Accueil ERP"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "#eef1f5",
+      margin: "4px 0"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Se déconnecter ?",
+        okLabel: "Déconnexion",
+        okStyle: "danger"
+      }) : confirm("Se déconnecter ?");
+      if (!ok) return;
+      if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
+      if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
+      window.location.href = "/login";
+    },
+    style: {
+      ...crmStyles.userMenuItem,
+      color: "#dc2626",
+      textAlign: "left",
+      cursor: "pointer",
+      border: 0,
+      background: "transparent",
+      width: "100%"
+    }
+  }, "\u23FB Se d\xE9connecter")))), /*#__PURE__*/React.createElement("main", {
     style: crmStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: crmStyles.topbar
@@ -700,10 +806,10 @@ var CRMPipeline = () => {
       color: "#64748b"
     }
   }, o.client_name, " \xB7 ", o.amount && o.amount + " €"))))))))), (() => {
-    var active = (searchOpps || []).filter(o => o.stage !== "won" && o.stage !== "lost");
+    var active = (filteredOpps || []).filter(o => o.stage !== "won" && o.stage !== "lost");
     var totalActive = active.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
     var pondere = active.reduce((s, o) => s + (Number(o.amount_eur) || 0) * (Number(o.proba) || 0) / 100, 0);
-    var wonOpps = (searchOpps || []).filter(o => o.stage === "won");
+    var wonOpps = (filteredOpps || []).filter(o => o.stage === "won");
     var wonAmount = wonOpps.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
     var fmtK = n => n > 999999 ? (n / 1000000).toFixed(2).replace(".", ",") + " M€" : Math.round(n / 1000) + " k€";
     return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -756,8 +862,8 @@ var CRMPipeline = () => {
       color: "#10b981"
     }, {
       label: "Total opportunités",
-      value: String((searchOpps || []).length),
-      delta: "Toutes étapes",
+      value: String((filteredOpps || []).length),
+      delta: crmFilter.kind !== "all" ? "Filtré" : "Toutes étapes",
       color: "#0ea5e9"
     }].map(k => /*#__PURE__*/React.createElement("div", {
       key: k.label,
@@ -1116,6 +1222,15 @@ var crmStyles = {
     padding: "8px 6px",
     borderTop: "1px solid #eef1f5",
     marginTop: 4
+  },
+  userMenuItem: {
+    display: "block",
+    padding: "8px 10px",
+    fontSize: 12.5,
+    color: "#0f172a",
+    textDecoration: "none",
+    borderRadius: 6,
+    fontWeight: 500
   },
   main: {
     flex: 1,

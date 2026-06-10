@@ -27,6 +27,7 @@ var UserManagement = () => {
   var [userPage, setUserPage] = React.useState(1);
   var USER_PAGE_SIZE = 10;
   var [loginOpen, setLoginOpen] = React.useState(false);
+  var [inviteOpen, setInviteOpen] = React.useState(false);
   var [savedFlash, setSavedFlash] = React.useState(null);
   var flashTimer = React.useRef(null);
   var flash = text => {
@@ -1290,7 +1291,10 @@ var UserManagement = () => {
     value: "away"
   }, "\u25CF Absent"), /*#__PURE__*/React.createElement("option", {
     value: "offline"
-  }, "\u25CB Hors ligne")))), /*#__PURE__*/React.createElement("table", {
+  }, "\u25CB Hors ligne")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setInviteOpen(true),
+    style: S.btnPrimary
+  }, "+ Inviter un utilisateur"))), /*#__PURE__*/React.createElement("table", {
     style: S.table
   }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
     style: S.th
@@ -1515,7 +1519,383 @@ var UserManagement = () => {
         cursor: pageSafe === totalP ? "not-allowed" : "pointer"
       }
     }, "\u203A")));
-  })())));
+  })())), inviteOpen && /*#__PURE__*/React.createElement(InviteUserModal, {
+    groups: groups,
+    onClose: () => setInviteOpen(false),
+    onInvited: u => {
+      setInviteOpen(false);
+      if (window.HubToast) window.HubToast.success("✓ Invitation envoyée à " + u.email);
+      // Refresh users list
+      if (window.HubData && window.HubData.fetchProfiles) {
+        window.HubData.fetchProfiles().then(({
+          data
+        }) => {
+          // forcer un re-render via le useEffect existant
+          setUsers(arr => [...arr]);
+        }).catch(() => {});
+      }
+    }
+  }));
+};
+
+// ════════════════════════════════════════════════════════════════════
+// InviteUserModal — formulaire d'invitation d'un nouvel utilisateur
+// ════════════════════════════════════════════════════════════════════
+var InviteUserModal = ({
+  groups,
+  onClose,
+  onInvited
+}) => {
+  var [email, setEmail] = React.useState("");
+  var [name, setName] = React.useState("");
+  var [role, setRole] = React.useState("");
+  var [extension, setExtension] = React.useState("");
+  var [picked, setPicked] = React.useState(new Set());
+  var [submitting, setSubmitting] = React.useState(false);
+  var [error, setError] = React.useState(null);
+  var toggleGroup = gid => {
+    setPicked(prev => {
+      var next = new Set(prev);
+      if (next.has(gid)) next.delete(gid);else next.add(gid);
+      return next;
+    });
+  };
+  var submit = async e => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError(null);
+    if (!email.trim() || !email.includes("@")) {
+      setError("Email invalide");
+      return;
+    }
+    if (!name.trim()) {
+      setError("Nom obligatoire");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      var {
+        data: sess
+      } = await window.HubSupabase.client.auth.getSession();
+      var jwt = sess?.session?.access_token;
+      if (!jwt) throw new Error("Non authentifié");
+      var resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/invite-user", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Authorization": "Bearer " + jwt
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim(),
+          role: role.trim() || null,
+          extension: extension.trim() || null,
+          groups: Array.from(picked)
+        })
+      });
+      var json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || "HTTP " + resp.status);
+      onInvited && onInvited({
+        email,
+        user_id: json.user_id
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: IM.backdrop
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: IM.modal
+  }, /*#__PURE__*/React.createElement("div", {
+    style: IM.head
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: IM.icon
+  }, "\uD83D\uDC64+"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: IM.eyebrow
+  }, "Administration \xB7 Utilisateurs"), /*#__PURE__*/React.createElement("div", {
+    style: IM.title
+  }, "Inviter un utilisateur"))), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: IM.close
+  }, "\xD7")), /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit,
+    style: IM.body
+  }, /*#__PURE__*/React.createElement("div", {
+    style: IM.row
+  }, /*#__PURE__*/React.createElement("label", {
+    style: IM.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: IM.label
+  }, "Email ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#dc2626"
+    }
+  }, "*")), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    placeholder: "prenom.nom@astorya.fr",
+    style: IM.input,
+    required: true,
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement("label", {
+    style: IM.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: IM.label
+  }, "Nom complet ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#dc2626"
+    }
+  }, "*")), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "Pr\xE9nom Nom",
+    style: IM.input,
+    required: true
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: IM.row
+  }, /*#__PURE__*/React.createElement("label", {
+    style: IM.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: IM.label
+  }, "R\xF4le / Fonction"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: role,
+    onChange: e => setRole(e.target.value),
+    placeholder: "Ex : Direction, Commercial\u2026",
+    style: IM.input
+  })), /*#__PURE__*/React.createElement("label", {
+    style: IM.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: IM.label
+  }, "Extension 3CX"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: extension,
+    onChange: e => setExtension(e.target.value),
+    placeholder: "Ex : 705",
+    style: {
+      ...IM.input,
+      fontFamily: "'JetBrains Mono', monospace"
+    },
+    maxLength: 6
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: IM.label
+  }, "Groupes d'acc\xE8s"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 6,
+      marginTop: 4
+    }
+  }, groups.map(g => {
+    var on = picked.has(g.id);
+    return /*#__PURE__*/React.createElement("label", {
+      key: g.id,
+      onClick: () => toggleGroup(g.id),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "7px 10px",
+        border: "1px solid " + (on ? g.color + "55" : "#e2e8f0"),
+        background: on ? g.color + "0d" : "#fff",
+        borderRadius: 8,
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: on,
+      onChange: () => {},
+      style: {
+        accentColor: g.color
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: g.color
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, g.name));
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: IM.helpBox
+  }, "\uD83D\uDCA1 Un email d'invitation Supabase sera envoy\xE9 \xE0 ", /*#__PURE__*/React.createElement("strong", null, email || "l'adresse renseignée"), ". Le destinataire cliquera sur le lien magique re\xE7u pour d\xE9finir son mot de passe \xE0 la premi\xE8re connexion."), error && /*#__PURE__*/React.createElement("div", {
+    style: IM.error
+  }, "\u26A0 ", error), /*#__PURE__*/React.createElement("div", {
+    style: IM.foot
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClose,
+    style: IM.btnGhost
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    disabled: submitting,
+    style: {
+      ...IM.btnPrimary,
+      opacity: submitting ? 0.6 : 1,
+      cursor: submitting ? "wait" : "pointer"
+    }
+  }, submitting ? "Envoi…" : "✉ Envoyer l'invitation"))))), document.body);
+};
+var IM = {
+  backdrop: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15,23,42,0.55)",
+    backdropFilter: "blur(4px)",
+    zIndex: 3000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20
+  },
+  modal: {
+    width: "100%",
+    maxWidth: 580,
+    maxHeight: "92vh",
+    overflowY: "auto",
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 25px 60px rgba(0,0,0,.3)",
+    display: "flex",
+    flexDirection: "column"
+  },
+  head: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "20px 24px 16px",
+    borderBottom: "1px solid #f1f5f9"
+  },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    background: "#eef2ff",
+    color: "#3730a3",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 16,
+    fontWeight: 700
+  },
+  eyebrow: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: 700,
+    color: "#0f172a",
+    marginTop: 2
+  },
+  close: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    background: "transparent",
+    border: 0,
+    fontSize: 22,
+    color: "#94a3b8",
+    cursor: "pointer"
+  },
+  body: {
+    padding: "16px 24px 20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12
+  },
+  row: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 5
+  },
+  label: {
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: 0.4
+  },
+  input: {
+    padding: "9px 12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 7,
+    fontSize: 13,
+    color: "#0f172a",
+    outline: "none",
+    background: "#fff",
+    boxSizing: "border-box"
+  },
+  helpBox: {
+    padding: 12,
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: 8,
+    fontSize: 12,
+    color: "#1e40af",
+    lineHeight: 1.5
+  },
+  error: {
+    padding: "10px 12px",
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: 8,
+    color: "#991b1b",
+    fontSize: 12.5
+  },
+  foot: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 8,
+    paddingTop: 12,
+    borderTop: "1px solid #f1f5f9"
+  },
+  btnGhost: {
+    padding: "9px 14px",
+    background: "#fff",
+    color: "#334155",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer"
+  },
+  btnPrimary: {
+    padding: "9px 18px",
+    background: "#3730a3",
+    color: "#fff",
+    border: 0,
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 700
+  }
 };
 
 // ───────── STYLES

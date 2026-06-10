@@ -28,6 +28,7 @@ const UserManagement = () => {
   const [userPage, setUserPage] = React.useState(1);
   const USER_PAGE_SIZE = 10;
   const [loginOpen, setLoginOpen] = React.useState(false);
+  const [inviteOpen, setInviteOpen] = React.useState(false);
   const [savedFlash, setSavedFlash] = React.useState(null);
   const flashTimer = React.useRef(null);
 
@@ -569,6 +570,7 @@ const UserManagement = () => {
                 <option value="away">● Absent</option>
                 <option value="offline">○ Hors ligne</option>
               </select>
+              <button onClick={() => setInviteOpen(true)} style={S.btnPrimary}>+ Inviter un utilisateur</button>
             </div>
           </div>
           <table style={S.table}>
@@ -690,8 +692,159 @@ const UserManagement = () => {
           })()}
         </section>}
       </main>
+
+      {inviteOpen && <InviteUserModal
+        groups={groups}
+        onClose={() => setInviteOpen(false)}
+        onInvited={(u) => {
+          setInviteOpen(false);
+          if (window.HubToast) window.HubToast.success("✓ Invitation envoyée à " + u.email);
+          // Refresh users list
+          if (window.HubData && window.HubData.fetchProfiles) {
+            window.HubData.fetchProfiles().then(({ data }) => {
+              // forcer un re-render via le useEffect existant
+              setUsers((arr) => [...arr]);
+            }).catch(() => {});
+          }
+        }}
+      />}
     </div>
   );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// InviteUserModal — formulaire d'invitation d'un nouvel utilisateur
+// ════════════════════════════════════════════════════════════════════
+const InviteUserModal = ({ groups, onClose, onInvited }) => {
+  const [email, setEmail]         = React.useState("");
+  const [name, setName]           = React.useState("");
+  const [role, setRole]           = React.useState("");
+  const [extension, setExtension] = React.useState("");
+  const [picked, setPicked]       = React.useState(new Set());
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError]         = React.useState(null);
+
+  const toggleGroup = (gid) => {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(gid)) next.delete(gid); else next.add(gid);
+      return next;
+    });
+  };
+
+  const submit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError(null);
+    if (!email.trim() || !email.includes("@")) { setError("Email invalide"); return; }
+    if (!name.trim()) { setError("Nom obligatoire"); return; }
+    setSubmitting(true);
+    try {
+      const { data: sess } = await window.HubSupabase.client.auth.getSession();
+      const jwt = sess?.session?.access_token;
+      if (!jwt) throw new Error("Non authentifié");
+      const resp = await fetch("https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/invite-user", {
+        method: "POST",
+        headers: { "content-type": "application/json", "Authorization": "Bearer " + jwt },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim(),
+          role: role.trim() || null,
+          extension: extension.trim() || null,
+          groups: Array.from(picked),
+        }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || ("HTTP " + resp.status));
+      onInvited && onInvited({ email, user_id: json.user_id });
+    } catch (err) {
+      setError(err.message);
+    } finally { setSubmitting(false); }
+  };
+
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={IM.backdrop}>
+      <div onClick={(e) => e.stopPropagation()} style={IM.modal}>
+        <div style={IM.head}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={IM.icon}>👤+</div>
+            <div>
+              <div style={IM.eyebrow}>Administration · Utilisateurs</div>
+              <div style={IM.title}>Inviter un utilisateur</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={IM.close}>×</button>
+        </div>
+        <form onSubmit={submit} style={IM.body}>
+          <div style={IM.row}>
+            <label style={IM.field}>
+              <span style={IM.label}>Email <span style={{ color: "#dc2626" }}>*</span></span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom.nom@astorya.fr" style={IM.input} required autoFocus />
+            </label>
+            <label style={IM.field}>
+              <span style={IM.label}>Nom complet <span style={{ color: "#dc2626" }}>*</span></span>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Prénom Nom" style={IM.input} required />
+            </label>
+          </div>
+          <div style={IM.row}>
+            <label style={IM.field}>
+              <span style={IM.label}>Rôle / Fonction</span>
+              <input type="text" value={role} onChange={(e) => setRole(e.target.value)} placeholder="Ex : Direction, Commercial…" style={IM.input} />
+            </label>
+            <label style={IM.field}>
+              <span style={IM.label}>Extension 3CX</span>
+              <input type="text" value={extension} onChange={(e) => setExtension(e.target.value)} placeholder="Ex : 705" style={{ ...IM.input, fontFamily: "'JetBrains Mono', monospace" }} maxLength={6} />
+            </label>
+          </div>
+          <div>
+            <div style={IM.label}>Groupes d'accès</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 4 }}>
+              {groups.map((g) => {
+                const on = picked.has(g.id);
+                return (
+                  <label key={g.id} onClick={() => toggleGroup(g.id)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", border: "1px solid " + (on ? g.color + "55" : "#e2e8f0"), background: on ? g.color + "0d" : "#fff", borderRadius: 8, cursor: "pointer" }}>
+                    <input type="checkbox" checked={on} onChange={() => {}} style={{ accentColor: g.color }} />
+                    <span style={{ width: 6, height: 6, borderRadius: 999, background: g.color }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{g.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <div style={IM.helpBox}>
+            💡 Un email d'invitation Supabase sera envoyé à <strong>{email || "l'adresse renseignée"}</strong>. Le destinataire cliquera sur le lien magique reçu pour définir son mot de passe à la première connexion.
+          </div>
+          {error && <div style={IM.error}>⚠ {error}</div>}
+          <div style={IM.foot}>
+            <button type="button" onClick={onClose} style={IM.btnGhost}>Annuler</button>
+            <button type="submit" disabled={submitting} style={{ ...IM.btnPrimary, opacity: submitting ? 0.6 : 1, cursor: submitting ? "wait" : "pointer" }}>
+              {submitting ? "Envoi…" : "✉ Envoyer l'invitation"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const IM = {
+  backdrop: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
+  modal: { width: "100%", maxWidth: 580, maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 16, boxShadow: "0 25px 60px rgba(0,0,0,.3)", display: "flex", flexDirection: "column" },
+  head: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #f1f5f9" },
+  icon: { width: 40, height: 40, borderRadius: 10, background: "#eef2ff", color: "#3730a3", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700 },
+  eyebrow: { fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 },
+  title: { fontSize: 17, fontWeight: 700, color: "#0f172a", marginTop: 2 },
+  close: { width: 32, height: 32, borderRadius: 8, background: "transparent", border: 0, fontSize: 22, color: "#94a3b8", cursor: "pointer" },
+  body: { padding: "16px 24px 20px", display: "flex", flexDirection: "column", gap: 12 },
+  row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  field: { display: "flex", flexDirection: "column", gap: 5 },
+  label: { fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 },
+  input: { padding: "9px 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, color: "#0f172a", outline: "none", background: "#fff", boxSizing: "border-box" },
+  helpBox: { padding: 12, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, fontSize: 12, color: "#1e40af", lineHeight: 1.5 },
+  error: { padding: "10px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#991b1b", fontSize: 12.5 },
+  foot: { display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8, paddingTop: 12, borderTop: "1px solid #f1f5f9" },
+  btnGhost: { padding: "9px 14px", background: "#fff", color: "#334155", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer" },
+  btnPrimary: { padding: "9px 18px", background: "#3730a3", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 700 },
 };
 
 // ───────── STYLES

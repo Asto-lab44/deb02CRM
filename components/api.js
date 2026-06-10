@@ -201,8 +201,20 @@
     async update(id, patch) {
       const s = supa();
       if (s) {
+        // CRITIQUE : on lit le data jsonb actuel pour le MERGER avec les
+        // nouveaux champs. Sinon buildClientPatch remplace toute la colonne
+        // data et fait disparaître les fields non touchés par cette édition
+        // (tech, contacts_additionnels, contact_principal partiel, etc.).
+        let existingData = {};
+        try {
+          const { data: cur } = await s.from("clients").select("data").eq("id", id).single();
+          if (cur && cur.data && typeof cur.data === "object") existingData = cur.data;
+        } catch (e) {}
         const row = buildClientPatch({ id, ...patch });
         delete row.id; // ne pas patcher la clé primaire
+        // Merge data : on garde tout l'existant + écrase uniquement les
+        // champs explicitement renseignés dans le patch.
+        row.data = { ...existingData, ...(row.data || {}) };
         const { data, error } = await s.from("clients").update(row).eq("id", id).select().maybeSingle();
         if (error) console.warn("[api.clients.update]", error.message);
         if (data) return flattenClient(data);

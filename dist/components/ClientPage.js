@@ -1921,13 +1921,12 @@ var ClientPage = () => {
         }, a.icon);
       }
       if (isMeeting) {
-        // Ouvre Outlook Calendar pour créer un événement avec
-        // l'invité (contact principal) + titre + corps pré-remplis.
-        // Date : extraite de a.due si possible (sinon J+1 par défaut).
+        // Ouvre Outlook Calendar pour créer un événement avec :
+        //  - l'invité (contact principal)
+        //  - le commercial du compte (display.owner) en copie pour
+        //    que le RDV se cale aussi sur son calendrier
         var attendeeEmail = allContacts && allContacts[0] && allContacts[0].email || "";
         var attendeeName = allContacts && allContacts[0] && allContacts[0].name || display.name;
-        // Tentative de parser la date depuis a.due (ex: "ven. 12 juin")
-        // Fallback : J+1 09h
         var now = new Date();
         var tomorrow = new Date(now.getTime() + 24 * 3600 * 1000);
         tomorrow.setHours(9, 0, 0, 0);
@@ -1945,12 +1944,30 @@ var ClientPage = () => {
           path: "/calendar/action/compose",
           rru: "addevent"
         });
-        if (attendeeEmail) params.set("to", attendeeEmail);
-        var url = "https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString();
+        // Open the link async-after-lookup so we get the owner's email
         return /*#__PURE__*/React.createElement("button", {
-          onClick: () => {
+          onClick: async () => {
+            // Lookup l'email du commercial du compte via la table profiles
+            var ownerEmail = "";
+            try {
+              if (display.owner && display.owner !== "—" && window.HubSupabase && window.HubSupabase.client) {
+                var {
+                  data: prof
+                } = await window.HubSupabase.client.from("profiles").select("email").eq("name", display.owner).maybeSingle();
+                if (prof && prof.email) ownerEmail = prof.email;
+              }
+            } catch (e) {}
+            // Compose la liste des destinataires : contact + commercial
+            var attendees = [];
+            if (attendeeEmail) attendees.push(attendeeEmail);
+            if (ownerEmail && ownerEmail !== attendeeEmail) attendees.push(ownerEmail);
+            if (attendees.length > 0) params.set("to", attendees.join(";"));
+            var url = "https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString();
             window.open(url, "_blank", "noopener");
-            if (window.HubToast) window.HubToast.info("📅 RDV à planifier avec " + attendeeName + " — Outlook ouvert");
+            if (window.HubToast) {
+              var msg = "📅 RDV avec " + attendeeName + (ownerEmail ? " + " + display.owner + " en copie" : "") + " — Outlook ouvert";
+              window.HubToast.info(msg);
+            }
           },
           title: "Créer un RDV Outlook avec " + attendeeName + (attendeeEmail ? " (" + attendeeEmail + ")" : ""),
           style: {

@@ -217,6 +217,18 @@ const CRMPipeline = () => {
 
         <div style={crmStyles.navSection}>
           <div style={crmStyles.navLabel}>Espace de travail</div>
+          <div style={{ position: "relative", marginBottom: 8 }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 12 }}>⌕</span>
+            <input
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              placeholder="Rechercher…"
+              style={{ width: "100%", padding: "7px 10px 7px 28px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, color: "#0f172a", outline: "none", background: "#fafbfc", boxSizing: "border-box" }}
+            />
+            {globalSearch && (
+              <span onClick={() => setGlobalSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14, cursor: "pointer" }}>×</span>
+            )}
+          </div>
           {[
             { label: "Pipeline",    icon: "▦", href: "/crm",          active: isCrmActive("all") },
             { label: "Comptes",     icon: "◰", href: "/crm#comptes",  count: sidebarCounts.comptes },

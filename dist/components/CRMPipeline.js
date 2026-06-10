@@ -287,7 +287,47 @@ var CRMPipeline = () => {
     style: crmStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: crmStyles.navLabel
-  }, "Espace de travail"), [{
+  }, "Espace de travail"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8",
+      fontSize: 12
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: globalSearch,
+    onChange: e => setGlobalSearch(e.target.value),
+    placeholder: "Rechercher\u2026",
+    style: {
+      width: "100%",
+      padding: "7px 10px 7px 28px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12,
+      color: "#0f172a",
+      outline: "none",
+      background: "#fafbfc",
+      boxSizing: "border-box"
+    }
+  }), globalSearch && /*#__PURE__*/React.createElement("span", {
+    onClick: () => setGlobalSearch(""),
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "\xD7")), [{
     label: "Pipeline",
     icon: "▦",
     href: "/crm",

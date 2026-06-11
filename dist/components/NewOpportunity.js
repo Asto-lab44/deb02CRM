@@ -763,12 +763,72 @@ var NewOpportunity = () => {
       color: "#94a3b8",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, oppNotes.length, " / 2 000"))))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.pairGrid
-  }, /*#__PURE__*/React.createElement("section", {
+  }, oppNotes.length, " / 2 000"))))), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
+    title: "Qualification commerciale",
+    subtitle: "Besoin, contexte concurrentiel et \xE9ch\xE9ance du contrat actuel"
+  }), /*#__PURE__*/React.createElement(FormRow, {
+    label: "Besoin exprim\xE9 / probl\xE8me \xE0 r\xE9soudre"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...noStyles.input,
+      fontFamily: "inherit",
+      resize: "vertical",
+      minHeight: 70
+    },
+    rows: "3",
+    value: oppBesoin,
+    onChange: e => setOppBesoin(e.target.value),
+    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: noStyles.formGrid2
+  }, /*#__PURE__*/React.createElement(FormRow, {
+    label: "Concurrent actuel"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: noStyles.input,
+    value: oppConcurrent,
+    onChange: e => setOppConcurrent(e.target.value),
+    placeholder: "Ex. Salesforce, Pega, HubSpot\u2026"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...noStyles.inputWithSuffix,
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...noStyles.input,
+      border: "none",
+      padding: "0 4px"
+    },
+    value: oppConcurrentAmount,
+    onChange: e => setOppConcurrentAmount(e.target.value),
+    placeholder: "Montant annuel"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: noStyles.suffix
+  }, "k\u20AC/an"))), /*#__PURE__*/React.createElement(FormRow, {
+    label: "\xC9ch\xE9ance du contrat actuel"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: noStyles.dateInput
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    style: {
+      ...noStyles.input,
+      border: "none",
+      padding: 0,
+      fontFamily: "'JetBrains Mono', monospace"
+    },
+    value: oppProjectDate,
+    onChange: e => setOppProjectDate(e.target.value)
+  }))))), /*#__PURE__*/React.createElement("section", {
+    style: noStyles.section
+  }, /*#__PURE__*/React.createElement(SectionHead, {
+    num: "04",
     title: "Montant & timing",
     subtitle: "Indicateurs financiers et calendaires",
     required: true
@@ -953,7 +1013,7 @@ var NewOpportunity = () => {
   }))))), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
-    num: "04",
+    num: "05",
     title: "Commercial & \xE9tiquettes",
     subtitle: "Qui pilote l'opportunit\xE9 et comment la classer"
   }), /*#__PURE__*/React.createElement(FormRow, {
@@ -1009,69 +1069,7 @@ var NewOpportunity = () => {
       ...noStyles.addChip,
       cursor: "pointer"
     }
-  }, "+ Ajouter"))))), /*#__PURE__*/React.createElement("section", {
-    style: noStyles.section
-  }, /*#__PURE__*/React.createElement(SectionHead, {
-    num: "05",
-    title: "Qualification commerciale",
-    subtitle: "Besoin, contexte concurrentiel et \xE9ch\xE9ance du contrat actuel"
-  }), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Besoin exprim\xE9 / probl\xE8me \xE0 r\xE9soudre"
-  }, /*#__PURE__*/React.createElement("textarea", {
-    style: {
-      ...noStyles.input,
-      fontFamily: "inherit",
-      resize: "vertical",
-      minHeight: 70
-    },
-    rows: "3",
-    value: oppBesoin,
-    onChange: e => setOppBesoin(e.target.value),
-    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.formGrid2
-  }, /*#__PURE__*/React.createElement(FormRow, {
-    label: "Concurrent actuel"
-  }, /*#__PURE__*/React.createElement("input", {
-    style: noStyles.input,
-    value: oppConcurrent,
-    onChange: e => setOppConcurrent(e.target.value),
-    placeholder: "Ex. Salesforce, Pega, HubSpot\u2026"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...noStyles.inputWithSuffix,
-      marginTop: 6
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...noStyles.input,
-      border: "none",
-      padding: "0 4px"
-    },
-    value: oppConcurrentAmount,
-    onChange: e => setOppConcurrentAmount(e.target.value),
-    placeholder: "Montant annuel"
-  }), /*#__PURE__*/React.createElement("span", {
-    style: noStyles.suffix
-  }, "k\u20AC/an"))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "\xC9ch\xE9ance du contrat actuel"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: noStyles.dateInput
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    style: {
-      ...noStyles.input,
-      border: "none",
-      padding: 0,
-      fontFamily: "'JetBrains Mono', monospace"
-    },
-    value: oppProjectDate,
-    onChange: e => setOppProjectDate(e.target.value)
-  }))))), /*#__PURE__*/React.createElement("div", {
+  }, "+ Ajouter")))), /*#__PURE__*/React.createElement("div", {
     style: noStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => {

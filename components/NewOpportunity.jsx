@@ -470,12 +470,49 @@ const NewOpportunity = () => {
 
               </div>{/* /Row 1 */}
 
-              {/* Row 2 : Montant & timing + Commercial & étiquettes */}
-              <div style={noStyles.pairGrid}>
-
-              {/* SECTION 3 — Montant & timing */}
+              {/* SECTION 3 — Qualification commerciale (déplacée au-dessus de Montant) */}
               <section style={noStyles.section}>
-                <SectionHead num="03" title="Montant & timing" subtitle="Indicateurs financiers et calendaires" required />
+                <SectionHead num="03" title="Qualification commerciale" subtitle="Besoin, contexte concurrentiel et échéance du contrat actuel" />
+                <FormRow label="Besoin exprimé / problème à résoudre">
+                  <textarea
+                    style={{ ...noStyles.input, fontFamily: "inherit", resize: "vertical", minHeight: 70 }}
+                    rows="3"
+                    value={oppBesoin}
+                    onChange={(e) => setOppBesoin(e.target.value)}
+                    placeholder="Modernisation, contraintes, contexte concurrentiel…"
+                  />
+                </FormRow>
+                <div style={noStyles.formGrid2}>
+                  <FormRow label="Concurrent actuel">
+                    <input
+                      style={noStyles.input}
+                      value={oppConcurrent}
+                      onChange={(e) => setOppConcurrent(e.target.value)}
+                      placeholder="Ex. Salesforce, Pega, HubSpot…"
+                    />
+                    <div style={{ ...noStyles.inputWithSuffix, marginTop: 6 }}>
+                      <input
+                        style={{ ...noStyles.input, border: "none", padding: "0 4px" }}
+                        value={oppConcurrentAmount}
+                        onChange={(e) => setOppConcurrentAmount(e.target.value)}
+                        placeholder="Montant annuel"
+                      />
+                      <span style={noStyles.suffix}>k€/an</span>
+                    </div>
+                  </FormRow>
+                  <FormRow label="Échéance du contrat actuel">
+                    <div style={noStyles.dateInput}>
+                      <span style={{ color: "#94a3b8" }}>📅</span>
+                      <input type="date" style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                             value={oppProjectDate} onChange={(e) => setOppProjectDate(e.target.value)} />
+                    </div>
+                  </FormRow>
+                </div>
+              </section>
+
+              {/* SECTION 4 — Montant & timing */}
+              <section style={noStyles.section}>
+                <SectionHead num="04" title="Montant & timing" subtitle="Indicateurs financiers et calendaires" required />
 
                 <div style={noStyles.formGrid2}>
                   <FormRow label="Montant estimé" required>
@@ -573,9 +610,9 @@ const NewOpportunity = () => {
                 </div>
               </section>
 
-              {/* SECTION 4 — Équipe & concurrence */}
+              {/* SECTION 5 — Commercial & étiquettes (déplacée en bas) */}
               <section style={noStyles.section}>
-                <SectionHead num="04" title="Commercial & étiquettes" subtitle="Qui pilote l'opportunité et comment la classer" />
+                <SectionHead num="05" title="Commercial & étiquettes" subtitle="Qui pilote l'opportunité et comment la classer" />
 
                 <FormRow label="Commercial" required>
                   <select
@@ -609,47 +646,6 @@ const NewOpportunity = () => {
                 </FormRow>
               </section>
 
-              </div>{/* /Row 2 */}
-
-              {/* SECTION 5 — Qualification commerciale */}
-              <section style={noStyles.section}>
-                <SectionHead num="05" title="Qualification commerciale" subtitle="Besoin, contexte concurrentiel et échéance du contrat actuel" />
-                <FormRow label="Besoin exprimé / problème à résoudre">
-                  <textarea
-                    style={{ ...noStyles.input, fontFamily: "inherit", resize: "vertical", minHeight: 70 }}
-                    rows="3"
-                    value={oppBesoin}
-                    onChange={(e) => setOppBesoin(e.target.value)}
-                    placeholder="Modernisation, contraintes, contexte concurrentiel…"
-                  />
-                </FormRow>
-                <div style={noStyles.formGrid2}>
-                  <FormRow label="Concurrent actuel">
-                    <input
-                      style={noStyles.input}
-                      value={oppConcurrent}
-                      onChange={(e) => setOppConcurrent(e.target.value)}
-                      placeholder="Ex. Salesforce, Pega, HubSpot…"
-                    />
-                    <div style={{ ...noStyles.inputWithSuffix, marginTop: 6 }}>
-                      <input
-                        style={{ ...noStyles.input, border: "none", padding: "0 4px" }}
-                        value={oppConcurrentAmount}
-                        onChange={(e) => setOppConcurrentAmount(e.target.value)}
-                        placeholder="Montant annuel"
-                      />
-                      <span style={noStyles.suffix}>k€/an</span>
-                    </div>
-                  </FormRow>
-                  <FormRow label="Échéance du contrat actuel">
-                    <div style={noStyles.dateInput}>
-                      <span style={{ color: "#94a3b8" }}>📅</span>
-                      <input type="date" style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
-                             value={oppProjectDate} onChange={(e) => setOppProjectDate(e.target.value)} />
-                    </div>
-                  </FormRow>
-                </div>
-              </section>
 
               {/* Bottom actions */}
               <div style={noStyles.actionsRow}>

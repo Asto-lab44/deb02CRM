@@ -184,13 +184,14 @@ const CRMPipeline = () => {
       total: total > 0 ? Math.round(total / 1000) + " k€" : "0 €",
       cards: stageOpps.map((o, i) => ({
         id: o.id,
-        co: o.client_name || (o.data && o.data.client_name) || "Client",
+        co: o.name || (o.data && o.data.name) || "Opportunité",
+        client: o.client_name || (o.data && o.data.client_name) || "—",
         amount: o.amount_eur != null
           ? Math.round(o.amount_eur).toLocaleString("fr-FR").replace(/,/g, " ") + " €"
           : "—",
         days: 0,
         owner: o.owner || "—",
-        proba: o.proba || s.key === "qualif" ? 20 : s.key === "discovery" ? 35 : s.key === "propo" ? 55 : s.key === "nego" ? 75 : 100,
+        proba: o.proba || ({ qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 }[s.key] || 20),
         tag: moduleTag(o.modules, o.produit),
         logo: ((o.client_name || "??").slice(0, 2)).toUpperCase(),
         logoBg: palette[(idx * 3 + i) % palette.length],
@@ -508,6 +509,7 @@ const CRMPipeline = () => {
                         <div style={{ ...crmStyles.coLogo, background: c.logoBg }}>{c.logo}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", lineHeight: 1.3, wordBreak: "break-word" }}>{c.co}</div>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{c.client}</div>
                           <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                             <span style={{ ...crmStyles.tagPill, background: tag.bg, color: tag.color }}>{c.tag}</span>
                             {c.hot && <span style={{ ...crmStyles.tagPill, background: "#fff1d6", color: "#a65f00" }}>🔥 Hot</span>}

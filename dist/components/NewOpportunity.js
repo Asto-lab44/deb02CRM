@@ -766,33 +766,33 @@ var NewOpportunity = () => {
       }
     }, "TCV : ", tcv.toLocaleString("fr-FR").replace(/,/g, " "), " \u20AC sur ", oppDuration);
   })())), /*#__PURE__*/React.createElement(FormRow, {
-    label: "\xC9tape pipeline",
+    label: "\xC9tape SPANCO",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.pipelineSelector
   }, [{
     k: "qualif",
-    label: "Qualification",
+    label: "Suspect",
     color: "#94a3b8",
     proba: 20
   }, {
     k: "discovery",
-    label: "Discovery",
+    label: "Approche",
     color: "#3b82f6",
     proba: 35
   }, {
     k: "propo",
-    label: "Proposition",
+    label: "Négociation",
     color: "#a855f7",
     proba: 55
   }, {
     k: "nego",
-    label: "Négociation",
+    label: "Conclusion",
     color: "#ea580c",
     proba: 75
   }, {
     k: "won",
-    label: "Gagné",
+    label: "Ordre",
     color: "#10b981",
     proba: 100
   }].map(s => {
@@ -869,7 +869,7 @@ var NewOpportunity = () => {
   }, proba, "%")), /*#__PURE__*/React.createElement("div", {
     style: noStyles.inputHelp
   }, "Auto-rempli depuis l'\xE9tape")), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Date de cl\xF4ture cible",
+    label: "Date de d\xE9cision potentielle",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.dateInput
@@ -951,7 +951,7 @@ var NewOpportunity = () => {
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "05",
     title: "Qualification commerciale",
-    subtitle: "Besoin, contexte concurrentiel et \xE9ch\xE9ance du projet"
+    subtitle: "Besoin, contexte concurrentiel et \xE9ch\xE9ance du contrat actuel"
   }), /*#__PURE__*/React.createElement(FormRow, {
     label: "Besoin exprim\xE9 / probl\xE8me \xE0 r\xE9soudre"
   }, /*#__PURE__*/React.createElement("textarea", {
@@ -991,7 +991,7 @@ var NewOpportunity = () => {
   }), /*#__PURE__*/React.createElement("span", {
     style: noStyles.suffix
   }, "k\u20AC/an"))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "\xC9ch\xE9ance du projet"
+    label: "\xC9ch\xE9ance du contrat actuel"
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.dateInput
   }, /*#__PURE__*/React.createElement("span", {
@@ -1206,11 +1206,11 @@ var NewOpportunity = () => {
       textAlign: "center"
     }
   }, "\u2191 Aper\xE7u en colonne ", /*#__PURE__*/React.createElement("strong", null, {
-    qualif: "Qualification",
-    discovery: "Discovery",
-    propo: "Proposition",
-    nego: "Négociation",
-    won: "Gagné"
+    qualif: "Suspect",
+    discovery: "Approche",
+    propo: "Négociation",
+    nego: "Conclusion",
+    won: "Ordre"
   }[oppStage]))), /*#__PURE__*/React.createElement("div", {
     style: noStyles.aiPanel
   }, /*#__PURE__*/React.createElement("div", {

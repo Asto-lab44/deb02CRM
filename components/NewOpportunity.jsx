@@ -488,14 +488,14 @@ const NewOpportunity = () => {
                   </FormRow>
                 </div>
 
-                <FormRow label="Étape pipeline" required>
+                <FormRow label="Étape SPANCO" required>
                   <div style={noStyles.pipelineSelector}>
                     {[
-                      { k: "qualif", label: "Qualification", color: "#94a3b8", proba: 20 },
-                      { k: "discovery", label: "Discovery", color: "#3b82f6", proba: 35 },
-                      { k: "propo", label: "Proposition", color: "#a855f7", proba: 55 },
-                      { k: "nego", label: "Négociation", color: "#ea580c", proba: 75 },
-                      { k: "won", label: "Gagné", color: "#10b981", proba: 100 },
+                      { k: "qualif",    label: "Suspect",     color: "#94a3b8", proba: 20 },
+                      { k: "discovery", label: "Approche",    color: "#3b82f6", proba: 35 },
+                      { k: "propo",     label: "Négociation", color: "#a855f7", proba: 55 },
+                      { k: "nego",      label: "Conclusion",  color: "#ea580c", proba: 75 },
+                      { k: "won",       label: "Ordre",       color: "#10b981", proba: 100 },
                     ].map((s) => {
                       const active = oppStage === s.k;
                       return (
@@ -529,7 +529,7 @@ const NewOpportunity = () => {
                     <div style={noStyles.inputHelp}>Auto-rempli depuis l'étape</div>
                   </FormRow>
 
-                  <FormRow label="Date de clôture cible" required>
+                  <FormRow label="Date de décision potentielle" required>
                     <div style={noStyles.dateInput}>
                       <span style={{ color: "#94a3b8" }}>📅</span>
                       <input
@@ -583,7 +583,7 @@ const NewOpportunity = () => {
 
               {/* SECTION 5 — Qualification commerciale */}
               <section style={noStyles.section}>
-                <SectionHead num="05" title="Qualification commerciale" subtitle="Besoin, contexte concurrentiel et échéance du projet" />
+                <SectionHead num="05" title="Qualification commerciale" subtitle="Besoin, contexte concurrentiel et échéance du contrat actuel" />
                 <FormRow label="Besoin exprimé / problème à résoudre">
                   <textarea
                     style={{ ...noStyles.input, fontFamily: "inherit", resize: "vertical", minHeight: 70 }}
@@ -611,7 +611,7 @@ const NewOpportunity = () => {
                       <span style={noStyles.suffix}>k€/an</span>
                     </div>
                   </FormRow>
-                  <FormRow label="Échéance du projet">
+                  <FormRow label="Échéance du contrat actuel">
                     <div style={noStyles.dateInput}>
                       <span style={{ color: "#94a3b8" }}>📅</span>
                       <input type="date" style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
@@ -682,7 +682,7 @@ const NewOpportunity = () => {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>{({ qualif: "Qualification", discovery: "Discovery", propo: "Proposition", nego: "Négociation", won: "Gagné" })[oppStage]}</strong></div>
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>{({ qualif: "Suspect", discovery: "Approche", propo: "Négociation", nego: "Conclusion", won: "Ordre" })[oppStage]}</strong></div>
               </div>
 
               {/* IA suggestions */}

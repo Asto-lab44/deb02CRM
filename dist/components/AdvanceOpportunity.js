@@ -742,7 +742,47 @@ var AdvanceOpportunity = () => {
     }
   }, gain >= 0 ? "+ " : "– ", aoFmtEUR(Math.abs(gain))))))), /*#__PURE__*/React.createElement("div", {
     style: S.bottomBar
-  }, /*#__PURE__*/React.createElement("button", {
+  }, curIdx >= stages.length - 1 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      fontSize: 13,
+      color: "#0f172a"
+    }
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#065f46"
+    }
+  }, "\u2713 Opportunit\xE9 en ", current.spanco), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#64748b",
+      marginLeft: 8
+    }
+  }, "\u2014 \xE9tape finale du pipeline atteinte.")), /*#__PURE__*/React.createElement("a", {
+    href: clientId ? "/fiche-client?id=" + encodeURIComponent(clientId) : "/crm",
+    style: {
+      ...S.btnPrimaryBig,
+      textDecoration: "none",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, "\u2190 Retour \xE0 la fiche client")) : targetIdx <= curIdx ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Marquer l'opportunité comme perdue ?",
+        message: "L'opp passera à 0% de probabilité et restera dans l'historique.",
+        okLabel: "Marquer perdu",
+        okStyle: "danger"
+      }) : confirm("Marquer comme perdu ?");
+      if (ok) confirmAdvance(true);
+    },
+    style: S.btnLose
+  }, "\u2715 Marquer comme perdu"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#64748b"
+    }
+  }, "S\xE9lectionnez une \xE9tape suivante dans le stepper ci-dessus pour faire avancer l'opportunit\xE9.")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
       var ok = window.HubModal ? await window.HubModal.confirm({
         title: "Marquer l'opportunité comme perdue ?",
@@ -756,7 +796,7 @@ var AdvanceOpportunity = () => {
   }, "\u2715 Marquer comme perdu"), /*#__PURE__*/React.createElement("button", {
     onClick: () => confirmAdvance(false),
     style: S.btnPrimaryBig
-  }, "\u2713 Confirmer le passage en ", target.spanco, " \u2192")));
+  }, "\u2713 Confirmer le passage en ", target.spanco, " \u2192"))));
 };
 var Metric = ({
   label,

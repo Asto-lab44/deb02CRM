@@ -384,13 +384,35 @@ const AdvanceOpportunity = () => {
 
       {/* BOTTOM bar fixe */}
       <div style={S.bottomBar}>
-        <button onClick={async () => {
-          const ok = window.HubModal
-            ? await window.HubModal.confirm({ title: "Marquer l'opportunité comme perdue ?", message: "L'opp passera à 0% de probabilité et restera dans l'historique.", okLabel: "Marquer perdu", okStyle: "danger" })
-            : confirm("Marquer comme perdu ?");
-          if (ok) confirmAdvance(true);
-        }} style={S.btnLose}>✕ Marquer comme perdu</button>
-        <button onClick={() => confirmAdvance(false)} style={S.btnPrimaryBig}>✓ Confirmer le passage en {target.spanco} →</button>
+        {curIdx >= stages.length - 1 ? (
+          <>
+            <div style={{ flex: 1, fontSize: 13, color: "#0f172a" }}>
+              <strong style={{ color: "#065f46" }}>✓ Opportunité en {current.spanco}</strong>
+              <span style={{ color: "#64748b", marginLeft: 8 }}>— étape finale du pipeline atteinte.</span>
+            </div>
+            <a href={clientId ? "/fiche-client?id=" + encodeURIComponent(clientId) : "/crm"} style={{ ...S.btnPrimaryBig, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>← Retour à la fiche client</a>
+          </>
+        ) : targetIdx <= curIdx ? (
+          <>
+            <button onClick={async () => {
+              const ok = window.HubModal
+                ? await window.HubModal.confirm({ title: "Marquer l'opportunité comme perdue ?", message: "L'opp passera à 0% de probabilité et restera dans l'historique.", okLabel: "Marquer perdu", okStyle: "danger" })
+                : confirm("Marquer comme perdu ?");
+              if (ok) confirmAdvance(true);
+            }} style={S.btnLose}>✕ Marquer comme perdu</button>
+            <div style={{ fontSize: 12.5, color: "#64748b" }}>Sélectionnez une étape suivante dans le stepper ci-dessus pour faire avancer l'opportunité.</div>
+          </>
+        ) : (
+          <>
+            <button onClick={async () => {
+              const ok = window.HubModal
+                ? await window.HubModal.confirm({ title: "Marquer l'opportunité comme perdue ?", message: "L'opp passera à 0% de probabilité et restera dans l'historique.", okLabel: "Marquer perdu", okStyle: "danger" })
+                : confirm("Marquer comme perdu ?");
+              if (ok) confirmAdvance(true);
+            }} style={S.btnLose}>✕ Marquer comme perdu</button>
+            <button onClick={() => confirmAdvance(false)} style={S.btnPrimaryBig}>✓ Confirmer le passage en {target.spanco} →</button>
+          </>
+        )}
       </div>
     </div>
   );

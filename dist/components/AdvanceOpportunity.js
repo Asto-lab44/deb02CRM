@@ -379,19 +379,28 @@ var AdvanceOpportunity = () => {
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         ...S.spancoDot,
-        background: isPast ? s.color : isCurrent ? "#fff" : isTarget ? s.color + "22" : "#fff",
+        background: isPast || isCurrent ? s.color : isTarget ? s.color + "22" : "#fff",
         borderColor: isPast || isCurrent || isTarget ? s.color : "#e2e8f0",
-        color: isPast ? "#fff" : isCurrent || isTarget ? s.color : "#94a3b8",
-        boxShadow: isTarget ? "0 0 0 4px " + s.color + "20" : "none"
+        color: isPast || isCurrent ? "#fff" : isTarget ? s.color : "#94a3b8",
+        boxShadow: isCurrent ? "0 0 0 5px " + s.color + "33" : isTarget ? "0 0 0 4px " + s.color + "20" : "none"
       }
-    }, isPast ? "✓" : s.letter), /*#__PURE__*/React.createElement("div", {
+    }, isPast || isCurrent ? "✓" : s.letter), /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 6,
         fontSize: 11.5,
         fontWeight: isCurrent || isTarget ? 700 : 500,
-        color: isPast ? s.color : isCurrent || isTarget ? "#0f172a" : "#94a3b8"
+        color: isPast || isCurrent ? s.color : isTarget ? "#0f172a" : "#94a3b8"
       }
-    }, s.spanco), /*#__PURE__*/React.createElement("div", {
+    }, s.spanco, isCurrent ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 9.5,
+        color: s.color,
+        marginTop: 1,
+        letterSpacing: 0.4,
+        textTransform: "uppercase"
+      }
+    }, "\u25CF \xC9tape actuelle") : null), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10,
         color: "#94a3b8",
@@ -401,7 +410,7 @@ var AdvanceOpportunity = () => {
     }, s.proba, "%"), i < stages.length - 1 && /*#__PURE__*/React.createElement("div", {
       style: {
         ...S.spancoLine,
-        background: i < curIdx ? s.color : "#e2e8f0"
+        background: i <= curIdx - 1 || i === curIdx ? s.color : "#e2e8f0"
       }
     }));
   })), /*#__PURE__*/React.createElement("div", {

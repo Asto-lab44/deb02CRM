@@ -221,19 +221,19 @@ const AdvanceOpportunity = () => {
                  style={{ ...S.spancoStep, cursor: clickable ? "pointer" : "default", userSelect: "none" }}>
               <div style={{
                 ...S.spancoDot,
-                background: isPast ? s.color : isCurrent ? "#fff" : isTarget ? s.color + "22" : "#fff",
+                background: isPast || isCurrent ? s.color : isTarget ? s.color + "22" : "#fff",
                 borderColor: isPast || isCurrent || isTarget ? s.color : "#e2e8f0",
-                color: isPast ? "#fff" : isCurrent || isTarget ? s.color : "#94a3b8",
-                boxShadow: isTarget ? "0 0 0 4px " + s.color + "20" : "none",
+                color: isPast || isCurrent ? "#fff" : isTarget ? s.color : "#94a3b8",
+                boxShadow: isCurrent ? "0 0 0 5px " + s.color + "33" : isTarget ? "0 0 0 4px " + s.color + "20" : "none",
               }}>
-                {isPast ? "✓" : s.letter}
+                {isPast || isCurrent ? "✓" : s.letter}
               </div>
-              <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: isCurrent || isTarget ? 700 : 500, color: isPast ? s.color : isCurrent || isTarget ? "#0f172a" : "#94a3b8" }}>
-                {s.spanco}
+              <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: isCurrent || isTarget ? 700 : 500, color: isPast || isCurrent ? s.color : isTarget ? "#0f172a" : "#94a3b8" }}>
+                {s.spanco}{isCurrent ? <span style={{ display: "block", fontSize: 9.5, color: s.color, marginTop: 1, letterSpacing: 0.4, textTransform: "uppercase" }}>● Étape actuelle</span> : null}
               </div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>{s.proba}%</div>
               {i < stages.length - 1 && (
-                <div style={{ ...S.spancoLine, background: i < curIdx ? s.color : "#e2e8f0" }} />
+                <div style={{ ...S.spancoLine, background: i <= curIdx - 1 || (i === curIdx) ? s.color : "#e2e8f0" }} />
               )}
             </div>
           );

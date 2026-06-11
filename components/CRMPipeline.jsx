@@ -233,9 +233,9 @@ const CRMPipeline = () => {
           </div>
           {[
             { label: "Pipeline",    icon: "▦", href: "/crm",          active: isCrmActive("all") },
-            { label: "Comptes",     icon: "◰", href: "/crm#comptes",  count: sidebarCounts.comptes },
-            { label: "Contacts",    icon: "◉", href: "/crm#contacts", count: sidebarCounts.contacts },
-            { label: "Activités",   icon: "✦", href: "/crm#actions",  count: sidebarCounts.activites },
+            { label: "Comptes",     icon: "◰", href: "/crm#comptes-section",  count: sidebarCounts.comptes },
+            { label: "Contacts",    icon: "◉", href: "/crm#comptes-section", count: sidebarCounts.contacts },
+            { label: "Activités",   icon: "✦", href: "/crm#actions-section",  count: sidebarCounts.activites },
           ].map((n) => {
             const inner = (
               <>
@@ -658,14 +658,29 @@ const CRMAccountsList = () => {
     }).catch(() => {});
   }, []);
 
-  // Auto-scroll vers la section si URL contient #comptes
+  // Auto-scroll vers la section ciblée par le hash URL (Comptes, Contacts, Activités)
   React.useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#comptes") {
+    if (typeof window === "undefined") return;
+    const scrollToHash = () => {
+      const h = window.location.hash || "";
+      // Mappe les anciens #comptes/#contacts/#actions vers les vrais IDs DOM
+      const mapping = {
+        "#comptes": "comptes-section",
+        "#contacts": "comptes-section",
+        "#actions": "actions-section",
+        "#comptes-section": "comptes-section",
+        "#actions-section": "actions-section",
+      };
+      const targetId = mapping[h];
+      if (!targetId) return;
       setTimeout(() => {
-        const el = document.getElementById("comptes-section");
+        const el = document.getElementById(targetId);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 300);
-    }
+    };
+    scrollToHash();
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
   // Fusionne les deux sources en évitant les doublons par id

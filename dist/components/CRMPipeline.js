@@ -337,17 +337,17 @@ var CRMPipeline = () => {
   }, {
     label: "Comptes",
     icon: "◰",
-    href: "/crm#comptes",
+    href: "/crm#comptes-section",
     count: sidebarCounts.comptes
   }, {
     label: "Contacts",
     icon: "◉",
-    href: "/crm#contacts",
+    href: "/crm#comptes-section",
     count: sidebarCounts.contacts
   }, {
     label: "Activités",
     icon: "✦",
-    href: "/crm#actions",
+    href: "/crm#actions-section",
     count: sidebarCounts.activites
   }].map(n => {
     var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
@@ -1630,17 +1630,32 @@ var CRMAccountsList = () => {
     }).catch(() => {});
   }, []);
 
-  // Auto-scroll vers la section si URL contient #comptes
+  // Auto-scroll vers la section ciblée par le hash URL (Comptes, Contacts, Activités)
   React.useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#comptes") {
+    if (typeof window === "undefined") return;
+    var scrollToHash = () => {
+      var h = window.location.hash || "";
+      // Mappe les anciens #comptes/#contacts/#actions vers les vrais IDs DOM
+      var mapping = {
+        "#comptes": "comptes-section",
+        "#contacts": "comptes-section",
+        "#actions": "actions-section",
+        "#comptes-section": "comptes-section",
+        "#actions-section": "actions-section"
+      };
+      var targetId = mapping[h];
+      if (!targetId) return;
       setTimeout(() => {
-        var el = document.getElementById("comptes-section");
+        var el = document.getElementById(targetId);
         if (el) el.scrollIntoView({
           behavior: "smooth",
           block: "start"
         });
       }, 300);
-    }
+    };
+    scrollToHash();
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
   // Fusionne les deux sources en évitant les doublons par id

@@ -66,6 +66,10 @@ const NewOpportunity = () => {
   // Résolution du dossier prospect complet : contacts depuis Supabase
   // en priorité (table contacts), fallback localStorage legacy si rien.
   const [clientContacts, setClientContacts] = React.useState([]);
+  // IDs des co-contacts sélectionnés pour cette opportunité (parmi
+  // les contacts existants du client, hors contact principal).
+  const [selectedCoContactIds, setSelectedCoContactIds] = React.useState(new Set());
+  React.useEffect(() => { setSelectedCoContactIds(new Set()); }, [selectedClient && selectedClient.id]);
   React.useEffect(() => {
     if (!selectedClient || !selectedClient.id) { setClientContacts([]); return; }
     (async () => {
@@ -133,6 +137,8 @@ const NewOpportunity = () => {
       proba,
       owner: oppOwner,
       tags: oppTags,
+      // Co-contacts sélectionnés sur cette opp (IDs de la table contacts)
+      co_contact_ids: Array.from(selectedCoContactIds),
       // Qualification commerciale
       besoin: oppBesoin || null,
       concurrent: oppConcurrent || null,
@@ -327,23 +333,64 @@ const NewOpportunity = () => {
                   })()}
                 </FormRow>
 
-                <FormRow label="Co-contacts" subtitle="Décideurs supplémentaires identifiés à la création du prospect">
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    {(() => {
-                      const add = (fullProspect && fullProspect.contacts_additionnels) || [];
-                      if (!add.length) return <span style={{ fontSize: 11.5, color: "#94a3b8", fontStyle: "italic" }}>Aucun co-contact</span>;
-                      const colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
-                      return add.map((x, i) => {
-                        const n = ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact";
-                        return (
-                          <div key={i} style={noStyles.contactChip}>
-                            <Avatar name={n} size={18} color={colors[i % colors.length]} />
-                            <span style={{ fontSize: 11.5, fontWeight: 500 }}>{n}</span>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
+                <FormRow label="Co-contacts" subtitle="Sélectionnez d'autres contacts du client à inclure dans cette opportunité">
+                  {(() => {
+                    // Filtre les contacts éligibles : tous sauf le principal
+                    const eligible = clientContacts.filter((c) => !c.is_principal);
+                    if (!selectedClient) {
+                      return <span style={{ fontSize: 11.5, color: "#94a3b8", fontStyle: "italic" }}>Sélectionne d'abord un client.</span>;
+                    }
+                    if (eligible.length === 0) {
+                      return (
+                        <div style={{ padding: "10px 12px", background: "#fafbfc", border: "1px dashed #e2e8f0", borderRadius: 8, fontSize: 12, color: "#94a3b8" }}>
+                          Aucun co-contact disponible.{" "}
+                          <a href={"/fiche-client?id=" + encodeURIComponent(selectedClient.id)} style={{ color: "#3730a3", textDecoration: "none", fontWeight: 600 }}>
+                            Ajouter un contact à ce client →
+                          </a>
+                        </div>
+                      );
+                    }
+                    const colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {eligible.map((c, i) => {
+                          const checked = selectedCoContactIds.has(c.id);
+                          const n = ((c.prenom || "") + " " + (c.nom || "")).trim() || c.email || "Contact";
+                          return (
+                            <label key={c.id} onClick={() => {
+                              setSelectedCoContactIds((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                                return next;
+                              });
+                            }}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
+                              border: "1px solid " + (checked ? "#c7d2fe" : "#e2e8f0"),
+                              background: checked ? "#eef2ff" : "#fff",
+                              borderRadius: 8, cursor: "pointer",
+                            }}>
+                              <input type="checkbox" checked={checked} readOnly style={{ accentColor: "#3730a3" }} />
+                              <Avatar name={n} size={26} color={colors[i % colors.length]} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{n}</div>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>
+                                  {c.fonction || "Fonction non renseignée"}
+                                  {c.email ? " · " + c.email : ""}
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                          💡 Besoin d'un contact qui n'apparaît pas ?{" "}
+                          <a href={"/fiche-client?id=" + encodeURIComponent(selectedClient.id)} style={{ color: "#3730a3", textDecoration: "none", fontWeight: 600 }}>
+                            Ajoute-le dans la fiche client →
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </FormRow>
               </section>
 

@@ -65,6 +65,12 @@ var NewOpportunity = () => {
   // Résolution du dossier prospect complet : contacts depuis Supabase
   // en priorité (table contacts), fallback localStorage legacy si rien.
   var [clientContacts, setClientContacts] = React.useState([]);
+  // IDs des co-contacts sélectionnés pour cette opportunité (parmi
+  // les contacts existants du client, hors contact principal).
+  var [selectedCoContactIds, setSelectedCoContactIds] = React.useState(new Set());
+  React.useEffect(() => {
+    setSelectedCoContactIds(new Set());
+  }, [selectedClient && selectedClient.id]);
   React.useEffect(() => {
     if (!selectedClient || !selectedClient.id) {
       setClientContacts([]);
@@ -164,6 +170,8 @@ var NewOpportunity = () => {
       proba,
       owner: oppOwner,
       tags: oppTags,
+      // Co-contacts sélectionnés sur cette opp (IDs de la table contacts)
+      co_contact_ids: Array.from(selectedCoContactIds),
       // Qualification commerciale
       besoin: oppBesoin || null,
       concurrent: oppConcurrent || null,
@@ -546,41 +554,110 @@ var NewOpportunity = () => {
     }, cp.fonction || "—", cp.email ? ` · ${cp.email}` : "")));
   })()), /*#__PURE__*/React.createElement(FormRow, {
     label: "Co-contacts",
-    subtitle: "D\xE9cideurs suppl\xE9mentaires identifi\xE9s \xE0 la cr\xE9ation du prospect"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      flexWrap: "wrap"
-    }
+    subtitle: "S\xE9lectionnez d'autres contacts du client \xE0 inclure dans cette opportunit\xE9"
   }, (() => {
-    var add = fullProspect && fullProspect.contacts_additionnels || [];
-    if (!add.length) return /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        color: "#94a3b8",
-        fontStyle: "italic"
-      }
-    }, "Aucun co-contact");
-    var colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
-    return add.map((x, i) => {
-      var n = ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact";
-      return /*#__PURE__*/React.createElement("div", {
-        key: i,
-        style: noStyles.contactChip
-      }, /*#__PURE__*/React.createElement(Avatar, {
-        name: n,
-        size: 18,
-        color: colors[i % colors.length]
-      }), /*#__PURE__*/React.createElement("span", {
+    // Filtre les contacts éligibles : tous sauf le principal
+    var eligible = clientContacts.filter(c => !c.is_principal);
+    if (!selectedClient) {
+      return /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11.5,
-          fontWeight: 500
+          color: "#94a3b8",
+          fontStyle: "italic"
         }
-      }, n));
-    });
-  })()))), /*#__PURE__*/React.createElement("section", {
+      }, "S\xE9lectionne d'abord un client.");
+    }
+    if (eligible.length === 0) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          padding: "10px 12px",
+          background: "#fafbfc",
+          border: "1px dashed #e2e8f0",
+          borderRadius: 8,
+          fontSize: 12,
+          color: "#94a3b8"
+        }
+      }, "Aucun co-contact disponible.", " ", /*#__PURE__*/React.createElement("a", {
+        href: "/fiche-client?id=" + encodeURIComponent(selectedClient.id),
+        style: {
+          color: "#3730a3",
+          textDecoration: "none",
+          fontWeight: 600
+        }
+      }, "Ajouter un contact \xE0 ce client \u2192"));
+    }
+    var colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 6
+      }
+    }, eligible.map((c, i) => {
+      var checked = selectedCoContactIds.has(c.id);
+      var n = ((c.prenom || "") + " " + (c.nom || "")).trim() || c.email || "Contact";
+      return /*#__PURE__*/React.createElement("label", {
+        key: c.id,
+        onClick: () => {
+          setSelectedCoContactIds(prev => {
+            var next = new Set(prev);
+            if (next.has(c.id)) next.delete(c.id);else next.add(c.id);
+            return next;
+          });
+        },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 12px",
+          border: "1px solid " + (checked ? "#c7d2fe" : "#e2e8f0"),
+          background: checked ? "#eef2ff" : "#fff",
+          borderRadius: 8,
+          cursor: "pointer"
+        }
+      }, /*#__PURE__*/React.createElement("input", {
+        type: "checkbox",
+        checked: checked,
+        readOnly: true,
+        style: {
+          accentColor: "#3730a3"
+        }
+      }), /*#__PURE__*/React.createElement(Avatar, {
+        name: n,
+        size: 26,
+        color: colors[i % colors.length]
+      }), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: "#0f172a"
+        }
+      }, n), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "#64748b"
+        }
+      }, c.fonction || "Fonction non renseignée", c.email ? " · " + c.email : "")));
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#94a3b8",
+        marginTop: 4
+      }
+    }, "\uD83D\uDCA1 Besoin d'un contact qui n'appara\xEEt pas ?", " ", /*#__PURE__*/React.createElement("a", {
+      href: "/fiche-client?id=" + encodeURIComponent(selectedClient.id),
+      style: {
+        color: "#3730a3",
+        textDecoration: "none",
+        fontWeight: 600
+      }
+    }, "Ajoute-le dans la fiche client \u2192")));
+  })())), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "02",

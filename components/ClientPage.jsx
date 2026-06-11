@@ -1385,7 +1385,7 @@ const ClientPage = () => {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* Contacts */}
-              <div style={{ ...cliStyles.subBlock, order: 2 }}>
+              <div style={{ ...cliStyles.subBlock, order: 1 }}>
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>Contacts clés <span style={cliStyles.blockCount}>{allContacts.length}</span></h2>
@@ -1512,7 +1512,7 @@ const ClientPage = () => {
               </div>
 
               {/* Détails */}
-              <div style={{ ...cliStyles.subBlock, order: 1 }}>
+              <div style={{ ...cliStyles.subBlock, order: 2 }}>
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>Informations compte</h2>

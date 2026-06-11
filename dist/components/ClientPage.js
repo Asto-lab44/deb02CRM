@@ -2335,7 +2335,7 @@ var ClientPage = () => {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       ...cliStyles.subBlock,
-      order: 2
+      order: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsHead
@@ -2586,7 +2586,7 @@ var ClientPage = () => {
   }, "\xD7"))))))), /*#__PURE__*/React.createElement("div", {
     style: {
       ...cliStyles.subBlock,
-      order: 1
+      order: 2
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsHead

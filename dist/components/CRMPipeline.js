@@ -1977,6 +1977,125 @@ var CRMActionsList = () => {
     }
   }, filtered.map((a, i) => {
     var pm = prioMeta[a.priority] || prioMeta.basse;
+    // Icône cliquable selon le type d'action :
+    //   email → mailto: (Outlook/webmail par défaut OS)
+    //   appel → 3CX Web Client dialer
+    //   rdv   → Outlook Calendar deeplink
+    var tagL = (a.tag || "").toLowerCase();
+    var titleL = (a.title || "").toLowerCase();
+    var isEmail = tagL === "email" || titleL.includes("email") || a.icon === "✉" || a.icon === "📧";
+    var isCall = tagL === "appel" || tagL === "call" || titleL.includes("appel") || titleL.includes("relance") || a.icon === "📞" || a.icon === "☎";
+    var isMeeting = tagL === "rdv" || tagL === "visio" || titleL.includes("rdv") || titleL.includes("rendez-vous") || a.icon === "📅" || a.icon === "🗓" || a.icon === "💻";
+    var actionable = isEmail || isCall || isMeeting;
+    var iconBaseStyle = {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      background: "#f8fafc",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 16,
+      flexShrink: 0
+    };
+    var fetchClientCtx = async () => {
+      if (!a.client_id || !window.api) return {
+        contact: null,
+        client: null
+      };
+      try {
+        var [conts, client] = await Promise.all([window.api.contacts.list({
+          client_id: a.client_id
+        }), window.api.clients.getById(a.client_id)]);
+        var contact = (conts || []).find(c => c.is_principal) || (conts || [])[0] || null;
+        return {
+          contact,
+          client
+        };
+      } catch (e) {
+        return {
+          contact: null,
+          client: null
+        };
+      }
+    };
+    var handleIconClick = async e => {
+      e.stopPropagation();
+      if (!actionable) return;
+      var {
+        contact,
+        client
+      } = await fetchClientCtx();
+      if (isEmail) {
+        var email = contact && contact.email || client && client.email || "";
+        if (!email) {
+          if (window.HubToast) window.HubToast.warn("Aucun email — ouvre la fiche client pour ajouter un contact");
+          return;
+        }
+        var lastName = (contact && contact.nom || "").trim();
+        var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe.", "", "📎 Plaquette : https://deb02-crm.vercel.app/assets/Plaquette-Astorya.pdf"].join("\n");
+        window.location.href = "mailto:" + encodeURIComponent(email) + "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") + "&body=" + encodeURIComponent(body);
+        if (window.HubToast) window.HubToast.info("📎 N'oublie pas d'attacher la plaquette");
+        return;
+      }
+      if (isCall) {
+        var phone = contact && contact.phone || client && client.phone || "";
+        if (!phone) {
+          if (window.HubToast) window.HubToast.warn("Aucun téléphone — ouvre la fiche client pour ajouter un contact");
+          return;
+        }
+        var tel = phone.replace(/[^\d+]/g, "");
+        var supa = window.HubSupabase && window.HubSupabase.client;
+        var launch = server => {
+          var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+          window.open(url, "3cx-webclient");
+          if (window.HubToast) window.HubToast.info("📞 Appel via 3CX");
+        };
+        if (supa) {
+          supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+            data
+          }) => launch(data && data.value)).catch(() => launch(null));
+        } else {
+          launch(null);
+        }
+        return;
+      }
+      if (isMeeting) {
+        var attendeeEmail = contact && contact.email || "";
+        var clientName = client && (client.raison_sociale || client.name) || "";
+        var tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+        tomorrow.setHours(9, 0, 0, 0);
+        var end = new Date(tomorrow.getTime() + 60 * 60 * 1000);
+        var toIso = d => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+        var subject = (a.title || "Rendez-vous") + (clientName ? " — " + clientName : "");
+        var params = new URLSearchParams({
+          subject,
+          body: a.meta || "Préparé via Hub Astorya",
+          startdt: toIso(tomorrow),
+          enddt: toIso(end),
+          path: "/calendar/action/compose",
+          rru: "addevent"
+        });
+        if (attendeeEmail) params.set("to", attendeeEmail);
+        window.open("https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString(), "_blank", "noopener");
+        if (window.HubToast) window.HubToast.info("📅 RDV — Outlook ouvert");
+        return;
+      }
+    };
+    var iconEl = actionable ? /*#__PURE__*/React.createElement("button", {
+      onClick: handleIconClick,
+      title: isEmail ? "Envoyer un email" : isCall ? "Lancer l'appel via 3CX" : "Créer le RDV Outlook",
+      style: {
+        ...iconBaseStyle,
+        border: 0,
+        cursor: "pointer",
+        transition: "transform 120ms"
+      },
+      onMouseEnter: e => e.currentTarget.style.transform = "scale(1.1)",
+      onMouseLeave: e => e.currentTarget.style.transform = "scale(1)"
+    }, a.icon) : /*#__PURE__*/React.createElement("span", {
+      style: iconBaseStyle
+    }, a.icon);
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -1988,19 +2107,7 @@ var CRMActionsList = () => {
         border: "1px solid " + (a.overdue ? "#fdba74" : "#e2e8f0"),
         borderRadius: 10
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: "#f8fafc",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 16,
-        flexShrink: 0
-      }
-    }, a.icon), /*#__PURE__*/React.createElement("span", {
+    }, iconEl, /*#__PURE__*/React.createElement("span", {
       style: {
         padding: "2px 8px",
         borderRadius: 999,

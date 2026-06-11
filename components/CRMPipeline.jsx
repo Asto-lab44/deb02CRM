@@ -798,9 +798,97 @@ const CRMActionsList = () => {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {filtered.map((a, i) => {
           const pm = prioMeta[a.priority] || prioMeta.basse;
+          // Icône cliquable selon le type d'action :
+          //   email → mailto: (Outlook/webmail par défaut OS)
+          //   appel → 3CX Web Client dialer
+          //   rdv   → Outlook Calendar deeplink
+          const tagL = (a.tag || "").toLowerCase();
+          const titleL = (a.title || "").toLowerCase();
+          const isEmail = tagL === "email" || titleL.includes("email") || a.icon === "✉" || a.icon === "📧";
+          const isCall = tagL === "appel" || tagL === "call" || titleL.includes("appel") || titleL.includes("relance") || a.icon === "📞" || a.icon === "☎";
+          const isMeeting = tagL === "rdv" || tagL === "visio" || titleL.includes("rdv") || titleL.includes("rendez-vous") || a.icon === "📅" || a.icon === "🗓" || a.icon === "💻";
+          const actionable = isEmail || isCall || isMeeting;
+          const iconBaseStyle = { width: 32, height: 32, borderRadius: 8, background: "#f8fafc", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 };
+          const fetchClientCtx = async () => {
+            if (!a.client_id || !window.api) return { contact: null, client: null };
+            try {
+              const [conts, client] = await Promise.all([
+                window.api.contacts.list({ client_id: a.client_id }),
+                window.api.clients.getById(a.client_id),
+              ]);
+              const contact = (conts || []).find((c) => c.is_principal) || (conts || [])[0] || null;
+              return { contact, client };
+            } catch (e) { return { contact: null, client: null }; }
+          };
+          const handleIconClick = async (e) => {
+            e.stopPropagation();
+            if (!actionable) return;
+            const { contact, client } = await fetchClientCtx();
+            if (isEmail) {
+              const email = (contact && contact.email) || (client && client.email) || "";
+              if (!email) { if (window.HubToast) window.HubToast.warn("Aucun email — ouvre la fiche client pour ajouter un contact"); return; }
+              const lastName = ((contact && contact.nom) || "").trim();
+              const body = [
+                "Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",",
+                "",
+                "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe.",
+                "",
+                "📎 Plaquette : https://deb02-crm.vercel.app/assets/Plaquette-Astorya.pdf",
+              ].join("\n");
+              window.location.href = "mailto:" + encodeURIComponent(email) +
+                "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") +
+                "&body=" + encodeURIComponent(body);
+              if (window.HubToast) window.HubToast.info("📎 N'oublie pas d'attacher la plaquette");
+              return;
+            }
+            if (isCall) {
+              const phone = (contact && contact.phone) || (client && client.phone) || "";
+              if (!phone) { if (window.HubToast) window.HubToast.warn("Aucun téléphone — ouvre la fiche client pour ajouter un contact"); return; }
+              const tel = phone.replace(/[^\d+]/g, "");
+              const supa = window.HubSupabase && window.HubSupabase.client;
+              const launch = (server) => {
+                const url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+                window.open(url, "3cx-webclient");
+                if (window.HubToast) window.HubToast.info("📞 Appel via 3CX");
+              };
+              if (supa) {
+                supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle()
+                  .then(({ data }) => launch(data && data.value)).catch(() => launch(null));
+              } else { launch(null); }
+              return;
+            }
+            if (isMeeting) {
+              const attendeeEmail = (contact && contact.email) || "";
+              const clientName = (client && (client.raison_sociale || client.name)) || "";
+              const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+              tomorrow.setHours(9, 0, 0, 0);
+              const end = new Date(tomorrow.getTime() + 60 * 60 * 1000);
+              const toIso = (d) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+              const subject = (a.title || "Rendez-vous") + (clientName ? " — " + clientName : "");
+              const params = new URLSearchParams({
+                subject, body: a.meta || "Préparé via Hub Astorya",
+                startdt: toIso(tomorrow), enddt: toIso(end),
+                path: "/calendar/action/compose", rru: "addevent",
+              });
+              if (attendeeEmail) params.set("to", attendeeEmail);
+              window.open("https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString(), "_blank", "noopener");
+              if (window.HubToast) window.HubToast.info("📅 RDV — Outlook ouvert");
+              return;
+            }
+          };
+          const iconEl = actionable ? (
+            <button onClick={handleIconClick}
+                    title={isEmail ? "Envoyer un email" : isCall ? "Lancer l'appel via 3CX" : "Créer le RDV Outlook"}
+                    style={{ ...iconBaseStyle, border: 0, cursor: "pointer", transition: "transform 120ms" }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            >{a.icon}</button>
+          ) : (
+            <span style={iconBaseStyle}>{a.icon}</span>
+          );
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: a.overdue ? "#fff7ed" : "#fff", border: "1px solid " + (a.overdue ? "#fdba74" : "#e2e8f0"), borderRadius: 10 }}>
-              <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f8fafc", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{a.icon}</span>
+              {iconEl}
               <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 700, color: pm.color, background: pm.bg, textTransform: "uppercase", letterSpacing: 0.4, flexShrink: 0 }}>
                 {a.overdue ? "⚠ EN RETARD" : pm.label}
               </span>

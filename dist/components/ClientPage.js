@@ -1625,22 +1625,61 @@ var ClientPage = () => {
         window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
       };
       var stageColor = s.color;
+      var proba = o.proba || {
+        qualif: 20,
+        discovery: 35,
+        propo: 55,
+        nego: 75,
+        won: 100
+      }[o.stage] || 20;
+      var isWon = o.stage === "won";
+      var logoPalette = ["#f59e0b", "#0ea5e9", "#a855f7", "#dc2626", "#10b981", "#6366f1"];
+      var logoBg = logoPalette[j % logoPalette.length];
+      var logo = (o.client_name || display.name || "??").slice(0, 2).toUpperCase();
+      var tagLabel = Array.isArray(o.modules) && o.modules[0] || (o.produit && o.produit.includes("Cyber") ? "Cyber" : o.produit && o.produit.includes("Hub") ? "Hub" : "Suite");
+      var tagBg = tagLabel === "Cyber" ? "#fdecec" : tagLabel === "Hub" ? "#eef2ff" : "#f5efff";
+      var tagColor = tagLabel === "Cyber" ? "#dc2626" : tagLabel === "Hub" ? "#4338ca" : "#7e22ce";
       return /*#__PURE__*/React.createElement("div", {
         key: o.ref || j,
         onClick: openOpp,
         style: {
-          background: "#fff",
-          border: "1px solid #eef1f5",
-          borderRadius: 8,
-          padding: 10,
+          background: isWon ? "#f0fdf4" : "#fff",
+          border: "1px solid " + (isWon ? "#bbf7d0" : "#eef1f5"),
+          borderRadius: 10,
+          padding: 11,
           cursor: "pointer",
           display: "flex",
           flexDirection: "column",
-          gap: 7
+          gap: 8
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 12,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 9
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: 28,
+          height: 28,
+          borderRadius: 6,
+          background: logoBg,
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 10.5,
+          fontWeight: 700,
+          flexShrink: 0
+        }
+      }, logo), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
           fontWeight: 600,
           color: "#0f172a",
           lineHeight: 1.3,
@@ -1648,45 +1687,67 @@ var ClientPage = () => {
         }
       }, o.name || "—"), /*#__PURE__*/React.createElement("div", {
         style: {
+          fontSize: 11,
+          color: "#64748b",
+          marginTop: 1
+        }
+      }, o.client_name || display.name || "—"), /*#__PURE__*/React.createElement("div", {
+        style: {
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between"
+          gap: 4,
+          marginTop: 4
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 13,
-          fontWeight: 700,
-          color: "#0f172a",
-          fontFamily: "'JetBrains Mono', monospace"
-        }
-      }, o.amount), o.close && o.close !== "—" && /*#__PURE__*/React.createElement("span", {
-        style: {
+          display: "inline-block",
+          padding: "1px 6px",
+          borderRadius: 4,
           fontSize: 10,
-          color: "#94a3b8"
+          fontWeight: 600,
+          background: tagBg,
+          color: tagColor
         }
-      }, o.close.split(" ").slice(0, 2).join(" "))), /*#__PURE__*/React.createElement("div", {
+      }, tagLabel), isWon && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-block",
+          padding: "1px 6px",
+          borderRadius: 4,
+          fontSize: 10,
+          fontWeight: 600,
+          background: "#e8f8f1",
+          color: "#0e7a55"
+        }
+      }, "\u2713 Sign\xE9")))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 18,
+          fontWeight: 600,
+          color: "#0f172a",
+          letterSpacing: -0.4
+        }
+      }, o.amount), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          marginBottom: 3
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 10,
           color: "#94a3b8",
           textTransform: "uppercase",
-          letterSpacing: 0.4,
+          letterSpacing: 0.5,
           fontWeight: 600
         }
-      }, "Proba"), /*#__PURE__*/React.createElement("span", {
+      }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11,
-          color: stageColor,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontWeight: 700
+          color: "#0f172a",
+          fontWeight: 600,
+          fontFamily: "'JetBrains Mono', monospace"
         }
-      }, o.proba || 20, "%")), /*#__PURE__*/React.createElement("div", {
+      }, proba, "%")), /*#__PURE__*/React.createElement("div", {
         style: {
+          width: "100%",
           height: 3,
           background: "#eef1f5",
           borderRadius: 999,
@@ -1694,29 +1755,55 @@ var ClientPage = () => {
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
-          width: (o.proba || 20) + "%",
+          width: proba + "%",
           height: "100%",
           background: stageColor,
           borderRadius: 999
         }
-      })), /*#__PURE__*/React.createElement("div", {
+      }))), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
-          gap: 5,
-          marginTop: 2
+          justifyContent: "space-between",
+          marginTop: 4,
+          paddingTop: 8,
+          borderTop: "1px solid #f1f5f9"
         }
       }, /*#__PURE__*/React.createElement(Avatar, {
         name: o.owner,
-        size: 16,
+        size: 20,
         color: o.ownerColor || stageColor
       }), /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 10.5,
-          color: "#64748b"
+          fontSize: 11,
+          color: "#64748b",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3
         }
-      }, o.owner || "—")));
-    }));
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#94a3b8"
+        }
+      }, "\u25F7"), "0j")));
+    }), /*#__PURE__*/React.createElement("a", {
+      href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id || urlId || "") + "&stage=" + s.k,
+      style: {
+        display: "block",
+        padding: "8px 10px",
+        marginTop: 4,
+        background: "#fff",
+        border: "1px dashed " + s.color + "55",
+        color: s.color,
+        borderRadius: 6,
+        fontSize: 11.5,
+        fontWeight: 600,
+        textAlign: "center",
+        textDecoration: "none",
+        cursor: "pointer"
+      },
+      title: "Créer une opportunité directement en " + s.label
+    }, "+ Ajouter une opportunit\xE9"));
   })), /*#__PURE__*/React.createElement("div", {
     style: pipeView === "list" ? {
       display: "flex",

@@ -353,7 +353,7 @@ var AdvanceOpportunity = () => {
   }, /*#__PURE__*/React.createElement("a", {
     href: clientId ? "/fiche-client?id=" + clientId : "/crm",
     style: S.btnGhost
-  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+  }, curIdx >= stages.length - 1 ? "← Retour" : "Annuler"), curIdx < stages.length - 1 && targetIdx > curIdx && /*#__PURE__*/React.createElement("button", {
     onClick: () => confirmAdvance(false),
     style: S.btnPrimary
   }, "\u2713 Avancer en ", target.spanco, " \u2192"))), /*#__PURE__*/React.createElement("div", {
@@ -520,7 +520,7 @@ var AdvanceOpportunity = () => {
       fontFamily: "inherit"
     },
     placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
-  })))), /*#__PURE__*/React.createElement("section", {
+  })))), curIdx < stages.length - 1 && /*#__PURE__*/React.createElement("section", {
     style: S.card
   }, /*#__PURE__*/React.createElement("header", {
     style: S.cardHead
@@ -587,7 +587,7 @@ var AdvanceOpportunity = () => {
       color: "#0f172a",
       fontWeight: c.done ? 500 : 600
     }
-  }, c.label))))), /*#__PURE__*/React.createElement("section", {
+  }, c.label))))), curIdx < stages.length - 1 && /*#__PURE__*/React.createElement("section", {
     style: S.card
   }, /*#__PURE__*/React.createElement("header", {
     style: S.cardHead
@@ -607,7 +607,72 @@ var AdvanceOpportunity = () => {
     placeholder: "Contexte du passage d'\xE9tape, points cl\xE9s, prochaines actions\u2026"
   }))), /*#__PURE__*/React.createElement("aside", {
     style: S.aside
+  }, curIdx >= stages.length - 1 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...S.healthCard,
+      background: "linear-gradient(135deg, #065f46, #10b981)"
+    }
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "rgba(255,255,255,0.85)",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, "Opportunit\xE9 finalis\xE9e"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      padding: "2px 8px",
+      borderRadius: 999,
+      background: "rgba(255,255,255,0.2)",
+      color: "#fff",
+      fontWeight: 700,
+      letterSpacing: 0.3
+    }
+  }, "\u25CF SIGN\xC9")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 700,
+      color: "#fff",
+      marginBottom: 6
+    }
+  }, current.spanco), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "rgba(255,255,255,0.85)",
+      lineHeight: 1.5,
+      marginBottom: 14
+    }
+  }, "L'opportunit\xE9 a atteint l'\xE9tape finale du pipeline. Le contrat est sign\xE9 et entr\xE9 en production commerciale."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 12px",
+      borderRadius: 8,
+      background: "rgba(255,255,255,0.12)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "rgba(255,255,255,0.7)"
+    }
+  }, "Montant sign\xE9"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#fff",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, aoFmtEUR(amountNum)))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: S.healthCard
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -749,7 +814,7 @@ var AdvanceOpportunity = () => {
     style: {
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, gain >= 0 ? "+ " : "– ", aoFmtEUR(Math.abs(gain))))))), /*#__PURE__*/React.createElement("div", {
+  }, gain >= 0 ? "+ " : "– ", aoFmtEUR(Math.abs(gain)))))))), /*#__PURE__*/React.createElement("div", {
     style: S.bottomBar
   }, curIdx >= stages.length - 1 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {

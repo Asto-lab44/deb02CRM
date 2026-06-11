@@ -198,8 +198,10 @@ const AdvanceOpportunity = () => {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-          <a href={clientId ? "/fiche-client?id=" + clientId : "/crm"} style={S.btnGhost}>Annuler</a>
-          <button onClick={() => confirmAdvance(false)} style={S.btnPrimary}>✓ Avancer en {target.spanco} →</button>
+          <a href={clientId ? "/fiche-client?id=" + clientId : "/crm"} style={S.btnGhost}>{curIdx >= stages.length - 1 ? "← Retour" : "Annuler"}</a>
+          {curIdx < stages.length - 1 && targetIdx > curIdx && (
+            <button onClick={() => confirmAdvance(false)} style={S.btnPrimary}>✓ Avancer en {target.spanco} →</button>
+          )}
         </div>
       </div>
 
@@ -292,7 +294,8 @@ const AdvanceOpportunity = () => {
             </div>
           </section>
 
-          {/* Card 2 : Critères */}
+          {/* Card 2 : Critères — masquée quand opp déjà à l'étape finale */}
+          {curIdx < stages.length - 1 && (
           <section style={S.card}>
             <header style={S.cardHead}>
               <div>
@@ -326,8 +329,10 @@ const AdvanceOpportunity = () => {
               ))}
             </div>
           </section>
+          )}
 
-          {/* Card 3 : Commentaire de passage */}
+          {/* Card 3 : Commentaire de passage — masqué à l'étape finale */}
+          {curIdx < stages.length - 1 && (
           <section style={S.card}>
             <header style={S.cardHead}>
               <div>
@@ -339,46 +344,64 @@ const AdvanceOpportunity = () => {
                       style={{ ...S.input, resize: "vertical", fontFamily: "inherit" }}
                       placeholder="Contexte du passage d'étape, points clés, prochaines actions…" />
           </section>
+          )}
         </div>
 
-        {/* SIDEBAR — Panneau Santé conservé */}
+        {/* SIDEBAR — Panneau Santé / Carte finale selon l'état */}
         <aside style={S.aside}>
-          <div style={S.healthCard}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.7)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Santé de l'opportunité</span>
-              <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 999, background: healthTone.bg, color: healthTone.color, fontWeight: 700, letterSpacing: 0.3 }}>● {healthTone.label.toUpperCase()}</span>
+          {curIdx >= stages.length - 1 ? (
+            <div style={{ ...S.healthCard, background: "linear-gradient(135deg, #065f46, #10b981)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.85)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Opportunité finalisée</span>
+                <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,255,0.2)", color: "#fff", fontWeight: 700, letterSpacing: 0.3 }}>● SIGNÉ</span>
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", marginBottom: 6 }}>{current.spanco}</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.5, marginBottom: 14 }}>L'opportunité a atteint l'étape finale du pipeline. Le contrat est signé et entré en production commerciale.</div>
+              <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>Montant signé</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>{aoFmtEUR(amountNum)}</span>
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
-              <span style={{ fontSize: 42, fontWeight: 700, color: "#fff", letterSpacing: -1.2, lineHeight: 1 }}>{healthScore}</span>
-              <span style={{ fontSize: 14, color: "rgba(255,255,255,0.55)" }}>/ 100</span>
-            </div>
-            <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 999, overflow: "hidden", marginBottom: 18 }}>
-              <div style={{ width: healthScore + "%", height: "100%", background: "linear-gradient(90deg, #a78bfa, #10b981)", borderRadius: 999 }} />
-            </div>
-            <Metric label="Critères validés" value={pct} color="#10b981" />
-            <Metric label="Probabilité étape" value={target.proba} color="#a78bfa" />
-            <Metric label="Avancement SPANCO" value={Math.round(((targetIdx + 1) / stages.length) * 100)} color="#0ea5e9" />
-          </div>
+          ) : (
+            <>
+              <div style={S.healthCard}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+                  <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.7)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Santé de l'opportunité</span>
+                  <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 999, background: healthTone.bg, color: healthTone.color, fontWeight: 700, letterSpacing: 0.3 }}>● {healthTone.label.toUpperCase()}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
+                  <span style={{ fontSize: 42, fontWeight: 700, color: "#fff", letterSpacing: -1.2, lineHeight: 1 }}>{healthScore}</span>
+                  <span style={{ fontSize: 14, color: "rgba(255,255,255,0.55)" }}>/ 100</span>
+                </div>
+                <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 999, overflow: "hidden", marginBottom: 18 }}>
+                  <div style={{ width: healthScore + "%", height: "100%", background: "linear-gradient(90deg, #a78bfa, #10b981)", borderRadius: 999 }} />
+                </div>
+                <Metric label="Critères validés" value={pct} color="#10b981" />
+                <Metric label="Probabilité étape" value={target.proba} color="#a78bfa" />
+                <Metric label="Avancement SPANCO" value={Math.round(((targetIdx + 1) / stages.length) * 100)} color="#0ea5e9" />
+              </div>
 
-          <div style={S.forecastCard}>
-            <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Impact si passage</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 3 }}>Avant</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#475569", textDecoration: "line-through" }}>{aoFmtEUR(ponderedBefore)}</div>
-                <div style={{ fontSize: 10, color: "#94a3b8" }}>{aoFmtEUR(amountNum)} × {current.proba}%</div>
+              <div style={S.forecastCard}>
+                <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Impact si passage</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 3 }}>Avant</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#475569", textDecoration: "line-through" }}>{aoFmtEUR(ponderedBefore)}</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8" }}>{aoFmtEUR(amountNum)} × {current.proba}%</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 3 }}>Après</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: target.color }}>{aoFmtEUR(ponderedAfter)}</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8" }}>{aoFmtEUR(amountNum)} × {target.proba}%</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, padding: "7px 10px", borderRadius: 7, background: gain >= 0 ? "#dcfce7" : "#fee2e2", color: gain >= 0 ? "#065f46" : "#991b1b", fontSize: 12, fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
+                  <span>{gain >= 0 ? "↗ Gain pondéré" : "↘ Perte pondérée"}</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{gain >= 0 ? "+ " : "– "}{aoFmtEUR(Math.abs(gain))}</span>
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 3 }}>Après</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: target.color }}>{aoFmtEUR(ponderedAfter)}</div>
-                <div style={{ fontSize: 10, color: "#94a3b8" }}>{aoFmtEUR(amountNum)} × {target.proba}%</div>
-              </div>
-            </div>
-            <div style={{ marginTop: 10, padding: "7px 10px", borderRadius: 7, background: gain >= 0 ? "#dcfce7" : "#fee2e2", color: gain >= 0 ? "#065f46" : "#991b1b", fontSize: 12, fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
-              <span>{gain >= 0 ? "↗ Gain pondéré" : "↘ Perte pondérée"}</span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{gain >= 0 ? "+ " : "– "}{aoFmtEUR(Math.abs(gain))}</span>
-            </div>
-          </div>
+            </>
+          )}
         </aside>
       </div>
 

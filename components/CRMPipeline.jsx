@@ -159,7 +159,7 @@ const CRMPipeline = () => {
   // Pipeline SPANCO — cohérent avec la page Faire avancer l'opportunité.
   // Mapping interne stage BDD → label SPANCO (pas de migration de données).
   const stageMeta = [
-    { key: "qualif",    label: "Suspect",     color: "#94a3b8" },
+    { key: "qualif",    label: "Prospect",    color: "#94a3b8" },
     { key: "discovery", label: "Approche",    color: "#3b82f6" },
     { key: "propo",     label: "Négociation", color: "#a855f7" },
     { key: "nego",      label: "Conclusion",  color: "#ea580c" },

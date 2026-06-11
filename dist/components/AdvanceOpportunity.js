@@ -3,14 +3,14 @@
 // ════════════════════════════════════════════════════════════════════
 // Refonte épurée alignée sur la charte Hub :
 //  - Header sobre (blanc, comme la fiche client)
-//  - Stepper SPANCO compact (5 étapes : Suspect → Approche → Négociation
+//  - Stepper SPANCO compact (5 étapes : Prospect → Approche → Négociation
 //    → Conclusion → Ordre)
 //  - 3 cards : Infos opp éditables / Critères / Commentaire de passage
 //  - Panneau Santé conservé à droite
 //  - Accent indigo #3730a3 (cohérent avec le reste du Hub)
 //
 // Mapping interne stage BDD → label SPANCO :
-//   qualif      → Suspect     (20%)
+//   qualif      → Prospect    (20%)
 //   discovery   → Approche    (35%)
 //   propo       → Négociation (55%)
 //   nego        → Conclusion  (75%)
@@ -42,8 +42,8 @@ var AdvanceOpportunity = () => {
   // SPANCO : 5 étapes mappées sur les stages BDD historiques
   var stages = [{
     k: "qualif",
-    spanco: "Suspect",
-    letter: "S",
+    spanco: "Prospect",
+    letter: "P",
     proba: 20,
     color: "#94a3b8"
   }, {

@@ -800,7 +800,7 @@ var ClientPage = () => {
   // ── Pipe SPANCO du client (cohérent avec page principale + AdvanceOpportunity)
   var pipeStages = [{
     k: "qualif",
-    label: "Suspect",
+    label: "Prospect",
     color: "#94a3b8"
   }, {
     k: "discovery",
@@ -1533,46 +1533,7 @@ var ClientPage = () => {
       fontWeight: 600
     },
     title: "Extraction du parc informatique du client (CMDB)"
-  }, "\uD83D\uDCBB Parc IT"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var rows = [["Champ", "Valeur"]];
-      rows.push(["Nom", display.name]);
-      rows.push(["Référence", display.id]);
-      rows.push(["Secteur", display.sector]);
-      rows.push(["Effectif", display.size]);
-      rows.push(["Ville", display.city]);
-      rows.push(["Site web", display.web]);
-      rows.push(["Commercial", display.owner]);
-      rows.push(["SIREN", display.siren]);
-      rows.push(["NAF", display.naf]);
-      rows.push(["TVA", display.tva]);
-      rows.push(["Adresse", display.address]);
-      rows.push(["Code postal", display.cp]);
-      rows.push(["Ville", display.addressCity]);
-      rows.push(["Source", display.source]);
-      rows.push(["Concurrent", display.concurrent]);
-      rows.push(["Tier", display.tier]);
-      rows.push([]);
-      rows.push(["Opportunités"]);
-      rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
-      opportunities.forEach(o => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
-      var csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob(["﻿" + csv], {
-        type: "text/csv;charset=utf-8;"
-      }));
-      a.download = `compte-AXA-Wealth-France-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-    },
-    style: {
-      ...cliStyles.ghostBtn,
-      cursor: "pointer"
-    }
-  }, "Exporter compte \u2193"))), /*#__PURE__*/React.createElement("section", {
+  }, "\uD83D\uDCBB Parc IT"))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.blockHead
@@ -1582,32 +1543,7 @@ var ClientPage = () => {
     style: cliStyles.blockCount
   }, opportunities.length)), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
-  }, "Vue d'ensemble des opportunit\xE9s et contrats actifs pour ce client")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPipeView("kanban"),
-    style: {
-      ...cliStyles.filterPill,
-      cursor: "pointer",
-      ...(pipeView === "kanban" ? {
-        background: "#0f172a",
-        color: "#fff"
-      } : {})
-    }
-  }, "Vue Kanban \u25A6"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPipeView("list"),
-    style: {
-      ...cliStyles.filterPill,
-      cursor: "pointer",
-      ...(pipeView === "list" ? {
-        background: "#0f172a",
-        color: "#fff"
-      } : {})
-    }
-  }, "Vue Liste \u2630"))), pipeView === "kanban" && /*#__PURE__*/React.createElement("div", {
+  }, "Vue d'ensemble des opportunit\xE9s et contrats actifs pour ce client"))), pipeView === "kanban" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(5, 1fr)",
@@ -2392,12 +2328,15 @@ var ClientPage = () => {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "1.5fr 1fr",
+      display: "flex",
+      flexDirection: "column",
       gap: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.subBlock
+    style: {
+      ...cliStyles.subBlock,
+      order: 2
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsHead
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
@@ -2645,7 +2584,10 @@ var ClientPage = () => {
       color: "#dc2626"
     }
   }, "\xD7"))))))), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.subBlock
+    style: {
+      ...cliStyles.subBlock,
+      order: 1
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsHead
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
@@ -3821,113 +3763,7 @@ var ClientPage = () => {
   }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
     key: o.name,
     value: o.name
-  }, o.name, " \xB7 ", o.role)))), /*#__PURE__*/React.createElement("div", {
-    style: editSection
-  }, "04 \xB7 Qualification"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Besoin exprim\xE9"), /*#__PURE__*/React.createElement("textarea", {
-    value: editDraft.besoin || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      besoin: e.target.value
-    }),
-    rows: 2,
-    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026",
-    style: {
-      ...editInput,
-      resize: "vertical",
-      fontFamily: "inherit"
-    }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Concurrent actuel"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.concurrent || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      concurrent: e.target.value
-    }),
-    placeholder: "Ex. Salesforce, Pega\u2026",
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Montant concurrent (k\u20AC/an)"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.concurrentAmount || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      concurrentAmount: e.target.value
-    }),
-    placeholder: "0",
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: editDraft.projectDate || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      projectDate: e.target.value
-    }),
-    style: editInput
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: editSection
-  }, "05 \xB7 Origine & prochaines \xE9tapes"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Source du prospect"), /*#__PURE__*/React.createElement("select", {
-    value: editDraft.source || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      source: e.target.value
-    }),
-    style: editInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014 Choisir \u2014"), /*#__PURE__*/React.createElement("option", null, "Radar fin de contrat concurrent"), /*#__PURE__*/React.createElement("option", null, "LinkedIn / Sales Navigator"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Recommandation client"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Demande de devis"), /*#__PURE__*/React.createElement("option", null, "Cold call sortant"), /*#__PURE__*/React.createElement("option", null, "Cold email sortant"), /*#__PURE__*/React.createElement("option", null, "Webinar / \xE9v\xE9nement Astorya"), /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rencement (Google, Bing)"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau partenaires"), /*#__PURE__*/React.createElement("option", null, "Article de presse"), /*#__PURE__*/React.createElement("option", null, "Autre"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Premi\xE8re action"), /*#__PURE__*/React.createElement("select", {
-    value: editDraft.action || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      action: e.target.value
-    }),
-    style: editInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
-    value: "email"
-  }, "\uD83D\uDCE7 Email d'introduction"), /*#__PURE__*/React.createElement("option", {
-    value: "call"
-  }, "\uD83D\uDCDE Cold call"), /*#__PURE__*/React.createElement("option", {
-    value: "in"
-  }, "in LinkedIn"), /*#__PURE__*/React.createElement("option", {
-    value: "wait"
-  }, "\uD83D\uDCC5 Inviter \xE0 un \xE9v\xE9nement")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Notes internes"), /*#__PURE__*/React.createElement("textarea", {
-    value: editDraft.desc || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      desc: e.target.value
-    }),
-    rows: 3,
-    placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026",
-    style: {
-      ...editInput,
-      resize: "vertical",
-      fontFamily: "inherit"
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, o.name, " \xB7 ", o.role))))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "14px 22px",
       borderTop: "1px solid #eef1f5",

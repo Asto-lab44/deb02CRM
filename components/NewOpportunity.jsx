@@ -43,7 +43,6 @@ const NewOpportunity = () => {
   const [oppType, setOppType]     = React.useState("new"); // new | extension | renewal | upsell
   const [oppProduit, setOppProduit] = React.useState("Astorya Suite");
   const [oppModules, setOppModules] = React.useState([]); // ["Cyber", "Hub", ...]
-  const [oppSource, setOppSource] = React.useState("Référence client existant");
   const [oppDuration, setOppDuration] = React.useState("3 ans");
   const [oppStage, setOppStage] = React.useState("qualif");
   // Owner par défaut = nom de l'utilisateur connecté (via HubAccess).
@@ -131,7 +130,6 @@ const NewOpportunity = () => {
       type: oppType,
       produit: oppProduit,
       modules: oppModules,
-      source: oppSource,
       duration: oppDuration,
       stage: oppStage,
       proba,
@@ -436,39 +434,24 @@ const NewOpportunity = () => {
                   </FormRow>
                 </div>
 
-                <div style={noStyles.formGrid2}>
-                  <FormRow label="Type d'opportunité" required>
-                    <div style={noStyles.radioGroup}>
-                      {[
-                        { k: "new",       label: "Nouveau produit" },
-                        { k: "extension", label: "Extension" },
-                        { k: "renewal",   label: "Renouvellement" },
-                        { k: "upsell",    label: "Up-sell" },
-                      ].map((t) => (
-                        <label
-                          key={t.k}
-                          onClick={() => setOppType(t.k)}
-                          style={{ ...noStyles.radio, ...(oppType === t.k ? noStyles.radioOn : {}), cursor: "pointer" }}
-                        >
-                          <input type="radio" name="type" checked={oppType === t.k} onChange={() => setOppType(t.k)} /> <span>{t.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </FormRow>
-
-                  <FormRow label="Source" required>
-                    <select value={oppSource} onChange={(e) => setOppSource(e.target.value)} style={{ ...noStyles.input, padding: "8px 12px" }}>
-                      <option>Référence client existant</option>
-                      <option>Cold outbound</option>
-                      <option>Inbound site web</option>
-                      <option>Salon professionnel</option>
-                      <option>Partenaire revendeur</option>
-                      <option>Renouvellement automatique</option>
-                      <option>Réseau personnel</option>
-                      <option>Autre</option>
-                    </select>
-                  </FormRow>
-                </div>
+                <FormRow label="Type d'opportunité" required>
+                  <div style={noStyles.radioGroup}>
+                    {[
+                      { k: "new",       label: "Nouveau produit" },
+                      { k: "extension", label: "Extension" },
+                      { k: "renewal",   label: "Renouvellement" },
+                      { k: "upsell",    label: "Up-sell" },
+                    ].map((t) => (
+                      <label
+                        key={t.k}
+                        onClick={() => setOppType(t.k)}
+                        style={{ ...noStyles.radio, ...(oppType === t.k ? noStyles.radioOn : {}), cursor: "pointer" }}
+                      >
+                        <input type="radio" name="type" checked={oppType === t.k} onChange={() => setOppType(t.k)} /> <span>{t.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </FormRow>
 
                 <FormRow label="Description & contexte" subtitle="Quel est le besoin ? Quel déclencheur ?">
                   <textarea
@@ -538,7 +521,7 @@ const NewOpportunity = () => {
                 <FormRow label="Étape SPANCO" required>
                   <div style={noStyles.pipelineSelector}>
                     {[
-                      { k: "qualif",    label: "Suspect",     color: "#94a3b8", proba: 20 },
+                      { k: "qualif",    label: "Prospect",    color: "#94a3b8", proba: 20 },
                       { k: "discovery", label: "Approche",    color: "#3b82f6", proba: 35 },
                       { k: "propo",     label: "Négociation", color: "#a855f7", proba: 55 },
                       { k: "nego",      label: "Conclusion",  color: "#ea580c", proba: 75 },
@@ -729,73 +712,100 @@ const NewOpportunity = () => {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>{({ qualif: "Suspect", discovery: "Approche", propo: "Négociation", nego: "Conclusion", won: "Ordre" })[oppStage]}</strong></div>
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>{({ qualif: "Prospect", discovery: "Approche", propo: "Négociation", nego: "Conclusion", won: "Ordre" })[oppStage]}</strong></div>
               </div>
 
-              {/* IA suggestions */}
-              <div style={noStyles.aiPanel}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <span style={{ width: 24, height: 24, borderRadius: 999, background: "#0f172a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>★</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>Suggestions Hub Assistant</span>
-                </div>
+              {/* IA suggestions — dynamiques, basées sur les champs saisis */}
+              {(() => {
+                const amtN = parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) || 0;
+                const yearsN = oppDuration === "1 an" ? 1 : oppDuration === "3 ans" ? 3 : oppDuration === "5 ans" ? 5 : 0;
+                const concurrentAmtN = parseFloat(String(oppConcurrentAmount || "").replace(/[^\d.]/g, "")) || 0;
+                const cycleDays = { qualif: 145, discovery: 110, propo: 75, nego: 35, won: 0 }[oppStage] || 90;
+                const estCloseDate = (() => {
+                  const d = new Date(); d.setDate(d.getDate() + cycleDays);
+                  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+                })();
+                const dateMismatch = oppDate && Math.abs(((new Date(oppDate) - new Date()) / 86400000) - cycleDays) > 30;
+                const items = [];
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>💡</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Montant estimé : 92 k€</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>Basé sur 3 deals similaires (extension Suite · 200-300 sièges) — moyenne 87 k€ et médiane 91 k€.</div>
-                    <button style={noStyles.aiAccept}>Accepter le montant</button>
-                  </div>
-                </div>
+                if (selectedClient) {
+                  items.push({ icon: "🏷️", title: "Compte sélectionné", desc: <>Vous travaillez sur <strong style={{ color: "#0f172a" }}>{selectedClient.name}</strong>{selectedClient.sector ? " (" + selectedClient.sector + ")" : ""}.</> });
+                } else {
+                  items.push({ icon: "💡", title: "Sélectionnez un compte", desc: "Choisissez le compte concerné en haut à gauche pour démarrer." });
+                }
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>📅</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Cycle attendu : 115 jours</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>Date de clôture probable : <strong style={{ color: "#0f172a" }}>18 sept. 2026</strong>. Vous avez saisi le 15.</div>
-                  </div>
-                </div>
+                if (amtN > 0 && yearsN > 0) {
+                  const tcv = (amtN * yearsN).toLocaleString("fr-FR").replace(/,/g, " ");
+                  items.push({ icon: "💰", title: "TCV : " + tcv + " €", desc: <>Sur la base de <strong style={{ color: "#0f172a" }}>{amtN.toLocaleString("fr-FR").replace(/,/g, " ")} €/an</strong> × {oppDuration}.</> });
+                } else if (amtN === 0) {
+                  items.push({ icon: "💡", title: "Renseignez un montant", desc: "Pour calculer le TCV et la pondération du pipeline." });
+                }
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>⚠</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Concurrent Pega détecté</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>3 deals AXA précédents ont mentionné Pega. Le voulez-vous dans la liste ?</div>
-                    <button style={noStyles.aiAccept}>Ajouter Pega</button>
-                  </div>
-                </div>
+                items.push({ icon: "📅", title: "Cycle attendu : " + cycleDays + " jours", desc: <>Date de clôture probable : <strong style={{ color: "#0f172a" }}>{estCloseDate}</strong>.{oppDate ? " Vous avez saisi le " + new Date(oppDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) + "." : ""}{dateMismatch ? <span style={{ color: "#f59e0b", display: "block", marginTop: 3 }}>⚠ Écart important avec la date saisie.</span> : null}</> });
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>👥</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Champion à activer</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>Émilie Roux est marquée Champion sur le compte. Suggérée comme contact principal.</div>
-                    <div style={{ fontSize: 10.5, color: "#10b981", marginTop: 4, fontWeight: 600 }}>✓ Déjà sélectionnée</div>
-                  </div>
-                </div>
-              </div>
+                if (oppConcurrent && oppConcurrent.trim()) {
+                  items.push({ icon: "⚠", title: "Concurrent : " + oppConcurrent, desc: concurrentAmtN > 0 ? <>Budget actuel <strong style={{ color: "#0f172a" }}>{concurrentAmtN.toLocaleString("fr-FR").replace(/,/g, " ")} k€/an</strong>.{amtN > 0 && concurrentAmtN > 0 ? (amtN > concurrentAmtN * 1000 ? " Notre offre est plus chère." : " Notre offre est compétitive.") : ""}</> : "Pensez à documenter le montant actuel pour mieux argumenter." });
+                }
 
-              {/* Checklist */}
-              <div style={noStyles.checklist}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>Complétion du brouillon</div>
-                <ChecklistRow done label="Compte renseigné" />
-                <ChecklistRow done label="Contact principal" />
-                <ChecklistRow done label="Nom & description" />
-                <ChecklistRow done label="Montant & durée" />
-                <ChecklistRow done label="Date de clôture" />
-                <ChecklistRow active label="Commercial & équipe" />
-                <ChecklistRow label="Produits & pricing détaillé" />
-                <ChecklistRow label="Validation finale" />
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #eef1f5" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, color: "#64748b" }}>Complété</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>6 / 8</span>
+                if (clientContacts.length > 1 && selectedCoContactIds.size === 0) {
+                  items.push({ icon: "👥", title: "Co-contacts disponibles", desc: <>{clientContacts.length - 1} contact(s) supplémentaire(s) chez ce client. Pensez à en sélectionner si plusieurs interlocuteurs sont impliqués.</> });
+                }
+
+                if (!oppBesoin || !oppBesoin.trim()) {
+                  items.push({ icon: "📝", title: "Décrivez le besoin", desc: "Le champ « Besoin exprimé » est vide. Un besoin documenté améliore la conversion de 30 %." });
+                }
+
+                return (
+                  <div style={noStyles.aiPanel}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span style={{ width: 24, height: 24, borderRadius: 999, background: "#0f172a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>★</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>Suggestions Hub Assistant</span>
+                    </div>
+                    {items.map((it, i) => (
+                      <div key={i} style={noStyles.aiItem}>
+                        <span style={noStyles.aiItemIcon}>{it.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{it.title}</div>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>{it.desc}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ height: 4, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ width: "75%", height: "100%", background: "#4f46e5", borderRadius: 999 }} />
+                );
+              })()}
+
+              {/* Checklist — dynamique */}
+              {(() => {
+                const checks = [
+                  { label: "Compte renseigné",          done: !!selectedClient },
+                  { label: "Contact principal",         done: !!(fullProspect && fullProspect.contact_principal && (fullProspect.contact_principal.nom || fullProspect.contact_principal.email)) },
+                  { label: "Nom & description",         done: !!(oppName && oppName.trim() && oppNotes && oppNotes.trim()) },
+                  { label: "Montant & durée",           done: !!(parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) > 0 && oppDuration) },
+                  { label: "Date de décision",          done: !!oppDate },
+                  { label: "Commercial & équipe",       done: !!oppOwner },
+                  { label: "Qualification commerciale", done: !!(oppBesoin && oppBesoin.trim()) },
+                  { label: "Étape SPANCO",              done: !!oppStage },
+                ];
+                const doneCount = checks.filter((c) => c.done).length;
+                const pct = Math.round((doneCount / checks.length) * 100);
+                return (
+                  <div style={noStyles.checklist}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>Complétion du brouillon</div>
+                    {checks.map((c, i) => (
+                      <ChecklistRow key={i} done={c.done} label={c.label} />
+                    ))}
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #eef1f5" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Complété</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{doneCount} / {checks.length}</span>
+                      </div>
+                      <div style={{ height: 4, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
+                        <div style={{ width: pct + "%", height: "100%", background: pct >= 75 ? "#10b981" : "#4f46e5", borderRadius: 999 }} />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </aside>
           </div>
         </div>

@@ -40,7 +40,6 @@ var NewOpportunity = () => {
   var [oppType, setOppType] = React.useState("new"); // new | extension | renewal | upsell
   var [oppProduit, setOppProduit] = React.useState("Astorya Suite");
   var [oppModules, setOppModules] = React.useState([]); // ["Cyber", "Hub", ...]
-  var [oppSource, setOppSource] = React.useState("Référence client existant");
   var [oppDuration, setOppDuration] = React.useState("3 ans");
   var [oppStage, setOppStage] = React.useState("qualif");
   // Owner par défaut = nom de l'utilisateur connecté (via HubAccess).
@@ -164,7 +163,6 @@ var NewOpportunity = () => {
       type: oppType,
       produit: oppProduit,
       modules: oppModules,
-      source: oppSource,
       duration: oppDuration,
       stage: oppStage,
       proba,
@@ -709,9 +707,7 @@ var NewOpportunity = () => {
         cursor: "pointer"
       }
     }, on ? "✓ " : "+ ", m);
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.formGrid2
-  }, /*#__PURE__*/React.createElement(FormRow, {
+  })))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Type d'opportunit\xE9",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
@@ -742,16 +738,6 @@ var NewOpportunity = () => {
     checked: oppType === t.k,
     onChange: () => setOppType(t.k)
   }), " ", /*#__PURE__*/React.createElement("span", null, t.label))))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Source",
-    required: true
-  }, /*#__PURE__*/React.createElement("select", {
-    value: oppSource,
-    onChange: e => setOppSource(e.target.value),
-    style: {
-      ...noStyles.input,
-      padding: "8px 12px"
-    }
-  }, /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rence client existant"), /*#__PURE__*/React.createElement("option", null, "Cold outbound"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Partenaire revendeur"), /*#__PURE__*/React.createElement("option", null, "Renouvellement automatique"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau personnel"), /*#__PURE__*/React.createElement("option", null, "Autre")))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Description & contexte",
     subtitle: "Quel est le besoin ? Quel d\xE9clencheur ?"
   }, /*#__PURE__*/React.createElement("textarea", {
@@ -849,7 +835,7 @@ var NewOpportunity = () => {
     style: noStyles.pipelineSelector
   }, [{
     k: "qualif",
-    label: "Suspect",
+    label: "Prospect",
     color: "#94a3b8",
     proba: 20
   }, {
@@ -1283,209 +1269,244 @@ var NewOpportunity = () => {
       textAlign: "center"
     }
   }, "\u2191 Aper\xE7u en colonne ", /*#__PURE__*/React.createElement("strong", null, {
-    qualif: "Suspect",
+    qualif: "Prospect",
     discovery: "Approche",
     propo: "Négociation",
     nego: "Conclusion",
     won: "Ordre"
-  }[oppStage]))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiPanel
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 10
+  }[oppStage]))), (() => {
+    var amtN = parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) || 0;
+    var yearsN = oppDuration === "1 an" ? 1 : oppDuration === "3 ans" ? 3 : oppDuration === "5 ans" ? 5 : 0;
+    var concurrentAmtN = parseFloat(String(oppConcurrentAmount || "").replace(/[^\d.]/g, "")) || 0;
+    var cycleDays = {
+      qualif: 145,
+      discovery: 110,
+      propo: 75,
+      nego: 35,
+      won: 0
+    }[oppStage] || 90;
+    var estCloseDate = (() => {
+      var d = new Date();
+      d.setDate(d.getDate() + cycleDays);
+      return d.toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+    })();
+    var dateMismatch = oppDate && Math.abs((new Date(oppDate) - new Date()) / 86400000 - cycleDays) > 30;
+    var items = [];
+    if (selectedClient) {
+      items.push({
+        icon: "🏷️",
+        title: "Compte sélectionné",
+        desc: /*#__PURE__*/React.createElement(React.Fragment, null, "Vous travaillez sur ", /*#__PURE__*/React.createElement("strong", {
+          style: {
+            color: "#0f172a"
+          }
+        }, selectedClient.name), selectedClient.sector ? " (" + selectedClient.sector + ")" : "", ".")
+      });
+    } else {
+      items.push({
+        icon: "💡",
+        title: "Sélectionnez un compte",
+        desc: "Choisissez le compte concerné en haut à gauche pour démarrer."
+      });
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 24,
-      height: 24,
-      borderRadius: 999,
-      background: "#0f172a",
-      color: "#fff",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 12
+    if (amtN > 0 && yearsN > 0) {
+      var tcv = (amtN * yearsN).toLocaleString("fr-FR").replace(/,/g, " ");
+      items.push({
+        icon: "💰",
+        title: "TCV : " + tcv + " €",
+        desc: /*#__PURE__*/React.createElement(React.Fragment, null, "Sur la base de ", /*#__PURE__*/React.createElement("strong", {
+          style: {
+            color: "#0f172a"
+          }
+        }, amtN.toLocaleString("fr-FR").replace(/,/g, " "), " \u20AC/an"), " \xD7 ", oppDuration, ".")
+      });
+    } else if (amtN === 0) {
+      items.push({
+        icon: "💡",
+        title: "Renseignez un montant",
+        desc: "Pour calculer le TCV et la pondération du pipeline."
+      });
     }
-  }, "\u2605"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "#0f172a"
+    items.push({
+      icon: "📅",
+      title: "Cycle attendu : " + cycleDays + " jours",
+      desc: /*#__PURE__*/React.createElement(React.Fragment, null, "Date de cl\xF4ture probable : ", /*#__PURE__*/React.createElement("strong", {
+        style: {
+          color: "#0f172a"
+        }
+      }, estCloseDate), ".", oppDate ? " Vous avez saisi le " + new Date(oppDate).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short"
+      }) + "." : "", dateMismatch ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#f59e0b",
+          display: "block",
+          marginTop: 3
+        }
+      }, "\u26A0 \xC9cart important avec la date saisie.") : null)
+    });
+    if (oppConcurrent && oppConcurrent.trim()) {
+      items.push({
+        icon: "⚠",
+        title: "Concurrent : " + oppConcurrent,
+        desc: concurrentAmtN > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "Budget actuel ", /*#__PURE__*/React.createElement("strong", {
+          style: {
+            color: "#0f172a"
+          }
+        }, concurrentAmtN.toLocaleString("fr-FR").replace(/,/g, " "), " k\u20AC/an"), ".", amtN > 0 && concurrentAmtN > 0 ? amtN > concurrentAmtN * 1000 ? " Notre offre est plus chère." : " Notre offre est compétitive." : "") : "Pensez à documenter le montant actuel pour mieux argumenter."
+      });
     }
-  }, "Suggestions Hub Assistant")), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\uD83D\uDCA1"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
+    if (clientContacts.length > 1 && selectedCoContactIds.size === 0) {
+      items.push({
+        icon: "👥",
+        title: "Co-contacts disponibles",
+        desc: /*#__PURE__*/React.createElement(React.Fragment, null, clientContacts.length - 1, " contact(s) suppl\xE9mentaire(s) chez ce client. Pensez \xE0 en s\xE9lectionner si plusieurs interlocuteurs sont impliqu\xE9s.")
+      });
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
+    if (!oppBesoin || !oppBesoin.trim()) {
+      items.push({
+        icon: "📝",
+        title: "Décrivez le besoin",
+        desc: "Le champ « Besoin exprimé » est vide. Un besoin documenté améliore la conversion de 30 %."
+      });
     }
-  }, "Montant estim\xE9 : 92 k\u20AC"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "Bas\xE9 sur 3 deals similaires (extension Suite \xB7 200-300 si\xE8ges) \u2014 moyenne 87 k\u20AC et m\xE9diane 91 k\u20AC."), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.aiAccept
-  }, "Accepter le montant"))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Cycle attendu : 115 jours"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "Date de cl\xF4ture probable : ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: "#0f172a"
-    }
-  }, "18 sept. 2026"), ". Vous avez saisi le 15."))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\u26A0"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Concurrent Pega d\xE9tect\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "3 deals AXA pr\xE9c\xE9dents ont mentionn\xE9 Pega. Le voulez-vous dans la liste ?"), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.aiAccept
-  }, "Ajouter Pega"))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\uD83D\uDC65"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Champion \xE0 activer"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "\xC9milie Roux est marqu\xE9e Champion sur le compte. Sugg\xE9r\xE9e comme contact principal."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#10b981",
-      marginTop: 4,
-      fontWeight: 600
-    }
-  }, "\u2713 D\xE9j\xE0 s\xE9lectionn\xE9e")))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.checklist
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "#94a3b8",
-      textTransform: "uppercase",
-      letterSpacing: 0.6,
-      marginBottom: 10
-    }
-  }, "Compl\xE9tion du brouillon"), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Compte renseign\xE9"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Contact principal"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Nom & description"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Montant & dur\xE9e"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Date de cl\xF4ture"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    active: true,
-    label: "Commercial & \xE9quipe"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    label: "Produits & pricing d\xE9taill\xE9"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    label: "Validation finale"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: "1px solid #eef1f5"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 4
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "Compl\xE9t\xE9"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, "6 / 8")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 4,
-      background: "#eef1f5",
-      borderRadius: 999,
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "75%",
-      height: "100%",
-      background: "#4f46e5",
-      borderRadius: 999
-    }
-  })))))))));
+    return /*#__PURE__*/React.createElement("div", {
+      style: noStyles.aiPanel
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 24,
+        height: 24,
+        borderRadius: 999,
+        background: "#0f172a",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12
+      }
+    }, "\u2605"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, "Suggestions Hub Assistant")), items.map((it, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: noStyles.aiItem
+    }, /*#__PURE__*/React.createElement("span", {
+      style: noStyles.aiItemIcon
+    }, it.icon), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, it.title), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 2,
+        lineHeight: 1.45
+      }
+    }, it.desc)))));
+  })(), (() => {
+    var checks = [{
+      label: "Compte renseigné",
+      done: !!selectedClient
+    }, {
+      label: "Contact principal",
+      done: !!(fullProspect && fullProspect.contact_principal && (fullProspect.contact_principal.nom || fullProspect.contact_principal.email))
+    }, {
+      label: "Nom & description",
+      done: !!(oppName && oppName.trim() && oppNotes && oppNotes.trim())
+    }, {
+      label: "Montant & durée",
+      done: !!(parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) > 0 && oppDuration)
+    }, {
+      label: "Date de décision",
+      done: !!oppDate
+    }, {
+      label: "Commercial & équipe",
+      done: !!oppOwner
+    }, {
+      label: "Qualification commerciale",
+      done: !!(oppBesoin && oppBesoin.trim())
+    }, {
+      label: "Étape SPANCO",
+      done: !!oppStage
+    }];
+    var doneCount = checks.filter(c => c.done).length;
+    var pct = Math.round(doneCount / checks.length * 100);
+    return /*#__PURE__*/React.createElement("div", {
+      style: noStyles.checklist
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.6,
+        marginBottom: 10
+      }
+    }, "Compl\xE9tion du brouillon"), checks.map((c, i) => /*#__PURE__*/React.createElement(ChecklistRow, {
+      key: i,
+      done: c.done,
+      label: c.label
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid #eef1f5"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#64748b"
+      }
+    }, "Compl\xE9t\xE9"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: "#0f172a",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, doneCount, " / ", checks.length)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 4,
+        background: "#eef1f5",
+        borderRadius: 999,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: pct + "%",
+        height: "100%",
+        background: pct >= 75 ? "#10b981" : "#4f46e5",
+        borderRadius: 999
+      }
+    }))));
+  })())))));
 };
 
 // ───── helpers

@@ -321,13 +321,38 @@
     async update(id, patch) {
       const s = supa();
       if (s) {
-        const row = { ...patch };
-        if (row.amount && typeof row.amount === "string") {
-          row.amount_eur = parseFloat(row.amount.replace(/[^\d.]/g, "")) || 0;
-          delete row.amount;
+        // Colonnes réelles de la table opportunities
+        const REAL = new Set(["client_id", "name", "amount_eur", "stage", "proba", "close_date", "owner", "produit", "modules", "type", "source", "duration", "notes"]);
+        const row = {};
+        const extraData = {};
+        for (const k of Object.keys(patch || {})) {
+          if (k === "amount" && typeof patch.amount === "string") {
+            row.amount_eur = parseFloat(patch.amount.replace(/[^\d.]/g, "")) || 0;
+          } else if (k === "amount") {
+            row.amount_eur = Number(patch.amount) || 0;
+          } else if (REAL.has(k)) {
+            row[k] = patch[k];
+          } else if (k === "data" && patch.data && typeof patch.data === "object") {
+            Object.assign(extraData, patch.data);
+          } else {
+            extraData[k] = patch[k];
+          }
+        }
+        // Merge extras dans le data jsonb existant (sans écraser)
+        if (Object.keys(extraData).length > 0) {
+          try {
+            const { data: cur } = await s.from("opportunities").select("data").eq("id", id).maybeSingle();
+            const existingData = (cur && cur.data && typeof cur.data === "object") ? cur.data : {};
+            row.data = { ...existingData, ...extraData };
+          } catch (e) {
+            row.data = extraData;
+          }
         }
         const { data, error } = await s.from("opportunities").update(row).eq("id", id).select().maybeSingle();
-        if (error) console.warn("[api.opportunities.update]", error.message);
+        if (error) {
+          console.warn("[api.opportunities.update]", error.message);
+          throw new Error(error.message);
+        }
         if (data) return data;
       }
       const arr = lsGet("opportunities");

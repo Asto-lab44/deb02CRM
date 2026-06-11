@@ -356,6 +356,25 @@ const NewProspect = () => {
     setTimeout(() => { window.location.href = "/fiche-client?id=" + encodeURIComponent(payload.id); }, 900);
   };
 
+  // ───── Calcul réel du pourcentage de complétion de la fiche
+  const completionPct = React.useMemo(() => {
+    const fields = [
+      // Société (10)
+      companyName, companySiren, companyNaf, companyTva,
+      companySector, effectif, tier, companyWeb,
+      companyAddress, companyCP,
+      // Contact principal (6)
+      contactPrenom, contactNom, fonction, contactRole,
+      contactEmail, contactPhone,
+    ];
+    const filled = fields.filter((v) => {
+      if (v == null) return false;
+      if (typeof v === "string") return v.trim().length > 0;
+      return true;
+    }).length;
+    return Math.round((filled / fields.length) * 100);
+  }, [companyName, companySiren, companyNaf, companyTva, companySector, effectif, tier, companyWeb, companyAddress, companyCP, contactPrenom, contactNom, fonction, contactRole, contactEmail, contactPhone]);
+
   const Avatar = ({ name, size = 22, color }) => {
     if (!name) return null;
     const initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
@@ -399,10 +418,10 @@ const NewProspect = () => {
         <div style={npStyles.completion}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>Fiche complétée</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>64 %</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{completionPct} %</span>
           </div>
           <div style={{ width: 180, height: 5, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
-            <div style={{ width: "64%", height: "100%", background: "linear-gradient(90deg, #4f46e5, #a855f7)", borderRadius: 999 }} />
+            <div style={{ width: completionPct + "%", height: "100%", background: "linear-gradient(90deg, #4f46e5, #a855f7)", borderRadius: 999 }} />
           </div>
         </div>
       </div>

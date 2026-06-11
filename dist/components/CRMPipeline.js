@@ -193,7 +193,7 @@ var CRMPipeline = () => {
   // Mapping interne stage BDD → label SPANCO (pas de migration de données).
   var stageMeta = [{
     key: "qualif",
-    label: "Suspect",
+    label: "Prospect",
     color: "#94a3b8"
   }, {
     key: "discovery",

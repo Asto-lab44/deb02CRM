@@ -426,6 +426,21 @@ var NewProspect = () => {
       window.location.href = "/fiche-client?id=" + encodeURIComponent(payload.id);
     }, 900);
   };
+
+  // ───── Calcul réel du pourcentage de complétion de la fiche
+  var completionPct = React.useMemo(() => {
+    var fields = [
+    // Société (10)
+    companyName, companySiren, companyNaf, companyTva, companySector, effectif, tier, companyWeb, companyAddress, companyCP,
+    // Contact principal (6)
+    contactPrenom, contactNom, fonction, contactRole, contactEmail, contactPhone];
+    var filled = fields.filter(v => {
+      if (v == null) return false;
+      if (typeof v === "string") return v.trim().length > 0;
+      return true;
+    }).length;
+    return Math.round(filled / fields.length * 100);
+  }, [companyName, companySiren, companyNaf, companyTva, companySector, effectif, tier, companyWeb, companyAddress, companyCP, contactPrenom, contactNom, fonction, contactRole, contactEmail, contactPhone]);
   var Avatar = ({
     name,
     size = 22,
@@ -571,7 +586,7 @@ var NewProspect = () => {
       color: "#0f172a",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, "64 %")), /*#__PURE__*/React.createElement("div", {
+  }, completionPct, " %")), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 180,
       height: 5,
@@ -581,7 +596,7 @@ var NewProspect = () => {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: "64%",
+      width: completionPct + "%",
       height: "100%",
       background: "linear-gradient(90deg, #4f46e5, #a855f7)",
       borderRadius: 999

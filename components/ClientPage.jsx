@@ -610,7 +610,7 @@ const ClientPage = () => {
 
   // ── Pipe SPANCO du client (cohérent avec page principale + AdvanceOpportunity)
   const pipeStages = [
-    { k: "qualif",    label: "Suspect",     color: "#94a3b8" },
+    { k: "qualif",    label: "Prospect",    color: "#94a3b8" },
     { k: "discovery", label: "Approche",    color: "#3b82f6" },
     { k: "propo",     label: "Négociation", color: "#a855f7" },
     { k: "nego",      label: "Conclusion",  color: "#ea580c" },
@@ -922,35 +922,6 @@ const ClientPage = () => {
               >
                 💻 Parc IT
               </button>
-              <span style={{ flex: 1 }} />
-              <button onClick={() => {
-                const rows = [["Champ", "Valeur"]];
-                rows.push(["Nom", display.name]);
-                rows.push(["Référence", display.id]);
-                rows.push(["Secteur", display.sector]);
-                rows.push(["Effectif", display.size]);
-                rows.push(["Ville", display.city]);
-                rows.push(["Site web", display.web]);
-                rows.push(["Commercial", display.owner]);
-                rows.push(["SIREN", display.siren]);
-                rows.push(["NAF", display.naf]);
-                rows.push(["TVA", display.tva]);
-                rows.push(["Adresse", display.address]);
-                rows.push(["Code postal", display.cp]);
-                rows.push(["Ville", display.addressCity]);
-                rows.push(["Source", display.source]);
-                rows.push(["Concurrent", display.concurrent]);
-                rows.push(["Tier", display.tier]);
-                rows.push([]);
-                rows.push(["Opportunités"]);
-                rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
-                opportunities.forEach((o) => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
-                const csv = rows.map((r) => r.map((c) => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }));
-                a.download = `compte-AXA-Wealth-France-${new Date().toISOString().slice(0,10)}.csv`;
-                a.click();
-              }} style={{ ...cliStyles.ghostBtn, cursor: "pointer" }}>Exporter compte ↓</button>
             </div>
           </section>
 
@@ -960,10 +931,6 @@ const ClientPage = () => {
               <div>
                 <h2 style={cliStyles.h2}>Pipe contrats <span style={cliStyles.blockCount}>{opportunities.length}</span></h2>
                 <p style={cliStyles.h2sub}>Vue d'ensemble des opportunités et contrats actifs pour ce client</p>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setPipeView("kanban")} style={{ ...cliStyles.filterPill, cursor: "pointer", ...(pipeView === "kanban" ? { background: "#0f172a", color: "#fff" } : {}) }}>Vue Kanban ▦</button>
-                <button onClick={() => setPipeView("list")} style={{ ...cliStyles.filterPill, cursor: "pointer", ...(pipeView === "list" ? { background: "#0f172a", color: "#fff" } : {}) }}>Vue Liste ☰</button>
               </div>
             </div>
 
@@ -1415,10 +1382,10 @@ const ClientPage = () => {
 
           {/* CONTACTS + DETAILS row */}
           <section style={cliStyles.block}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* Contacts */}
-              <div style={cliStyles.subBlock}>
+              <div style={{ ...cliStyles.subBlock, order: 2 }}>
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>Contacts clés <span style={cliStyles.blockCount}>{allContacts.length}</span></h2>
@@ -1545,7 +1512,7 @@ const ClientPage = () => {
               </div>
 
               {/* Détails */}
-              <div style={cliStyles.subBlock}>
+              <div style={{ ...cliStyles.subBlock, order: 1 }}>
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>Informations compte</h2>
@@ -1988,65 +1955,6 @@ const ClientPage = () => {
                 </select>
               </div>
 
-              {/* QUALIFICATION */}
-              <div style={editSection}>04 · Qualification</div>
-              <div>
-                <label style={editLabel}>Besoin exprimé</label>
-                <textarea value={editDraft.besoin || ""} onChange={(e) => setEditDraft({ ...editDraft, besoin: e.target.value })} rows={2} placeholder="Modernisation, contraintes, contexte concurrentiel…" style={{ ...editInput, resize: "vertical", fontFamily: "inherit" }} />
-              </div>
-              <div>
-                <label style={editLabel}>Concurrent actuel</label>
-                <input value={editDraft.concurrent || ""} onChange={(e) => setEditDraft({ ...editDraft, concurrent: e.target.value })} placeholder="Ex. Salesforce, Pega…" style={editInput} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Montant concurrent (k€/an)</label>
-                  <input value={editDraft.concurrentAmount || ""} onChange={(e) => setEditDraft({ ...editDraft, concurrentAmount: e.target.value })} placeholder="0" style={editInput} />
-                </div>
-                <div>
-                  <label style={editLabel}>Échéance projet</label>
-                  <input type="date" value={editDraft.projectDate || ""} onChange={(e) => setEditDraft({ ...editDraft, projectDate: e.target.value })} style={editInput} />
-                </div>
-              </div>
-
-              {/* ORIGINE & ACTION */}
-              <div style={editSection}>05 · Origine & prochaines étapes</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={editLabel}>Source du prospect</label>
-                  <select value={editDraft.source || ""} onChange={(e) => setEditDraft({ ...editDraft, source: e.target.value })} style={editInput}>
-                    <option value="">— Choisir —</option>
-                    <option>Radar fin de contrat concurrent</option>
-                    <option>LinkedIn / Sales Navigator</option>
-                    <option>Salon professionnel</option>
-                    <option>Recommandation client</option>
-                    <option>Inbound site web</option>
-                    <option>Demande de devis</option>
-                    <option>Cold call sortant</option>
-                    <option>Cold email sortant</option>
-                    <option>Webinar / événement Astorya</option>
-                    <option>Référencement (Google, Bing)</option>
-                    <option>Réseau partenaires</option>
-                    <option>Article de presse</option>
-                    <option>Autre</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={editLabel}>Première action</label>
-                  <select value={editDraft.action || ""} onChange={(e) => setEditDraft({ ...editDraft, action: e.target.value })} style={editInput}>
-                    <option value="">—</option>
-                    <option value="email">📧 Email d'introduction</option>
-                    <option value="call">📞 Cold call</option>
-                    <option value="in">in LinkedIn</option>
-                    <option value="wait">📅 Inviter à un événement</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label style={editLabel}>Notes internes</label>
-                <textarea value={editDraft.desc || ""} onChange={(e) => setEditDraft({ ...editDraft, desc: e.target.value })} rows={3} placeholder="Contexte additionnel, contacts mutuels, anecdotes…" style={{ ...editInput, resize: "vertical", fontFamily: "inherit" }} />
-              </div>
             </div>
 
             <div style={{ padding: "14px 22px", borderTop: "1px solid #eef1f5", display: "flex", justifyContent: "flex-end", gap: 8 }}>

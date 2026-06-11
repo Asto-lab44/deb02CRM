@@ -182,7 +182,7 @@ var DisplacementDashboard = () => {
     from: "pega",
     value: 168,
     date: "il y a 12 j",
-    owner: "Karim Ben Salah",
+    owner: "Romain Daviaud",
     ownerColor: "#6366f1",
     reason: "Time-to-value 3 mois",
     cycle: 102
@@ -206,7 +206,7 @@ var DisplacementDashboard = () => {
     from: "salesforce",
     value: 88,
     date: "il y a 18 j",
-    owner: "Karim Ben Salah",
+    owner: "Romain Daviaud",
     ownerColor: "#6366f1",
     reason: "Pricing add-ons SF rédhibitoire",
     cycle: 76
@@ -218,7 +218,7 @@ var DisplacementDashboard = () => {
     from: "guidewire",
     value: 92,
     date: "il y a 22 j",
-    owner: "Karim Ben Salah",
+    owner: "Romain Daviaud",
     ownerColor: "#6366f1",
     reason: "Spécialisation métier",
     cycle: 91

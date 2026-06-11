@@ -2,11 +2,24 @@
 // Les groupes et l'identité active sont persistés via window.HubAccess (localStorage).
 
 var UserManagement = () => {
-  // Données partagées avec l'Accueil ERP
-  var subscribeStore = React.useCallback(fn => window.HubAccess.subscribe(fn), []);
-  var persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
-  var activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
-  var currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
+  // Lecture une seule fois au mount + un poll de 200ms pour récupérer la
+  // session Supabase. Pas de subscribe → pas de risque de boucle.
+  var HA = typeof window !== "undefined" && window.HubAccess ? window.HubAccess : null;
+  var [persistedGroups, setPersistedGroups] = React.useState(() => HA && HA.loadGroups && HA.loadGroups() || []);
+  var [activeGroupId, setActiveGroupId] = React.useState(() => HA && HA.getActiveGroupId && HA.getActiveGroupId() || "admin");
+  var [currentUser, setCurrentUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
+  React.useEffect(() => {
+    if (!HA) return;
+    var t = setTimeout(() => {
+      var pg = HA.loadGroups && HA.loadGroups();
+      var ag = HA.getActiveGroupId && HA.getActiveGroupId();
+      var cu = HA.getCurrentUser && HA.getCurrentUser();
+      if (pg) setPersistedGroups(pg);
+      if (ag) setActiveGroupId(ag);
+      if (cu) setCurrentUser(cu);
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
   var [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
   var [activeTab, setActiveTab] = React.useState("groups");
   var [userSearch, setUserSearch] = React.useState("");
@@ -168,8 +181,10 @@ var UserManagement = () => {
   var ALL = modules.map(m => m.key);
   var groups = persistedGroups;
 
-  // ───── utilisateurs réels Astorya
-  var users = [{
+  // ───── Utilisateurs : chargés depuis la table profiles Supabase
+  // Fallback : tableau de 2 admins en dur si Supabase n'est pas configuré
+  // ou si la table profiles est vide (premier RUN).
+  var [users, setUsers] = React.useState([{
     name: "Romain Daviaud",
     email: "achat@astorya.fr",
     role: "Direction",
@@ -183,7 +198,42 @@ var UserManagement = () => {
     groups: ["admin", "direction", "commercial"],
     status: "online",
     last: "à l'instant"
-  }];
+  }]);
+  React.useEffect(() => {
+    if (!window.HubData || !window.HubData.fetchProfiles) return;
+    var reload = async () => {
+      try {
+        var {
+          data
+        } = await window.HubData.fetchProfiles();
+        if (!data || !data.length) return; // garde le fallback hardcodé
+        // Pour chaque profile, on lit ses groupes via profile_groups (jointure côté Supabase)
+        var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+        var pg = [];
+        if (supa) {
+          var {
+            data: pgData
+          } = await supa.from("profile_groups").select("profile_id, group_id");
+          pg = pgData || [];
+        }
+        var next = data.map(p => ({
+          id: p.id,
+          name: p.name || p.email,
+          email: p.email,
+          role: p.role || "—",
+          extension: p.extension_3cx || "",
+          groups: pg.filter(x => x.profile_id === p.id).map(x => x.group_id),
+          status: p.status === "active" ? "online" : p.status === "inactive" ? "offline" : "away",
+          last: "—"
+        }));
+        setUsers(next);
+      } catch (e) {
+        console.warn("[UserManagement] fetchProfiles:", e);
+      }
+    };
+    reload();
+    if (window.HubData.subscribeChanges) return window.HubData.subscribeChanges(reload);
+  }, []);
   var selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
   var activeGroup = groups.find(g => g.id === activeGroupId) || groups[0];
   var statusColor = {
@@ -268,14 +318,44 @@ var UserManagement = () => {
     }
   }, "Administration"))), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
-      var email = prompt("Email du nouvel utilisateur Astorya :");
+      var email = window.HubModal ? await window.HubModal.prompt({
+        title: "Inviter un utilisateur",
+        label: "Email professionnel",
+        placeholder: "prenom.nom@astorya.fr",
+        okLabel: "Envoyer l'invitation"
+      }) : prompt("Email du nouvel utilisateur Astorya :");
       if (!email || !email.trim()) return;
-      if (!window.HubSupabase || !window.HubSupabase.enabled) {
-        alert("Supabase non configuré — invitation impossible. Crée le compte directement dans le dashboard Supabase (Authentication → Users → Add user).");
+      var V = window.HubValidators;
+      var err = V && V.email(email.trim());
+      if (err) {
+        alert("Email invalide : " + err.message);
         return;
       }
-      alert("ℹ Pour des raisons de sécurité, l'invitation se fait depuis le dashboard Supabase :\n\nhttps://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users\n\nClique « Add user » → " + email);
-      window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+      if (!window.HubSupabase || !window.HubSupabase.enabled) {
+        alert("Supabase non configuré — invitation impossible.");
+        return;
+      }
+      // Envoie un magic link Supabase (signInWithOtp) — l'utilisateur
+      // sera créé automatiquement à la première connexion via le
+      // trigger handle_new_user (lui assigne le groupe admin).
+      try {
+        var {
+          error
+        } = await window.HubSupabase.client.auth.signInWithOtp({
+          email: email.trim(),
+          options: {
+            emailRedirectTo: window.location.origin + "/bienvenue"
+          }
+        });
+        if (error) {
+          alert("Erreur d'envoi du lien d'invitation : " + error.message + "\n\nTu peux aussi créer le compte manuellement depuis le dashboard Supabase.");
+          window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+        } else {
+          alert("✓ Lien d'invitation envoyé à " + email.trim() + ".\n\nL'utilisateur recevra un email avec un lien magique pour activer son compte et définir son mot de passe.");
+        }
+      } catch (e) {
+        alert("Erreur réseau : " + (e.message || e));
+      }
     },
     style: {
       ...S.newBtn,
@@ -397,6 +477,32 @@ var UserManagement = () => {
       flex: 1
     }
   }, "Invitations")), /*#__PURE__*/React.createElement("div", {
+    onClick: () => setActiveTab("templates"),
+    style: {
+      ...S.navItem,
+      ...(activeTab === "templates" ? S.navItemActive : {}),
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: S.bullet
+  }, "\uD83D\uDCC4"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Mod\xE8les de contrat")), /*#__PURE__*/React.createElement("div", {
+    onClick: () => setActiveTab("integrations"),
+    style: {
+      ...S.navItem,
+      ...(activeTab === "integrations" ? S.navItemActive : {}),
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: S.bullet
+  }, "\uD83D\uDD0C"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Int\xE9grations API")), /*#__PURE__*/React.createElement("div", {
     onClick: () => setActiveTab("audit"),
     style: {
       ...S.navItem,
@@ -460,7 +566,12 @@ var UserManagement = () => {
       whiteSpace: "nowrap"
     }
   }, currentUser.role)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => window.HubAccess.logout(),
+    onClick: async () => {
+      if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return;
+      if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
+      window.HubAccess.logout();
+      window.location.href = "/login";
+    },
     title: "Se d\xE9connecter",
     style: {
       background: "transparent",
@@ -601,8 +712,14 @@ var UserManagement = () => {
     },
     title: "Supprimer toutes les donn\xE9es m\xE9tier (clients, opps, contacts, actions, contrats)"
   }, "\uD83D\uDDD1 Reset donn\xE9es"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) {
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Réinitialiser les groupes ?",
+        message: "Tous les groupes et leurs accès aux modules ERP reviendront aux valeurs par défaut.",
+        okLabel: "Réinitialiser",
+        okStyle: "danger"
+      }) : confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?");
+      if (ok) {
         window.HubAccess.resetAll();
         flash("Réinitialisé");
       }
@@ -621,8 +738,13 @@ var UserManagement = () => {
     },
     title: "Configurer SAML / OAuth / SSO dans Supabase"
   }, "\uD83D\uDD17 Configurer SSO \u2192"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var label = prompt("Nom du nouveau groupe :");
+    onClick: async () => {
+      var label = window.HubModal ? await window.HubModal.prompt({
+        title: "Créer un groupe d'accès",
+        label: "Nom du groupe",
+        placeholder: "ex: Commercial DACH",
+        okLabel: "Créer"
+      }) : prompt("Nom du nouveau groupe :");
       if (!label || !label.trim()) return;
       var id = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "group-" + Date.now();
       if (persistedGroups.find(g => g.id === id)) {
@@ -843,8 +965,13 @@ var UserManagement = () => {
       color: "#10b981"
     }
   }, "\u2713 ", savedFlash), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var name = prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
+    onClick: async () => {
+      var name = window.HubModal ? await window.HubModal.prompt({
+        title: "Renommer le groupe",
+        label: "Nouveau nom",
+        default: selectedGroup.name || selectedGroup.label,
+        okLabel: "Renommer"
+      }) : prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
       if (!name || !name.trim()) return;
       var next = persistedGroups.map(g => g.id === selectedGroup.id ? {
         ...g,
@@ -852,7 +979,7 @@ var UserManagement = () => {
         name: name.trim()
       } : g);
       window.HubAccess.saveGroups(next);
-      flash("Groupe renommé");
+      if (window.HubToast) window.HubToast.success("✓ Groupe renommé en « " + name.trim() + " »");
     },
     style: {
       ...S.btnGhost,
@@ -1089,7 +1216,7 @@ var UserManagement = () => {
       fontSize: 13,
       fontWeight: 600
     }
-  }, "+ Inviter dans Supabase \u2192"))), activeTab === "audit" && /*#__PURE__*/React.createElement("section", {
+  }, "+ Inviter dans Supabase \u2192"))), activeTab === "templates" && /*#__PURE__*/React.createElement(ContractTemplatesPanel, null), activeTab === "integrations" && /*#__PURE__*/React.createElement(IntegrationsPanel, null), activeTab === "audit" && /*#__PURE__*/React.createElement("section", {
     style: {
       ...S.splitRow,
       gridTemplateColumns: "1fr"
@@ -1173,6 +1300,8 @@ var UserManagement = () => {
     style: S.th
   }, "Groupes"), /*#__PURE__*/React.createElement("th", {
     style: S.th
+  }, "Ext. 3CX"), /*#__PURE__*/React.createElement("th", {
+    style: S.th
   }, "Statut"), /*#__PURE__*/React.createElement("th", {
     style: S.th
   }, "Derni\xE8re connexion"), /*#__PURE__*/React.createElement("th", {
@@ -1192,7 +1321,7 @@ var UserManagement = () => {
     var slice = filtered.slice((pageSafe - 1) * USER_PAGE_SIZE, pageSafe * USER_PAGE_SIZE);
     if (filtered.length === 0) {
       return /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-        colSpan: 5,
+        colSpan: 7,
         style: {
           padding: 24,
           textAlign: "center",
@@ -1260,6 +1389,44 @@ var UserManagement = () => {
       var g = groups.find(x => x.id === gid);
       return g ? groupChip(g) : null;
     }))), /*#__PURE__*/React.createElement("td", {
+      style: S.td
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      defaultValue: u.extension || "",
+      placeholder: "ex : 201",
+      maxLength: 6,
+      onBlur: async e => {
+        var v = e.target.value.trim();
+        if (v === (u.extension || "")) return;
+        if (!u.id) {
+          if (window.HubToast) window.HubToast.warn("Profil non synchronisé Supabase");
+          return;
+        }
+        var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+        if (!supa) return;
+        var {
+          error
+        } = await supa.from("profiles").update({
+          extension_3cx: v || null
+        }).eq("id", u.id);
+        if (error) {
+          if (window.HubToast) window.HubToast.error("Erreur : " + error.message);
+        } else {
+          if (window.HubToast) window.HubToast.success(v ? `Extension ${v} liée à ${u.name}` : "Extension retirée");
+          u.extension = v;
+        }
+      },
+      style: {
+        width: 80,
+        padding: "4px 8px",
+        border: "1px solid #e2e8f0",
+        borderRadius: 6,
+        fontSize: 12,
+        fontFamily: "'JetBrains Mono', monospace",
+        outline: "none",
+        textAlign: "center"
+      }
+    })), /*#__PURE__*/React.createElement("td", {
       style: S.td
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1754,5 +1921,1286 @@ var S = {
     color: "#fff",
     fontWeight: 700
   }
+};
+
+// ════════════════════════════════════════════════════════════════════
+// IntegrationsPanel — sous-composant tab "Intégrations API"
+// ════════════════════════════════════════════════════════════════════
+var IntegrationsPanel = () => {
+  var TOKEN_KEY = "hubAstorya.pappers.token";
+  var TEAMS_KEY = "hubAstorya.teams.webhookUrl";
+  var [pappersToken, setPappersToken] = React.useState("");
+  var [savedToken, setSavedToken] = React.useState("");
+  var [testing, setTesting] = React.useState(false);
+  var [testResult, setTestResult] = React.useState(null);
+  var [teamsUrl, setTeamsUrl] = React.useState("");
+  var [savedTeamsUrl, setSavedTeamsUrl] = React.useState("");
+  var [teamsTesting, setTeamsTesting] = React.useState(false);
+  var [tcxSecret, setTcxSecret] = React.useState("");
+  var [tcxSimPhone, setTcxSimPhone] = React.useState("");
+  var WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-webhook";
+  React.useEffect(() => {
+    var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    supa.from("app_settings").select("value").eq("key", "3cx_webhook_secret").maybeSingle().then(({
+      data
+    }) => {
+      if (data && data.value) setTcxSecret(data.value);
+    }).catch(() => {});
+  }, []);
+  var regenTcxSecret = async () => {
+    var supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    var ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Régénérer le secret 3CX ?",
+      message: "L'ancien secret sera invalidé immédiatement. Tu devras le remettre à jour côté console 3CX.",
+      okLabel: "Régénérer",
+      okStyle: "danger"
+    }) : confirm("Régénérer le secret 3CX ? L'ancien sera invalidé.");
+    if (!ok) return;
+    var newSecret = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, "0")).join("");
+    var {
+      error
+    } = await supa.from("app_settings").upsert({
+      key: "3cx_webhook_secret",
+      value: newSecret
+    });
+    if (error) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + error.message);
+      return;
+    }
+    setTcxSecret(newSecret);
+    if (window.HubToast) window.HubToast.success("✓ Nouveau secret généré — mets-le à jour côté 3CX");
+  };
+  var copyToClip = (txt, label) => {
+    navigator.clipboard.writeText(txt).then(() => {
+      if (window.HubToast) window.HubToast.success("✓ " + (label || "Copié"));
+    });
+  };
+  var simulateCall = () => {
+    if (!window.HubHotline || !window.HubHotline.simulate) {
+      if (window.HubToast) window.HubToast.error("Module hotline non chargé");
+      return;
+    }
+    window.HubHotline.simulate(tcxSimPhone.trim() || "+33 6 12 34 56 78", "Appel test (local)");
+  };
+  React.useEffect(() => {
+    try {
+      var t = localStorage.getItem(TOKEN_KEY) || "";
+      setPappersToken(t);
+      setSavedToken(t);
+      var w = localStorage.getItem(TEAMS_KEY) || "";
+      setTeamsUrl(w);
+      setSavedTeamsUrl(w);
+    } catch (e) {}
+  }, []);
+  var saveTeams = () => {
+    try {
+      var cleaned = teamsUrl.trim();
+      if (cleaned && !/^https?:\/\//i.test(cleaned)) {
+        if (window.HubToast) window.HubToast.error("URL invalide — doit commencer par https://");
+        return;
+      }
+      if (cleaned) localStorage.setItem(TEAMS_KEY, cleaned);else localStorage.removeItem(TEAMS_KEY);
+      setSavedTeamsUrl(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Webhook Teams enregistré" : "✓ Webhook Teams retiré");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + e.message);
+    }
+  };
+  var testTeams = async () => {
+    if (!teamsUrl.trim()) {
+      if (window.HubToast) window.HubToast.warn("Colle d'abord une URL de webhook");
+      return;
+    }
+    saveTeams();
+    setTeamsTesting(true);
+    try {
+      if (!window.HubTeams) throw new Error("Module Teams non chargé");
+      await window.HubTeams.test();
+      if (window.HubToast) window.HubToast.success("✓ Message de test envoyé — vérifie ton canal Teams");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + e.message);
+    } finally {
+      setTeamsTesting(false);
+    }
+  };
+  var removeTeams = () => {
+    setTeamsUrl("");
+    try {
+      localStorage.removeItem(TEAMS_KEY);
+    } catch (e) {}
+    setSavedTeamsUrl("");
+    if (window.HubToast) window.HubToast.info("Webhook Teams retiré — plus de notifications canal");
+  };
+  var save = () => {
+    try {
+      var cleaned = pappersToken.trim();
+      if (cleaned) localStorage.setItem(TOKEN_KEY, cleaned);else localStorage.removeItem(TOKEN_KEY);
+      setSavedToken(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Token Pappers enregistré" : "✓ Token Pappers retiré");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + e.message);
+    }
+  };
+  var test = async () => {
+    if (!pappersToken.trim()) {
+      if (window.HubToast) window.HubToast.warn("Colle d'abord un token avant de tester");
+      return;
+    }
+    // Sauvegarde + teste sur un SIREN connu (Astorya / un test)
+    save();
+    setTesting(true);
+    setTestResult(null);
+    try {
+      // SIREN INPI (test public) : 13002526500013 (3 plus 9 = juste 9 pour SIREN)
+      // On utilise un SIREN simple connu : 552120222 (L'OREAL) — toujours actif
+      var r = await window.HubPappers.checkSiren("552120222");
+      setTestResult(r);
+      if (r.status === "error") {
+        if (window.HubToast) window.HubToast.error("Échec test : " + (r.error || "erreur"));
+      } else if (r.source === "pappers" && r.company && r.company.denomination) {
+        if (window.HubToast) window.HubToast.success("✓ Pappers OK — " + r.company.denomination + " trouvé");
+      } else if (r.source === "bodacc") {
+        if (window.HubToast) window.HubToast.warn("Token invalide — fallback BODACC actif");
+      }
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur réseau : " + e.message);
+    } finally {
+      setTesting(false);
+    }
+  };
+  var remove = () => {
+    setPappersToken("");
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch (e) {}
+    setSavedToken("");
+    if (window.HubToast) window.HubToast.info("Token Pappers retiré — l'app retombe sur BODACC (gratuit, sans clé)");
+  };
+  return /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    style: {
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "\uD83D\uDD0C Int\xE9grations API tierces"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Configure les sources de donn\xE9es externes utilis\xE9es par Hub Astorya pour enrichir les fiches client.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "linear-gradient(135deg, #4f46e5, #a855f7)",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "P"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "Pappers"), savedToken ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ACTIF") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#fef3c7",
+      color: "#92400e",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CB INACTIF (fallback BODACC)")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Base entreprises FR : proc\xE9dures collectives, \xE9tat administratif, capital, effectif, dirigeants, NAF, si\xE8ge."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCCB \xC9tapes pour obtenir un token"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      margin: 0,
+      paddingLeft: 18,
+      fontSize: 12.5,
+      color: "#475569",
+      lineHeight: 1.7
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Ouvre ", /*#__PURE__*/React.createElement("a", {
+    href: "https://www.pappers.fr/api",
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "pappers.fr/api \u2197"), " et inscris-toi (gratuit)"), /*#__PURE__*/React.createElement("li", null, "Connecte-toi, va dans ton tableau de bord \u2192 onglet ", /*#__PURE__*/React.createElement("strong", null, "Mon API")), /*#__PURE__*/React.createElement("li", null, "Copie ton ", /*#__PURE__*/React.createElement("strong", null, "API Token"), " (au format UUID, ex : ", /*#__PURE__*/React.createElement("code", {
+    style: {
+      background: "#f1f5f9",
+      padding: "1px 4px",
+      borderRadius: 3
+    }
+  }, "1a2b3c4d-5e6f-7890-abcd-..."), ")"), /*#__PURE__*/React.createElement("li", null, "Colle-le dans le champ ci-dessous + clique \xAB Enregistrer \xBB"))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "Token API Pappers"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: pappersToken,
+    onChange: e => setPappersToken(e.target.value),
+    placeholder: "Colle ton token ici (ex : 1a2b3c4d-5e6f-7890-abcd-ef1234567890)",
+    spellCheck: false,
+    autoComplete: "off",
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 13,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      outline: "none",
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 12,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: save,
+    disabled: pappersToken === savedToken,
+    style: {
+      padding: "8px 16px",
+      background: pappersToken === savedToken ? "#cbd5e1" : "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: pappersToken === savedToken ? "default" : "pointer"
+    }
+  }, "\uD83D\uDCBE Enregistrer"), /*#__PURE__*/React.createElement("button", {
+    onClick: test,
+    disabled: testing || !pappersToken.trim(),
+    style: {
+      padding: "8px 16px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: testing || !pappersToken.trim() ? "wait" : "pointer"
+    }
+  }, testing ? "⏳ Test en cours…" : "🧪 Tester le token"), savedToken && /*#__PURE__*/React.createElement("button", {
+    onClick: remove,
+    style: {
+      padding: "8px 16px",
+      background: "transparent",
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      marginLeft: "auto"
+    }
+  }, "\uD83D\uDDD1 Retirer le token")), testResult && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      padding: 12,
+      background: testResult.status === "error" ? "#fef2f2" : "#ecfdf5",
+      border: "1px solid " + (testResult.status === "error" ? "#fca5a5" : "#86efac"),
+      borderRadius: 8,
+      fontSize: 12.5
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      color: testResult.status === "error" ? "#9b1c1c" : "#065f46",
+      marginBottom: 4
+    }
+  }, testResult.status === "error" ? "❌ Échec" : "✅ Test réussi", " \xB7 source : ", testResult.source), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b"
+    }
+  }, testResult.company && testResult.company.denomination ? "Entreprise testée : " + testResult.company.denomination : testResult.error || "")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDCA1 Plan gratuit : 1000 requ\xEAtes/mois \u2014 largement suffisant avec le cache 7 jours int\xE9gr\xE9.", /*#__PURE__*/React.createElement("br", null), "\u26A0 Le token est stock\xE9 en localStorage et envoy\xE9 depuis le navigateur. Pour un cloisonnement renforc\xE9, voir doc de migration vers une fonction Edge Supabase.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "linear-gradient(135deg, #4f46e5, #6264a7)",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "T"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "Microsoft Teams"), savedTeamsUrl ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ACTIF") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#f1f5f9",
+      color: "#64748b",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CB INACTIF")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Re\xE7ois en temps r\xE9el dans un canal Teams les notifications du Hub (avancement projet, livrables, etc.)."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCCB Comment cr\xE9er le webhook"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      margin: 0,
+      paddingLeft: 18,
+      fontSize: 12.5,
+      color: "#475569",
+      lineHeight: 1.7
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Dans Teams, va dans le canal cible \u2192 ", /*#__PURE__*/React.createElement("strong", null, "\u2026 (Plus)"), " \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Connecteurs")), /*#__PURE__*/React.createElement("li", null, "Cherche ", /*#__PURE__*/React.createElement("strong", null, "\xAB Incoming Webhook \xBB"), " \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Configurer")), /*#__PURE__*/React.createElement("li", null, "Donne un nom (ex : ", /*#__PURE__*/React.createElement("em", null, "Hub Astorya"), ") + une ic\xF4ne, puis ", /*#__PURE__*/React.createElement("strong", null, "Cr\xE9er")), /*#__PURE__*/React.createElement("li", null, "Copie l'URL g\xE9n\xE9r\xE9e (format : ", /*#__PURE__*/React.createElement("code", {
+    style: {
+      background: "#f1f5f9",
+      padding: "1px 4px",
+      borderRadius: 3,
+      fontSize: 10
+    }
+  }, "https://outlook.office.com/webhook/\u2026"), ")"), /*#__PURE__*/React.createElement("li", null, "Colle-la ci-dessous + clique \xAB Enregistrer \xBB"))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "URL du webhook entrant"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: teamsUrl,
+    onChange: e => setTeamsUrl(e.target.value),
+    placeholder: "https://outlook.office.com/webhook/...",
+    spellCheck: false,
+    autoComplete: "off",
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 12,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      outline: "none",
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 12,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: saveTeams,
+    disabled: teamsUrl === savedTeamsUrl,
+    style: {
+      padding: "8px 16px",
+      background: teamsUrl === savedTeamsUrl ? "#cbd5e1" : "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: teamsUrl === savedTeamsUrl ? "default" : "pointer"
+    }
+  }, "\uD83D\uDCBE Enregistrer"), /*#__PURE__*/React.createElement("button", {
+    onClick: testTeams,
+    disabled: teamsTesting || !teamsUrl.trim(),
+    style: {
+      padding: "8px 16px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: teamsTesting || !teamsUrl.trim() ? "wait" : "pointer"
+    }
+  }, teamsTesting ? "⏳ Envoi…" : "🧪 Envoyer un message test"), savedTeamsUrl && /*#__PURE__*/React.createElement("button", {
+    onClick: removeTeams,
+    style: {
+      padding: "8px 16px",
+      background: "transparent",
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      marginLeft: "auto"
+    }
+  }, "\uD83D\uDDD1 Retirer le webhook")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDCA1 Format MessageCard standard Teams (themeColor, title, sections, action OpenUri).", /*#__PURE__*/React.createElement("br", null), "\u26A0 L'URL est stock\xE9e en localStorage du navigateur. Chaque utilisateur configure son propre canal de r\xE9ception.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "linear-gradient(135deg, #10b981, #047857)",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "\u260E"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "T\xE9l\xE9phonie 3CX"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ENTERPRISE")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Popup CTI temps r\xE9el sur appel entrant. Webhook 3CX \u2192 Supabase \u2192 notification au bon agent (extension match\xE9e), filtr\xE9 d\xE9partement ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), "."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCCB Config c\xF4t\xE9 3CX (Console admin)"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      margin: 0,
+      paddingLeft: 18,
+      fontSize: 12.5,
+      color: "#475569",
+      lineHeight: 1.7
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Ouvre ", /*#__PURE__*/React.createElement("a", {
+    href: "https://telcomastorya.my3cx.fr:5001/#/app/integrations/crm",
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "telcomastorya.my3cx.fr:5001 \u2192 Integrations \u2192 CRM \u2197")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("strong", null, "+ Add"), " \u2192 ", /*#__PURE__*/React.createElement("em", null, "Server side CRM integration"), " \u2192 ", /*#__PURE__*/React.createElement("em", null, "Generic Web Server")), /*#__PURE__*/React.createElement("li", null, "Colle l'URL du webhook et le secret ci-dessous (header ", /*#__PURE__*/React.createElement("code", null, "X-3CX-Secret"), ")"), /*#__PURE__*/React.createElement("li", null, "Method ", /*#__PURE__*/React.createElement("strong", null, "POST"), ", Content-type ", /*#__PURE__*/React.createElement("strong", null, "application/json")), /*#__PURE__*/React.createElement("li", null, "Department ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), " uniquement (autres d\xE9partements ignor\xE9s c\xF4t\xE9 Edge)"), /*#__PURE__*/React.createElement("li", null, "Renseigne l'extension 3CX de chaque utilisateur dans l'onglet ", /*#__PURE__*/React.createElement("em", null, "Utilisateurs"), " du Hub"))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "URL du webhook (\xE0 coller dans 3CX)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    readOnly: true,
+    value: WEBHOOK_URL,
+    style: {
+      flex: 1,
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 11.5,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      background: "#fafbfc",
+      outline: "none"
+    },
+    onFocus: e => e.target.select()
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => copyToClip(WEBHOOK_URL, "URL copiée"),
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDCCB Copier")), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 6
+    }
+  }, "Secret partag\xE9 (header X-3CX-Secret)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    readOnly: true,
+    value: tcxSecret || "— Non configuré (lance d'abord supabase/3cx-integration.sql) —",
+    style: {
+      flex: 1,
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 11.5,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: tcxSecret ? "#0f172a" : "#94a3b8",
+      background: "#fafbfc",
+      outline: "none"
+    },
+    onFocus: e => e.target.select()
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => copyToClip(tcxSecret, "Secret copié"),
+    disabled: !tcxSecret,
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: tcxSecret ? "pointer" : "not-allowed",
+      opacity: tcxSecret ? 1 : 0.5,
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDCCB Copier"), /*#__PURE__*/React.createElement("button", {
+    onClick: regenTcxSecret,
+    style: {
+      padding: "8px 14px",
+      background: "#fff",
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "\u21BB R\xE9g\xE9n\xE9rer")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      padding: 12,
+      background: "#eff6ff",
+      border: "1px solid #bfdbfe",
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#1e40af",
+      marginBottom: 6
+    }
+  }, "\uD83E\uDDEA Tester en local (sans 3CX)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: tcxSimPhone,
+    onChange: e => setTcxSimPhone(e.target.value),
+    placeholder: "Num\xE9ro \xE0 simuler (ex : +33 6 12 34 56 78)",
+    style: {
+      flex: 1,
+      padding: "8px 12px",
+      border: "1px solid #bfdbfe",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a",
+      background: "#fff",
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: simulateCall,
+    style: {
+      padding: "8px 14px",
+      background: "#1d4ed8",
+      color: "#fff",
+      border: 0,
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDCDE Simuler appel"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11,
+      color: "#94a3b8"
+    }
+  }, "\u26A0 Seul le d\xE9partement ", /*#__PURE__*/React.createElement("strong", null, "ASTO"), " est rout\xE9 vers le Hub. Les autres d\xE9partements 3CX re\xE7oivent un 200 + ignored.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e2e8f0",
+      borderRadius: 12,
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      background: "#0f172a",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      fontWeight: 800
+    }
+  }, "B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "BODACC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      background: "#dcfce7",
+      color: "#065f46",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u25CF ALWAYS ON")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Source officielle FR (Bulletin Officiel des Annonces). Pas de cl\xE9 requise. Utilis\xE9e en fallback si Pappers indisponible.")))));
+};
+
+// ════════════════════════════════════════════════════════════════════
+// ContractTemplatesPanel — sous-composant tab "Modèles de contrat"
+// ════════════════════════════════════════════════════════════════════
+var ContractTemplatesPanel = () => {
+  var [templates, setTemplates] = React.useState([]);
+  var [uploading, setUploading] = React.useState(false);
+  var [progress, setProgress] = React.useState("");
+  var fileRef = React.useRef(null);
+  var reload = async () => {
+    if (!window.api || !window.api.contractTemplates) return;
+    try {
+      var list = await window.api.contractTemplates.list();
+      setTemplates(list || []);
+    } catch (e) {
+      console.warn("[Templates] list:", e);
+    }
+  };
+  React.useEffect(() => {
+    reload();
+  }, []);
+
+  // Extraction du texte d'un PDF avec PDF.js (loaded via CDN dans la HTML)
+  var extractPdfText = async file => {
+    if (!window.pdfjsLib) {
+      console.warn("PDF.js not loaded — text extraction skipped");
+      return null;
+    }
+    var arrayBuffer = await file.arrayBuffer();
+    var pdf = await window.pdfjsLib.getDocument({
+      data: arrayBuffer
+    }).promise;
+    var text = "";
+    for (var i = 1; i <= pdf.numPages; i++) {
+      var page = await pdf.getPage(i);
+      var content = await page.getTextContent();
+      var pageText = content.items.map(it => it.str).join(" ");
+      text += pageText + "\n\n";
+    }
+    return text.trim();
+  };
+  var handleUpload = async file => {
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      if (window.HubToast) window.HubToast.error("Seuls les fichiers PDF sont acceptés.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      if (window.HubToast) window.HubToast.error("Le PDF ne doit pas dépasser 10 Mo (le tien fait " + Math.round(file.size / 1024 / 1024 * 10) / 10 + " Mo).");
+      return;
+    }
+    setUploading(true);
+    try {
+      setProgress("1/3 Extraction du texte du PDF…");
+      var cgvText = await extractPdfText(file);
+      setProgress("2/3 Demande du nom du modèle…");
+      var name = window.HubModal ? await window.HubModal.prompt({
+        title: "Nom du modèle",
+        label: "Comment vais-je l'identifier dans NewContract ?",
+        default: file.name.replace(/\.pdf$/i, ""),
+        okLabel: "Continuer"
+      }) : prompt("Nom du modèle :", file.name.replace(/\.pdf$/i, ""));
+      if (!name) {
+        setUploading(false);
+        setProgress("");
+        return;
+      }
+      var version = window.HubModal ? await window.HubModal.prompt({
+        title: "Version",
+        label: "Numéro de version (ex : v4.2)",
+        default: "v1.0",
+        okLabel: "Continuer"
+      }) : "v1.0";
+      setProgress("3/3 Upload sur Supabase Storage + sauvegarde BDD…");
+      var saved = await window.api.contractTemplates.upload({
+        name,
+        version: version || "v1.0",
+        file,
+        cgvText
+      });
+      if (window.HubToast) window.HubToast.success("✓ Modèle « " + saved.name + " » uploadé (" + (saved.pdf_size_kb || "?") + " Ko)");
+      await reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur upload : " + (e.message || e));
+    } finally {
+      setUploading(false);
+      setProgress("");
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+  var handleDelete = async t => {
+    var ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Supprimer ce modèle ?",
+      message: "Le PDF sera retiré du stockage. Soft-delete : la ligne reste en BDD pour audit.",
+      okLabel: "Supprimer",
+      okStyle: "danger"
+    }) : confirm("Supprimer ce modèle ?");
+    if (!ok) return;
+    try {
+      await window.api.contractTemplates.remove(t.id);
+      if (window.HubToast) window.HubToast.success("✓ Modèle supprimé");
+      await reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var handleSetDefault = async t => {
+    try {
+      await window.api.contractTemplates.setDefault(t.id);
+      if (window.HubToast) window.HubToast.success("✓ « " + t.name + " » est maintenant le modèle par défaut");
+      await reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  return /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    style: {
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "\uD83D\uDCC4 Mod\xE8les de contrat (CGV)"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Upload des PDF de CGV. Le texte est extrait automatiquement pour s'afficher dans la preview du contrat envoy\xE9 pour signature.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "2px dashed " + (uploading ? "#4f46e5" : "#cbd5e1"),
+      borderRadius: 12,
+      padding: 28,
+      textAlign: "center",
+      background: uploading ? "#eef2ff" : "#fafbfc",
+      transition: "all .15s",
+      marginBottom: 24
+    },
+    onDragOver: e => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    onDrop: e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (uploading) return;
+      var f = e.dataTransfer.files[0];
+      if (f) handleUpload(f);
+    }
+  }, uploading ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40,
+      marginBottom: 10
+    }
+  }, "\u23F3"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "#3730a3"
+    }
+  }, progress || "Upload en cours…")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40,
+      marginBottom: 10
+    }
+  }, "\uD83D\uDCE4"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "#0f172a",
+      marginBottom: 6
+    }
+  }, "Glisser-d\xE9poser un PDF ici"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginBottom: 14
+    }
+  }, "ou cliquer pour parcourir \xB7 max 10 Mo"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => fileRef.current && fileRef.current.click(),
+    style: {
+      padding: "10px 20px",
+      background: "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "S\xE9lectionner un PDF"), /*#__PURE__*/React.createElement("input", {
+    ref: fileRef,
+    type: "file",
+    accept: "application/pdf",
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      var f = e.target.files[0];
+      if (f) handleUpload(f);
+    }
+  }))), templates.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "24px 14px",
+      textAlign: "center",
+      fontSize: 13,
+      color: "#94a3b8",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 10,
+      background: "#fafbfc"
+    }
+  }, "Aucun mod\xE8le upload\xE9 pour l'instant. Upload ton premier PDF de CGV ci-dessus.") : /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#fafbfc",
+      borderBottom: "1px solid #eef1f5"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "left",
+      fontWeight: 600,
+      color: "#64748b",
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Mod\xE8le"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "left",
+      fontWeight: 600,
+      color: "#64748b",
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Version"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "right",
+      fontWeight: 600,
+      color: "#64748b",
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Taille"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "left",
+      fontWeight: 600,
+      color: "#64748b",
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Upload\xE9"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "right",
+      fontWeight: 600,
+      color: "#64748b",
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Actions"))), /*#__PURE__*/React.createElement("tbody", null, templates.map(t => /*#__PURE__*/React.createElement("tr", {
+    key: t.id,
+    style: {
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 20
+    }
+  }, "\uD83D\uDCC4"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, t.name, t.is_default && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 8,
+      fontSize: 10,
+      background: "#dcfce7",
+      color: "#065f46",
+      padding: "2px 7px",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, "\u2605 D\xC9FAUT")), t.description && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, t.description), t.cgv_text && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      marginTop: 2
+    }
+  }, Math.round(t.cgv_text.length / 100) / 10, "k caract\xE8res extraits")))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px",
+      fontSize: 12,
+      color: "#475569",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, t.version), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px",
+      textAlign: "right",
+      fontSize: 12,
+      color: "#475569",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, t.pdf_size_kb ? t.pdf_size_kb + " Ko" : "—"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px",
+      fontSize: 12,
+      color: "#64748b"
+    }
+  }, t.created_at ? new Date(t.created_at).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }) : "—"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px",
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      gap: 6
+    }
+  }, t.pdf_url && /*#__PURE__*/React.createElement("a", {
+    href: t.pdf_url,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      padding: "5px 10px",
+      fontSize: 11.5,
+      color: "#3730a3",
+      border: "1px solid #e2e8f0",
+      borderRadius: 6,
+      textDecoration: "none",
+      background: "#fff"
+    }
+  }, "\uD83D\uDC41 Voir"), !t.is_default && /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleSetDefault(t),
+    style: {
+      padding: "5px 10px",
+      fontSize: 11.5,
+      color: "#0f172a",
+      border: "1px solid #e2e8f0",
+      borderRadius: 6,
+      background: "#fff",
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "\u2605 D\xE9finir par d\xE9faut"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleDelete(t),
+    style: {
+      padding: "5px 10px",
+      fontSize: 11.5,
+      color: "#dc2626",
+      border: "1px solid #fecaca",
+      borderRadius: 6,
+      background: "#fff",
+      cursor: "pointer"
+    }
+  }, "\uD83D\uDDD1"))))))));
 };
 window.UserManagement = UserManagement;

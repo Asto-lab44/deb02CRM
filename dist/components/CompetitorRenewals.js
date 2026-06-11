@@ -152,7 +152,7 @@ var CompetitorRenewals = () => {
       type: "neutral",
       label: "Budget IT 2026 voté en hausse de 22 %"
     }],
-    owner: "Karim Ben Salah",
+    owner: "Romain Daviaud",
     ownerColor: "#6366f1",
     contacts: 2,
     lastTouch: "il y a 5 j",
@@ -518,9 +518,9 @@ var CompetitorRenewals = () => {
   }), /*#__PURE__*/React.createElement("div", {
     style: crStyles.userRow
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Claire Renaud",
+    name: "Augustin Morin",
     size: 26,
-    color: "#dc2626"
+    color: "#0e7a55"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -531,12 +531,12 @@ var CompetitorRenewals = () => {
       fontSize: 12.5,
       fontWeight: 600
     }
-  }, "Claire Renaud"), /*#__PURE__*/React.createElement("div", {
+  }, "Augustin Morin"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "VP Sales \xB7 EMEA")))), /*#__PURE__*/React.createElement("main", {
+  }, "Astorya \xB7 Nantes")))), /*#__PURE__*/React.createElement("main", {
     style: crStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: crStyles.topbar
@@ -1219,9 +1219,50 @@ var CompetitorRenewals = () => {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    style: crStyles.ghostBtn
-  }, "Exporter Excel"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Alertes : tu recevras un email quand un contrat concurrent approche de sa date de fin.\n\n(Notification activée pour ton compte.)"),
+    onClick: () => {
+      // Export CSV des comptes surveillés actuellement affichés
+      var rows = [["Compte", "Concurrent", "Fin contrat estimée", "ARR €", "Score", "Tier"]];
+      try {
+        var cards = document.querySelectorAll("[data-renewal-row]");
+        if (!cards.length) {
+          alert("Aucune ligne à exporter (rechargez la page).");
+          return;
+        }
+        cards.forEach(c => {
+          rows.push([c.dataset.name || "", c.dataset.competitor || "", c.dataset.endDate || "", c.dataset.arr || "", c.dataset.score || "", c.dataset.tier || ""]);
+        });
+      } catch (e) {}
+      if (rows.length === 1) {
+        // Fallback : message instructif
+        alert("⚠ Export CSV vide. Cette page de démo n'expose pas encore les données via data-attributes — la version BDD permettra l'export automatique.");
+        return;
+      }
+      var csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      var blob = new Blob(["﻿" + csv], {
+        type: "text/csv;charset=utf-8;"
+      });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "concurrents-renouvellements-" + new Date().toISOString().slice(0, 10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+    style: {
+      ...crStyles.ghostBtn,
+      cursor: "pointer"
+    }
+  }, "Exporter CSV"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      try {
+        localStorage.setItem("hubAstorya.competitorAlerts.enabled", "1");
+        alert("✓ Alertes activées. Tu recevras un email quand un contrat concurrent approche de sa date de fin (à brancher avec SendGrid/Mailgun côté backend).");
+      } catch (e) {
+        alert("Erreur : " + e.message);
+      }
+    },
     style: {
       ...crStyles.ghostBtn,
       cursor: "pointer"

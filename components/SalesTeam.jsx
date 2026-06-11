@@ -111,10 +111,10 @@ const SalesTeam = () => {
         <div style={{ flex: 1 }} />
 
         <div style={teamStyles.userRow}>
-          <Avatar name="Claire Renaud" size={26} color="#dc2626" />
+          <Avatar name="Augustin Morin" size={26} color="#0e7a55" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Claire Renaud</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>VP Sales · EMEA</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>Augustin Morin</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Astorya · Nantes</div>
           </div>
         </div>
       </aside>

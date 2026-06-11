@@ -130,9 +130,16 @@ var TicketList = () => {
 
   // ───── Menu utilisateur (pied de sidebar)
   var [userMenuOpen, setUserMenuOpen] = React.useState(false);
-  var handleLogout = () => {
+  var handleLogout = async () => {
+    var ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Se déconnecter ?",
+      message: "Tu reviendras sur la page de connexion.",
+      okLabel: "Déconnexion"
+    }) : confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
+    if (!ok) return;
+    if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
     if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
-    setUserMenuOpen(false);
+    window.location.href = "/login";
   };
   var handleTicketCreated = ticket => {
     setLastCreated({
@@ -236,7 +243,7 @@ var TicketList = () => {
     prio: "haute",
     cat: "Matériel · Imprimante",
     assignee: {
-      name: "Karim Ben Salah",
+      name: "Romain Daviaud",
       team: "Support N1"
     },
     opened: "il y a 2 h",
@@ -344,7 +351,7 @@ var TicketList = () => {
     prio: "normale",
     cat: "Messagerie",
     assignee: {
-      name: "Karim Ben Salah",
+      name: "Romain Daviaud",
       team: "Support N1"
     },
     opened: "il y a 2 j",
@@ -985,95 +992,106 @@ var TicketList = () => {
     style: {
       flex: 1
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    onClick: () => setUserMenuOpen(v => !v),
-    style: {
-      ...tlStyles.userRow,
-      cursor: "pointer",
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Astorya",
-    size: 26,
-    color: "#4f46e5"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Compte connect\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "Voir menu en haut \u2192")), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8",
-      fontSize: 14
-    }
-  }, "\u22EF"), userMenuOpen && /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      position: "absolute",
-      bottom: "calc(100% + 6px)",
-      left: 0,
-      right: 0,
-      background: "#fff",
-      border: "1px solid #e2e8f0",
-      borderRadius: 8,
-      boxShadow: "0 10px 30px rgba(0,0,0,.12)",
-      padding: 4,
-      zIndex: 100
-    }
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "/administration-utilisateurs",
-    style: {
-      display: "block",
-      padding: "8px 10px",
-      borderRadius: 6,
-      fontSize: 12.5,
-      color: "#0f172a",
-      textDecoration: "none",
-      cursor: "pointer"
-    }
-  }, "\u2699 Mon profil & pr\xE9f\xE9rences"), /*#__PURE__*/React.createElement("a", {
-    href: "/fiche-client",
-    style: {
-      display: "block",
-      padding: "8px 10px",
-      borderRadius: 6,
-      fontSize: 12.5,
-      color: "#0f172a",
-      textDecoration: "none",
-      cursor: "pointer"
-    }
-  }, "\u25C9 Voir ma fiche client"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderTop: "1px solid #f1f5f9",
-      margin: "4px 0"
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: handleLogout,
-    style: {
-      display: "block",
-      width: "100%",
-      textAlign: "left",
-      padding: "8px 10px",
-      borderRadius: 6,
-      fontSize: 12.5,
-      color: "#dc2626",
-      background: "transparent",
-      border: 0,
-      cursor: "pointer",
-      fontWeight: 600
-    }
-  }, "\u23FB Se d\xE9connecter")))), /*#__PURE__*/React.createElement("main", {
+  }), (() => {
+    var cu = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
+    var nm = cu && cu.name || "Utilisateur";
+    var rl = cu && cu.role || "—";
+    return /*#__PURE__*/React.createElement("div", {
+      onClick: () => setUserMenuOpen(v => !v),
+      style: {
+        ...tlStyles.userRow,
+        cursor: "pointer",
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement(Avatar, {
+      name: nm,
+      size: 26,
+      color: "#4f46e5"
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, nm), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, rl)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8",
+        fontSize: 14
+      }
+    }, "\u22EF"), userMenuOpen && /*#__PURE__*/React.createElement("div", {
+      onClick: e => e.stopPropagation(),
+      style: {
+        position: "absolute",
+        bottom: "calc(100% + 6px)",
+        left: 0,
+        right: 0,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 8,
+        boxShadow: "0 10px 30px rgba(0,0,0,.12)",
+        padding: 4,
+        zIndex: 100
+      }
+    }, /*#__PURE__*/React.createElement("a", {
+      href: "/administration-utilisateurs",
+      style: {
+        display: "block",
+        padding: "8px 10px",
+        borderRadius: 6,
+        fontSize: 12.5,
+        color: "#0f172a",
+        textDecoration: "none",
+        cursor: "pointer"
+      }
+    }, "\u2699 Mon profil & pr\xE9f\xE9rences"), /*#__PURE__*/React.createElement("a", {
+      href: "/fiche-client",
+      style: {
+        display: "block",
+        padding: "8px 10px",
+        borderRadius: 6,
+        fontSize: 12.5,
+        color: "#0f172a",
+        textDecoration: "none",
+        cursor: "pointer"
+      }
+    }, "\u25C9 Voir ma fiche client"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        borderTop: "1px solid #f1f5f9",
+        margin: "4px 0"
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: handleLogout,
+      style: {
+        display: "block",
+        width: "100%",
+        textAlign: "left",
+        padding: "8px 10px",
+        borderRadius: 6,
+        fontSize: 12.5,
+        color: "#dc2626",
+        background: "transparent",
+        border: 0,
+        cursor: "pointer",
+        fontWeight: 600
+      }
+    }, "\u23FB Se d\xE9connecter")));
+  })()), /*#__PURE__*/React.createElement("main", {
     style: tlStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: tlStyles.topbar

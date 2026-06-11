@@ -2,11 +2,24 @@
 // Les groupes et l'identité active sont persistés via window.HubAccess (localStorage).
 
 const UserManagement = () => {
-  // Données partagées avec l'Accueil ERP
-  const subscribeStore = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
-  const persistedGroups = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.loadGroups());
-  const activeGroupId = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getActiveGroupId());
-  const currentUser = React.useSyncExternalStore(subscribeStore, () => window.HubAccess.getCurrentUser());
+  // Lecture une seule fois au mount + un poll de 200ms pour récupérer la
+  // session Supabase. Pas de subscribe → pas de risque de boucle.
+  const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
+  const [persistedGroups, setPersistedGroups] = React.useState(() => (HA && HA.loadGroups && HA.loadGroups()) || []);
+  const [activeGroupId, setActiveGroupId] = React.useState(() => (HA && HA.getActiveGroupId && HA.getActiveGroupId()) || "admin");
+  const [currentUser, setCurrentUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
+  React.useEffect(() => {
+    if (!HA) return;
+    const t = setTimeout(() => {
+      const pg = HA.loadGroups && HA.loadGroups();
+      const ag = HA.getActiveGroupId && HA.getActiveGroupId();
+      const cu = HA.getCurrentUser && HA.getCurrentUser();
+      if (pg) setPersistedGroups(pg);
+      if (ag) setActiveGroupId(ag);
+      if (cu) setCurrentUser(cu);
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
 
   const [selectedGroupId, setSelectedGroupId] = React.useState(() => persistedGroups[0]?.id || "admin");
   const [activeTab, setActiveTab] = React.useState("groups");
@@ -75,11 +88,42 @@ const UserManagement = () => {
   const ALL = modules.map(m => m.key);
   const groups = persistedGroups;
 
-  // ───── utilisateurs réels Astorya
-  const users = [
-    { name: "Romain Daviaud",  email: "achat@astorya.fr",         role: "Direction",  groups: ["admin", "direction", "commercial", "finance"], status: "online", last: "à l'instant" },
-    { name: "Augustin Morin",  email: "a.morin@astorya.fr",       role: "Direction",  groups: ["admin", "direction", "commercial"],            status: "online", last: "à l'instant" },
-  ];
+  // ───── Utilisateurs : chargés depuis la table profiles Supabase
+  // Fallback : tableau de 2 admins en dur si Supabase n'est pas configuré
+  // ou si la table profiles est vide (premier RUN).
+  const [users, setUsers] = React.useState([
+    { name: "Romain Daviaud",  email: "achat@astorya.fr",   role: "Direction",  groups: ["admin", "direction", "commercial", "finance"], status: "online", last: "à l'instant" },
+    { name: "Augustin Morin",  email: "a.morin@astorya.fr", role: "Direction",  groups: ["admin", "direction", "commercial"],            status: "online", last: "à l'instant" },
+  ]);
+  React.useEffect(() => {
+    if (!window.HubData || !window.HubData.fetchProfiles) return;
+    const reload = async () => {
+      try {
+        const { data } = await window.HubData.fetchProfiles();
+        if (!data || !data.length) return; // garde le fallback hardcodé
+        // Pour chaque profile, on lit ses groupes via profile_groups (jointure côté Supabase)
+        const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+        let pg = [];
+        if (supa) {
+          const { data: pgData } = await supa.from("profile_groups").select("profile_id, group_id");
+          pg = pgData || [];
+        }
+        const next = data.map((p) => ({
+          id: p.id,
+          name: p.name || p.email,
+          email: p.email,
+          role: p.role || "—",
+          extension: p.extension_3cx || "",
+          groups: pg.filter((x) => x.profile_id === p.id).map((x) => x.group_id),
+          status: p.status === "active" ? "online" : (p.status === "inactive" ? "offline" : "away"),
+          last: "—",
+        }));
+        setUsers(next);
+      } catch (e) { console.warn("[UserManagement] fetchProfiles:", e); }
+    };
+    reload();
+    if (window.HubData.subscribeChanges) return window.HubData.subscribeChanges(reload);
+  }, []);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) || groups[0];
   const activeGroup = groups.find((g) => g.id === activeGroupId) || groups[0];
@@ -113,14 +157,37 @@ const UserManagement = () => {
         </a>
         <button
           onClick={async () => {
-            const email = prompt("Email du nouvel utilisateur Astorya :");
+            const email = window.HubModal
+              ? await window.HubModal.prompt({ title: "Inviter un utilisateur", label: "Email professionnel", placeholder: "prenom.nom@astorya.fr", okLabel: "Envoyer l'invitation" })
+              : prompt("Email du nouvel utilisateur Astorya :");
             if (!email || !email.trim()) return;
-            if (!window.HubSupabase || !window.HubSupabase.enabled) {
-              alert("Supabase non configuré — invitation impossible. Crée le compte directement dans le dashboard Supabase (Authentication → Users → Add user).");
+            const V = window.HubValidators;
+            const err = V && V.email(email.trim());
+            if (err) {
+              alert("Email invalide : " + err.message);
               return;
             }
-            alert("ℹ Pour des raisons de sécurité, l'invitation se fait depuis le dashboard Supabase :\n\nhttps://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users\n\nClique « Add user » → " + email);
-            window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+            if (!window.HubSupabase || !window.HubSupabase.enabled) {
+              alert("Supabase non configuré — invitation impossible.");
+              return;
+            }
+            // Envoie un magic link Supabase (signInWithOtp) — l'utilisateur
+            // sera créé automatiquement à la première connexion via le
+            // trigger handle_new_user (lui assigne le groupe admin).
+            try {
+              const { error } = await window.HubSupabase.client.auth.signInWithOtp({
+                email: email.trim(),
+                options: { emailRedirectTo: window.location.origin + "/bienvenue" },
+              });
+              if (error) {
+                alert("Erreur d'envoi du lien d'invitation : " + error.message + "\n\nTu peux aussi créer le compte manuellement depuis le dashboard Supabase.");
+                window.open("https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/users", "_blank");
+              } else {
+                alert("✓ Lien d'invitation envoyé à " + email.trim() + ".\n\nL'utilisateur recevra un email avec un lien magique pour activer son compte et définir son mot de passe.");
+              }
+            } catch (e) {
+              alert("Erreur réseau : " + (e.message || e));
+            }
           }}
           style={{ ...S.newBtn, cursor: "pointer" }}
         >+ Inviter un utilisateur</button>
@@ -144,6 +211,12 @@ const UserManagement = () => {
           <div onClick={() => setActiveTab("invitations")} style={{ ...S.navItem, ...(activeTab === "invitations" ? S.navItemActive : {}), cursor: "pointer" }}>
             <span style={S.bullet}>◇</span><span style={{ flex: 1 }}>Invitations</span>
           </div>
+          <div onClick={() => setActiveTab("templates")} style={{ ...S.navItem, ...(activeTab === "templates" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>📄</span><span style={{ flex: 1 }}>Modèles de contrat</span>
+          </div>
+          <div onClick={() => setActiveTab("integrations")} style={{ ...S.navItem, ...(activeTab === "integrations" ? S.navItemActive : {}), cursor: "pointer" }}>
+            <span style={S.bullet}>🔌</span><span style={{ flex: 1 }}>Intégrations API</span>
+          </div>
           <div onClick={() => setActiveTab("audit")} style={{ ...S.navItem, ...(activeTab === "audit" ? S.navItemActive : {}), cursor: "pointer" }}>
             <span style={S.bullet}>◨</span><span style={{ flex: 1 }}>Audit & journal</span>
           </div>
@@ -161,7 +234,7 @@ const UserManagement = () => {
               <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</div>
               <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.role}</div>
             </div>
-            <button onClick={() => window.HubAccess.logout()} title="Se déconnecter" style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 14, cursor: "pointer", padding: 4 }}>⏻</button>
+            <button onClick={async () => { if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return; if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut(); window.HubAccess.logout(); window.location.href = "/login"; }} title="Se déconnecter" style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 14, cursor: "pointer", padding: 4 }}>⏻</button>
           </div>
         ) : (
           <button onClick={() => setLoginOpen(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 12px", borderRadius: 8, background: "#0f172a", border: 0, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
@@ -220,7 +293,12 @@ const UserManagement = () => {
                 style={{ ...S.btnGhost, borderColor: "#fecaca", color: "#dc2626", cursor: "pointer" }}
                 title="Supprimer toutes les données métier (clients, opps, contacts, actions, contrats)"
               >🗑 Reset données</button>
-              <button onClick={() => { if (confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?")) { window.HubAccess.resetAll(); flash("Réinitialisé"); } }} style={S.btnGhost}>⟲ Réinit. groupes</button>
+              <button onClick={async () => {
+                const ok = window.HubModal
+                  ? await window.HubModal.confirm({ title: "Réinitialiser les groupes ?", message: "Tous les groupes et leurs accès aux modules ERP reviendront aux valeurs par défaut.", okLabel: "Réinitialiser", okStyle: "danger" })
+                  : confirm("Réinitialiser tous les groupes et accès aux valeurs par défaut ?");
+                if (ok) { window.HubAccess.resetAll(); flash("Réinitialisé"); }
+              }} style={S.btnGhost}>⟲ Réinit. groupes</button>
               <a
                 href="https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/auth/providers"
                 target="_blank"
@@ -229,8 +307,10 @@ const UserManagement = () => {
                 title="Configurer SAML / OAuth / SSO dans Supabase"
               >🔗 Configurer SSO →</a>
               <button
-                onClick={() => {
-                  const label = prompt("Nom du nouveau groupe :");
+                onClick={async () => {
+                  const label = window.HubModal
+                    ? await window.HubModal.prompt({ title: "Créer un groupe d'accès", label: "Nom du groupe", placeholder: "ex: Commercial DACH", okLabel: "Créer" })
+                    : prompt("Nom du nouveau groupe :");
                   if (!label || !label.trim()) return;
                   const id = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || ("group-" + Date.now());
                   if (persistedGroups.find((g) => g.id === id)) { alert("Un groupe avec cet identifiant existe déjà"); return; }
@@ -326,12 +406,14 @@ const UserManagement = () => {
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {savedFlash && <span style={{ fontSize: 11.5, fontWeight: 600, color: "#10b981" }}>✓ {savedFlash}</span>}
                 <button
-                  onClick={() => {
-                    const name = prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
+                  onClick={async () => {
+                    const name = window.HubModal
+                      ? await window.HubModal.prompt({ title: "Renommer le groupe", label: "Nouveau nom", default: selectedGroup.name || selectedGroup.label, okLabel: "Renommer" })
+                      : prompt("Nouveau nom du groupe :", selectedGroup.name || selectedGroup.label);
                     if (!name || !name.trim()) return;
                     const next = persistedGroups.map((g) => g.id === selectedGroup.id ? { ...g, label: name.trim(), name: name.trim() } : g);
                     window.HubAccess.saveGroups(next);
-                    flash("Groupe renommé");
+                    if (window.HubToast) window.HubToast.success("✓ Groupe renommé en « " + name.trim() + " »");
                   }}
                   style={{ ...S.btnGhost, cursor: "pointer" }}
                 >Renommer</button>
@@ -452,6 +534,9 @@ const UserManagement = () => {
           </section>
         )}
 
+        {activeTab === "templates" && <ContractTemplatesPanel />}
+        {activeTab === "integrations" && <IntegrationsPanel />}
+
         {activeTab === "audit" && (
           <section style={{ ...S.splitRow, gridTemplateColumns: "1fr" }}>
             <div style={{ padding: 40, textAlign: "center", background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 }}>
@@ -492,6 +577,7 @@ const UserManagement = () => {
                 <th style={S.th}>Utilisateur</th>
                 <th style={S.th}>Rôle</th>
                 <th style={S.th}>Groupes</th>
+                <th style={S.th}>Ext. 3CX</th>
                 <th style={S.th}>Statut</th>
                 <th style={S.th}>Dernière connexion</th>
                 <th style={{ ...S.th, textAlign: "right" }}>Actions</th>
@@ -510,7 +596,7 @@ const UserManagement = () => {
                 const slice = filtered.slice((pageSafe - 1) * USER_PAGE_SIZE, pageSafe * USER_PAGE_SIZE);
                 if (filtered.length === 0) {
                   return (
-                    <tr><td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Aucun utilisateur ne correspond.</td></tr>
+                    <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Aucun utilisateur ne correspond.</td></tr>
                   );
                 }
                 return slice.map((u) => (
@@ -535,6 +621,25 @@ const UserManagement = () => {
                         return g ? groupChip(g) : null;
                       })}
                     </div>
+                  </td>
+                  <td style={S.td}>
+                    <input
+                      type="text"
+                      defaultValue={u.extension || ""}
+                      placeholder="ex : 201"
+                      maxLength={6}
+                      onBlur={async (e) => {
+                        const v = e.target.value.trim();
+                        if (v === (u.extension || "")) return;
+                        if (!u.id) { if (window.HubToast) window.HubToast.warn("Profil non synchronisé Supabase"); return; }
+                        const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+                        if (!supa) return;
+                        const { error } = await supa.from("profiles").update({ extension_3cx: v || null }).eq("id", u.id);
+                        if (error) { if (window.HubToast) window.HubToast.error("Erreur : " + error.message); }
+                        else { if (window.HubToast) window.HubToast.success(v ? `Extension ${v} liée à ${u.name}` : "Extension retirée"); u.extension = v; }
+                      }}
+                      style={{ width: 80, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", outline: "none", textAlign: "center" }}
+                    />
                   </td>
                   <td style={S.td}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569", textTransform: "capitalize" }}>
@@ -656,6 +761,543 @@ const S = {
   tableFoot: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#64748b" },
   pageBtn: { padding: "4px 10px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" },
   pageBtnActive: { background: "#3730a3", borderColor: "#3730a3", color: "#fff", fontWeight: 700 },
+};
+
+// ════════════════════════════════════════════════════════════════════
+// IntegrationsPanel — sous-composant tab "Intégrations API"
+// ════════════════════════════════════════════════════════════════════
+const IntegrationsPanel = () => {
+  const TOKEN_KEY = "hubAstorya.pappers.token";
+  const TEAMS_KEY = "hubAstorya.teams.webhookUrl";
+  const [pappersToken, setPappersToken] = React.useState("");
+  const [savedToken, setSavedToken] = React.useState("");
+  const [testing, setTesting] = React.useState(false);
+  const [testResult, setTestResult] = React.useState(null);
+  const [teamsUrl, setTeamsUrl] = React.useState("");
+  const [savedTeamsUrl, setSavedTeamsUrl] = React.useState("");
+  const [teamsTesting, setTeamsTesting] = React.useState(false);
+  const [tcxSecret, setTcxSecret] = React.useState("");
+  const [tcxSimPhone, setTcxSimPhone] = React.useState("");
+  const WEBHOOK_URL = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/3cx-webhook";
+
+  React.useEffect(() => {
+    const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    supa.from("app_settings").select("value").eq("key", "3cx_webhook_secret").maybeSingle()
+      .then(({ data }) => { if (data && data.value) setTcxSecret(data.value); })
+      .catch(() => {});
+  }, []);
+
+  const regenTcxSecret = async () => {
+    const supa = window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+    if (!supa) return;
+    const ok = window.HubModal
+      ? await window.HubModal.confirm({ title: "Régénérer le secret 3CX ?", message: "L'ancien secret sera invalidé immédiatement. Tu devras le remettre à jour côté console 3CX.", okLabel: "Régénérer", okStyle: "danger" })
+      : confirm("Régénérer le secret 3CX ? L'ancien sera invalidé.");
+    if (!ok) return;
+    const newSecret = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      .map((b) => b.toString(16).padStart(2, "0")).join("");
+    const { error } = await supa.from("app_settings").upsert({ key: "3cx_webhook_secret", value: newSecret });
+    if (error) { if (window.HubToast) window.HubToast.error("Erreur : " + error.message); return; }
+    setTcxSecret(newSecret);
+    if (window.HubToast) window.HubToast.success("✓ Nouveau secret généré — mets-le à jour côté 3CX");
+  };
+
+  const copyToClip = (txt, label) => {
+    navigator.clipboard.writeText(txt).then(() => {
+      if (window.HubToast) window.HubToast.success("✓ " + (label || "Copié"));
+    });
+  };
+
+  const simulateCall = () => {
+    if (!window.HubHotline || !window.HubHotline.simulate) {
+      if (window.HubToast) window.HubToast.error("Module hotline non chargé");
+      return;
+    }
+    window.HubHotline.simulate(tcxSimPhone.trim() || "+33 6 12 34 56 78", "Appel test (local)");
+  };
+
+  React.useEffect(() => {
+    try {
+      const t = localStorage.getItem(TOKEN_KEY) || "";
+      setPappersToken(t);
+      setSavedToken(t);
+      const w = localStorage.getItem(TEAMS_KEY) || "";
+      setTeamsUrl(w);
+      setSavedTeamsUrl(w);
+    } catch (e) {}
+  }, []);
+
+  const saveTeams = () => {
+    try {
+      const cleaned = teamsUrl.trim();
+      if (cleaned && !/^https?:\/\//i.test(cleaned)) {
+        if (window.HubToast) window.HubToast.error("URL invalide — doit commencer par https://");
+        return;
+      }
+      if (cleaned) localStorage.setItem(TEAMS_KEY, cleaned);
+      else localStorage.removeItem(TEAMS_KEY);
+      setSavedTeamsUrl(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Webhook Teams enregistré" : "✓ Webhook Teams retiré");
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + e.message); }
+  };
+
+  const testTeams = async () => {
+    if (!teamsUrl.trim()) { if (window.HubToast) window.HubToast.warn("Colle d'abord une URL de webhook"); return; }
+    saveTeams();
+    setTeamsTesting(true);
+    try {
+      if (!window.HubTeams) throw new Error("Module Teams non chargé");
+      await window.HubTeams.test();
+      if (window.HubToast) window.HubToast.success("✓ Message de test envoyé — vérifie ton canal Teams");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + e.message);
+    } finally { setTeamsTesting(false); }
+  };
+
+  const removeTeams = () => {
+    setTeamsUrl("");
+    try { localStorage.removeItem(TEAMS_KEY); } catch (e) {}
+    setSavedTeamsUrl("");
+    if (window.HubToast) window.HubToast.info("Webhook Teams retiré — plus de notifications canal");
+  };
+
+  const save = () => {
+    try {
+      const cleaned = pappersToken.trim();
+      if (cleaned) localStorage.setItem(TOKEN_KEY, cleaned);
+      else localStorage.removeItem(TOKEN_KEY);
+      setSavedToken(cleaned);
+      if (window.HubToast) window.HubToast.success(cleaned ? "✓ Token Pappers enregistré" : "✓ Token Pappers retiré");
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + e.message); }
+  };
+
+  const test = async () => {
+    if (!pappersToken.trim()) { if (window.HubToast) window.HubToast.warn("Colle d'abord un token avant de tester"); return; }
+    // Sauvegarde + teste sur un SIREN connu (Astorya / un test)
+    save();
+    setTesting(true);
+    setTestResult(null);
+    try {
+      // SIREN INPI (test public) : 13002526500013 (3 plus 9 = juste 9 pour SIREN)
+      // On utilise un SIREN simple connu : 552120222 (L'OREAL) — toujours actif
+      const r = await window.HubPappers.checkSiren("552120222");
+      setTestResult(r);
+      if (r.status === "error") {
+        if (window.HubToast) window.HubToast.error("Échec test : " + (r.error || "erreur"));
+      } else if (r.source === "pappers" && r.company && r.company.denomination) {
+        if (window.HubToast) window.HubToast.success("✓ Pappers OK — " + r.company.denomination + " trouvé");
+      } else if (r.source === "bodacc") {
+        if (window.HubToast) window.HubToast.warn("Token invalide — fallback BODACC actif");
+      }
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur réseau : " + e.message);
+    } finally { setTesting(false); }
+  };
+
+  const remove = () => {
+    setPappersToken("");
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+    setSavedToken("");
+    if (window.HubToast) window.HubToast.info("Token Pappers retiré — l'app retombe sur BODACC (gratuit, sans clé)");
+  };
+
+  return (
+    <section style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 24 }}>
+      <header style={{ marginBottom: 18 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>🔌 Intégrations API tierces</h2>
+        <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
+          Configure les sources de données externes utilisées par Hub Astorya pour enrichir les fiches client.
+        </p>
+      </header>
+
+      {/* ─── Pappers ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, #4f46e5, #a855f7)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>P</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>Pappers</h3>
+              {savedToken ? (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ACTIF</span>
+              ) : (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#fef3c7", color: "#92400e", borderRadius: 999, fontWeight: 700 }}>○ INACTIF (fallback BODACC)</span>
+              )}
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Base entreprises FR : procédures collectives, état administratif, capital, effectif, dirigeants, NAF, siège.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>📋 Étapes pour obtenir un token</div>
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#475569", lineHeight: 1.7 }}>
+            <li>Ouvre <a href="https://www.pappers.fr/api" target="_blank" rel="noopener" style={{ color: "#3730a3", fontWeight: 600 }}>pappers.fr/api ↗</a> et inscris-toi (gratuit)</li>
+            <li>Connecte-toi, va dans ton tableau de bord → onglet <strong>Mon API</strong></li>
+            <li>Copie ton <strong>API Token</strong> (au format UUID, ex : <code style={{ background: "#f1f5f9", padding: "1px 4px", borderRadius: 3 }}>1a2b3c4d-5e6f-7890-abcd-...</code>)</li>
+            <li>Colle-le dans le champ ci-dessous + clique « Enregistrer »</li>
+          </ol>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Token API Pappers</label>
+        <input
+          type="text"
+          value={pappersToken}
+          onChange={(e) => setPappersToken(e.target.value)}
+          placeholder="Colle ton token ici (ex : 1a2b3c4d-5e6f-7890-abcd-ef1234567890)"
+          spellCheck={false}
+          autoComplete="off"
+          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
+        />
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <button onClick={save} disabled={pappersToken === savedToken} style={{ padding: "8px 16px", background: pappersToken === savedToken ? "#cbd5e1" : "#0f172a", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: pappersToken === savedToken ? "default" : "pointer" }}>
+            💾 Enregistrer
+          </button>
+          <button onClick={test} disabled={testing || !pappersToken.trim()} style={{ padding: "8px 16px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: testing || !pappersToken.trim() ? "wait" : "pointer" }}>
+            {testing ? "⏳ Test en cours…" : "🧪 Tester le token"}
+          </button>
+          {savedToken && (
+            <button onClick={remove} style={{ padding: "8px 16px", background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", marginLeft: "auto" }}>
+              🗑 Retirer le token
+            </button>
+          )}
+        </div>
+
+        {testResult && (
+          <div style={{ marginTop: 14, padding: 12, background: testResult.status === "error" ? "#fef2f2" : "#ecfdf5", border: "1px solid " + (testResult.status === "error" ? "#fca5a5" : "#86efac"), borderRadius: 8, fontSize: 12.5 }}>
+            <div style={{ fontWeight: 700, color: testResult.status === "error" ? "#9b1c1c" : "#065f46", marginBottom: 4 }}>
+              {testResult.status === "error" ? "❌ Échec" : "✅ Test réussi"} · source : {testResult.source}
+            </div>
+            <div style={{ fontSize: 11.5, color: "#64748b" }}>
+              {testResult.company && testResult.company.denomination ? "Entreprise testée : " + testResult.company.denomination : (testResult.error || "")}
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+          💡 Plan gratuit : 1000 requêtes/mois — largement suffisant avec le cache 7 jours intégré.<br/>
+          ⚠ Le token est stocké en localStorage et envoyé depuis le navigateur. Pour un cloisonnement renforcé, voir doc de migration vers une fonction Edge Supabase.
+        </div>
+      </div>
+
+      {/* ─── Microsoft Teams ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, #4f46e5, #6264a7)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>T</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>Microsoft Teams</h3>
+              {savedTeamsUrl ? (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ACTIF</span>
+              ) : (
+                <span style={{ fontSize: 10, padding: "2px 8px", background: "#f1f5f9", color: "#64748b", borderRadius: 999, fontWeight: 700 }}>○ INACTIF</span>
+              )}
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Reçois en temps réel dans un canal Teams les notifications du Hub (avancement projet, livrables, etc.).
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>📋 Comment créer le webhook</div>
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#475569", lineHeight: 1.7 }}>
+            <li>Dans Teams, va dans le canal cible → <strong>… (Plus)</strong> → <strong>Connecteurs</strong></li>
+            <li>Cherche <strong>« Incoming Webhook »</strong> → <strong>Configurer</strong></li>
+            <li>Donne un nom (ex : <em>Hub Astorya</em>) + une icône, puis <strong>Créer</strong></li>
+            <li>Copie l'URL générée (format : <code style={{ background: "#f1f5f9", padding: "1px 4px", borderRadius: 3, fontSize: 10 }}>https://outlook.office.com/webhook/…</code>)</li>
+            <li>Colle-la ci-dessous + clique « Enregistrer »</li>
+          </ol>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>URL du webhook entrant</label>
+        <input
+          type="text"
+          value={teamsUrl}
+          onChange={(e) => setTeamsUrl(e.target.value)}
+          placeholder="https://outlook.office.com/webhook/..."
+          spellCheck={false}
+          autoComplete="off"
+          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
+        />
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <button onClick={saveTeams} disabled={teamsUrl === savedTeamsUrl} style={{ padding: "8px 16px", background: teamsUrl === savedTeamsUrl ? "#cbd5e1" : "#0f172a", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: teamsUrl === savedTeamsUrl ? "default" : "pointer" }}>
+            💾 Enregistrer
+          </button>
+          <button onClick={testTeams} disabled={teamsTesting || !teamsUrl.trim()} style={{ padding: "8px 16px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: teamsTesting || !teamsUrl.trim() ? "wait" : "pointer" }}>
+            {teamsTesting ? "⏳ Envoi…" : "🧪 Envoyer un message test"}
+          </button>
+          {savedTeamsUrl && (
+            <button onClick={removeTeams} style={{ padding: "8px 16px", background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", marginLeft: "auto" }}>
+              🗑 Retirer le webhook
+            </button>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+          💡 Format MessageCard standard Teams (themeColor, title, sections, action OpenUri).<br/>
+          ⚠ L'URL est stockée en localStorage du navigateur. Chaque utilisateur configure son propre canal de réception.
+        </div>
+      </div>
+
+      {/* ─── 3CX (téléphonie) ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, #10b981, #047857)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>☎</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>Téléphonie 3CX</h3>
+              <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ENTERPRISE</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Popup CTI temps réel sur appel entrant. Webhook 3CX → Supabase → notification au bon agent (extension matchée), filtré département <strong>ASTO</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>📋 Config côté 3CX (Console admin)</div>
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#475569", lineHeight: 1.7 }}>
+            <li>Ouvre <a href="https://telcomastorya.my3cx.fr:5001/#/app/integrations/crm" target="_blank" rel="noopener" style={{ color: "#3730a3", fontWeight: 600 }}>telcomastorya.my3cx.fr:5001 → Integrations → CRM ↗</a></li>
+            <li><strong>+ Add</strong> → <em>Server side CRM integration</em> → <em>Generic Web Server</em></li>
+            <li>Colle l'URL du webhook et le secret ci-dessous (header <code>X-3CX-Secret</code>)</li>
+            <li>Method <strong>POST</strong>, Content-type <strong>application/json</strong></li>
+            <li>Department <strong>ASTO</strong> uniquement (autres départements ignorés côté Edge)</li>
+            <li>Renseigne l'extension 3CX de chaque utilisateur dans l'onglet <em>Utilisateurs</em> du Hub</li>
+          </ol>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>URL du webhook (à coller dans 3CX)</label>
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <input
+            type="text" readOnly value={WEBHOOK_URL}
+            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fafbfc", outline: "none" }}
+            onFocus={(e) => e.target.select()}
+          />
+          <button onClick={() => copyToClip(WEBHOOK_URL, "URL copiée")} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>📋 Copier</button>
+        </div>
+
+        <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Secret partagé (header X-3CX-Secret)</label>
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <input
+            type="text" readOnly value={tcxSecret || "— Non configuré (lance d'abord supabase/3cx-integration.sql) —"}
+            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", color: tcxSecret ? "#0f172a" : "#94a3b8", background: "#fafbfc", outline: "none" }}
+            onFocus={(e) => e.target.select()}
+          />
+          <button onClick={() => copyToClip(tcxSecret, "Secret copié")} disabled={!tcxSecret} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: tcxSecret ? "pointer" : "not-allowed", opacity: tcxSecret ? 1 : 0.5, whiteSpace: "nowrap" }}>📋 Copier</button>
+          <button onClick={regenTcxSecret} style={{ padding: "8px 14px", background: "#fff", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>↻ Régénérer</button>
+        </div>
+
+        <div style={{ marginTop: 14, padding: 12, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#1e40af", marginBottom: 6 }}>🧪 Tester en local (sans 3CX)</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="text" value={tcxSimPhone}
+              onChange={(e) => setTcxSimPhone(e.target.value)}
+              placeholder="Numéro à simuler (ex : +33 6 12 34 56 78)"
+              style={{ flex: 1, padding: "8px 12px", border: "1px solid #bfdbfe", borderRadius: 7, fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fff", outline: "none" }}
+            />
+            <button onClick={simulateCall} style={{ padding: "8px 14px", background: "#1d4ed8", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>📞 Simuler appel</button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+          ⚠ Seul le département <strong>ASTO</strong> est routé vers le Hub. Les autres départements 3CX reçoivent un 200 + ignored.
+        </div>
+      </div>
+
+      {/* ─── BODACC (toujours actif, gratuit) ─── */}
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "#0f172a", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>B</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0 }}>BODACC</h3>
+              <span style={{ fontSize: 10, padding: "2px 8px", background: "#dcfce7", color: "#065f46", borderRadius: 999, fontWeight: 700 }}>● ALWAYS ON</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+              Source officielle FR (Bulletin Officiel des Annonces). Pas de clé requise. Utilisée en fallback si Pappers indisponible.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// ContractTemplatesPanel — sous-composant tab "Modèles de contrat"
+// ════════════════════════════════════════════════════════════════════
+const ContractTemplatesPanel = () => {
+  const [templates, setTemplates] = React.useState([]);
+  const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState("");
+  const fileRef = React.useRef(null);
+
+  const reload = async () => {
+    if (!window.api || !window.api.contractTemplates) return;
+    try {
+      const list = await window.api.contractTemplates.list();
+      setTemplates(list || []);
+    } catch (e) { console.warn("[Templates] list:", e); }
+  };
+  React.useEffect(() => { reload(); }, []);
+
+  // Extraction du texte d'un PDF avec PDF.js (loaded via CDN dans la HTML)
+  const extractPdfText = async (file) => {
+    if (!window.pdfjsLib) {
+      console.warn("PDF.js not loaded — text extraction skipped");
+      return null;
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((it) => it.str).join(" ");
+      text += pageText + "\n\n";
+    }
+    return text.trim();
+  };
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      if (window.HubToast) window.HubToast.error("Seuls les fichiers PDF sont acceptés.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      if (window.HubToast) window.HubToast.error("Le PDF ne doit pas dépasser 10 Mo (le tien fait " + Math.round(file.size / 1024 / 1024 * 10) / 10 + " Mo).");
+      return;
+    }
+    setUploading(true);
+    try {
+      setProgress("1/3 Extraction du texte du PDF…");
+      const cgvText = await extractPdfText(file);
+      setProgress("2/3 Demande du nom du modèle…");
+      const name = window.HubModal
+        ? await window.HubModal.prompt({ title: "Nom du modèle", label: "Comment vais-je l'identifier dans NewContract ?", default: file.name.replace(/\.pdf$/i, ""), okLabel: "Continuer" })
+        : prompt("Nom du modèle :", file.name.replace(/\.pdf$/i, ""));
+      if (!name) { setUploading(false); setProgress(""); return; }
+      const version = window.HubModal
+        ? await window.HubModal.prompt({ title: "Version", label: "Numéro de version (ex : v4.2)", default: "v1.0", okLabel: "Continuer" })
+        : "v1.0";
+      setProgress("3/3 Upload sur Supabase Storage + sauvegarde BDD…");
+      const saved = await window.api.contractTemplates.upload({ name, version: version || "v1.0", file, cgvText });
+      if (window.HubToast) window.HubToast.success("✓ Modèle « " + saved.name + " » uploadé (" + (saved.pdf_size_kb || "?") + " Ko)");
+      await reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur upload : " + (e.message || e));
+    } finally {
+      setUploading(false);
+      setProgress("");
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async (t) => {
+    const ok = window.HubModal
+      ? await window.HubModal.confirm({ title: "Supprimer ce modèle ?", message: "Le PDF sera retiré du stockage. Soft-delete : la ligne reste en BDD pour audit.", okLabel: "Supprimer", okStyle: "danger" })
+      : confirm("Supprimer ce modèle ?");
+    if (!ok) return;
+    try {
+      await window.api.contractTemplates.remove(t.id);
+      if (window.HubToast) window.HubToast.success("✓ Modèle supprimé");
+      await reload();
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e)); }
+  };
+
+  const handleSetDefault = async (t) => {
+    try {
+      await window.api.contractTemplates.setDefault(t.id);
+      if (window.HubToast) window.HubToast.success("✓ « " + t.name + " » est maintenant le modèle par défaut");
+      await reload();
+    } catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e)); }
+  };
+
+  return (
+    <section style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 24 }}>
+      <header style={{ marginBottom: 18 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>📄 Modèles de contrat (CGV)</h2>
+        <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
+          Upload des PDF de CGV. Le texte est extrait automatiquement pour s'afficher dans la preview du contrat envoyé pour signature.
+        </p>
+      </header>
+
+      {/* Zone de drop / upload */}
+      <div style={{ border: "2px dashed " + (uploading ? "#4f46e5" : "#cbd5e1"), borderRadius: 12, padding: 28, textAlign: "center", background: uploading ? "#eef2ff" : "#fafbfc", transition: "all .15s", marginBottom: 24 }}
+           onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+           onDrop={(e) => { e.preventDefault(); e.stopPropagation(); if (uploading) return; const f = e.dataTransfer.files[0]; if (f) handleUpload(f); }}>
+        {uploading ? (
+          <>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#3730a3" }}>{progress || "Upload en cours…"}</div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>📤</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", marginBottom: 6 }}>Glisser-déposer un PDF ici</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>ou cliquer pour parcourir · max 10 Mo</div>
+            <button onClick={() => fileRef.current && fileRef.current.click()}
+                    style={{ padding: "10px 20px", background: "#0f172a", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              Sélectionner un PDF
+            </button>
+            <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }}
+                   onChange={(e) => { const f = e.target.files[0]; if (f) handleUpload(f); }} />
+          </>
+        )}
+      </div>
+
+      {/* Liste des templates */}
+      {templates.length === 0 ? (
+        <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 13, color: "#94a3b8", border: "1px dashed #e2e8f0", borderRadius: 10, background: "#fafbfc" }}>
+          Aucun modèle uploadé pour l'instant. Upload ton premier PDF de CGV ci-dessus.
+        </div>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "#fafbfc", borderBottom: "1px solid #eef1f5" }}>
+              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Modèle</th>
+              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Version</th>
+              <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Taille</th>
+              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Uploadé</th>
+              <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((t) => (
+              <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>📄</span>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{t.name}{t.is_default && <span style={{ marginLeft: 8, fontSize: 10, background: "#dcfce7", color: "#065f46", padding: "2px 7px", borderRadius: 999, fontWeight: 700 }}>★ DÉFAUT</span>}</div>
+                      {t.description && <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{t.description}</div>}
+                      {t.cgv_text && <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 2 }}>{Math.round(t.cgv_text.length / 100) / 10}k caractères extraits</div>}
+                    </div>
+                  </div>
+                </td>
+                <td style={{ padding: "12px", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{t.version}</td>
+                <td style={{ padding: "12px", textAlign: "right", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{t.pdf_size_kb ? t.pdf_size_kb + " Ko" : "—"}</td>
+                <td style={{ padding: "12px", fontSize: 12, color: "#64748b" }}>{t.created_at ? new Date(t.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
+                <td style={{ padding: "12px", textAlign: "right" }}>
+                  <div style={{ display: "inline-flex", gap: 6 }}>
+                    {t.pdf_url && <a href={t.pdf_url} target="_blank" rel="noopener" style={{ padding: "5px 10px", fontSize: 11.5, color: "#3730a3", border: "1px solid #e2e8f0", borderRadius: 6, textDecoration: "none", background: "#fff" }}>👁 Voir</a>}
+                    {!t.is_default && <button onClick={() => handleSetDefault(t)} style={{ padding: "5px 10px", fontSize: 11.5, color: "#0f172a", border: "1px solid #e2e8f0", borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 600 }}>★ Définir par défaut</button>}
+                    <button onClick={() => handleDelete(t)} style={{ padding: "5px 10px", fontSize: 11.5, color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, background: "#fff", cursor: "pointer" }}>🗑</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
 };
 
 window.UserManagement = UserManagement;

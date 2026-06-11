@@ -1,0 +1,788 @@
+-- ════════════════════════════════════════════════════════════════════
+-- Hub Astorya — SETUP COMPLET v2 (optimisé production)
+-- ════════════════════════════════════════════════════════════════════
+-- À exécuter dans Supabase SQL Editor :
+--   https://supabase.com/dashboard/project/cqdgecllzyqimfuovrpp/sql/new
+--
+-- Améliorations vs v1 :
+--   ✓ Triggers updated_at automatiques sur toutes les tables
+--   ✓ Soft-delete (deleted_at) sur clients/opps/contacts/actions/contrats
+--   ✓ Index full-text search (français) pour recherche globale rapide
+--   ✓ Vues KPI précalculées (clients_by_status, pipeline_par_stage…)
+--   ✓ Trigger handle_new_user assigne auto le groupe admin aux nouveaux comptes
+--   ✓ Seed profiles + profile_groups pour Romain + Augustin
+--   ✓ Index composites optimisés pour les requêtes fréquentes
+--   ✓ Realtime activé sur tickets + comments
+--   ✓ Helper functions (touch_updated_at, current_user_groups)
+--
+-- Idempotent : peut être relancé sans danger (CREATE IF NOT EXISTS, etc).
+-- ════════════════════════════════════════════════════════════════════
+
+-- ════════════════════════════════════════════════════════════════════
+-- 0. HELPERS — fonctions PostgreSQL réutilisables
+-- ════════════════════════════════════════════════════════════════════
+
+-- Met à jour automatiquement updated_at à chaque UPDATE
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- Note : current_user_groups() est créée en bas du script, après les tables.
+
+-- ════════════════════════════════════════════════════════════════════
+-- 1. PROFILS UTILISATEURS
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.profiles (
+  id          uuid primary key references auth.users on delete cascade,
+  email       text unique not null,
+  name        text not null,
+  role        text,
+  team        text,
+  status      text default 'active' check (status in ('active', 'inactive', 'invited')),
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+create index if not exists idx_profiles_email on public.profiles(email);
+create index if not exists idx_profiles_status on public.profiles(status);
+
+drop trigger if exists trg_profiles_touch on public.profiles;
+create trigger trg_profiles_touch before update on public.profiles
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 2. GROUPES & APPARTENANCES
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.groups (
+  id          text primary key,
+  name        text not null,
+  color       text not null default '#64748b',
+  description text,
+  access      text[] not null default '{}',
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+drop trigger if exists trg_groups_touch on public.groups;
+create trigger trg_groups_touch before update on public.groups
+  for each row execute function public.touch_updated_at();
+
+-- Seed les groupes par défaut (idempotent via on conflict do nothing)
+insert into public.groups (id, name, color, description, access) values
+  ('admin',        'Administrateurs',           '#dc2626', 'Accès complet à l''ERP, gestion des utilisateurs.',  '{crm,intel,marketing,tech,projects,inventory,accounting,billing,treasury,hr,time,reports,settings}'),
+  ('supervision',  'Administrateur · Supervision','#7c3aed', 'Supervision tickets et escalades.',                  '{crm,intel,marketing,tech,projects,inventory,accounting,billing,treasury,hr,time,reports,settings}'),
+  ('direction',    'Direction',                 '#4f46e5', 'Comité exécutif — vue 360 sur tous les modules.',    '{crm,intel,marketing,tech,projects,inventory,accounting,billing,treasury,hr,time,reports,settings}'),
+  ('commercial',   'Commercial',                '#0ea5e9', 'Vente — pipeline, comptes, opportunités.',           '{crm,intel,marketing,billing,reports}'),
+  ('support',      'Support technique',         '#0891b2', 'Hotline N1/N2 — tickets, SLA.',                      '{tech,projects,crm,reports}'),
+  ('finance',      'Finance & Compta',          '#10b981', 'Compta, facturation, trésorerie.',                   '{accounting,billing,treasury,reports,hr}'),
+  ('marketing',    'Marketing',                 '#ec4899', 'Campagnes, leads, analytics.',                        '{marketing,crm,reports,intel}'),
+  ('rh',           'Ressources humaines',       '#8b5cf6', 'Paie, contrats, recrutement.',                       '{hr,time,reports}'),
+  ('ops',          'Opérations & Produit',      '#a855f7', 'Roadmap, livrables, stock.',                          '{projects,inventory,tech,reports}')
+on conflict (id) do nothing;
+
+create table if not exists public.profile_groups (
+  profile_id  uuid references public.profiles on delete cascade,
+  group_id    text references public.groups on delete cascade,
+  created_at  timestamptz default now(),
+  primary key (profile_id, group_id)
+);
+create index if not exists idx_profile_groups_group on public.profile_groups(group_id);
+create index if not exists idx_profile_groups_profile on public.profile_groups(profile_id);
+
+-- ════════════════════════════════════════════════════════════════════
+-- 3. CLIENTS (+ colonnes CRM étendues + full-text search + soft-delete)
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.clients (
+  id            text primary key,
+  name          text not null,
+  industry      text,
+  size          text,
+  city          text,
+  website       text,
+  health_score  int check (health_score between 0 and 100),
+  arr_eur       numeric(14, 2),
+  client_since  date,
+  created_at    timestamptz default now()
+);
+alter table public.clients add column if not exists data       jsonb default '{}'::jsonb;
+alter table public.clients add column if not exists status     text default 'prospect' check (status in ('prospect', 'client', 'archived', 'lost'));
+alter table public.clients add column if not exists owner      text;
+alter table public.clients add column if not exists updated_at timestamptz default now();
+alter table public.clients add column if not exists deleted_at timestamptz;
+alter table public.clients add column if not exists created_by uuid references auth.users(id) on delete set null;
+
+-- Full-text search auto-calculé depuis name + ville + secteur + données jsonb
+alter table public.clients drop column if exists search_doc;
+alter table public.clients add column search_doc tsvector
+  generated always as (
+    to_tsvector('french',
+      coalesce(name, '') || ' ' ||
+      coalesce(city, '') || ' ' ||
+      coalesce(industry, '') || ' ' ||
+      coalesce(data->>'siren', '') || ' ' ||
+      coalesce(data->>'raison_sociale', '') || ' ' ||
+      coalesce(data->>'secteur', '') || ' ' ||
+      coalesce(website, '')
+    )
+  ) stored;
+
+create index if not exists idx_clients_name        on public.clients(name);
+create index if not exists idx_clients_status      on public.clients(status) where deleted_at is null;
+create index if not exists idx_clients_owner       on public.clients(owner) where deleted_at is null;
+create index if not exists idx_clients_data        on public.clients using gin(data);
+create index if not exists idx_clients_search      on public.clients using gin(search_doc);
+create index if not exists idx_clients_created     on public.clients(created_at desc) where deleted_at is null;
+
+drop trigger if exists trg_clients_touch on public.clients;
+create trigger trg_clients_touch before update on public.clients
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 4. CONTRATS
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.contracts (
+  id           uuid primary key default gen_random_uuid(),
+  client_id    text not null references public.clients on delete cascade,
+  name         text not null,
+  tier         text default 'standard' check (tier in ('premium', 'standard', 'none')),
+  start_date   date,
+  end_date     date,
+  status       text default 'active' check (status in ('active', 'expiring', 'expired', 'none')),
+  monthly_eur  numeric(14, 2),
+  notes        text,
+  created_at   timestamptz default now()
+);
+alter table public.contracts add column if not exists opp_id      text;
+alter table public.contracts add column if not exists products    jsonb default '[]'::jsonb;
+alter table public.contracts add column if not exists total_ht_y1 numeric(14, 2);
+alter table public.contracts add column if not exists tcv         numeric(14, 2);
+alter table public.contracts add column if not exists margin_pct  int;
+alter table public.contracts add column if not exists data        jsonb default '{}'::jsonb;
+alter table public.contracts add column if not exists updated_at  timestamptz default now();
+alter table public.contracts add column if not exists deleted_at  timestamptz;
+alter table public.contracts add column if not exists created_by  uuid references auth.users(id) on delete set null;
+create index if not exists idx_contracts_client on public.contracts(client_id) where deleted_at is null;
+create index if not exists idx_contracts_status on public.contracts(status) where deleted_at is null;
+create index if not exists idx_contracts_end    on public.contracts(end_date) where deleted_at is null and end_date is not null;
+
+drop trigger if exists trg_contracts_touch on public.contracts;
+create trigger trg_contracts_touch before update on public.contracts
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 5. ASSETS (parc IT)
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.assets (
+  id            text primary key,
+  client_id     text not null references public.clients on delete cascade,
+  type          text not null check (type in ('laptop', 'desktop', 'server', 'network', 'printer', 'mobile', 'display')),
+  hostname      text,
+  model         text,
+  serial        text,
+  os            text,
+  assigned_to   text,
+  bought_on     date,
+  warranty_end  date,
+  contract      text,
+  site          text,
+  status        text default 'active' check (status in ('active', 'stock', 'retired')),
+  created_at    timestamptz default now(),
+  updated_at    timestamptz default now()
+);
+create index if not exists idx_assets_client   on public.assets(client_id);
+create index if not exists idx_assets_warranty on public.assets(warranty_end);
+
+drop trigger if exists trg_assets_touch on public.assets;
+create trigger trg_assets_touch before update on public.assets
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 6. TICKETS
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.tickets (
+  id              text primary key,
+  client_id       text references public.clients on delete set null,
+  title           text not null,
+  description     text,
+  category        text,
+  status          text default 'open' check (status in ('open', 'in_progress', 'waiting', 'resolved', 'closed')),
+  priority        text default 'normale' check (priority in ('critique', 'haute', 'normale', 'basse')),
+  lifecycle       text check (lifecycle in ('onboarding', 'offboarding')),
+  billable        boolean default false,
+  billable_note   text,
+  assignee_id     uuid references public.profiles on delete set null,
+  assignee_team   text,
+  escalated_to    uuid references public.profiles on delete set null,
+  escalated_group text references public.groups on delete set null,
+  escalated_at    timestamptz,
+  escalated_reason text,
+  sla_due_at      timestamptz,
+  opened_at       timestamptz default now(),
+  updated_at      timestamptz default now(),
+  closed_at       timestamptz
+);
+alter table public.tickets add column if not exists requester_name text;
+alter table public.tickets add column if not exists requester_id   uuid references public.profiles on delete set null;
+alter table public.tickets add column if not exists deleted_at     timestamptz;
+
+create index if not exists idx_tickets_status         on public.tickets(status) where deleted_at is null;
+create index if not exists idx_tickets_client         on public.tickets(client_id) where deleted_at is null;
+create index if not exists idx_tickets_assignee       on public.tickets(assignee_id) where deleted_at is null;
+create index if not exists idx_tickets_escalated      on public.tickets(escalated_at) where escalated_at is not null;
+create index if not exists idx_tickets_opened_desc    on public.tickets(opened_at desc) where deleted_at is null;
+create index if not exists idx_tickets_sla_due        on public.tickets(sla_due_at) where status in ('open','in_progress','waiting');
+
+drop trigger if exists trg_tickets_touch on public.tickets;
+create trigger trg_tickets_touch before update on public.tickets
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 7. COMMENTS (fil de conversation des tickets)
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.comments (
+  id           uuid primary key default gen_random_uuid(),
+  ticket_id    text not null references public.tickets on delete cascade,
+  author_id    uuid references public.profiles on delete set null,
+  author_name  text not null,
+  author_email text,
+  body         text not null,
+  kind         text not null default 'reply' check (kind in ('reply', 'note', 'system')),
+  created_at   timestamptz default now()
+);
+create index if not exists idx_comments_ticket on public.comments(ticket_id, created_at);
+
+-- ════════════════════════════════════════════════════════════════════
+-- 8. OPPORTUNITÉS
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.opportunities (
+  id           text primary key,
+  client_id    text references public.clients(id) on delete cascade,
+  name         text not null,
+  amount_eur   numeric(14, 2),
+  stage        text default 'qualif' check (stage in ('qualif', 'discovery', 'propo', 'nego', 'won', 'lost')),
+  proba        int default 20 check (proba between 0 and 100),
+  close_date   date,
+  owner        text,
+  produit      text,
+  modules      text[] default '{}',
+  type         text default 'new' check (type in ('new', 'extension', 'renewal', 'upsell')),
+  source       text,
+  duration     text,
+  notes        text,
+  data         jsonb default '{}'::jsonb,
+  created_at   timestamptz default now(),
+  updated_at   timestamptz default now(),
+  created_by   uuid references auth.users(id) on delete set null
+);
+alter table public.opportunities add column if not exists deleted_at timestamptz;
+
+-- Full-text search sur opportunités
+alter table public.opportunities drop column if exists search_doc;
+alter table public.opportunities add column search_doc tsvector
+  generated always as (
+    to_tsvector('french',
+      coalesce(name, '') || ' ' ||
+      coalesce(produit, '') || ' ' ||
+      coalesce(owner, '') || ' ' ||
+      coalesce(notes, '')
+    )
+  ) stored;
+
+create index if not exists idx_opportunities_client     on public.opportunities(client_id) where deleted_at is null;
+create index if not exists idx_opportunities_stage      on public.opportunities(stage) where deleted_at is null;
+create index if not exists idx_opportunities_owner      on public.opportunities(owner) where deleted_at is null;
+create index if not exists idx_opportunities_close      on public.opportunities(close_date) where deleted_at is null and close_date is not null;
+create index if not exists idx_opportunities_search     on public.opportunities using gin(search_doc);
+
+drop trigger if exists trg_opportunities_touch on public.opportunities;
+create trigger trg_opportunities_touch before update on public.opportunities
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 9. CONTACTS
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.contacts (
+  id           text primary key,
+  client_id    text not null references public.clients(id) on delete cascade,
+  prenom       text,
+  nom          text,
+  fonction     text,
+  email        text,
+  phone        text,
+  linkedin     text,
+  is_principal boolean default false,
+  roles        text[] default '{}',
+  hierarchie   text,
+  notes        text,
+  data         jsonb default '{}'::jsonb,
+  created_at   timestamptz default now(),
+  updated_at   timestamptz default now(),
+  created_by   uuid references auth.users(id) on delete set null
+);
+alter table public.contacts add column if not exists deleted_at timestamptz;
+create index if not exists idx_contacts_client on public.contacts(client_id) where deleted_at is null;
+create index if not exists idx_contacts_email  on public.contacts(email) where deleted_at is null and email is not null;
+-- Index unique partiel : un seul contact principal par client
+create unique index if not exists idx_contacts_one_principal
+  on public.contacts(client_id) where is_principal = true and deleted_at is null;
+
+drop trigger if exists trg_contacts_touch on public.contacts;
+create trigger trg_contacts_touch before update on public.contacts
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 10. ACTIONS (timeline + à mener)
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.actions (
+  id           text primary key,
+  client_id    text references public.clients(id) on delete cascade,
+  opp_id       text references public.opportunities(id) on delete set null,
+  type         text not null check (type in ('email', 'call', 'rdv', 'visio', 'task', 'note', 'in', 'wait', 'stage')),
+  title        text not null,
+  meta         text,
+  due_at       timestamptz,
+  due_text     text,
+  priority     text default 'moyenne' check (priority in ('haute', 'moyenne', 'basse', 'ai')),
+  assigned_to  text,
+  status       text default 'todo' check (status in ('todo', 'done', 'cancelled')),
+  completed_at timestamptz,
+  tag          text,
+  tag_color    text,
+  icon         text,
+  data         jsonb default '{}'::jsonb,
+  created_at   timestamptz default now(),
+  updated_at   timestamptz default now(),
+  created_by   uuid references auth.users(id) on delete set null
+);
+alter table public.actions add column if not exists deleted_at timestamptz;
+create index if not exists idx_actions_client       on public.actions(client_id) where deleted_at is null;
+create index if not exists idx_actions_opp          on public.actions(opp_id) where deleted_at is null;
+create index if not exists idx_actions_status_due   on public.actions(status, due_at) where deleted_at is null;
+create index if not exists idx_actions_assigned     on public.actions(assigned_to) where deleted_at is null;
+
+drop trigger if exists trg_actions_touch on public.actions;
+create trigger trg_actions_touch before update on public.actions
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 11. APPELS (3CX)
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.calls (
+  id              uuid primary key default gen_random_uuid(),
+  client_id       text references public.clients on delete set null,
+  caller_name     text,
+  caller_phone    text not null,
+  line            text default 'Hotline support',
+  direction       text default 'inbound' check (direction in ('inbound', 'outbound')),
+  status          text default 'completed' check (status in ('completed', 'missed', 'voicemail')),
+  duration_sec    int default 0,
+  recording_url   text,
+  started_at      timestamptz default now(),
+  ended_at        timestamptz,
+  ticket_id       text references public.tickets on delete set null,
+  category        text check (category in ('incident', 'demande', 'probleme', null))
+);
+create index if not exists idx_calls_client  on public.calls(client_id);
+create index if not exists idx_calls_started on public.calls(started_at desc);
+create index if not exists idx_calls_ticket  on public.calls(ticket_id);
+
+create table if not exists public.call_transcripts (
+  id           uuid primary key default gen_random_uuid(),
+  call_id      uuid references public.calls on delete cascade,
+  ticket_id    text references public.tickets on delete cascade,
+  source       text default 'whisper' check (source in ('whisper', 'deepgram', '3cx', 'manual')),
+  text         text not null,
+  language     text default 'fr',
+  duration_sec int,
+  created_at   timestamptz default now()
+);
+create index if not exists idx_transcripts_ticket on public.call_transcripts(ticket_id);
+create index if not exists idx_transcripts_call   on public.call_transcripts(call_id);
+
+-- ════════════════════════════════════════════════════════════════════
+-- 12. VUES KPI (statistiques précalculées côté BDD)
+-- ════════════════════════════════════════════════════════════════════
+
+-- Stats clients par statut
+create or replace view public.v_clients_stats as
+  select
+    status,
+    count(*)::int as count,
+    count(*) filter (where created_at > now() - interval '30 days')::int as new_30d
+  from public.clients
+  where deleted_at is null
+  group by status;
+
+-- Stats pipeline opportunités par stage
+create or replace view public.v_pipeline_stats as
+  select
+    stage,
+    count(*)::int as count,
+    coalesce(sum(amount_eur), 0)::numeric(14,2) as total_eur,
+    coalesce(sum(amount_eur * proba / 100), 0)::numeric(14,2) as weighted_eur
+  from public.opportunities
+  where deleted_at is null
+  group by stage;
+
+-- Stats tickets par statut + priorité
+create or replace view public.v_tickets_stats as
+  select
+    status,
+    priority,
+    count(*)::int as count,
+    count(*) filter (where sla_due_at < now() and status in ('open','in_progress','waiting'))::int as sla_overdue
+  from public.tickets
+  where deleted_at is null
+  group by status, priority;
+
+-- Actions à mener par utilisateur
+create or replace view public.v_actions_todo as
+  select
+    assigned_to,
+    count(*)::int as count,
+    count(*) filter (where due_at < now())::int as overdue,
+    count(*) filter (where priority = 'haute')::int as urgent
+  from public.actions
+  where status = 'todo' and deleted_at is null
+  group by assigned_to;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 12.3 DELIVERY_NOTES — Bons de livraison émis par projet
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.delivery_notes (
+  id              text primary key,                     -- "BL-2026-1234"
+  project_id      text not null references public.projects(id) on delete cascade,
+  client_id       text references public.clients(id) on delete set null,
+  number          text not null,                        -- numéro affiché ex "BL-2026-001"
+  status          text default 'draft' check (status in ('draft','sent','signed','refused','cancelled')),
+  delivery_date   date,
+  delivery_address text,
+  delivery_contact text,
+  notes           text,
+  signed_at       timestamptz,
+  signed_by_name  text,
+  signed_by_role  text,
+  signature_url   text,                                  -- URL Supabase Storage de la signature dataURL
+  pdf_url         text,                                  -- URL du PDF généré
+  data            jsonb default '{}'::jsonb,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now(),
+  deleted_at      timestamptz,
+  created_by      uuid references auth.users(id) on delete set null
+);
+create unique index if not exists idx_delivery_notes_number on public.delivery_notes(number) where deleted_at is null;
+create index if not exists idx_delivery_notes_project on public.delivery_notes(project_id) where deleted_at is null;
+create index if not exists idx_delivery_notes_status  on public.delivery_notes(status) where deleted_at is null;
+create index if not exists idx_delivery_notes_created on public.delivery_notes(created_at desc);
+
+drop trigger if exists trg_delivery_notes_touch on public.delivery_notes;
+create trigger trg_delivery_notes_touch before update on public.delivery_notes
+  for each row execute function public.touch_updated_at();
+
+-- Lignes d'un BL : référence à un project_item + qty livrée effective
+create table if not exists public.delivery_note_items (
+  id              uuid primary key default gen_random_uuid(),
+  delivery_note_id text not null references public.delivery_notes(id) on delete cascade,
+  project_item_id uuid references public.project_items(id) on delete set null,
+  designation     text not null,
+  quantity        numeric(10,3) default 1,
+  unit            text default 'u',
+  serial_numbers  text[],                                -- SN livrés
+  verified        boolean default false,                  -- coché par le client à la signature
+  created_at      timestamptz default now()
+);
+create index if not exists idx_delivery_note_items_note on public.delivery_note_items(delivery_note_id);
+
+-- ════════════════════════════════════════════════════════════════════
+-- 12.4 NOTIFICATIONS — Notifications in-app multi-utilisateurs
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.notifications (
+  id            uuid primary key default gen_random_uuid(),
+  recipient_id  uuid references public.profiles(id) on delete cascade,
+  -- Si recipient_id est null → broadcast à tout le monde
+  type          text not null,                          -- "project_stage", "ticket_escalated", "client_proc_collective"…
+  title         text not null,
+  body          text,
+  link          text,                                    -- URL à ouvrir au clic
+  severity      text default 'info' check (severity in ('info','success','warn','error')),
+  read_at       timestamptz,
+  created_at    timestamptz default now(),
+  payload       jsonb default '{}'::jsonb
+);
+create index if not exists idx_notifications_recipient on public.notifications(recipient_id, read_at, created_at desc);
+create index if not exists idx_notifications_unread    on public.notifications(recipient_id) where read_at is null;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 12.5 HELPER : groupes de l'utilisateur courant (après que profile_groups existe)
+-- ════════════════════════════════════════════════════════════════════
+create or replace function public.current_user_groups()
+returns text[]
+language sql
+stable
+as $$
+  select coalesce(array_agg(group_id), '{}'::text[])
+  from public.profile_groups
+  where profile_id = auth.uid()
+$$;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 12.7 PROJECTS — Projets & Livrables (sync depuis Sage Gestion Co 50c)
+-- ════════════════════════════════════════════════════════════════════
+-- Cycle de vie 7 stages :
+--   recu → devis_valide → preparation → pret_livrer → livre → installe → clos
+-- 1 commande Sage = 1 projet Hub. Les lignes produits = project_items.
+-- ════════════════════════════════════════════════════════════════════
+
+create table if not exists public.projects (
+  id              text primary key,                     -- "PRJ-2026-1234" ou ref Sage
+  sage_ref        text unique,                          -- numéro commande Sage (clé d'idempotence)
+  client_id       text references public.clients(id) on delete set null,
+  opp_id          text references public.opportunities(id) on delete set null,
+  contract_id     uuid references public.contracts(id) on delete set null,
+  name            text not null,
+  description     text,
+  stage           text default 'recu' check (stage in ('recu','devis_valide','preparation','pret_livrer','livre','installe','clos','annule')),
+  priority        text default 'normale' check (priority in ('critique','haute','normale','basse')),
+  amount_ht       numeric(14,2),
+  amount_ttc      numeric(14,2),
+  delivery_due    date,                                 -- date de livraison souhaitée
+  delivery_done   date,                                 -- date livraison effective
+  install_done    date,                                 -- date d'installation
+  recette_done    date,                                 -- date de recette client
+  closed_at       timestamptz,
+  pm_id           uuid references public.profiles(id) on delete set null,  -- chef de projet
+  pm_name         text,                                                     -- cache du nom (si profil supprimé)
+  notes           text,
+  data            jsonb default '{}'::jsonb,             -- payload Sage brut + extras
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now(),
+  deleted_at      timestamptz,
+  created_by      uuid references auth.users(id) on delete set null
+);
+create index if not exists idx_projects_stage   on public.projects(stage) where deleted_at is null;
+create index if not exists idx_projects_client  on public.projects(client_id) where deleted_at is null;
+create index if not exists idx_projects_pm      on public.projects(pm_id) where deleted_at is null;
+create index if not exists idx_projects_sage    on public.projects(sage_ref) where deleted_at is null;
+create index if not exists idx_projects_due     on public.projects(delivery_due) where deleted_at is null and delivery_due is not null;
+create index if not exists idx_projects_created on public.projects(created_at desc) where deleted_at is null;
+
+drop trigger if exists trg_projects_touch on public.projects;
+create trigger trg_projects_touch before update on public.projects
+  for each row execute function public.touch_updated_at();
+
+-- ── 12.7.1 PROJECT_ITEMS : lignes produits / livrables d'un projet ──
+create table if not exists public.project_items (
+  id              uuid primary key default gen_random_uuid(),
+  project_id      text not null references public.projects(id) on delete cascade,
+  sage_line_ref   text,                              -- ref ligne Sage si applicable
+  ref_produit     text,                              -- SKU produit Astorya ou Sage
+  designation     text not null,
+  quantity        numeric(10,3) default 1,
+  unit            text default 'u',                  -- u, h, jour, mois, kg…
+  unit_price_ht   numeric(14,2),
+  total_ht        numeric(14,2),
+  delivered_qty   numeric(10,3) default 0,
+  status          text default 'todo' check (status in ('todo','in_progress','delivered','installed','validated','cancelled')),
+  serial_numbers  text[],                             -- numéros de série livrés (matériel IT)
+  notes           text,
+  data            jsonb default '{}'::jsonb,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+create index if not exists idx_project_items_project on public.project_items(project_id);
+create index if not exists idx_project_items_status  on public.project_items(status);
+
+drop trigger if exists trg_project_items_touch on public.project_items;
+create trigger trg_project_items_touch before update on public.project_items
+  for each row execute function public.touch_updated_at();
+
+-- ── 12.7.2 PROJECT_TEAM : équipe affectée à un projet ──
+create table if not exists public.project_team (
+  project_id   text not null references public.projects(id) on delete cascade,
+  profile_id   uuid not null references public.profiles(id) on delete cascade,
+  role         text default 'membre' check (role in ('chef','technicien','livreur','installateur','support','membre')),
+  added_at     timestamptz default now(),
+  primary key (project_id, profile_id)
+);
+create index if not exists idx_project_team_profile on public.project_team(profile_id);
+
+-- ── 12.7.3 PROJECT_EVENTS : historique des actions sur un projet ──
+create table if not exists public.project_events (
+  id           uuid primary key default gen_random_uuid(),
+  project_id   text not null references public.projects(id) on delete cascade,
+  type         text not null,                          -- "stage_change", "comment", "delivery", "assign"…
+  payload      jsonb default '{}'::jsonb,
+  author_id    uuid references public.profiles(id) on delete set null,
+  author_name  text,
+  created_at   timestamptz default now()
+);
+create index if not exists idx_project_events_project on public.project_events(project_id, created_at desc);
+
+-- ════════════════════════════════════════════════════════════════════
+-- 12.6 CONTRACT_TEMPLATES — modèles de contrat avec CGV uploadées en PDF
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists public.contract_templates (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  version     text default 'v1.0',
+  description text,
+  pdf_url     text,        -- URL Supabase Storage du PDF source
+  pdf_size_kb int,
+  cgv_text    text,        -- Texte extrait du PDF (preview HTML)
+  is_default  boolean default false,
+  is_active   boolean default true,
+  deleted_at  timestamptz,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now(),
+  created_by  uuid references auth.users(id) on delete set null
+);
+create index if not exists idx_contract_templates_active on public.contract_templates(is_active) where deleted_at is null;
+create index if not exists idx_contract_templates_default on public.contract_templates(is_default) where deleted_at is null and is_default = true;
+
+drop trigger if exists trg_contract_templates_touch on public.contract_templates;
+create trigger trg_contract_templates_touch before update on public.contract_templates
+  for each row execute function public.touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════
+-- 13. RLS — Row Level Security
+-- ════════════════════════════════════════════════════════════════════
+alter table public.profiles            enable row level security;
+alter table public.groups              enable row level security;
+alter table public.profile_groups      enable row level security;
+alter table public.clients             enable row level security;
+alter table public.contract_templates  enable row level security;
+alter table public.contracts        enable row level security;
+alter table public.assets           enable row level security;
+alter table public.tickets          enable row level security;
+alter table public.comments         enable row level security;
+alter table public.opportunities    enable row level security;
+alter table public.contacts         enable row level security;
+alter table public.actions          enable row level security;
+alter table public.calls            enable row level security;
+alter table public.call_transcripts enable row level security;
+alter table public.projects         enable row level security;
+alter table public.project_items    enable row level security;
+alter table public.project_team     enable row level security;
+alter table public.project_events   enable row level security;
+alter table public.notifications    enable row level security;
+alter table public.delivery_notes   enable row level security;
+alter table public.delivery_note_items enable row level security;
+
+-- Politique : tout user authentifié peut tout faire (les 2 users Astorya
+-- sont co-administrateurs). À durcir plus tard avec current_user_groups()
+-- si on veut isoler les commerciaux des admins/finance.
+do $$
+declare t text;
+begin
+  for t in select unnest(array[
+    'profiles','groups','profile_groups','clients','contract_templates','contracts','assets',
+    'tickets','comments','opportunities','contacts','actions',
+    'calls','call_transcripts',
+    'projects','project_items','project_team','project_events','notifications',
+    'delivery_notes','delivery_note_items'
+  ])
+  loop
+    execute format('drop policy if exists "authenticated_read" on public.%I', t);
+    execute format('drop policy if exists "authenticated_write" on public.%I', t);
+    execute format('drop policy if exists "anon_read" on public.%I', t);
+    execute format('drop policy if exists "anon_write" on public.%I', t);
+    execute format('create policy "authenticated_read" on public.%I for select to authenticated using (true)', t);
+    execute format('create policy "authenticated_write" on public.%I for all to authenticated using (true) with check (true)', t);
+  end loop;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 14. TRIGGER auto-création profil + assignation groupe admin au signup
+-- ════════════════════════════════════════════════════════════════════
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_name text;
+begin
+  v_name := coalesce(new.raw_user_meta_data->>'name', new.email);
+
+  insert into public.profiles (id, email, name, status)
+  values (new.id, new.email, v_name, 'active')
+  on conflict (id) do update set email = excluded.email, name = excluded.name;
+
+  -- Assigne d'office le nouvel user au groupe admin (les 2 users Astorya
+  -- sont co-administrateurs)
+  insert into public.profile_groups (profile_id, group_id)
+  values (new.id, 'admin')
+  on conflict do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- Backfill : profile + groupe admin pour les utilisateurs déjà créés
+insert into public.profiles (id, email, name)
+  select u.id, u.email, coalesce(u.raw_user_meta_data->>'name', u.email)
+  from auth.users u
+  on conflict (id) do nothing;
+insert into public.profile_groups (profile_id, group_id)
+  select u.id, 'admin' from auth.users u
+  on conflict do nothing;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 14.5 STORAGE BUCKET pour les modèles de contrat (PDF uploadés par admin)
+-- ════════════════════════════════════════════════════════════════════
+-- Crée un bucket Supabase Storage 'contract-templates' (public en lecture
+-- pour servir les PDF directement, restreint en écriture aux authenticated).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('contract-templates', 'contract-templates', true, 10485760, ARRAY['application/pdf'])
+  on conflict (id) do update set public = true, file_size_limit = 10485760, allowed_mime_types = ARRAY['application/pdf'];
+
+-- Policies sur storage.objects pour ce bucket
+do $$
+begin
+  drop policy if exists "contract_templates_read"   on storage.objects;
+  drop policy if exists "contract_templates_write"  on storage.objects;
+  create policy "contract_templates_read"
+    on storage.objects for select to public
+    using (bucket_id = 'contract-templates');
+  create policy "contract_templates_write"
+    on storage.objects for all to authenticated
+    using (bucket_id = 'contract-templates')
+    with check (bucket_id = 'contract-templates');
+exception when others then
+  raise notice 'Storage policies skipped : %', SQLERRM;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════
+-- 15. REALTIME — notifications live multi-onglets / multi-agents
+-- ════════════════════════════════════════════════════════════════════
+do $$
+begin
+  begin alter publication supabase_realtime add table public.tickets;      exception when others then null; end;
+  begin alter publication supabase_realtime add table public.comments;     exception when others then null; end;
+  begin alter publication supabase_realtime add table public.actions;      exception when others then null; end;
+  begin alter publication supabase_realtime add table public.opportunities; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.projects;     exception when others then null; end;
+  begin alter publication supabase_realtime add table public.project_items; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.project_events; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.notifications;  exception when others then null; end;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════
+-- FIN — SETUP TERMINÉ
+-- ════════════════════════════════════════════════════════════════════
+-- Vérifications utiles à lancer après :
+--   select count(*) from public.profile_groups;  -- doit > 0
+--   select * from public.v_clients_stats;        -- doit renvoyer 0 rows si vide
+--   select * from public.groups;                 -- doit renvoyer 9 groupes
+-- ════════════════════════════════════════════════════════════════════

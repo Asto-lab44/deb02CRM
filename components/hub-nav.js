@@ -2,21 +2,22 @@
 // Charger en plain JS avant les composants pour qu'ils s'y réfèrent.
 
 (function () {
-  // Map clé module → URL. Les modules sans page dédiée restent à null.
+  // Map clé module → URL. Les modules "Bientôt" pointent vers une page
+  // placeholder qui explique la roadmap. Aucun module ne renvoie à null.
   const ROUTES = {
     home:       "/",
     crm:        "/crm",
     intel:      "/intelligence-concurrentielle",
-    marketing:  null,
+    marketing:  "/marketing",
     tech:       "/ticketing",
-    projects:   null,
-    inventory:  null,
-    accounting: null,
-    billing:    null,
-    treasury:   null,
-    hr:         null,
-    time:       null,
-    reports:    null,
+    projects:   "/projets",
+    inventory:  "/stock",
+    accounting: "/comptabilite",
+    billing:    "/facturation",
+    treasury:   "/tresorerie",
+    hr:         "/ressources-humaines",
+    time:       "/temps-activites",
+    reports:    "/rapports",
     settings:   "/administration-utilisateurs",
     // pages d'appoint
     client:     "/fiche-client",

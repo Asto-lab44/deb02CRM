@@ -21,7 +21,7 @@ const BattleCard = () => {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span style={bcStyles.badge}>Concurrent #1</span>
               <span style={bcStyles.badgeSecondary}>Threat level: élevé</span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>Mise à jour il y a 4 j par Claire Renaud</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>Mise à jour il y a 4 j par Romain Daviaud</span>
             </div>
             <h1 style={bcStyles.h1}>Salesforce</h1>
             <p style={bcStyles.subtitle}>Sales Cloud, Service Cloud, Financial Services Cloud — leader US implanté en France depuis 2008</p>
@@ -96,7 +96,24 @@ const BattleCard = () => {
             <h3 style={bcStyles.h3}>Objections fréquentes & reformulations</h3>
             <p style={bcStyles.h3sub}>Réponses validées équipe à utiliser en RDV</p>
           </div>
-          <button onClick={() => alert("Ajouter une objection : sera persistée dans Supabase prochainement.")} style={{ ...bcStyles.smBtn, cursor: "pointer" }}>+ Ajouter</button>
+          <button onClick={async () => {
+            const obj = window.HubModal
+              ? await window.HubModal.prompt({ title: "Ajouter une objection", label: "Objection client", placeholder: "ex : Salesforce a déjà nos workflows…", multiline: true })
+              : prompt("Nouvelle objection client :");
+            if (!obj || !obj.trim()) return;
+            const ans = window.HubModal
+              ? await window.HubModal.prompt({ title: "Réponse à l'objection", label: "Réponse validée équipe", placeholder: "Différenciants Astorya à mettre en avant…", multiline: true, okLabel: "Sauvegarder" })
+              : prompt("Réponse validée à donner :");
+            if (!ans || !ans.trim()) return;
+            try {
+              const key = "hubAstorya.battlecard.objections.v1";
+              const arr = JSON.parse(localStorage.getItem(key) || "[]");
+              arr.push({ obj: obj.trim(), ans: ans.trim(), at: new Date().toISOString() });
+              localStorage.setItem(key, JSON.stringify(arr));
+              if (window.HubToast) window.HubToast.success("✓ Objection ajoutée");
+              setTimeout(() => window.location.reload(), 800);
+            } catch (e) { alert("Erreur : " + e.message); }
+          }} style={{ ...bcStyles.smBtn, cursor: "pointer" }}>+ Ajouter</button>
         </div>
         <div style={bcStyles.objList}>
           {[

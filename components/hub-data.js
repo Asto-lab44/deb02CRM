@@ -1,10 +1,36 @@
-// Couche d'accès aux données Supabase pour le Hub Astorya.
-// Charge groupes, clients, contrats, tickets, parc IT et appels depuis la
-// base si elle est configurée. Sinon retourne null (les composants gardent
-// alors leurs données inline de maquette comme fallback gracieux).
+// ════════════════════════════════════════════════════════════════════
+// Hub Astorya — Data layer Supabase pour le ticketing (HubData)
+// ════════════════════════════════════════════════════════════════════
 //
-// Toutes les fonctions sont async et renvoient un objet { data, error } à
-// la mode Supabase pour faciliter le matching.
+// Distinct de window.api (qui gère CRM : clients/opps/contacts/actions/contrats).
+// Ce module est dédié au TICKETING et aux ressources spécifiques au support :
+// tickets, comments, profiles, calls, transcripts.
+//
+// SOMMAIRE
+//   §1. Helpers internes      (supa, listeners, cache, flattenClient)
+//   §2. Reads (fetch...)      → fetchGroups, fetchClients, fetchTickets,
+//                                fetchTicketById, fetchProfiles,
+//                                fetchCommentsByTicket
+//   §3. Mutations             → createTicket, updateTicket, escalateTicket,
+//                                createComment, recordCall, saveTranscript
+//   §4. Realtime              → subscribeChanges, subscribeCommentsForTicket
+//                                (notifs live multi-onglets / multi-agents)
+//   §5. Export window.HubData
+//
+// FORMAT DE RETOUR
+//   Toutes les méthodes async renvoient { data, error } à la Supabase.
+//   - data : la donnée demandée (objet/array) ou null
+//   - error : { message } ou null
+//
+// CACHE
+//   - cache.tickets, cache.clients : mémorise le dernier fetch en mémoire
+//   - invalidate(name) : reset le cache d'une ressource (appelé après mutate)
+//
+// USAGE
+//   const { data, error } = await window.HubData.fetchTickets({ limit: 50 })
+//   const off = window.HubData.subscribeChanges(() => reload())
+//   await window.HubData.createTicket({ id, title, client_id, priority, … })
+// ════════════════════════════════════════════════════════════════════
 
 (function () {
   const supa = (typeof window !== "undefined" && window.HubSupabase && window.HubSupabase.enabled)
@@ -97,7 +123,7 @@
   async function fetchProfiles() {
     if (!supa) return { data: null, error: null };
     const { data, error } = await supa.from("profiles")
-      .select("id, name, role, team, email")
+      .select("id, name, role, team, email, extension_3cx")
       .eq("status", "active")
       .order("name");
     return { data, error };
@@ -183,16 +209,25 @@
   }
 
   // ─── Realtime (subscribe to changes) ──────────────────────────────
+  // Couvre tickets/comments (support) ET clients/opportunities/contacts/
+  // actions/contracts (CRM) → toute mutation côté serveur déclenche le
+  // callback `fn`, qui peut alors recharger les listes affichées.
   function subscribeChanges(fn) {
     listeners.add(fn);
     if (!supa) return () => listeners.delete(fn);
 
-    const channel = supa.channel("hub-data")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" },  () => invalidate("tickets"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, () => invalidate("tickets"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "groups" },   () => invalidate("groups"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "clients" },  () => invalidate("clients"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "assets" },   () => invalidate("assets"))
+    const channel = supa.channel("hub-data-" + Math.random().toString(36).slice(2, 8))
+      // Support
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" },       () => invalidate("tickets"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments" },      () => invalidate("tickets"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "groups" },        () => invalidate("groups"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "clients" },       () => invalidate("clients"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "assets" },        () => invalidate("assets"))
+      // CRM
+      .on("postgres_changes", { event: "*", schema: "public", table: "opportunities" }, () => notify())
+      .on("postgres_changes", { event: "*", schema: "public", table: "contacts" },      () => notify())
+      .on("postgres_changes", { event: "*", schema: "public", table: "actions" },       () => notify())
+      .on("postgres_changes", { event: "*", schema: "public", table: "contracts" },     () => notify())
       .subscribe();
     return () => {
       listeners.delete(fn);

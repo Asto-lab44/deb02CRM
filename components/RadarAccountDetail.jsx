@@ -156,8 +156,8 @@ const RadarAccountDetail = () => {
                 { done: true, who: "Nadia Lefèvre", when: "21 mai", title: "Connexion LinkedIn Élise Vasseur", desc: "Acceptée. Envoyer message ressources DORA." },
                 { done: true, who: "Nadia Lefèvre", when: "24 mai", title: "Brief équipe + génération battle card", desc: "Battle card SF mise à jour, équipe pré-vente alertée." },
                 { active: true, who: "Nadia Lefèvre", when: "28 mai", title: "Premier RDV — Pitch DORA + différenciants", desc: "14h00 visio · 30 min. Préparer : démo Cyber, calcul TCO comparatif, témoignage Crédit Mutuel Océan." },
-                { who: "Karim Ben Salah", when: "06 juin", title: "Réponse RFP", desc: "Date butoir : 18 juillet (avant échéance contrat SF — possible négociation reconduction)." },
-                { who: "Claire Renaud", when: "12 juin", title: "Date pivot — fin contrat SF", desc: "Disponibilité immédiate Astorya garantie en SLA." },
+                { who: "Romain Daviaud", when: "06 juin", title: "Réponse RFP", desc: "Date butoir : 18 juillet (avant échéance contrat SF — possible négociation reconduction)." },
+                { who: "Augustin Morin", when: "12 juin", title: "Date pivot — fin contrat SF", desc: "Disponibilité immédiate Astorya garantie en SLA." },
               ].map((s, i) => (
                 <div key={i} style={{ ...radStyles.step, ...(s.active ? radStyles.stepActive : {}), ...(s.done ? radStyles.stepDone : {}) }}>
                   <div style={{
@@ -199,9 +199,9 @@ const RadarAccountDetail = () => {
               <button style={radStyles.iconMini}>✉</button>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid #f1f5f9" }}>
-              <Avatar name="Karim Ben Salah" size={28} color="#6366f1" />
+              <Avatar name="Romain Daviaud" size={28} color="#6366f1" />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>Karim Ben Salah</div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Romain Daviaud</div>
                 <div style={{ fontSize: 11, color: "#94a3b8" }}>Avant-vente Cyber</div>
               </div>
             </div>

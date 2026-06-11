@@ -28,29 +28,29 @@ var NewProspect = () => {
   var [projectDate, setProjectDate] = React.useState("");
   var [concurrent, setConcurrent] = React.useState("");
   var [concurrentAmount, setConcurrentAmount] = React.useState("");
-  var [owner, setOwner] = React.useState({
-    name: "Karim Ben Salah",
-    role: "AE Senior · Cyber — région SE",
-    color: "#6366f1"
-  });
-  var [ownerMenu, setOwnerMenu] = React.useState(false);
+  // Owner par défaut : l'utilisateur connecté (récupéré via HubAccess)
   var ownerList = [{
-    name: "Nadia Lefèvre",
-    role: "AE Senior · EMEA",
+    name: "Romain Daviaud",
+    role: "Super Admin",
+    color: "#4f46e5"
+  }, {
+    name: "Augustin Morin",
+    role: "Super Admin",
     color: "#a855f7"
-  }, {
-    name: "Karim Ben Salah",
-    role: "AE Senior · Cyber — région SE",
-    color: "#6366f1"
-  }, {
-    name: "Tom Verdier",
-    role: "AE Hub",
-    color: "#f59e0b"
-  }, {
-    name: "Émilie Garnier",
-    role: "AE BENELUX",
-    color: "#10b981"
   }];
+  var initialOwner = (() => {
+    try {
+      var u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+      if (u && u.name) return {
+        name: u.name,
+        role: u.role || "—",
+        color: "#4f46e5"
+      };
+    } catch (e) {}
+    return ownerList[0];
+  })();
+  var [owner, setOwner] = React.useState(initialOwner);
+  var [ownerMenu, setOwnerMenu] = React.useState(false);
   React.useEffect(() => {
     if (!ownerMenu) return;
     var close = () => setOwnerMenu(false);
@@ -76,6 +76,8 @@ var NewProspect = () => {
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
   var [companyName, setCompanyName] = React.useState("");
   var [companySiren, setCompanySiren] = React.useState("");
+  // Résultat du check BODACC procédure collective (persisté en clients.data)
+  var [procedureCheck, setProcedureCheck] = React.useState(null);
   // Computed : doublons potentiels
   var duplicates = React.useMemo(() => {
     if (!allClients || allClients.length === 0) return [];
@@ -288,6 +290,8 @@ var NewProspect = () => {
     besoin,
     notes,
     tags,
+    // Statut BODACC procédure collective (auto-checké au moment de la création)
+    procedure_collective: procedureCheck,
     owner: owner.name,
     owner_role: owner.role,
     owner_color: owner.color,
@@ -594,6 +598,8 @@ var NewProspect = () => {
     style: npStyles.body
   }, /*#__PURE__*/React.createElement("div", {
     style: npStyles.formCol
+  }, /*#__PURE__*/React.createElement("div", {
+    style: npStyles.pairGrid
   }, /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
@@ -680,41 +686,62 @@ var NewProspect = () => {
         fontWeight: 700
       }
     }, "\u21B5"));
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.formGrid3
-  }, /*#__PURE__*/React.createElement(FormRow, {
-    label: "SIREN",
-    required: true
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    },
-    value: companySiren,
-    onChange: e => {
-      setCompanySiren(e.target.value);
-      var t = computeTva(e.target.value);
-      if (t) setCompanyTva(t);
-    }
-  })), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Code NAF"
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    },
-    value: companyNaf,
-    onChange: e => setCompanyNaf(e.target.value)
-  })), /*#__PURE__*/React.createElement(FormRow, {
-    label: "TVA intracom."
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    },
-    value: companyTva,
-    onChange: e => setCompanyTva(e.target.value)
-  }))), /*#__PURE__*/React.createElement("div", {
+  })))), (() => {
+    var V = window.HubValidators;
+    var sirenErr = V && V.siren(companySiren);
+    return /*#__PURE__*/React.createElement("div", {
+      style: npStyles.formGrid3
+    }, /*#__PURE__*/React.createElement(FormRow, {
+      label: "SIREN",
+      required: true
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        fontFamily: "'JetBrains Mono', monospace",
+        ...(sirenErr ? V.errorStyle(sirenErr) : {})
+      },
+      value: companySiren,
+      placeholder: "9 chiffres",
+      onChange: e => {
+        setCompanySiren(e.target.value);
+        var t = computeTva(e.target.value);
+        if (t) setCompanyTva(t);
+      }
+    }), sirenErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(sirenErr)
+    }, sirenErr.message), window.ProcedureBadge && !sirenErr && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
+      }
+    }, /*#__PURE__*/React.createElement(ProcedureBadge, {
+      siren: companySiren,
+      autoCheck: true,
+      onChange: r => setProcedureCheck(r),
+      compact: false
+    }))), /*#__PURE__*/React.createElement(FormRow, {
+      label: "Code NAF"
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        fontFamily: "'JetBrains Mono', monospace"
+      },
+      value: companyNaf,
+      onChange: e => setCompanyNaf(e.target.value)
+    })), /*#__PURE__*/React.createElement(FormRow, {
+      label: "TVA intracom."
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        fontFamily: "'JetBrains Mono', monospace",
+        ...(V && V.tva(companyTva) ? V.errorStyle(V.tva(companyTva)) : {})
+      },
+      value: companyTva,
+      placeholder: "FR12345678901",
+      onChange: e => setCompanyTva(e.target.value)
+    }), V && V.tva(companyTva) && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(V.tva(companyTva))
+    }, V.tva(companyTva).message)));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Secteur d'activit\xE9",
@@ -914,52 +941,67 @@ var NewProspect = () => {
       ...(fonction === v ? npStyles.segBtnActive : {}),
       cursor: "pointer"
     }
-  }, v))))), /*#__PURE__*/React.createElement("div", {
-    style: npStyles.formGrid2
-  }, /*#__PURE__*/React.createElement(FormRow, {
-    label: "Email pro",
-    required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.inputWithIcon
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, "\u2709"), /*#__PURE__*/React.createElement("input", {
-    type: "email",
-    style: {
-      ...npStyles.input,
-      border: "none",
-      padding: 0,
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 12.5
-    },
-    value: contactEmail,
-    onChange: e => setContactEmail(e.target.value)
-  }), /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) && /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...npStyles.linkTag,
-      color: "#10b981"
-    }
-  }, "\u2713 Format ok"))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "T\xE9l\xE9phone"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: npStyles.inputWithIcon
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, "\u260E"), /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...npStyles.input,
-      border: "none",
-      padding: 0,
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 12.5
-    },
-    value: contactPhone,
-    onChange: e => setContactPhone(e.target.value)
-  })))), /*#__PURE__*/React.createElement(FormRow, {
+  }, v))))), (() => {
+    var V = window.HubValidators;
+    var emailErr = V && V.email(contactEmail);
+    var phoneErr = V && V.phone(contactPhone);
+    return /*#__PURE__*/React.createElement("div", {
+      style: npStyles.formGrid2
+    }, /*#__PURE__*/React.createElement(FormRow, {
+      label: "Email pro",
+      required: true
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...npStyles.inputWithIcon,
+        ...(emailErr ? V.errorStyle(emailErr) : {})
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u2709"), /*#__PURE__*/React.createElement("input", {
+      type: "email",
+      style: {
+        ...npStyles.input,
+        border: "none",
+        padding: 0,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 12.5
+      },
+      value: contactEmail,
+      onChange: e => setContactEmail(e.target.value)
+    }), !emailErr && contactEmail && /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...npStyles.linkTag,
+        color: "#10b981"
+      }
+    }, "\u2713 Format ok")), emailErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(emailErr)
+    }, emailErr.message)), /*#__PURE__*/React.createElement(FormRow, {
+      label: "T\xE9l\xE9phone"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...npStyles.inputWithIcon,
+        ...(phoneErr ? V.errorStyle(phoneErr) : {})
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u260E"), /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...npStyles.input,
+        border: "none",
+        padding: 0,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 12.5
+      },
+      value: contactPhone,
+      onChange: e => setContactPhone(e.target.value)
+    })), phoneErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(phoneErr)
+    }, phoneErr.message)));
+  })(), /*#__PURE__*/React.createElement(FormRow, {
     label: "R\xF4le dans le projet",
     subtitle: "Quelle place dans la d\xE9cision d'achat ?"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1074,7 +1116,9 @@ var NewProspect = () => {
     style: npStyles.input,
     value: c.phone,
     onChange: e => updateExtraContact(i, "phone", e.target.value)
-  })))))), /*#__PURE__*/React.createElement("section", {
+  }))))))), /*#__PURE__*/React.createElement("div", {
+    style: npStyles.pairGrid
+  }, /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
@@ -1323,8 +1367,13 @@ var NewProspect = () => {
       marginLeft: 2
     }
   }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var v = prompt("Nouvelle étiquette :");
+    onClick: async () => {
+      var v = window.HubModal ? await window.HubModal.prompt({
+        title: "Nouvelle étiquette",
+        label: "Tag",
+        placeholder: "ex : Hot prospect Q2",
+        okLabel: "Ajouter"
+      }) : prompt("Nouvelle étiquette :");
       if (v && v.trim()) setTags(arr => [...arr, v.trim()]);
     },
     style: {
@@ -1340,7 +1389,7 @@ var NewProspect = () => {
     value: notes,
     onChange: e => setNotes(e.target.value),
     placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026"
-  }))), /*#__PURE__*/React.createElement("div", {
+  })))), /*#__PURE__*/React.createElement("div", {
     style: npStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: cancel,
@@ -1736,7 +1785,7 @@ var FormRow = ({
 }, subtitle)), children);
 var npStyles = {
   frame: {
-    width: 1440,
+    minWidth: 1280,
     background: "#fafbfc",
     fontFamily: "'Inter', system-ui, sans-serif",
     color: "#0f172a",
@@ -1822,7 +1871,7 @@ var npStyles = {
   },
   body: {
     display: "grid",
-    gridTemplateColumns: "1fr 340px",
+    gridTemplateColumns: "1fr 320px",
     gap: 0,
     padding: 20,
     gridAutoRows: "min-content"
@@ -1833,8 +1882,14 @@ var npStyles = {
     gap: 14,
     paddingRight: 14
   },
+  pairGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    alignItems: "start"
+  },
   section: {
-    padding: 20,
+    padding: 18,
     background: "#fff",
     border: "1px solid #eef1f5",
     borderRadius: 12

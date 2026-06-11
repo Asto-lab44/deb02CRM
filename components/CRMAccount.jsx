@@ -38,7 +38,7 @@ const CRMAccount = () => {
       body: "Email à fort signal d'achat (3 questions techniques précises, mention « enthousiasme Direction »). Je recommande de répondre dans la journée. J'ai pré-rempli un brouillon citant les pages 12-14 de la proposition pour les points 1 et 2.",
       actions: ["Ouvrir le brouillon", "Ignorer"],
     },
-    { type: "call", at: "09:18", title: "Appel sortant — 22 min", who: "Karim Ben Salah → Antoine Mercier (CISO)", note: "Validation du périmètre sécurité. Ouvert à un POC sur 50 utilisateurs.", color: "#10b981" },
+    { type: "call", at: "09:18", title: "Appel sortant — 22 min", who: "Romain Daviaud → Antoine Mercier (CISO)", note: "Validation du périmètre sécurité. Ouvert à un POC sur 50 utilisateurs.", color: "#10b981" },
     { type: "divider", label: "Hier · lun. 25 mai" },
     { type: "note", at: "16:30", who: "Nadia Lefèvre", title: "Note privée", body: "Sentiment positif côté Direction. Le CFO veut voir le ROI à 18 mois. Préparer slide dédié pour jeudi.", color: "#64748b" },
     {
@@ -391,8 +391,8 @@ const CRMAccount = () => {
                 } />
                 <Field label="Co-owner" value={
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <Avatar name="Karim Ben Salah" size={20} color="#6366f1" />
-                    <span style={{ fontSize: 12.5, fontWeight: 500 }}>Karim Ben Salah</span>
+                    <Avatar name="Romain Daviaud" size={20} color="#6366f1" />
+                    <span style={{ fontSize: 12.5, fontWeight: 500 }}>Romain Daviaud</span>
                   </div>
                 } />
                 <Field label="Source" value={<span style={accStyles.fieldChip}>Salon Finovate Paris</span>} />

@@ -1,13 +1,48 @@
-// Page d'accueil ERP — tuiles des modules (filtrées par le groupe actif)
+// ════════════════════════════════════════════════════════════════════
+// ERPHome — Page d'accueil de l'ERP (route : /)
+// ════════════════════════════════════════════════════════════════════
+//
+// Affiche :
+//  - Sidebar avec navigation, user actif, switcher de groupe
+//  - Topbar avec recherche globale (clients + opportunités)
+//  - Hero "Bonjour {prénom}" + KPI live (clients, opps, signées)
+//  - Grille de tuiles ERP filtrée par les droits du groupe actif
+//  - Panel "Mes actions à mener" depuis api.actions
+//
+// État principal :
+//  - activeGroup, allGroups, localUser : lus depuis HubAccess au mount
+//  - supaUser : email Supabase fetched async (api.auth.getUser)
+//  - crmStats : compteurs en live (api.clients.list + api.opportunities.list)
+//  - actionsTodo : actions status="todo" (api.actions.list)
+//  - searchQ + searchData : barre de recherche globale
+//
+// Le filtre `allowedKeys` = Set des modules autorisés pour le groupe actif.
+// Les tuiles dont la clé n'est pas dans allowedKeys sont masquées.
+// ════════════════════════════════════════════════════════════════════
 
 const ERPHome = () => {
-  // Identité active + accès aux tuiles, partagés avec la page Administration.
-  // useSyncExternalStore re-render dès qu'un toggle d'accès change l'état.
-  const subscribe = React.useCallback((fn) => window.HubAccess.subscribe(fn), []);
-  const activeGroup = React.useSyncExternalStore(subscribe, () => window.HubAccess.getActiveGroup());
-  const allowedKeys = React.useMemo(() => new Set(activeGroup.access), [activeGroup]);
-  const allGroups = React.useSyncExternalStore(subscribe, () => window.HubAccess.loadGroups());
-  const localUser = React.useSyncExternalStore(subscribe, () => window.HubAccess.getCurrentUser());
+  // Lecture une seule fois au mount. La session Supabase est récupérée dans
+  // un useEffect séparé avec un setTimeout pour laisser le temps à
+  // _supaSession d'être peuplée. Pas de subscribe → pas de risque de boucle.
+  const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
+  const defaultGroup = { id: "admin", name: "Administrateurs", color: "#dc2626", access: ["crm","intel","marketing","tech","projects","inventory","accounting","billing","treasury","hr","time","reports","settings"] };
+  const [activeGroup, setActiveGroup] = React.useState(() => (HA && HA.getActiveGroup && HA.getActiveGroup()) || defaultGroup);
+  const [allGroups, setAllGroups] = React.useState(() => (HA && HA.loadGroups && HA.loadGroups()) || []);
+  const [localUser, setLocalUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
+  React.useEffect(() => {
+    if (!HA) return;
+    // Laisser 200ms pour que _supaSession soit peuplé après getSession()
+    const t = setTimeout(() => {
+      const ag = HA.getActiveGroup && HA.getActiveGroup();
+      const lg = HA.loadGroups && HA.loadGroups();
+      const lu = HA.getCurrentUser && HA.getCurrentUser();
+      if (ag) setActiveGroup(ag);
+      if (lg) setAllGroups(lg);
+      if (lu) setLocalUser(lu);
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
+  const allowedKeys = React.useMemo(() => new Set(activeGroup.access || []), [activeGroup]);
   // Identité Supabase réelle si dispo, sinon fallback access-store
   const [supaUser, setSupaUser] = React.useState(null);
   React.useEffect(() => {
@@ -59,21 +94,29 @@ const ERPHome = () => {
     });
     return results.slice(0, 10);
   }, [searchQ, searchData]);
+  // Stats + actions todo. Re-fetch automatique sur changement BDD (realtime
+  // multi-onglets) via HubData.subscribeChanges.
   React.useEffect(() => {
     if (!window.api) return;
-    Promise.all([
-      window.api.clients.list(),
-      window.api.opportunities.list(),
-      window.api.actions.list({ status: "todo" }),
-    ]).then(([clients, opps, todos]) => {
-      const won = (opps || []).filter((o) => o.stage === "won").length;
-      setCrmStats({
-        clients: (clients || []).length,
-        opps: (opps || []).length,
-        won,
-      });
-      setActionsTodo(todos || []);
-    }).catch(() => {});
+    const reload = () => {
+      Promise.all([
+        window.api.clients.list(),
+        window.api.opportunities.list(),
+        window.api.actions.list({ status: "todo" }),
+      ]).then(([clients, opps, todos]) => {
+        const won = (opps || []).filter((o) => o.stage === "won").length;
+        setCrmStats({
+          clients: (clients || []).length,
+          opps: (opps || []).length,
+          won,
+        });
+        setActionsTodo(todos || []);
+      }).catch(() => {});
+    };
+    reload();
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reload);
+    }
   }, []);
 
   const modules = [
@@ -374,6 +417,7 @@ const ERPHome = () => {
             </div>
             <button
               onClick={async () => {
+                if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return;
                 if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
                 if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
                 window.location.href = "/login";
@@ -404,38 +448,37 @@ const ERPHome = () => {
           </div>
         </header>
 
-        {/* HERO greeting */}
+        {/* HERO greeting + Pouls du jour fusionnés (banner horizontal) */}
         <section style={erpStyles.hero}>
           <div style={erpStyles.heroGlow1} />
           <div style={erpStyles.heroGlow2} />
 
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 6, fontWeight: 500 }}>Bonjour {currentUser ? currentUser.name.split(" ")[0].split("@")[0] : ""} — voici votre tableau de bord</div>
-            <h1 style={erpStyles.heroH1}>{(() => { const h = new Date().getHours(); return h < 12 ? "Bonne matinée" : h < 18 ? "Bon après-midi" : "Bonne soirée"; })()}<span style={{ color: "#a78bfa" }}>.</span></h1>
-            <p style={erpStyles.heroSub}>{crmStats.opps} opportunité{crmStats.opps > 1 ? "s" : ""} en cours · {crmStats.clients} compte{crmStats.clients > 1 ? "s" : ""} en base</p>
+          <div style={erpStyles.heroInner}>
+            <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.65)", marginBottom: 4, fontWeight: 500 }}>Bonjour {currentUser ? currentUser.name.split(" ")[0].split("@")[0] : ""} — voici votre tableau de bord</div>
+              <h1 style={erpStyles.heroH1}>{(() => { const h = new Date().getHours(); return h < 12 ? "Bonne matinée" : h < 18 ? "Bon après-midi" : "Bonne soirée"; })()}<span style={{ color: "#a78bfa" }}>.</span></h1>
+              <p style={erpStyles.heroSub}>{crmStats.opps} opportunité{crmStats.opps > 1 ? "s" : ""} en cours · {crmStats.clients} compte{crmStats.clients > 1 ? "s" : ""} en base</p>
+            </div>
 
-          </div>
-        </section>
-
-        {/* Today's pulse — KPI strip */}
-        <section style={erpStyles.pulseRow}>
-          <div style={erpStyles.pulseHead}>
-            <h2 style={erpStyles.h2}>Pouls du jour</h2>
-            <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>● Live</span>
-          </div>
-          <div style={erpStyles.pulseGrid}>
-            {[
-              { k: "Comptes", v: String(crmStats.clients), color: "#4f46e5" },
-              { k: "Opportunités", v: String(crmStats.opps), color: "#a855f7" },
-              { k: "Signées", v: String(crmStats.won), color: "#10b981" },
-            ].map((p) => (
-              <div key={p.k} style={erpStyles.pulse}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>{p.k}</span>
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", letterSpacing: -0.4, marginTop: 4 }}>{p.v}</div>
+            {/* Pouls du jour — KPI inline à droite */}
+            <div style={erpStyles.heroPulse}>
+              <div style={erpStyles.heroPulseHead}>
+                <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.6)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>Pouls du jour</span>
+                <span style={{ fontSize: 10, color: "#34d399", fontWeight: 700 }}>● LIVE</span>
               </div>
-            ))}
+              <div style={erpStyles.heroPulseGrid}>
+                {[
+                  { k: "Comptes", v: String(crmStats.clients) },
+                  { k: "Opportunités", v: String(crmStats.opps) },
+                  { k: "Signées", v: String(crmStats.won) },
+                ].map((p) => (
+                  <div key={p.k} style={erpStyles.heroPulseCell}>
+                    <div style={erpStyles.heroPulseV}>{p.v}</div>
+                    <div style={erpStyles.heroPulseK}>{p.k}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -449,7 +492,7 @@ const ERPHome = () => {
           </div>
 
           {categories.map((cat) => (
-            <div key={cat} style={{ marginBottom: 22 }}>
+            <div key={cat} style={{ marginBottom: 16 }}>
               <div style={erpStyles.catHead}>
                 <span style={erpStyles.catLabel}>{cat}</span>
                 <span style={erpStyles.catLine} />
@@ -559,9 +602,9 @@ const MiniSparkline = ({ data, color, w = 50, h = 18 }) => {
 };
 
 const erpStyles = {
-  frame: { width: 1440, display: "flex", background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", minHeight: 1700 },
+  frame: { minWidth: 1280, display: "flex", background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", minHeight: "100vh" },
 
-  sidebar: { width: 248, background: "#fff", borderRight: "1px solid #eef1f5", display: "flex", flexDirection: "column", padding: "16px 12px", gap: 14, flexShrink: 0, position: "sticky", top: 0, height: "100vh", minHeight: 1700 },
+  sidebar: { width: 248, background: "#fff", borderRight: "1px solid #eef1f5", display: "flex", flexDirection: "column", padding: "16px 12px", gap: 14, flexShrink: 0, position: "sticky", top: 0, height: "100vh" },
   brandRow: { display: "flex", alignItems: "center", gap: 10, padding: "2px 4px" },
   logo: { width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 50%, #312e81 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(67,56,202,0.3)" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 15, letterSpacing: -0.5 },
@@ -582,12 +625,20 @@ const erpStyles = {
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", fontSize: 13, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" },
   notifDot: { position: "absolute", top: 6, right: 7, width: 6, height: 6, background: "#dc2626", borderRadius: 999, border: "1.5px solid #fff" },
 
-  // Hero
-  hero: { margin: "20px 28px 16px", padding: "30px 32px", borderRadius: 18, background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4338ca 100%)", color: "#fff", position: "relative", overflow: "hidden" },
+  // Hero (banner horizontal greeting + KPI)
+  hero: { margin: "18px 28px 14px", padding: "22px 28px", borderRadius: 16, background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4338ca 100%)", color: "#fff", position: "relative", overflow: "hidden" },
+  heroInner: { position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" },
   heroGlow1: { position: "absolute", top: -80, right: -40, width: 280, height: 280, borderRadius: 999, background: "radial-gradient(circle, rgba(168,85,247,0.35), transparent 65%)", pointerEvents: "none" },
   heroGlow2: { position: "absolute", bottom: -60, left: 200, width: 240, height: 240, borderRadius: 999, background: "radial-gradient(circle, rgba(79,70,229,0.4), transparent 65%)", pointerEvents: "none" },
-  heroH1: { fontSize: 38, fontWeight: 700, letterSpacing: -1.2, margin: 0, color: "#fff", lineHeight: 1.05 },
-  heroSub: { fontSize: 14, color: "rgba(255,255,255,0.75)", margin: "10px 0 0", lineHeight: 1.5 },
+  heroH1: { fontSize: 30, fontWeight: 700, letterSpacing: -1, margin: 0, color: "#fff", lineHeight: 1.05 },
+  heroSub: { fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "8px 0 0", lineHeight: 1.5 },
+
+  heroPulse: { position: "relative", zIndex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "12px 16px", backdropFilter: "blur(8px)", minWidth: 360 },
+  heroPulseHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  heroPulseGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },
+  heroPulseCell: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
+  heroPulseV: { fontSize: 22, fontWeight: 700, color: "#fff", letterSpacing: -0.5, lineHeight: 1 },
+  heroPulseK: { fontSize: 10, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600, marginTop: 4 },
   quickActions: { display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap", alignItems: "center" },
   quickBtn: { padding: "7px 14px", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", borderRadius: 8, fontSize: 12.5, cursor: "pointer", fontWeight: 500, backdropFilter: "blur(8px)" },
   quickBtnPrimary: { background: "#fff", color: "#0f172a", border: "1px solid #fff", fontWeight: 600 },
@@ -602,8 +653,8 @@ const erpStyles = {
   pulse: { padding: "14px 16px", background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
 
   // Modules
-  modulesSection: { padding: "20px 28px 14px" },
-  sectionHead: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 18 },
+  modulesSection: { padding: "8px 28px 14px" },
+  sectionHead: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 14 },
   viewBtn: { padding: "5px 10px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#64748b", cursor: "pointer", fontWeight: 500 },
   viewBtnActive: { background: "#0f172a", color: "#fff", borderColor: "#0f172a" },
 
@@ -612,8 +663,8 @@ const erpStyles = {
   catLine: { flex: 1, height: 1, background: "#eef1f5" },
   catCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
 
-  tiles: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },
-  tile: { padding: 18, background: "#fff", border: "1px solid #eef1f5", borderRadius: 14, cursor: "pointer", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 14, minHeight: 200 },
+  tiles: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 },
+  tile: { padding: 16, background: "#fff", border: "1px solid #eef1f5", borderRadius: 14, cursor: "pointer", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 12, minHeight: 178 },
   tileGlow: { position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: 999, opacity: 0.5, pointerEvents: "none" },
   tileIcon: { width: 44, height: 44, borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   tileBadge: { fontSize: 10, padding: "2px 7px", borderRadius: 4, fontWeight: 700, letterSpacing: 0.3 },

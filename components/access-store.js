@@ -1,10 +1,41 @@
-// Shared access/identity store for the Hub Astorya design canvas.
-// Plain JS (no JSX) so it loads synchronously before the Babel-transformed
-// component scripts. State is persisted in localStorage; subscribers are
-// notified whenever groups or the active identity change so React views can
-// re-render via useSyncExternalStore.
+// ════════════════════════════════════════════════════════════════════
+// Hub Astorya — Store d'identité et de droits (HubAccess)
+// ════════════════════════════════════════════════════════════════════
+//
+// SOMMAIRE
+//   §1. Constants     : ALL_KEYS (modules ERP), DEFAULT_GROUPS (9 groupes seed)
+//   §2. USERS         : tableau démo (sera remplacé par une lecture BDD à terme)
+//   §3. Storage       : caches localStorage (groups, activeGroup, session, transcripts)
+//   §4. Listeners     : système subscribe/emit pour les re-renders React
+//   §5. Groups API    : loadGroups, saveGroups, getActiveGroup, setActiveGroupId
+//   §6. Transcripts   : retranscriptions d'appel 3CX rattachées à un ticket
+//   §7. Session       : getCurrentUser (Supabase OR localStorage demo), login, logout
+//   §8. resetAll      : purge complète localStorage (utilisé par le bouton Reset)
+//   §9. Export window.HubAccess
+//
+// ARCHITECTURE
+//   - Plain JS (pas de JSX) → loadé en SYNC avant les composants React.
+//   - State persisté en localStorage. Les composants React s'abonnent via
+//     useSyncExternalStore(subscribe, () => HubAccess.getCurrentUser()).
+//   - Cache des refs : chaque getter (getCurrentUser, getActiveGroup, loadGroups)
+//     renvoie la MÊME référence tant que rien n'a changé → snapshot stable pour
+//     useSyncExternalStore (cf React error #185).
+//   - emit() est déclenché à chaque mutation (saveGroups, login, logout, …) et
+//     invalide tous les caches.
+//
+// USAGE
+//   const user = window.HubAccess.getCurrentUser()
+//   const group = window.HubAccess.getActiveGroup()
+//   window.HubAccess.subscribe(() => myComponent.forceRefresh())
+// ════════════════════════════════════════════════════════════════════
 
 (function () {
+  // ───────────────────────────────────────────────────────────────────
+  // §1. CONSTANTS
+  // ───────────────────────────────────────────────────────────────────
+
+  /** Les 13 modules ERP/CRM disponibles. Sert de "feature flag" par groupe :
+   *  un groupe a un sous-ensemble de ces clés dans son `access` array. */
   const ALL_KEYS = [
     "crm", "intel", "marketing",
     "tech", "projects", "inventory",
@@ -18,83 +49,68 @@
       id: "admin", name: "Administrateurs", color: "#dc2626",
       description: "Accès complet à l'ERP, gestion des utilisateurs et de la sécurité.",
       access: ALL_KEYS.slice(),
-      members: ["Nadia Lefèvre", "Hugo Bertrand"],
+      members: ["Romain Daviaud", "Augustin Morin"],
     },
     {
       id: "supervision", name: "Administrateur · Supervision", color: "#7c3aed",
       description: "Cellule supervision — réception des escalades tickets, monitoring SLA et arbitrage des incidents critiques.",
       access: ALL_KEYS.slice(),
-      members: ["Hugo Bertrand", "Léa Marchand", "Tom Verdier"],
+      members: ["Romain Daviaud", "Augustin Morin"],
     },
     {
       id: "direction", name: "Direction", color: "#4f46e5",
       description: "Comité exécutif — vue 360 sur tous les modules, lecture étendue.",
       access: ALL_KEYS.slice(),
-      members: ["Catherine Marchand", "Olivier Vasseur", "Sophie Aubry"],
+      members: ["Romain Daviaud", "Augustin Morin"],
     },
     {
       id: "commercial", name: "Commercial", color: "#0ea5e9",
       description: "Équipes vente et avant-vente — pipeline, comptes, opportunités.",
       access: ["crm", "intel", "marketing", "billing", "reports"],
-      members: ["Karim Ben Salah", "Tom Verdier", "Émilie Garnier", "Antoine Mercier", "Julien Pasquier", "Marie Lopez", "Pierre Dubois", "Romain Faure"],
+      members: [],
     },
     {
       id: "support", name: "Support technique", color: "#0891b2",
       description: "Hotline N1/N2 — tickets, SLA, base de connaissances.",
       access: ["tech", "projects", "crm", "reports"],
-      members: ["Léo Tanaka", "Diane Roussel", "Farid Belkacem", "Romain Faure"],
+      members: [],
     },
     {
       id: "finance", name: "Finance & Compta", color: "#10b981",
       description: "Comptabilité, facturation, trésorerie et reporting financier.",
       access: ["accounting", "billing", "treasury", "reports", "hr"],
-      members: ["Valérie Chen", "Pierre Dubois", "Hugo Bertrand"],
+      members: [],
     },
     {
       id: "marketing", name: "Marketing", color: "#ec4899",
       description: "Campagnes, contenu, génération de leads et analytics.",
       access: ["marketing", "crm", "reports", "intel"],
-      members: ["Émilie Garnier", "Marie Lopez"],
+      members: [],
     },
     {
       id: "rh", name: "Ressources humaines", color: "#8b5cf6",
       description: "Paie, contrats, recrutement et gestion des temps.",
       access: ["hr", "time", "reports"],
-      members: ["Sophie Aubry", "Valérie Chen"],
+      members: [],
     },
     {
       id: "ops", name: "Opérations & Produit", color: "#a855f7",
       description: "Roadmap produit, livrables clients, gestion du stock.",
       access: ["projects", "inventory", "tech", "reports"],
-      members: ["Olivier Vasseur", "Léo Tanaka", "Diane Roussel"],
+      members: [],
     },
   ];
 
-  // Comptes de démonstration — mot de passe en clair, JAMAIS utiliser en prod.
-  // Le login factice ne sert qu'à pré-positionner l'identité active.
+  // ───────────────────────────────────────────────────────────────────
+  // §2. USERS — utilisateurs Astorya réels
+  // ───────────────────────────────────────────────────────────────────
+  // Sert UNIQUEMENT au fallback display name + groupes par email quand
+  // Supabase Auth est utilisé (cf §7. getCurrentUser).
+  // Les mots de passe sont gérés par Supabase Auth (BDD), PAS ici.
   const USERS = [
-    // Comptes réels Astorya (super admin, accès complet)
-    { email: "r.daviaud@astorya.fr",   password: "demo", name: "Romain Daviaud",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
-    { email: "achat@astorya.fr",       password: "demo", name: "Romain Daviaud",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
-    { email: "a.morin@astorya.fr",     password: "demo", name: "Augustin Morin",    role: "Super Admin",            groups: ["admin", "supervision", "direction"] },
-    { email: "n.lefevre@astorya.fr",   password: "demo", name: "Nadia Lefèvre",      role: "Directrice technique",   groups: ["admin", "direction"] },
-    { email: "h.bertrand@astorya.fr",  password: "demo", name: "Hugo Bertrand",      role: "IT Manager",             groups: ["admin", "finance"] },
-    { email: "c.marchand@astorya.fr",  password: "demo", name: "Catherine Marchand", role: "CEO",                    groups: ["direction"] },
-    { email: "o.vasseur@astorya.fr",   password: "demo", name: "Olivier Vasseur",    role: "COO",                    groups: ["direction", "ops"] },
-    { email: "k.bensalah@astorya.fr",  password: "demo", name: "Karim Ben Salah",    role: "AE Senior Cyber",        groups: ["commercial"] },
-    { email: "s.aubry@astorya.fr",     password: "demo", name: "Sophie Aubry",       role: "AE & DRH",               groups: ["direction", "rh"] },
-    { email: "t.verdier@astorya.fr",   password: "demo", name: "Tom Verdier",        role: "AE Hub",                 groups: ["commercial"] },
-    { email: "e.garnier@astorya.fr",   password: "demo", name: "Émilie Garnier",     role: "AE BENELUX",             groups: ["commercial", "marketing"] },
-    { email: "a.mercier@astorya.fr",   password: "demo", name: "Antoine Mercier",    role: "AE DACH",                groups: ["commercial"] },
-    { email: "j.pasquier@astorya.fr",  password: "demo", name: "Julien Pasquier",    role: "AE Suite",               groups: ["commercial"] },
-    { email: "m.lopez@astorya.fr",     password: "demo", name: "Marie Lopez",        role: "AE UK & Marketing Ops",  groups: ["commercial", "marketing"] },
-    { email: "p.dubois@astorya.fr",    password: "demo", name: "Pierre Dubois",      role: "Comptable senior",       groups: ["finance"] },
-    { email: "r.faure@astorya.fr",     password: "demo", name: "Romain Faure",       role: "AE Junior · Support",    groups: ["commercial", "support"] },
-    { email: "l.tanaka@astorya.fr",    password: "demo", name: "Léo Tanaka",         role: "Tech Lead Support",      groups: ["support", "ops"] },
-    { email: "d.roussel@astorya.fr",   password: "demo", name: "Diane Roussel",      role: "Ingénieure support N2",  groups: ["support", "ops"] },
-    { email: "f.belkacem@astorya.fr",  password: "demo", name: "Farid Belkacem",     role: "Technicien N1",          groups: ["support"] },
-    { email: "v.chen@astorya.fr",      password: "demo", name: "Valérie Chen",       role: "DAF",                    groups: ["finance", "rh"] },
-    { email: "l.marchand@astorya.fr",  password: "demo", name: "Léa Marchand",       role: "Superviseure Support N2", groups: ["supervision", "support"] },
+    { email: "r.daviaud@astorya.fr",  name: "Romain Daviaud",  role: "Super Admin", groups: ["admin", "supervision", "direction"] },
+    { email: "achat@astorya.fr",      name: "Romain Daviaud",  role: "Super Admin", groups: ["admin", "supervision", "direction"] },
+    { email: "a.morin@astorya.fr",    name: "Augustin Morin",  role: "Super Admin", groups: ["admin", "supervision", "direction"] },
   ];
 
   // v2 ajoute le groupe "Administrateur · Supervision".
@@ -117,6 +133,7 @@
     _groupsRaw = _sessionRaw = _transcriptsRaw = undefined;
     _activeId = undefined;
     _activeGroupKey = null;
+    _supaUserKey = null;
   };
   const emit = () => { invalidate(); listeners.forEach((fn) => { try { fn(); } catch (e) {} }); };
 
@@ -198,27 +215,30 @@
 
   // Cache de la session Supabase (rafraîchi via onAuthStateChange)
   let _supaSession = null;
+  let _supaUserCache = null;
+  let _supaUserKey = null;
   if (supa) {
-    supa.auth.getSession().then(({ data }) => { _supaSession = data.session; emit(); });
-    supa.auth.onAuthStateChange((_event, session) => { _supaSession = session; emit(); });
+    supa.auth.getSession().then(({ data }) => { _supaSession = data.session; _supaUserKey = null; emit(); });
+    supa.auth.onAuthStateChange((_event, session) => { _supaSession = session; _supaUserKey = null; emit(); });
   }
 
   function getCurrentUser() {
     if (supa) {
-      // Mode auth réelle
+      // Mode auth Supabase — null si pas connecté (la page redirige vers /login)
       if (!_supaSession || !_supaSession.user) return null;
       const u = _supaSession.user;
+      const key = u.id + "::" + (u.email || "");
+      if (key === _supaUserKey && _supaUserCache) return _supaUserCache;
       const meta = u.user_metadata || {};
-      // Pour le mapping groupe : on regarde d'abord user_metadata.groups (settable
-      // depuis le dashboard Supabase), sinon on cherche dans USERS par email,
-      // sinon on tombe sur le groupe "admin" par défaut (à durcir en prod).
       const fallback = USERS.find((x) => x.email.toLowerCase() === (u.email || "").toLowerCase());
       const groups = meta.groups || (fallback ? fallback.groups : ["admin"]);
       const name = meta.name || (fallback ? fallback.name : (u.email || "Utilisateur"));
       const role = meta.role || (fallback ? fallback.role : "—");
-      return { email: u.email, name, role, groups };
+      _supaUserKey = key;
+      _supaUserCache = { email: u.email, name, role, groups };
+      return _supaUserCache;
     }
-    // Mode démo
+    // Mode démo (pas de Supabase) — utilisateur depuis localStorage
     const raw = localStorage.getItem(SESSION_KEY);
     if (raw === _sessionRaw) return _sessionCache;
     _sessionRaw = raw;

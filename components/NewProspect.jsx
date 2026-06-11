@@ -28,14 +28,20 @@ const NewProspect = () => {
   const [projectDate,   setProjectDate]   = React.useState("");
   const [concurrent,    setConcurrent]    = React.useState("");
   const [concurrentAmount, setConcurrentAmount] = React.useState("");
-  const [owner,         setOwner]         = React.useState({ name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" });
-  const [ownerMenu,     setOwnerMenu]     = React.useState(false);
+  // Owner par défaut : l'utilisateur connecté (récupéré via HubAccess)
   const ownerList = [
-    { name: "Nadia Lefèvre",   role: "AE Senior · EMEA",   color: "#a855f7" },
-    { name: "Karim Ben Salah", role: "AE Senior · Cyber — région SE", color: "#6366f1" },
-    { name: "Tom Verdier",     role: "AE Hub",             color: "#f59e0b" },
-    { name: "Émilie Garnier",  role: "AE BENELUX",         color: "#10b981" },
+    { name: "Romain Daviaud", role: "Super Admin", color: "#4f46e5" },
+    { name: "Augustin Morin", role: "Super Admin", color: "#a855f7" },
   ];
+  const initialOwner = (() => {
+    try {
+      const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+      if (u && u.name) return { name: u.name, role: u.role || "—", color: "#4f46e5" };
+    } catch (e) {}
+    return ownerList[0];
+  })();
+  const [owner,         setOwner]         = React.useState(initialOwner);
+  const [ownerMenu,     setOwnerMenu]     = React.useState(false);
   React.useEffect(() => {
     if (!ownerMenu) return;
     const close = () => setOwnerMenu(false);
@@ -52,6 +58,8 @@ const NewProspect = () => {
   // ───── Auto-complétion SIRENE (recherche-entreprises.api.gouv.fr)
   const [companyName,    setCompanyName]    = React.useState("");
   const [companySiren,   setCompanySiren]   = React.useState("");
+  // Résultat du check BODACC procédure collective (persisté en clients.data)
+  const [procedureCheck, setProcedureCheck] = React.useState(null);
   // Computed : doublons potentiels
   const duplicates = React.useMemo(() => {
     if (!allClients || allClients.length === 0) return [];
@@ -256,6 +264,8 @@ const NewProspect = () => {
     concurrent,
     concurrent_amount: concurrentAmount,
     besoin, notes, tags,
+    // Statut BODACC procédure collective (auto-checké au moment de la création)
+    procedure_collective: procedureCheck,
     owner: owner.name,
     owner_role: owner.role,
     owner_color: owner.color,
@@ -415,6 +425,9 @@ const NewProspect = () => {
         {/* LEFT — form */}
         <div style={npStyles.formCol}>
 
+          {/* Row 1 : Société + Contact principal côte à côte */}
+          <div style={npStyles.pairGrid}>
+
           {/* SECTION 1 — Société */}
           <section style={npStyles.section}>
             <SectionHead num="01" title="Société" subtitle="Identité et caractéristiques de l'entreprise prospect" status="done" />
@@ -454,19 +467,39 @@ const NewProspect = () => {
               </div>
             </FormRow>
 
+            {(() => {
+              const V = window.HubValidators;
+              const sirenErr = V && V.siren(companySiren);
+              return (
             <div style={npStyles.formGrid3}>
               <FormRow label="SIREN" required>
-                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }}
+                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(sirenErr ? V.errorStyle(sirenErr) : {}) }}
                        value={companySiren}
+                       placeholder="9 chiffres"
                        onChange={(e) => { setCompanySiren(e.target.value); const t = computeTva(e.target.value); if (t) setCompanyTva(t); }} />
+                {sirenErr && <div style={V.errorMsgStyle(sirenErr)}>{sirenErr.message}</div>}
+                {/* Badge BODACC procédure collective — auto-check dès qu'on a un SIREN à 9 chiffres */}
+                {window.ProcedureBadge && !sirenErr && (
+                  <div style={{ marginTop: 8 }}>
+                    <ProcedureBadge
+                      siren={companySiren}
+                      autoCheck={true}
+                      onChange={(r) => setProcedureCheck(r)}
+                      compact={false}
+                    />
+                  </div>
+                )}
               </FormRow>
               <FormRow label="Code NAF">
                 <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }} value={companyNaf} onChange={(e) => setCompanyNaf(e.target.value)} />
               </FormRow>
               <FormRow label="TVA intracom.">
-                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }} value={companyTva} onChange={(e) => setCompanyTva(e.target.value)} />
+                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(V && V.tva(companyTva) ? V.errorStyle(V.tva(companyTva)) : {}) }} value={companyTva} placeholder="FR12345678901" onChange={(e) => setCompanyTva(e.target.value)} />
+                {V && V.tva(companyTva) && <div style={V.errorMsgStyle(V.tva(companyTva))}>{V.tva(companyTva).message}</div>}
               </FormRow>
             </div>
+              );
+            })()}
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Secteur d'activité" required>
@@ -612,21 +645,30 @@ const NewProspect = () => {
               </FormRow>
             </div>
 
+            {(() => {
+              const V = window.HubValidators;
+              const emailErr = V && V.email(contactEmail);
+              const phoneErr = V && V.phone(contactPhone);
+              return (
             <div style={npStyles.formGrid2}>
               <FormRow label="Email pro" required>
-                <div style={npStyles.inputWithIcon}>
+                <div style={{ ...npStyles.inputWithIcon, ...(emailErr ? V.errorStyle(emailErr) : {}) }}>
                   <span style={{ color: "#94a3b8" }}>✉</span>
                   <input type="email" style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
-                  {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Format ok</span>}
+                  {!emailErr && contactEmail && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Format ok</span>}
                 </div>
+                {emailErr && <div style={V.errorMsgStyle(emailErr)}>{emailErr.message}</div>}
               </FormRow>
               <FormRow label="Téléphone">
-                <div style={npStyles.inputWithIcon}>
+                <div style={{ ...npStyles.inputWithIcon, ...(phoneErr ? V.errorStyle(phoneErr) : {}) }}>
                   <span style={{ color: "#94a3b8" }}>☎</span>
                   <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
                 </div>
+                {phoneErr && <div style={V.errorMsgStyle(phoneErr)}>{phoneErr.message}</div>}
               </FormRow>
             </div>
+              );
+            })()}
 
             <FormRow label="Rôle dans le projet" subtitle="Quelle place dans la décision d'achat ?">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -683,6 +725,11 @@ const NewProspect = () => {
               </div>
             ))}
           </section>
+
+          </div>{/* /Row 1 */}
+
+          {/* Row 2 : Qualification BANT + Origine côte à côte */}
+          <div style={npStyles.pairGrid}>
 
           {/* SECTION 3 — Qualification BANT */}
           <section style={npStyles.section}>
@@ -834,7 +881,12 @@ const NewProspect = () => {
                   </span>
                 ))}
                 <button
-                  onClick={() => { const v = prompt("Nouvelle étiquette :"); if (v && v.trim()) setTags((arr) => [...arr, v.trim()]); }}
+                  onClick={async () => {
+                    const v = window.HubModal
+                      ? await window.HubModal.prompt({ title: "Nouvelle étiquette", label: "Tag", placeholder: "ex : Hot prospect Q2", okLabel: "Ajouter" })
+                      : prompt("Nouvelle étiquette :");
+                    if (v && v.trim()) setTags((arr) => [...arr, v.trim()]);
+                  }}
                   style={{ ...npStyles.addChip, cursor: "pointer" }}
                 >+ Ajouter</button>
               </div>
@@ -850,6 +902,8 @@ const NewProspect = () => {
               />
             </FormRow>
           </section>
+
+          </div>{/* /Row 2 */}
 
           {/* Bottom actions */}
           <div style={npStyles.actionsRow}>
@@ -982,7 +1036,7 @@ const FormRow = ({ label, subtitle, required, children }) => (
 );
 
 const npStyles = {
-  frame: { width: 1440, background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", display: "flex", flexDirection: "column" },
+  frame: { minWidth: 1280, background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", display: "flex", flexDirection: "column" },
 
   topbar: { padding: "14px 28px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
   refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 4 },
@@ -995,11 +1049,12 @@ const npStyles = {
   subtitle: { fontSize: 13, color: "#64748b", margin: "4px 0 0" },
   completion: { padding: "10px 14px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8 },
 
-  body: { display: "grid", gridTemplateColumns: "1fr 340px", gap: 0, padding: 20, gridAutoRows: "min-content" },
+  body: { display: "grid", gridTemplateColumns: "1fr 320px", gap: 0, padding: 20, gridAutoRows: "min-content" },
 
   formCol: { display: "flex", flexDirection: "column", gap: 14, paddingRight: 14 },
+  pairGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "start" },
 
-  section: { padding: 20, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
+  section: { padding: 18, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
 
   input: { width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontFamily: "inherit", color: "#0f172a", outline: "none", boxSizing: "border-box" },
   textarea: { width: "100%", padding: 12, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12.5, fontFamily: "inherit", color: "#0f172a", outline: "none", resize: "none", lineHeight: 1.5, boxSizing: "border-box" },

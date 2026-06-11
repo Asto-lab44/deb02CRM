@@ -284,6 +284,20 @@ var NewContract = () => {
     role: ""
   });
   var [savedTick, setSavedTick] = React.useState(0);
+  // Preview avant envoi pour signature
+  var [previewOpen, setPreviewOpen] = React.useState(false);
+  // Modèles juridiques (CGV) chargés depuis l'admin
+  var [templates, setTemplates] = React.useState([]);
+  var [selectedTemplate, setSelectedTemplate] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.contractTemplates) return;
+    window.api.contractTemplates.list().then(list => {
+      setTemplates(list || []);
+      // Pré-sélectionne le modèle marqué par défaut, sinon le premier
+      var def = (list || []).find(t => t.is_default) || (list || [])[0];
+      if (def) setSelectedTemplate(def);
+    }).catch(() => {});
+  }, []);
 
   // ── Products
   var [products, setProducts] = React.useState([{
@@ -389,40 +403,48 @@ var NewContract = () => {
     ...patch
   } : p));
   var removeProduct = id => setProducts(ps => ps.filter(p => p.id !== id));
+  // addProduct : ajoute une ligne directement avec valeurs par défaut, l'user
+  // édite ensuite les champs inline (prix/qty/périodicité) — UX plus rapide
+  // qu'une suite de prompts.
   var addProduct = () => {
-    var name = prompt("Nom du produit / article :");
-    if (!name) return;
-    var unit = parseFloat(prompt("Prix unitaire HT (€) :", "0")) || 0;
-    var qty = parseFloat(prompt("Quantité :", "1")) || 1;
-    var periodicity = (prompt("Périodicité (annual / oneshot) :", "annual") || "annual").trim();
     var palette = ["#a855f7", "#dc2626", "#0ea5e9", "#10b981", "#f59e0b", "#6366f1"];
     setProducts(ps => [...ps, {
       id: "p" + Date.now(),
-      name,
+      name: "Nouveau produit",
       sku: "—",
       desc: "",
-      unit,
-      qty,
+      unit: 0,
+      qty: 1,
       discount: 0,
-      periodicity,
+      periodicity: "annual",
       color: palette[ps.length % palette.length]
     }]);
+    if (window.HubToast) window.HubToast.info("Ligne ajoutée — éditez les champs ci-dessus");
   };
   var removeAnnexe = id => setAnnexes(a => a.filter(x => x.id !== id));
-  var addAnnexe = () => {
-    var l = prompt("Intitulé de l'annexe :");
-    if (l) setAnnexes(a => [...a, {
+  var addAnnexe = async () => {
+    var l = window.HubModal ? await window.HubModal.prompt({
+      title: "Nouvelle annexe",
+      label: "Intitulé",
+      placeholder: "ex : RIB Astorya"
+    }) : prompt("Intitulé de l'annexe :");
+    if (l && l.trim()) setAnnexes(a => [...a, {
       id: "a" + Date.now(),
-      label: l
+      label: l.trim()
     }]);
   };
   var removeClause = id => setClauses(a => a.filter(x => x.id !== id));
-  var addClause = () => {
-    var l = prompt("Clause spécifique :");
-    if (l) setClauses(a => [...a, {
+  var addClause = async () => {
+    var l = window.HubModal ? await window.HubModal.prompt({
+      title: "Clause spécifique",
+      label: "Texte de la clause",
+      multiline: true,
+      placeholder: "Description de la clause négociée…"
+    }) : prompt("Clause spécifique :");
+    if (l && l.trim()) setClauses(a => [...a, {
       id: "c" + Date.now(),
       tag: "NÉGOCIÉ",
-      text: l
+      text: l.trim()
     }]);
   };
 
@@ -467,15 +489,42 @@ var NewContract = () => {
       status: action === "send" ? "pending_signature" : "draft",
       created_at: new Date().toISOString()
     };
+    // Validation côté "envoyer pour signature" : signataire obligatoire
+    if (action === "send" && !signatory.name.trim()) {
+      alert("⚠ Renseignez le nom du signataire avant d'envoyer pour signature");
+      return;
+    }
+    var saved = null;
     try {
-      await window.api.contracts.create(ctr);
+      saved = await window.api.contracts.create(ctr);
     } catch (e) {
       console.warn("submitContract:", e);
+      alert("Erreur de sauvegarde : " + (e.message || e));
+      return;
+    }
+    // Si "envoyer pour signature" : crée aussi une action de suivi pour
+    // le commercial (rappel signature) si on a une API actions.
+    if (action === "send" && window.api.actions && window.api.actions.create) {
+      try {
+        await window.api.actions.create({
+          client_id: clientId,
+          type: "task",
+          title: "Suivi signature contrat " + ctrRef + " — " + (signatory.name || ""),
+          meta: "Envoyer relance si pas signé sous 5 jours",
+          due_text: "Sous 5 jours",
+          priority: "haute",
+          icon: "✍",
+          tag: "Signature",
+          tagColor: "#a855f7"
+        });
+      } catch (e) {
+        console.warn("[NewContract] action création:", e);
+      }
     }
     if (action === "send") {
-      alert("Contrat " + ctrRef + " envoyé pour signature à " + (signatory.name || "le signataire"));
+      alert("✓ Contrat " + ctrRef + " envoyé pour signature à " + (signatory.name || "le signataire") + " — action de suivi créée");
     } else {
-      alert("Brouillon enregistré : " + ctrRef);
+      alert("✓ Brouillon enregistré : " + ctrRef);
     }
     if (clientId) window.location.href = "/fiche-client?id=" + encodeURIComponent(clientId);else window.location.href = "/crm";
   };
@@ -579,7 +628,7 @@ var NewContract = () => {
     onClick: () => history.back(),
     style: ncStyles.ghostBtn
   }, "Annuler"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => submitContract("send"),
+    onClick: () => setPreviewOpen(true),
     style: ncStyles.primaryBtn
   }, "Cr\xE9er & envoyer pour signature"))), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.titleRow
@@ -687,6 +736,8 @@ var NewContract = () => {
     style: ncStyles.bodyGrid
   }, /*#__PURE__*/React.createElement("div", {
     style: ncStyles.formCol
+  }, /*#__PURE__*/React.createElement("div", {
+    style: ncStyles.pairGrid
   }, /*#__PURE__*/React.createElement("section", {
     style: ncStyles.section
   }, /*#__PURE__*/React.createElement(NCSectionHead, {
@@ -873,7 +924,7 @@ var NewContract = () => {
       background: "transparent",
       color: "#64748b"
     }
-  })))))), /*#__PURE__*/React.createElement("section", {
+  }))))))), /*#__PURE__*/React.createElement("section", {
     style: {
       ...ncStyles.section,
       ...ncStyles.sectionActive
@@ -1217,7 +1268,9 @@ var NewContract = () => {
       color: "#86efac",
       marginTop: 2
     }
-  }, fmtEUR(sums.margin), " \xB7 ", sums.marginPct, " %"))))))), /*#__PURE__*/React.createElement("section", {
+  }, fmtEUR(sums.margin), " \xB7 ", sums.marginPct, " %"))))))), /*#__PURE__*/React.createElement("div", {
+    style: ncStyles.pairGrid
+  }, /*#__PURE__*/React.createElement("section", {
     style: ncStyles.section
   }, /*#__PURE__*/React.createElement(NCSectionHead, {
     num: "04",
@@ -1229,15 +1282,24 @@ var NewContract = () => {
   }, /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Date de d\xE9but",
     required: true
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: startDate,
-    onChange: e => setStartDate(e.target.value),
-    style: {
-      ...ncStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  })), /*#__PURE__*/React.createElement(NCFormRow, {
+  }, (() => {
+    var V = window.HubValidators;
+    var dateErr = V && V.date(startDate, {
+      notInPast: true
+    });
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      value: startDate,
+      onChange: e => setStartDate(e.target.value),
+      style: {
+        ...ncStyles.input,
+        fontFamily: "'JetBrains Mono', monospace",
+        ...(dateErr ? V.errorStyle(dateErr) : {})
+      }
+    }), dateErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(dateErr)
+    }, dateErr.message));
+  })()), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Date de fin"
   }, /*#__PURE__*/React.createElement("input", {
     type: "date",
@@ -1269,27 +1331,65 @@ var NewContract = () => {
   }, /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Mod\xE8le juridique",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: ncStyles.docPick
+  }, templates.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...ncStyles.docPick,
+      background: "#fff7ed",
+      borderColor: "#fdba74"
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 18
     }
-  }, "\uD83D\uDCC4"), /*#__PURE__*/React.createElement("div", {
+  }, "\u26A0"), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      fontWeight: 600
+      fontWeight: 600,
+      color: "#9a3412"
     }
-  }, "CGV Astorya Suite v4.2 \u2014 FR"), /*#__PURE__*/React.createElement("div", {
+  }, "Aucun mod\xE8le CGV upload\xE9"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Mise \xE0 jour ", fmtDateFR(new Date().toISOString()), " \xB7 DORA-compliant")))), /*#__PURE__*/React.createElement(NCFormRow, {
+  }, "Va dans ", /*#__PURE__*/React.createElement("a", {
+    href: "/administration-utilisateurs",
+    style: {
+      color: "#3730a3",
+      textDecoration: "underline"
+    }
+  }, "Administration \u2192 Mod\xE8les de contrat"), " pour uploader ton PDF."))) : /*#__PURE__*/React.createElement("select", {
+    value: selectedTemplate ? selectedTemplate.id : "",
+    onChange: e => setSelectedTemplate(templates.find(t => t.id === e.target.value) || null),
+    style: {
+      ...ncStyles.input,
+      fontSize: 13
+    }
+  }, templates.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t.id,
+    value: t.id
+  }, t.name, " \xB7 ", t.version, t.is_default ? " · DÉFAUT" : ""))), selectedTemplate && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 11,
+      color: "#64748b",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC4 ", selectedTemplate.pdf_size_kb || "?", " Ko"), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, selectedTemplate.cgv_text ? Math.round(selectedTemplate.cgv_text.length / 100) / 10 + "k caractères extraits" : "Aucun texte extrait"), selectedTemplate.pdf_url && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("a", {
+    href: selectedTemplate.pdf_url,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "\uD83D\uDC41 Voir PDF source")))), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Annexes"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1433,7 +1533,7 @@ var NewContract = () => {
       color: signMethod === m.k ? "#64748b" : "#94a3b8",
       marginTop: 3
     }
-  }, m.desc))))))), /*#__PURE__*/React.createElement("div", {
+  }, m.desc)))))))), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => history.back(),
@@ -1447,7 +1547,7 @@ var NewContract = () => {
     onClick: () => submitContract("draft"),
     style: ncStyles.ghostBtn
   }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => submitContract("send"),
+    onClick: () => setPreviewOpen(true),
     style: ncStyles.primaryBtn
   }, "Continuer \u2192 Envoi signature")))), /*#__PURE__*/React.createElement("aside", {
     style: ncStyles.previewCol
@@ -1706,7 +1806,36 @@ var NewContract = () => {
       color: "#475569",
       lineHeight: 1.5
     }
-  }, "Montant ", ">", " 150 k\u20AC \u2014 validation Direction Finance obligatoire")))))));
+  }, "Montant ", ">", " 150 k\u20AC \u2014 validation Direction Finance obligatoire")))))), previewOpen && window.ContractPreview && /*#__PURE__*/React.createElement(ContractPreview, {
+    contract: {
+      id: "CTR-" + new Date().getFullYear() + "-DRAFT",
+      client_id: clientId,
+      client_name: clientName,
+      name: products.slice(0, 2).map(p => p.name).join(" + "),
+      products,
+      annexes,
+      clauses,
+      sums,
+      start: startDate,
+      end: endDate,
+      duration,
+      tacite,
+      indexation,
+      indexCap,
+      payment_delay: paymentDelay,
+      billing_period: billingPeriod,
+      signatory
+    },
+    clientObj: clientObj,
+    templateName: selectedTemplate ? selectedTemplate.name + " " + selectedTemplate.version : "CGV Astorya Suite v4.2 — FR",
+    cgvText: selectedTemplate ? selectedTemplate.cgv_text : null,
+    templatePdfUrl: selectedTemplate ? selectedTemplate.pdf_url : null,
+    onClose: () => setPreviewOpen(false),
+    onConfirm: () => {
+      setPreviewOpen(false);
+      submitContract("send");
+    }
+  }));
 };
 var ncStyles = {
   frame: {
@@ -1859,6 +1988,12 @@ var ncStyles = {
     flexDirection: "column",
     gap: 14,
     minWidth: 0
+  },
+  pairGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    alignItems: "start"
   },
   section: {
     padding: 20,

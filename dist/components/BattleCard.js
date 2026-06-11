@@ -65,7 +65,7 @@ var BattleCard = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Mise \xE0 jour il y a 4 j par Claire Renaud")), /*#__PURE__*/React.createElement("h1", {
+  }, "Mise \xE0 jour il y a 4 j par Romain Daviaud")), /*#__PURE__*/React.createElement("h1", {
     style: bcStyles.h1
   }, "Salesforce"), /*#__PURE__*/React.createElement("p", {
     style: bcStyles.subtitle
@@ -195,7 +195,37 @@ var BattleCard = () => {
   }, "Objections fr\xE9quentes & reformulations"), /*#__PURE__*/React.createElement("p", {
     style: bcStyles.h3sub
   }, "R\xE9ponses valid\xE9es \xE9quipe \xE0 utiliser en RDV")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => alert("Ajouter une objection : sera persistée dans Supabase prochainement."),
+    onClick: async () => {
+      var obj = window.HubModal ? await window.HubModal.prompt({
+        title: "Ajouter une objection",
+        label: "Objection client",
+        placeholder: "ex : Salesforce a déjà nos workflows…",
+        multiline: true
+      }) : prompt("Nouvelle objection client :");
+      if (!obj || !obj.trim()) return;
+      var ans = window.HubModal ? await window.HubModal.prompt({
+        title: "Réponse à l'objection",
+        label: "Réponse validée équipe",
+        placeholder: "Différenciants Astorya à mettre en avant…",
+        multiline: true,
+        okLabel: "Sauvegarder"
+      }) : prompt("Réponse validée à donner :");
+      if (!ans || !ans.trim()) return;
+      try {
+        var key = "hubAstorya.battlecard.objections.v1";
+        var arr = JSON.parse(localStorage.getItem(key) || "[]");
+        arr.push({
+          obj: obj.trim(),
+          ans: ans.trim(),
+          at: new Date().toISOString()
+        });
+        localStorage.setItem(key, JSON.stringify(arr));
+        if (window.HubToast) window.HubToast.success("✓ Objection ajoutée");
+        setTimeout(() => window.location.reload(), 800);
+      } catch (e) {
+        alert("Erreur : " + e.message);
+      }
+    },
     style: {
       ...bcStyles.smBtn,
       cursor: "pointer"

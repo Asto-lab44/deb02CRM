@@ -62,7 +62,9 @@ const TicketDetailModal = ({ ticketId, onClose }) => {
   };
 
   const escalate = async () => {
-    const reason = prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
+    const reason = window.HubModal
+      ? await window.HubModal.prompt({ title: "Escalader le ticket", label: "Motif de l'escalade", default: "Demande arbitrage Supervision", multiline: true, okLabel: "Escalader" })
+      : prompt("Motif de l'escalade :", "Demande arbitrage Supervision");
     if (!reason || !ticket) return;
     setSaving(true);
     const currentUser = (window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser()) || null;

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hub Astorya — Debug</title>
+  <style>
+    body { margin: 0; padding: 20px; font-family: 'Inter', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    h1 { font-size: 18px; margin: 0 0 16px; color: #fff; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; }
+    .label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .value { font-size: 13px; font-family: 'JetBrains Mono', ui-monospace, monospace; color: #fbbf24; word-break: break-all; }
+    .ok { color: #10b981; }
+    .err { color: #ef4444; }
+    pre { font-size: 11px; background: #0f172a; padding: 10px; border-radius: 6px; overflow: auto; max-height: 400px; color: #e2e8f0; border: 1px solid #334155; }
+    button { padding: 9px 14px; background: #4f46e5; color: #fff; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Hub Astorya — Diagnostic</h1>
+
+  <div id="out"></div>
+
+  <div style="margin-top:20px;">
+    <button onclick="location.reload()">↻ Recharger</button>
+    <button onclick="localStorage.clear(); location.reload();">🗑 Vider localStorage + recharger</button>
+    <button onclick="location.href='/'">← Accueil</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
+  <script src="components/supabase-config.js?v=202606111430"></script>
+  <script src="components/supabase-client.js?v=202606111430"></script>
+  <script src="components/api.js?v=202606111430"></script>
+  <script src="components/validators.js?v=202606111430"></script>
+  <script src="components/constants.js?v=202606111430"></script>
+  <script src="components/pappers-config.js?v=202606111430"></script>
+  <script src="components/pappers.js?v=202606111430"></script>
+  <script src="components/bodacc.js?v=202606111430"></script>
+  <script src="components/toast.js?v=202606111430"></script>
+  <script src="components/modal.js?v=202606111430"></script>
+  <script src="components/access-store.js?v=202606111430"></script>
+
+  <script>
+    const out = document.getElementById("out");
+    const card = (label, value, ok) => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = '<div class="label">' + label + '</div><div class="value ' + (ok === true ? "ok" : ok === false ? "err" : "") + '">' + value + '</div>';
+      out.appendChild(div);
+    };
+    const pre = (label, obj) => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = '<div class="label">' + label + '</div><pre>' + (typeof obj === "string" ? obj : JSON.stringify(obj, null, 2)) + '</pre>';
+      out.appendChild(div);
+    };
+
+    // Cache errors globaux
+    const errors = [];
+    window.addEventListener("error", (e) => {
+      errors.push({ msg: e.message, file: (e.filename || "").split("/").pop(), line: e.lineno });
+      renderErrors();
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      errors.push({ msg: "Promise: " + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) });
+      renderErrors();
+    });
+    function renderErrors() {
+      const el = document.getElementById("errs");
+      if (el) el.remove();
+      if (!errors.length) return;
+      const div = document.createElement("div");
+      div.id = "errs";
+      div.className = "card";
+      div.style.borderColor = "#ef4444";
+      div.innerHTML = '<div class="label" style="color:#fca5a5;">⚠ ERREURS JS CAPTURÉES</div><pre style="color:#fca5a5;">' + errors.map((e,i) => (i+1) + ". " + e.msg + (e.file ? " (" + e.file + ":" + e.line + ")" : "")).join("\n") + '</pre>';
+      out.insertBefore(div, out.firstChild);
+    }
+
+    // Run diagnostics
+    (async () => {
+      card("URL", location.href);
+      card("HubSupabase", window.HubSupabase ? "loaded" : "MANQUANT", !!window.HubSupabase);
+      card("HubSupabase.enabled", String(window.HubSupabase && window.HubSupabase.enabled), !!(window.HubSupabase && window.HubSupabase.enabled));
+      card("window.api", window.api ? "loaded" : "MANQUANT", !!window.api);
+      card("window.HubAccess", window.HubAccess ? "loaded" : "MANQUANT", !!window.HubAccess);
+
+      // Session
+      try {
+        const { data, error } = await window.HubSupabase.client.auth.getSession();
+        if (error) { card("Supabase session", "ERROR: " + error.message, false); }
+        else if (data && data.session) {
+          card("Supabase session", "✓ connecté", true);
+          card("Email", data.session.user.email);
+          card("User ID", data.session.user.id);
+          pre("user_metadata", data.session.user.user_metadata || {});
+        } else {
+          card("Supabase session", "PAS DE SESSION (déconnecté)", false);
+        }
+      } catch (e) {
+        card("Supabase session", "EXCEPTION: " + e.message, false);
+      }
+
+      // HubAccess methods
+      try {
+        pre("HubAccess.getCurrentUser()", window.HubAccess.getCurrentUser());
+      } catch (e) { card("HubAccess.getCurrentUser()", "EXCEPTION: " + e.message, false); }
+      try {
+        const g = window.HubAccess.getActiveGroup();
+        pre("HubAccess.getActiveGroup()", { id: g.id, name: g.name, access: g.access });
+      } catch (e) { card("HubAccess.getActiveGroup()", "EXCEPTION: " + e.message, false); }
+
+      // Test des tables Supabase
+      try {
+        const { data: cl, error: clE } = await window.HubSupabase.client.from("clients").select("id, name").limit(3);
+        card("Table clients", clE ? "ERR: " + clE.message : "✓ existe (" + (cl||[]).length + " rows lus)", !clE);
+      } catch (e) { card("Table clients", "EXCEPTION: " + e.message, false); }
+      try {
+        const { data: op, error: opE } = await window.HubSupabase.client.from("opportunities").select("id, name").limit(3);
+        card("Table opportunities", opE ? "ERR: " + opE.message : "✓ existe (" + (op||[]).length + " rows lus)", !opE);
+      } catch (e) { card("Table opportunities", "EXCEPTION: " + e.message, false); }
+      try {
+        const { data: ct, error: ctE } = await window.HubSupabase.client.from("contacts").select("id").limit(3);
+        card("Table contacts", ctE ? "ERR: " + ctE.message : "✓ existe (" + (ct||[]).length + " rows lus)", !ctE);
+      } catch (e) { card("Table contacts", "EXCEPTION: " + e.message, false); }
+      try {
+        const { data: t, error: tE } = await window.HubSupabase.client.from("tickets").select("id, title").limit(3);
+        card("Table tickets", tE ? "ERR: " + tE.message : "✓ existe (" + (t||[]).length + " rows lus)", !tE);
+      } catch (e) { card("Table tickets", "EXCEPTION: " + e.message, false); }
+      try {
+        const { data: cm, error: cmE } = await window.HubSupabase.client.from("comments").select("id").limit(3);
+        card("Table comments", cmE ? "ERR: " + cmE.message : "✓ existe (" + (cm||[]).length + " rows lus)", !cmE);
+      } catch (e) { card("Table comments", "EXCEPTION: " + e.message, false); }
+      try {
+        const { data: ac, error: acE } = await window.HubSupabase.client.from("actions").select("id").limit(3);
+        card("Table actions", acE ? "ERR: " + acE.message : "✓ existe (" + (ac||[]).length + " rows lus)", !acE);
+      } catch (e) { card("Table actions", "EXCEPTION: " + e.message, false); }
+    })();
+  </script>
+</body>
+</html>

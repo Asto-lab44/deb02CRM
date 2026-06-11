@@ -608,13 +608,13 @@ const ClientPage = () => {
     );
   };
 
-  // ── Pipe : opportunités du client AXA Wealth France
+  // ── Pipe SPANCO du client (cohérent avec page principale + AdvanceOpportunity)
   const pipeStages = [
-    { k: "qualif", label: "Qualification", color: "#94a3b8" },
-    { k: "discovery", label: "Discovery", color: "#3b82f6" },
-    { k: "propo", label: "Proposition", color: "#a855f7" },
-    { k: "nego", label: "Négociation", color: "#ea580c" },
-    { k: "won", label: "Signé", color: "#10b981" },
+    { k: "qualif",    label: "Suspect",     color: "#94a3b8" },
+    { k: "discovery", label: "Approche",    color: "#3b82f6" },
+    { k: "propo",     label: "Négociation", color: "#a855f7" },
+    { k: "nego",      label: "Conclusion",  color: "#ea580c" },
+    { k: "won",       label: "Ordre",       color: "#10b981" },
   ];
 
   // ── Opportunités chargées par reloadAllForClient (via api.opportunities.list filtré par client_id)
@@ -967,31 +967,68 @@ const ClientPage = () => {
               </div>
             </div>
 
-            {/* Stage progression strip */}
-            {pipeView === "kanban" && <div style={cliStyles.stagesStrip}>
-              {pipeStages.map((s, i) => {
-                const opps = opportunities.filter(o => o.stage === s.k);
-                const sum = opps.reduce((acc, o) => acc + parseInt(o.amount.replace(/\s/g, "").replace(" €", "").replace(/[^\d]/g, "")), 0);
-                return (
-                  <div key={s.k} style={cliStyles.stageCol}>
-                    <div style={cliStyles.stageColHead}>
-                      <span style={{ width: 6, height: 6, borderRadius: 999, background: s.color }} />
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "#0f172a" }}>{s.label}</span>
-                      <span style={cliStyles.stageCount}>{opps.length}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", padding: "0 4px" }}>
-                      {opps.length ? `${(sum/1000).toFixed(0)} k€` : "—"}
-                    </div>
-                    <div style={cliStyles.stageColBar}>
-                      <div style={{ width: opps.length ? "100%" : "0%", height: "100%", background: s.color, opacity: 0.6, borderRadius: 999 }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>}
+            {/* KANBAN SPANCO — cohérent avec page CRM principale */}
+            {pipeView === "kanban" && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 14 }}>
+                {pipeStages.map((s) => {
+                  const opps = opportunities.filter((o) => (o.stage || "qualif") === s.k);
+                  const sum = opps.reduce((acc, o) => acc + (parseInt(String(o.amount || "0").replace(/[^\d]/g, "")) || 0), 0);
+                  return (
+                    <div key={s.k} style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 10, padding: 10, display: "flex", flexDirection: "column", gap: 8, minHeight: 200 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: 2, background: s.color }} />
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a" }}>{s.label}</span>
+                          <span style={{ fontSize: 10, padding: "0 6px", borderRadius: 999, background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{opps.length}</span>
+                        </div>
+                        <span style={{ fontSize: 10.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>
+                          {opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €"}
+                        </span>
+                      </div>
 
-            {/* Opp cards / liste */}
-            <div style={pipeView === "list" ? { display: "flex", flexDirection: "column", gap: 6 } : cliStyles.oppGrid}>
+                      {opps.length === 0 && (
+                        <div style={{ padding: "16px 8px", fontSize: 11, color: "#cbd5e1", textAlign: "center", fontStyle: "italic", border: "1px dashed #e2e8f0", borderRadius: 6 }}>
+                          Aucune opportunité
+                        </div>
+                      )}
+                      {opps.map((o, j) => {
+                        const openOpp = () => {
+                          const cid = urlId || display.id || "";
+                          window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
+                        };
+                        const stageColor = s.color;
+                        return (
+                          <div key={o.ref || j} onClick={openOpp}
+                               style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 8, padding: 10, cursor: "pointer", display: "flex", flexDirection: "column", gap: 7 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", lineHeight: 1.3, wordBreak: "break-word" }}>{o.name || "—"}</div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{o.amount}</span>
+                              {o.close && o.close !== "—" && (
+                                <span style={{ fontSize: 10, color: "#94a3b8" }}>{o.close.split(" ").slice(0, 2).join(" ")}</span>
+                              )}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600 }}>Proba</span>
+                              <span style={{ fontSize: 11, color: stageColor, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{o.proba || 20}%</span>
+                            </div>
+                            <div style={{ height: 3, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
+                              <div style={{ width: (o.proba || 20) + "%", height: "100%", background: stageColor, borderRadius: 999 }} />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                              <Avatar name={o.owner} size={16} color={o.ownerColor || stageColor} />
+                              <span style={{ fontSize: 10.5, color: "#64748b" }}>{o.owner || "—"}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Vue liste (gardée pour l'option d'affichage) */}
+            <div style={pipeView === "list" ? { display: "flex", flexDirection: "column", gap: 6 } : { display: "none" }}>
               {opportunities.map((o, i) => {
                 const edited = oppEdits[o.ref] || {};
                 const currentStage = edited.stage || o.stage;

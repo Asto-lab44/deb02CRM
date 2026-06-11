@@ -797,26 +797,26 @@ var ClientPage = () => {
     }, initials);
   };
 
-  // ── Pipe : opportunités du client AXA Wealth France
+  // ── Pipe SPANCO du client (cohérent avec page principale + AdvanceOpportunity)
   var pipeStages = [{
     k: "qualif",
-    label: "Qualification",
+    label: "Suspect",
     color: "#94a3b8"
   }, {
     k: "discovery",
-    label: "Discovery",
+    label: "Approche",
     color: "#3b82f6"
   }, {
     k: "propo",
-    label: "Proposition",
+    label: "Négociation",
     color: "#a855f7"
   }, {
     k: "nego",
-    label: "Négociation",
+    label: "Conclusion",
     color: "#ea580c"
   }, {
     k: "won",
-    label: "Signé",
+    label: "Ordre",
     color: "#10b981"
   }];
 
@@ -1608,54 +1608,187 @@ var ClientPage = () => {
       } : {})
     }
   }, "Vue Liste \u2630"))), pipeView === "kanban" && /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.stagesStrip
-  }, pipeStages.map((s, i) => {
-    var opps = opportunities.filter(o => o.stage === s.k);
-    var sum = opps.reduce((acc, o) => acc + parseInt(o.amount.replace(/\s/g, "").replace(" €", "").replace(/[^\d]/g, "")), 0);
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(5, 1fr)",
+      gap: 10,
+      marginBottom: 14
+    }
+  }, pipeStages.map(s => {
+    var opps = opportunities.filter(o => (o.stage || "qualif") === s.k);
+    var sum = opps.reduce((acc, o) => acc + (parseInt(String(o.amount || "0").replace(/[^\d]/g, "")) || 0), 0);
     return /*#__PURE__*/React.createElement("div", {
       key: s.k,
-      style: cliStyles.stageCol
+      style: {
+        background: "#fafbfc",
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        padding: 10,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        minHeight: 200
+      }
     }, /*#__PURE__*/React.createElement("div", {
-      style: cliStyles.stageColHead
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 6,
-        height: 6,
-        borderRadius: 999,
+        width: 7,
+        height: 7,
+        borderRadius: 2,
         background: s.color
       }
     }), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11.5,
-        fontWeight: 600,
+        fontWeight: 700,
         color: "#0f172a"
       }
     }, s.label), /*#__PURE__*/React.createElement("span", {
-      style: cliStyles.stageCount
-    }, opps.length)), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 11,
+        fontSize: 10,
+        padding: "0 6px",
+        borderRadius: 999,
+        background: "#fff",
+        color: "#64748b",
+        border: "1px solid #e2e8f0",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600
+      }
+    }, opps.length)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
         color: "#64748b",
         fontFamily: "'JetBrains Mono', monospace",
-        padding: "0 4px"
+        fontWeight: 500
       }
-    }, opps.length ? `${(sum / 1000).toFixed(0)} k€` : "—"), /*#__PURE__*/React.createElement("div", {
-      style: cliStyles.stageColBar
-    }, /*#__PURE__*/React.createElement("div", {
+    }, opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €")), opps.length === 0 && /*#__PURE__*/React.createElement("div", {
       style: {
-        width: opps.length ? "100%" : "0%",
-        height: "100%",
-        background: s.color,
-        opacity: 0.6,
-        borderRadius: 999
+        padding: "16px 8px",
+        fontSize: 11,
+        color: "#cbd5e1",
+        textAlign: "center",
+        fontStyle: "italic",
+        border: "1px dashed #e2e8f0",
+        borderRadius: 6
       }
-    })));
+    }, "Aucune opportunit\xE9"), opps.map((o, j) => {
+      var openOpp = () => {
+        var cid = urlId || display.id || "";
+        window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
+      };
+      var stageColor = s.color;
+      return /*#__PURE__*/React.createElement("div", {
+        key: o.ref || j,
+        onClick: openOpp,
+        style: {
+          background: "#fff",
+          border: "1px solid #eef1f5",
+          borderRadius: 8,
+          padding: 10,
+          cursor: "pointer",
+          display: "flex",
+          flexDirection: "column",
+          gap: 7
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12,
+          fontWeight: 600,
+          color: "#0f172a",
+          lineHeight: 1.3,
+          wordBreak: "break-word"
+        }
+      }, o.name || "—"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 13,
+          fontWeight: 700,
+          color: "#0f172a",
+          fontFamily: "'JetBrains Mono', monospace"
+        }
+      }, o.amount), o.close && o.close !== "—" && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "#94a3b8"
+        }
+      }, o.close.split(" ").slice(0, 2).join(" "))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: 0.4,
+          fontWeight: 600
+        }
+      }, "Proba"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: stageColor,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 700
+        }
+      }, o.proba || 20, "%")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          height: 3,
+          background: "#eef1f5",
+          borderRadius: 999,
+          overflow: "hidden"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: (o.proba || 20) + "%",
+          height: "100%",
+          background: stageColor,
+          borderRadius: 999
+        }
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          marginTop: 2
+        }
+      }, /*#__PURE__*/React.createElement(Avatar, {
+        name: o.owner,
+        size: 16,
+        color: o.ownerColor || stageColor
+      }), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10.5,
+          color: "#64748b"
+        }
+      }, o.owner || "—")));
+    }));
   })), /*#__PURE__*/React.createElement("div", {
     style: pipeView === "list" ? {
       display: "flex",
       flexDirection: "column",
       gap: 6
-    } : cliStyles.oppGrid
+    } : {
+      display: "none"
+    }
   }, opportunities.map((o, i) => {
     var edited = oppEdits[o.ref] || {};
     var currentStage = edited.stage || o.stage;

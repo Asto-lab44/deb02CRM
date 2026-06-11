@@ -1871,15 +1871,30 @@ var ClientPage = () => {
       };
       if (isEmail) {
         var recipient = allContacts && allContacts[0] && allContacts[0].email || display.email || "";
-        var subject = a.title || "Prise de contact — Astorya";
-        var bodyLines = ["Bonjour" + (allContacts && allContacts[0] && allContacts[0].name ? " " + allContacts[0].name.split(" ")[0] : "") + ",", "", a.meta || "", "", "Bien cordialement,", "Romain Daviaud — Astorya"];
-        var body = bodyLines.filter(Boolean).join("\n\n");
+        var contactNom = allContacts && allContacts[0] && allContacts[0].name || "";
+        var lastName = contactNom.split(" ").slice(-1)[0] || "";
+        var subject = "Prise de contact - Plaquette Astorya";
+        var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
         var href = "mailto:" + encodeURIComponent(recipient) + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
         return /*#__PURE__*/React.createElement("a", {
           href: href,
           title: recipient ? "Ouvrir un mail pour " + recipient : "Aucun destinataire renseigné",
-          onClick: () => {
-            if (!recipient && window.HubToast) window.HubToast.warn("Aucun email — ajoute un contact d'abord");
+          onClick: e => {
+            if (!recipient) {
+              e.preventDefault();
+              if (window.HubToast) window.HubToast.warn("Aucun email — ajoute un contact d'abord");
+              return;
+            }
+            // Télécharge la plaquette automatiquement → l'utilisateur n'a
+            // qu'à glisser-déposer le PDF dans son mail (mailto: ne supporte
+            // pas les pièces jointes, contrainte navigateur).
+            var link = document.createElement("a");
+            link.href = "/assets/Plaquette-Astorya.pdf";
+            link.download = "Plaquette-Astorya.pdf";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail comme pièce jointe");
           },
           style: hoverStyle,
           onMouseEnter: hoverOn,

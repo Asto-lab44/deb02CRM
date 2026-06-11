@@ -2048,9 +2048,18 @@ var CRMActionsList = () => {
           return;
         }
         var lastName = (contact && contact.nom || "").trim();
-        var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe.", "", "📎 Plaquette : https://deb02-crm.vercel.app/assets/Plaquette-Astorya.pdf"].join("\n");
+        var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
+        // Téléchargement local de la plaquette → l'utilisateur la
+        // glisse dans son mail (mailto: ne supporte pas les pièces
+        // jointes, contrainte sécurité navigateur)
+        var link = document.createElement("a");
+        link.href = "/assets/Plaquette-Astorya.pdf";
+        link.download = "Plaquette-Astorya.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         window.location.href = "mailto:" + encodeURIComponent(email) + "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") + "&body=" + encodeURIComponent(body);
-        if (window.HubToast) window.HubToast.info("📎 N'oublie pas d'attacher la plaquette");
+        if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail");
         return;
       }
       if (isCall) {

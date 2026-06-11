@@ -396,7 +396,16 @@ const ERPHome = () => {
           </div>
           <select
             value={activeGroup.id}
-            onChange={(e) => window.HubAccess.setActiveGroupId(e.target.value)}
+            onChange={(e) => {
+              const gid = e.target.value;
+              // 1. Persiste dans HubAccess (localStorage)
+              if (window.HubAccess && window.HubAccess.setActiveGroupId) {
+                window.HubAccess.setActiveGroupId(gid);
+              }
+              // 2. Met à jour le state React → re-render des tuiles
+              const next = (allGroups || []).find((g) => g.id === gid);
+              if (next) setActiveGroup(next);
+            }}
             style={{ width: "100%", padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11.5, color: "#475569", background: "#fff", cursor: "pointer" }}
           >
             {allGroups.map((g) => (

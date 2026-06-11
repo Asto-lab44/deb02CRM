@@ -829,7 +829,16 @@ var ERPHome = () => {
     }
   }, activeGroup.name)), /*#__PURE__*/React.createElement("select", {
     value: activeGroup.id,
-    onChange: e => window.HubAccess.setActiveGroupId(e.target.value),
+    onChange: e => {
+      var gid = e.target.value;
+      // 1. Persiste dans HubAccess (localStorage)
+      if (window.HubAccess && window.HubAccess.setActiveGroupId) {
+        window.HubAccess.setActiveGroupId(gid);
+      }
+      // 2. Met à jour le state React → re-render des tuiles
+      var next = (allGroups || []).find(g => g.id === gid);
+      if (next) setActiveGroup(next);
+    },
     style: {
       width: "100%",
       padding: "5px 8px",

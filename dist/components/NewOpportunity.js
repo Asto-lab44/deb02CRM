@@ -31,21 +31,29 @@ var NewOpportunity = () => {
   var [oppAmount, setOppAmount] = React.useState("");
   var [oppDate, setOppDate] = React.useState("");
   var [oppNotes, setOppNotes] = React.useState("");
+  // Qualification commerciale — déplacée depuis NewProspect : une qualif
+  // par opportunité (besoin, concurrent, échéance).
+  var [oppBesoin, setOppBesoin] = React.useState("");
+  var [oppConcurrent, setOppConcurrent] = React.useState("");
+  var [oppConcurrentAmount, setOppConcurrentAmount] = React.useState("");
+  var [oppProjectDate, setOppProjectDate] = React.useState("");
   var [oppType, setOppType] = React.useState("new"); // new | extension | renewal | upsell
   var [oppProduit, setOppProduit] = React.useState("Astorya Suite");
   var [oppModules, setOppModules] = React.useState([]); // ["Cyber", "Hub", ...]
-  var [oppSource, setOppSource] = React.useState("Référence client existant");
   var [oppDuration, setOppDuration] = React.useState("3 ans");
   var [oppStage, setOppStage] = React.useState("qualif");
-  var [oppOwner, setOppOwner] = React.useState("Romain Daviaud");
+  // Owner par défaut = nom de l'utilisateur connecté (via HubAccess).
+  // Fallback "Romain Daviaud" si pas de session.
+  var initialOwner = (() => {
+    try {
+      var u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+      return u && u.name || "Romain Daviaud";
+    } catch (e) {
+      return "Romain Daviaud";
+    }
+  })();
+  var [oppOwner, setOppOwner] = React.useState(initialOwner);
   var [oppTags, setOppTags] = React.useState([]);
-  React.useEffect(() => {
-    if (!window.api || !window.api.auth) return;
-    window.api.auth.getUser().then(u => {
-      if (!u) return;
-      if (u.email === "a.morin@astorya.fr") setOppOwner("Augustin Morin");else if (u.email === "achat@astorya.fr") setOppOwner("Romain Daviaud");
-    }).catch(() => {});
-  }, []);
   // Stage pré-sélectionné via ?stage=
   React.useEffect(() => {
     var s = new URLSearchParams(window.location.search).get("stage");
@@ -53,16 +61,64 @@ var NewOpportunity = () => {
   }, []);
   var [flash, setFlash] = React.useState(null);
 
-  // Résolution du dossier prospect complet (pour récupérer contact_principal + contacts_additionnels)
+  // Résolution du dossier prospect complet : contacts depuis Supabase
+  // en priorité (table contacts), fallback localStorage legacy si rien.
+  var [clientContacts, setClientContacts] = React.useState([]);
+  // IDs des co-contacts sélectionnés pour cette opportunité (parmi
+  // les contacts existants du client, hors contact principal).
+  var [selectedCoContactIds, setSelectedCoContactIds] = React.useState(new Set());
+  React.useEffect(() => {
+    setSelectedCoContactIds(new Set());
+  }, [selectedClient && selectedClient.id]);
+  React.useEffect(() => {
+    if (!selectedClient || !selectedClient.id) {
+      setClientContacts([]);
+      return;
+    }
+    (async () => {
+      try {
+        var conts = await window.api.contacts.list({
+          client_id: selectedClient.id
+        });
+        setClientContacts(conts || []);
+      } catch (e) {
+        setClientContacts([]);
+      }
+    })();
+  }, [selectedClient && selectedClient.id]);
   var fullProspect = React.useMemo(() => {
     if (!selectedClient) return null;
+    // Construit un fullProspect virtuel à partir des contacts BDD
+    var principal = clientContacts.find(c => c.is_principal);
+    var additionnels = clientContacts.filter(c => !c.is_principal);
+    if (clientContacts.length > 0) {
+      return {
+        id: selectedClient.id,
+        contact_principal: principal ? {
+          prenom: principal.prenom || "",
+          nom: principal.nom || "",
+          fonction: principal.fonction || "",
+          email: principal.email || "",
+          phone: principal.phone || ""
+        } : null,
+        contacts_additionnels: additionnels.map(c => ({
+          prenom: c.prenom || "",
+          nom: c.nom || "",
+          fonction: c.fonction || "",
+          email: c.email || "",
+          phone: c.phone || ""
+        })),
+        roles: principal && principal.roles || []
+      };
+    }
+    // Fallback localStorage legacy
     try {
       var local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
       return local.find(p => p.id === selectedClient.id) || null;
     } catch (e) {
       return null;
     }
-  }, [selectedClient]);
+  }, [selectedClient, clientContacts]);
 
   // Probabilité auto selon étape
   var stageProba = {
@@ -107,12 +163,18 @@ var NewOpportunity = () => {
       type: oppType,
       produit: oppProduit,
       modules: oppModules,
-      source: oppSource,
       duration: oppDuration,
       stage: oppStage,
       proba,
       owner: oppOwner,
-      tags: oppTags
+      tags: oppTags,
+      // Co-contacts sélectionnés sur cette opp (IDs de la table contacts)
+      co_contact_ids: Array.from(selectedCoContactIds),
+      // Qualification commerciale
+      besoin: oppBesoin || null,
+      concurrent: oppConcurrent || null,
+      concurrent_amount: oppConcurrentAmount || null,
+      project_date: oppProjectDate || null
     };
     try {
       await window.api.opportunities.create(opp);
@@ -284,6 +346,8 @@ var NewOpportunity = () => {
     style: noStyles.bodyGrid
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.formCol
+  }, /*#__PURE__*/React.createElement("div", {
+    style: noStyles.pairGrid
   }, /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
@@ -488,41 +552,110 @@ var NewOpportunity = () => {
     }, cp.fonction || "—", cp.email ? ` · ${cp.email}` : "")));
   })()), /*#__PURE__*/React.createElement(FormRow, {
     label: "Co-contacts",
-    subtitle: "D\xE9cideurs suppl\xE9mentaires identifi\xE9s \xE0 la cr\xE9ation du prospect"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      flexWrap: "wrap"
-    }
+    subtitle: "S\xE9lectionnez d'autres contacts du client \xE0 inclure dans cette opportunit\xE9"
   }, (() => {
-    var add = fullProspect && fullProspect.contacts_additionnels || [];
-    if (!add.length) return /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        color: "#94a3b8",
-        fontStyle: "italic"
-      }
-    }, "Aucun co-contact");
-    var colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
-    return add.map((x, i) => {
-      var n = ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact";
-      return /*#__PURE__*/React.createElement("div", {
-        key: i,
-        style: noStyles.contactChip
-      }, /*#__PURE__*/React.createElement(Avatar, {
-        name: n,
-        size: 18,
-        color: colors[i % colors.length]
-      }), /*#__PURE__*/React.createElement("span", {
+    // Filtre les contacts éligibles : tous sauf le principal
+    var eligible = clientContacts.filter(c => !c.is_principal);
+    if (!selectedClient) {
+      return /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11.5,
-          fontWeight: 500
+          color: "#94a3b8",
+          fontStyle: "italic"
         }
-      }, n));
-    });
-  })()))), /*#__PURE__*/React.createElement("section", {
+      }, "S\xE9lectionne d'abord un client.");
+    }
+    if (eligible.length === 0) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          padding: "10px 12px",
+          background: "#fafbfc",
+          border: "1px dashed #e2e8f0",
+          borderRadius: 8,
+          fontSize: 12,
+          color: "#94a3b8"
+        }
+      }, "Aucun co-contact disponible.", " ", /*#__PURE__*/React.createElement("a", {
+        href: "/fiche-client?id=" + encodeURIComponent(selectedClient.id),
+        style: {
+          color: "#3730a3",
+          textDecoration: "none",
+          fontWeight: 600
+        }
+      }, "Ajouter un contact \xE0 ce client \u2192"));
+    }
+    var colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 6
+      }
+    }, eligible.map((c, i) => {
+      var checked = selectedCoContactIds.has(c.id);
+      var n = ((c.prenom || "") + " " + (c.nom || "")).trim() || c.email || "Contact";
+      return /*#__PURE__*/React.createElement("label", {
+        key: c.id,
+        onClick: () => {
+          setSelectedCoContactIds(prev => {
+            var next = new Set(prev);
+            if (next.has(c.id)) next.delete(c.id);else next.add(c.id);
+            return next;
+          });
+        },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 12px",
+          border: "1px solid " + (checked ? "#c7d2fe" : "#e2e8f0"),
+          background: checked ? "#eef2ff" : "#fff",
+          borderRadius: 8,
+          cursor: "pointer"
+        }
+      }, /*#__PURE__*/React.createElement("input", {
+        type: "checkbox",
+        checked: checked,
+        readOnly: true,
+        style: {
+          accentColor: "#3730a3"
+        }
+      }), /*#__PURE__*/React.createElement(Avatar, {
+        name: n,
+        size: 26,
+        color: colors[i % colors.length]
+      }), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: "#0f172a"
+        }
+      }, n), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "#64748b"
+        }
+      }, c.fonction || "Fonction non renseignée", c.email ? " · " + c.email : "")));
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#94a3b8",
+        marginTop: 4
+      }
+    }, "\uD83D\uDCA1 Besoin d'un contact qui n'appara\xEEt pas ?", " ", /*#__PURE__*/React.createElement("a", {
+      href: "/fiche-client?id=" + encodeURIComponent(selectedClient.id),
+      style: {
+        color: "#3730a3",
+        textDecoration: "none",
+        fontWeight: 600
+      }
+    }, "Ajoute-le dans la fiche client \u2192")));
+  })())), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "02",
@@ -574,16 +707,14 @@ var NewOpportunity = () => {
         cursor: "pointer"
       }
     }, on ? "✓ " : "+ ", m);
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.formGrid2
-  }, /*#__PURE__*/React.createElement(FormRow, {
+  })))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Type d'opportunit\xE9",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.radioGroup
   }, [{
     k: "new",
-    label: "Nouveau client"
+    label: "Nouveau produit"
   }, {
     k: "extension",
     label: "Extension"
@@ -607,16 +738,6 @@ var NewOpportunity = () => {
     checked: oppType === t.k,
     onChange: () => setOppType(t.k)
   }), " ", /*#__PURE__*/React.createElement("span", null, t.label))))), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Source",
-    required: true
-  }, /*#__PURE__*/React.createElement("select", {
-    value: oppSource,
-    onChange: e => setOppSource(e.target.value),
-    style: {
-      ...noStyles.input,
-      padding: "8px 12px"
-    }
-  }, /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rence client existant"), /*#__PURE__*/React.createElement("option", null, "Cold outbound"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Partenaire revendeur"), /*#__PURE__*/React.createElement("option", null, "Renouvellement automatique"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau personnel"), /*#__PURE__*/React.createElement("option", null, "Autre")))), /*#__PURE__*/React.createElement(FormRow, {
     label: "Description & contexte",
     subtitle: "Quel est le besoin ? Quel d\xE9clencheur ?"
   }, /*#__PURE__*/React.createElement("textarea", {
@@ -642,7 +763,9 @@ var NewOpportunity = () => {
       color: "#94a3b8",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, oppNotes.length, " / 2 000")))), /*#__PURE__*/React.createElement("section", {
+  }, oppNotes.length, " / 2 000"))))), /*#__PURE__*/React.createElement("div", {
+    style: noStyles.pairGrid
+  }, /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "03",
@@ -654,24 +777,33 @@ var NewOpportunity = () => {
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Montant estim\xE9",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: noStyles.inputWithSuffix
-  }, /*#__PURE__*/React.createElement("input", {
-    style: {
-      ...noStyles.input,
-      border: "none",
-      padding: "0 4px",
-      fontSize: 18,
-      fontWeight: 600
-    },
-    value: oppAmount,
-    onChange: e => setOppAmount(e.target.value),
-    placeholder: "0"
-  }), /*#__PURE__*/React.createElement("span", {
-    style: noStyles.suffix
-  }, "\u20AC / an")), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.inputHelp
-  }, "R\xE9current annuel HT")), /*#__PURE__*/React.createElement(FormRow, {
+  }, (() => {
+    var V = window.HubValidators;
+    var amtErr = V && V.numberRange(oppAmount, 0, 100000000);
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...noStyles.inputWithSuffix,
+        ...(amtErr ? V.errorStyle(amtErr) : {})
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      style: {
+        ...noStyles.input,
+        border: "none",
+        padding: "0 4px",
+        fontSize: 18,
+        fontWeight: 600
+      },
+      value: oppAmount,
+      onChange: e => setOppAmount(e.target.value),
+      placeholder: "0"
+    }), /*#__PURE__*/React.createElement("span", {
+      style: noStyles.suffix
+    }, "\u20AC / an")), amtErr && /*#__PURE__*/React.createElement("div", {
+      style: V.errorMsgStyle(amtErr)
+    }, amtErr.message), /*#__PURE__*/React.createElement("div", {
+      style: noStyles.inputHelp
+    }, "R\xE9current annuel HT"));
+  })()), /*#__PURE__*/React.createElement(FormRow, {
     label: "Dur\xE9e contrat"
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.segCtrl
@@ -697,33 +829,33 @@ var NewOpportunity = () => {
       }
     }, "TCV : ", tcv.toLocaleString("fr-FR").replace(/,/g, " "), " \u20AC sur ", oppDuration);
   })())), /*#__PURE__*/React.createElement(FormRow, {
-    label: "\xC9tape pipeline",
+    label: "\xC9tape SPANCO",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.pipelineSelector
   }, [{
     k: "qualif",
-    label: "Qualification",
+    label: "Prospect",
     color: "#94a3b8",
     proba: 20
   }, {
     k: "discovery",
-    label: "Discovery",
+    label: "Approche",
     color: "#3b82f6",
     proba: 35
   }, {
     k: "propo",
-    label: "Proposition",
+    label: "Négociation",
     color: "#a855f7",
     proba: 55
   }, {
     k: "nego",
-    label: "Négociation",
+    label: "Conclusion",
     color: "#ea580c",
     proba: 75
   }, {
     k: "won",
-    label: "Gagné",
+    label: "Ordre",
     color: "#10b981",
     proba: 100
   }].map(s => {
@@ -800,7 +932,7 @@ var NewOpportunity = () => {
   }, proba, "%")), /*#__PURE__*/React.createElement("div", {
     style: noStyles.inputHelp
   }, "Auto-rempli depuis l'\xE9tape")), /*#__PURE__*/React.createElement(FormRow, {
-    label: "Date de cl\xF4ture cible",
+    label: "Date de d\xE9cision potentielle",
     required: true
   }, /*#__PURE__*/React.createElement("div", {
     style: noStyles.dateInput
@@ -864,15 +996,82 @@ var NewOpportunity = () => {
       fontSize: 13
     }
   }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var t = prompt("Nouvelle étiquette :");
+    onClick: async () => {
+      var t = window.HubModal ? await window.HubModal.prompt({
+        title: "Nouvelle étiquette",
+        label: "Tag",
+        placeholder: "ex : Hot deal Q2",
+        okLabel: "Ajouter"
+      }) : prompt("Nouvelle étiquette :");
       if (t && t.trim()) setOppTags(arr => [...arr, t.trim()]);
     },
     style: {
       ...noStyles.addChip,
       cursor: "pointer"
     }
-  }, "+ Ajouter")))), /*#__PURE__*/React.createElement("div", {
+  }, "+ Ajouter"))))), /*#__PURE__*/React.createElement("section", {
+    style: noStyles.section
+  }, /*#__PURE__*/React.createElement(SectionHead, {
+    num: "05",
+    title: "Qualification commerciale",
+    subtitle: "Besoin, contexte concurrentiel et \xE9ch\xE9ance du contrat actuel"
+  }), /*#__PURE__*/React.createElement(FormRow, {
+    label: "Besoin exprim\xE9 / probl\xE8me \xE0 r\xE9soudre"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...noStyles.input,
+      fontFamily: "inherit",
+      resize: "vertical",
+      minHeight: 70
+    },
+    rows: "3",
+    value: oppBesoin,
+    onChange: e => setOppBesoin(e.target.value),
+    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: noStyles.formGrid2
+  }, /*#__PURE__*/React.createElement(FormRow, {
+    label: "Concurrent actuel"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: noStyles.input,
+    value: oppConcurrent,
+    onChange: e => setOppConcurrent(e.target.value),
+    placeholder: "Ex. Salesforce, Pega, HubSpot\u2026"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...noStyles.inputWithSuffix,
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...noStyles.input,
+      border: "none",
+      padding: "0 4px"
+    },
+    value: oppConcurrentAmount,
+    onChange: e => setOppConcurrentAmount(e.target.value),
+    placeholder: "Montant annuel"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: noStyles.suffix
+  }, "k\u20AC/an"))), /*#__PURE__*/React.createElement(FormRow, {
+    label: "\xC9ch\xE9ance du contrat actuel"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: noStyles.dateInput
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    style: {
+      ...noStyles.input,
+      border: "none",
+      padding: 0,
+      fontFamily: "'JetBrains Mono', monospace"
+    },
+    value: oppProjectDate,
+    onChange: e => setOppProjectDate(e.target.value)
+  }))))), /*#__PURE__*/React.createElement("div", {
     style: noStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => {
@@ -1070,209 +1269,244 @@ var NewOpportunity = () => {
       textAlign: "center"
     }
   }, "\u2191 Aper\xE7u en colonne ", /*#__PURE__*/React.createElement("strong", null, {
-    qualif: "Qualification",
-    discovery: "Discovery",
-    propo: "Proposition",
-    nego: "Négociation",
-    won: "Gagné"
-  }[oppStage]))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiPanel
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 10
+    qualif: "Prospect",
+    discovery: "Approche",
+    propo: "Négociation",
+    nego: "Conclusion",
+    won: "Ordre"
+  }[oppStage]))), (() => {
+    var amtN = parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) || 0;
+    var yearsN = oppDuration === "1 an" ? 1 : oppDuration === "3 ans" ? 3 : oppDuration === "5 ans" ? 5 : 0;
+    var concurrentAmtN = parseFloat(String(oppConcurrentAmount || "").replace(/[^\d.]/g, "")) || 0;
+    var cycleDays = {
+      qualif: 145,
+      discovery: 110,
+      propo: 75,
+      nego: 35,
+      won: 0
+    }[oppStage] || 90;
+    var estCloseDate = (() => {
+      var d = new Date();
+      d.setDate(d.getDate() + cycleDays);
+      return d.toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+    })();
+    var dateMismatch = oppDate && Math.abs((new Date(oppDate) - new Date()) / 86400000 - cycleDays) > 30;
+    var items = [];
+    if (selectedClient) {
+      items.push({
+        icon: "🏷️",
+        title: "Compte sélectionné",
+        desc: /*#__PURE__*/React.createElement(React.Fragment, null, "Vous travaillez sur ", /*#__PURE__*/React.createElement("strong", {
+          style: {
+            color: "#0f172a"
+          }
+        }, selectedClient.name), selectedClient.sector ? " (" + selectedClient.sector + ")" : "", ".")
+      });
+    } else {
+      items.push({
+        icon: "💡",
+        title: "Sélectionnez un compte",
+        desc: "Choisissez le compte concerné en haut à gauche pour démarrer."
+      });
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 24,
-      height: 24,
-      borderRadius: 999,
-      background: "#0f172a",
-      color: "#fff",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 12
+    if (amtN > 0 && yearsN > 0) {
+      var tcv = (amtN * yearsN).toLocaleString("fr-FR").replace(/,/g, " ");
+      items.push({
+        icon: "💰",
+        title: "TCV : " + tcv + " €",
+        desc: /*#__PURE__*/React.createElement(React.Fragment, null, "Sur la base de ", /*#__PURE__*/React.createElement("strong", {
+          style: {
+            color: "#0f172a"
+          }
+        }, amtN.toLocaleString("fr-FR").replace(/,/g, " "), " \u20AC/an"), " \xD7 ", oppDuration, ".")
+      });
+    } else if (amtN === 0) {
+      items.push({
+        icon: "💡",
+        title: "Renseignez un montant",
+        desc: "Pour calculer le TCV et la pondération du pipeline."
+      });
     }
-  }, "\u2605"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "#0f172a"
+    items.push({
+      icon: "📅",
+      title: "Cycle attendu : " + cycleDays + " jours",
+      desc: /*#__PURE__*/React.createElement(React.Fragment, null, "Date de cl\xF4ture probable : ", /*#__PURE__*/React.createElement("strong", {
+        style: {
+          color: "#0f172a"
+        }
+      }, estCloseDate), ".", oppDate ? " Vous avez saisi le " + new Date(oppDate).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short"
+      }) + "." : "", dateMismatch ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#f59e0b",
+          display: "block",
+          marginTop: 3
+        }
+      }, "\u26A0 \xC9cart important avec la date saisie.") : null)
+    });
+    if (oppConcurrent && oppConcurrent.trim()) {
+      items.push({
+        icon: "⚠",
+        title: "Concurrent : " + oppConcurrent,
+        desc: concurrentAmtN > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "Budget actuel ", /*#__PURE__*/React.createElement("strong", {
+          style: {
+            color: "#0f172a"
+          }
+        }, concurrentAmtN.toLocaleString("fr-FR").replace(/,/g, " "), " k\u20AC/an"), ".", amtN > 0 && concurrentAmtN > 0 ? amtN > concurrentAmtN * 1000 ? " Notre offre est plus chère." : " Notre offre est compétitive." : "") : "Pensez à documenter le montant actuel pour mieux argumenter."
+      });
     }
-  }, "Suggestions Hub Assistant")), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\uD83D\uDCA1"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
+    if (clientContacts.length > 1 && selectedCoContactIds.size === 0) {
+      items.push({
+        icon: "👥",
+        title: "Co-contacts disponibles",
+        desc: /*#__PURE__*/React.createElement(React.Fragment, null, clientContacts.length - 1, " contact(s) suppl\xE9mentaire(s) chez ce client. Pensez \xE0 en s\xE9lectionner si plusieurs interlocuteurs sont impliqu\xE9s.")
+      });
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
+    if (!oppBesoin || !oppBesoin.trim()) {
+      items.push({
+        icon: "📝",
+        title: "Décrivez le besoin",
+        desc: "Le champ « Besoin exprimé » est vide. Un besoin documenté améliore la conversion de 30 %."
+      });
     }
-  }, "Montant estim\xE9 : 92 k\u20AC"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "Bas\xE9 sur 3 deals similaires (extension Suite \xB7 200-300 si\xE8ges) \u2014 moyenne 87 k\u20AC et m\xE9diane 91 k\u20AC."), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.aiAccept
-  }, "Accepter le montant"))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Cycle attendu : 115 jours"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "Date de cl\xF4ture probable : ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: "#0f172a"
-    }
-  }, "18 sept. 2026"), ". Vous avez saisi le 15."))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\u26A0"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Concurrent Pega d\xE9tect\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "3 deals AXA pr\xE9c\xE9dents ont mentionn\xE9 Pega. Le voulez-vous dans la liste ?"), /*#__PURE__*/React.createElement("button", {
-    style: noStyles.aiAccept
-  }, "Ajouter Pega"))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.aiItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: noStyles.aiItemIcon
-  }, "\uD83D\uDC65"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, "Champion \xE0 activer"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "\xC9milie Roux est marqu\xE9e Champion sur le compte. Sugg\xE9r\xE9e comme contact principal."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#10b981",
-      marginTop: 4,
-      fontWeight: 600
-    }
-  }, "\u2713 D\xE9j\xE0 s\xE9lectionn\xE9e")))), /*#__PURE__*/React.createElement("div", {
-    style: noStyles.checklist
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "#94a3b8",
-      textTransform: "uppercase",
-      letterSpacing: 0.6,
-      marginBottom: 10
-    }
-  }, "Compl\xE9tion du brouillon"), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Compte renseign\xE9"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Contact principal"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Nom & description"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Montant & dur\xE9e"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    done: true,
-    label: "Date de cl\xF4ture"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    active: true,
-    label: "Commercial & \xE9quipe"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    label: "Produits & pricing d\xE9taill\xE9"
-  }), /*#__PURE__*/React.createElement(ChecklistRow, {
-    label: "Validation finale"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: "1px solid #eef1f5"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 4
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "Compl\xE9t\xE9"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, "6 / 8")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 4,
-      background: "#eef1f5",
-      borderRadius: 999,
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "75%",
-      height: "100%",
-      background: "#4f46e5",
-      borderRadius: 999
-    }
-  })))))))));
+    return /*#__PURE__*/React.createElement("div", {
+      style: noStyles.aiPanel
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 24,
+        height: 24,
+        borderRadius: 999,
+        background: "#0f172a",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12
+      }
+    }, "\u2605"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, "Suggestions Hub Assistant")), items.map((it, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: noStyles.aiItem
+    }, /*#__PURE__*/React.createElement("span", {
+      style: noStyles.aiItemIcon
+    }, it.icon), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, it.title), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 2,
+        lineHeight: 1.45
+      }
+    }, it.desc)))));
+  })(), (() => {
+    var checks = [{
+      label: "Compte renseigné",
+      done: !!selectedClient
+    }, {
+      label: "Contact principal",
+      done: !!(fullProspect && fullProspect.contact_principal && (fullProspect.contact_principal.nom || fullProspect.contact_principal.email))
+    }, {
+      label: "Nom & description",
+      done: !!(oppName && oppName.trim() && oppNotes && oppNotes.trim())
+    }, {
+      label: "Montant & durée",
+      done: !!(parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) > 0 && oppDuration)
+    }, {
+      label: "Date de décision",
+      done: !!oppDate
+    }, {
+      label: "Commercial & équipe",
+      done: !!oppOwner
+    }, {
+      label: "Qualification commerciale",
+      done: !!(oppBesoin && oppBesoin.trim())
+    }, {
+      label: "Étape SPANCO",
+      done: !!oppStage
+    }];
+    var doneCount = checks.filter(c => c.done).length;
+    var pct = Math.round(doneCount / checks.length * 100);
+    return /*#__PURE__*/React.createElement("div", {
+      style: noStyles.checklist
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.6,
+        marginBottom: 10
+      }
+    }, "Compl\xE9tion du brouillon"), checks.map((c, i) => /*#__PURE__*/React.createElement(ChecklistRow, {
+      key: i,
+      done: c.done,
+      label: c.label
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid #eef1f5"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#64748b"
+      }
+    }, "Compl\xE9t\xE9"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: "#0f172a",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, doneCount, " / ", checks.length)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 4,
+        background: "#eef1f5",
+        borderRadius: 999,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: pct + "%",
+        height: "100%",
+        background: pct >= 75 ? "#10b981" : "#4f46e5",
+        borderRadius: 999
+      }
+    }))));
+  })())))));
 };
 
 // ───── helpers
@@ -1598,7 +1832,13 @@ var noStyles = {
     padding: "20px 24px 24px",
     display: "flex",
     flexDirection: "column",
-    gap: 20
+    gap: 16
+  },
+  pairGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    alignItems: "start"
   },
   section: {
     padding: 18,

@@ -1,4 +1,31 @@
-// Fiche client 360 — pipe multi-contrats + actions menées / à mener
+// ════════════════════════════════════════════════════════════════════
+// ClientPage — Fiche client 360° (route : /fiche-client?id=…)
+// ════════════════════════════════════════════════════════════════════
+//
+// Le plus gros composant de l'app (~1600 lignes). Affiche toutes les infos
+// relatives à un client/prospect :
+//
+//  - HEADER     : nom, secteur, ville, web, owner, contrat, KPIs (ARR, pipe)
+//  - SECTIONS   :
+//      • Informations compte (commercial, effectif, secteur, source…)
+//      • Contacts clés (principal + co-contacts)
+//      • Contrats actifs
+//      • Opportunités liées (chargées via api.opportunities.list)
+//      • Actions à mener (api.actions.list status="todo")
+//      • Actions historiques (api.actions.list status="done")
+//      • Parc IT (modale AssetInventoryModal)
+//      • Stats appels (modale CallStatsModal)
+//  - MODALS    : nouvelle action, nouveau contact, édition fiche
+//
+// Sources :
+//   - Client : api.clients.getById(urlId) → loadedClient
+//   - Tout le reste : reloadAllForClient() qui parallélise les 3 listes
+//     (actions + contacts + opportunités)
+//
+// Note legacy : ce composant gère encore un fallback "AXA Wealth France"
+// (démo) quand `urlId` est absent (`empty` = false), pour ne pas casser
+// la maquette d'origine.
+// ════════════════════════════════════════════════════════════════════
 
 var ClientPage = () => {
   var [statsOpen, setStatsOpen] = React.useState(false);
@@ -32,10 +59,21 @@ var ClientPage = () => {
       }), window.api.opportunities.list({
         client_id: cid
       })]);
+      // Liste des "anciens" noms démo à remplacer par l'utilisateur courant
+      var legacyDemoNames = new Set(["Romain Daviaud", "Nadia Lefèvre", "Tom Verdier", "Émilie Garnier", "Sophie Aubry", "Antoine Mercier", "Julien Pasquier", "Marie Lopez", "Pierre Dubois", "Romain Faure", "Léo Tanaka", "Diane Roussel", "Farid Belkacem", "Valérie Chen", "Léa Marchand", "Olivier Vasseur", "Catherine Marchand", "Hugo Bertrand"]);
+      var currentUserName = (() => {
+        try {
+          var u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+          return u && u.name || "Vous";
+        } catch (e) {
+          return "Vous";
+        }
+      })();
+      var normalizeAssignee = n => n && legacyDemoNames.has(n) ? currentUserName : n || currentUserName;
       var todo = (acts || []).filter(a => a.status !== "done").map(a => ({
         ...a,
         due: a.due || a.due_text || "Date à définir",
-        assigned: a.assigned || a.assigned_to || "Vous",
+        assigned: normalizeAssignee(a.assigned || a.assigned_to),
         tag: a.tag || null,
         tagColor: a.tagColor || a.tag_color || "#475569",
         icon: a.icon || "•"
@@ -44,7 +82,7 @@ var ClientPage = () => {
         ...a,
         icon: a.icon || (a.type === "call" ? "☎" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : a.type === "note" ? "✎" : "✓"),
         color: "#10b981",
-        who: a.assigned_to || a.assigned || "—",
+        who: normalizeAssignee(a.assigned_to || a.assigned),
         at: a.completed_at ? new Date(a.completed_at).toLocaleDateString("fr-FR", {
           day: "2-digit",
           month: "short",
@@ -79,6 +117,11 @@ var ClientPage = () => {
   }, []);
   React.useEffect(() => {
     reloadAllForClient();
+    // Realtime : tout changement BDD (autre onglet, autre user) relance le
+    // reload. Couvre actions/contacts/opps/contrats.
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reloadAllForClient);
+    }
   }, [reloadAllForClient]);
   var [completedActions, setCompletedActions] = React.useState([]);
 
@@ -304,6 +347,73 @@ var ClientPage = () => {
   // ───── Contacts clés du client : démo AXA + custom localStorage par client
   var defaultContacts = [];
   var [customContacts, setCustomContacts] = React.useState([]);
+  var [editingContact, setEditingContact] = React.useState(null);
+  // User auth Supabase pour la sidebar (au lieu du fallback "Utilisateur —")
+  var [supaUser, setSupaUser] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.api || !window.api.auth) return;
+    window.api.auth.getUser().then(u => {
+      if (u) setSupaUser(u);
+    }).catch(() => {});
+  }, []);
+  var reloadCustomContacts = async () => {
+    if (!urlId || !window.api || !window.api.contacts) return;
+    try {
+      var conts = await window.api.contacts.list({
+        client_id: urlId
+      });
+      setCustomContacts(conts || []);
+    } catch (e) {}
+  };
+  var saveContactEdit = async form => {
+    if (!form) return;
+    // Cas 1 : contact existe en table contacts → update direct
+    if (form.id) {
+      await window.api.contacts.update(form.id, {
+        prenom: form.prenom,
+        nom: form.nom,
+        fonction: form.fonction,
+        email: form.email,
+        phone: form.phone,
+        linkedin: form.linkedin
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact mis à jour");
+      await reloadCustomContacts();
+      setEditingContact(null);
+      return;
+    }
+    // Cas 2 : legacy contact_principal stocké dans clients.data → patch client
+    if (form._legacyPrincipal) {
+      await window.api.clients.update(urlId, {
+        contact_principal: {
+          prenom: form.prenom,
+          nom: form.nom,
+          fonction: form.fonction,
+          email: form.email,
+          phone: form.phone,
+          linkedin: form.linkedin
+        }
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact principal mis à jour");
+      setEditingContact(null);
+      window.location.reload();
+      return;
+    }
+    // Cas 3 : legacy contact_additionnel dans clients.data → on le crée en table contacts
+    var newContact = await window.api.contacts.create({
+      client_id: urlId,
+      prenom: form.prenom,
+      nom: form.nom,
+      fonction: form.fonction,
+      email: form.email,
+      phone: form.phone,
+      linkedin: form.linkedin,
+      is_principal: false
+    });
+    if (newContact && window.HubToast) window.HubToast.success("✓ Contact mis à jour");
+    await reloadCustomContacts();
+    setEditingContact(null);
+  };
   // Déclaration de loadedClient ICI (avant useMemo allContacts) pour éviter
   // que le useMemo ne lise une closure undefined lors du 1er rendu.
   var [loadedClient, setLoadedClient] = React.useState(null);
@@ -687,26 +797,26 @@ var ClientPage = () => {
     }, initials);
   };
 
-  // ── Pipe : opportunités du client AXA Wealth France
+  // ── Pipe SPANCO du client (cohérent avec page principale + AdvanceOpportunity)
   var pipeStages = [{
     k: "qualif",
-    label: "Qualification",
+    label: "Prospect",
     color: "#94a3b8"
   }, {
     k: "discovery",
-    label: "Discovery",
+    label: "Approche",
     color: "#3b82f6"
   }, {
     k: "propo",
-    label: "Proposition",
+    label: "Négociation",
     color: "#a855f7"
   }, {
     k: "nego",
-    label: "Négociation",
+    label: "Conclusion",
     color: "#ea580c"
   }, {
     k: "won",
-    label: "Signé",
+    label: "Ordre",
     color: "#10b981"
   }];
 
@@ -776,15 +886,6 @@ var ClientPage = () => {
       color: "#64748b"
     }
   }, "CRM commercial"))), /*#__PURE__*/React.createElement("a", {
-    href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id),
-    style: {
-      ...cliStyles.newBtn,
-      textDecoration: "none",
-      cursor: "pointer"
-    }
-  }, "+ Nouvelle opportunit\xE9 ", /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.kbd
-  }, "N")), /*#__PURE__*/React.createElement("a", {
     href: "/nouveau-prospect",
     style: {
       ...cliStyles.newBtn,
@@ -792,8 +893,7 @@ var ClientPage = () => {
       cursor: "pointer",
       background: "#fff",
       color: "#0f172a",
-      border: "1px solid #e2e8f0",
-      marginTop: -8
+      border: "1px solid #e2e8f0"
     }
   }, "+ Nouveau prospect ", /*#__PURE__*/React.createElement("span", {
     style: {
@@ -801,7 +901,17 @@ var ClientPage = () => {
       background: "#f1f5f9",
       color: "#475569"
     }
-  }, "P")), /*#__PURE__*/React.createElement("div", {
+  }, "P")), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id),
+    style: {
+      ...cliStyles.newBtn,
+      textDecoration: "none",
+      cursor: "pointer",
+      marginTop: -8
+    }
+  }, "+ Nouvelle opportunit\xE9 ", /*#__PURE__*/React.createElement("span", {
+    style: cliStyles.kbd
+  }, "N")), /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel
@@ -912,35 +1022,50 @@ var ClientPage = () => {
     style: {
       flex: 1
     }
-  }), /*#__PURE__*/React.createElement("a", {
-    href: "/administration-utilisateurs",
-    title: "Profil & pr\xE9f\xE9rences",
-    style: {
-      ...cliStyles.userRow,
-      textDecoration: "none",
-      color: "inherit",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Astorya",
-    size: 26,
-    color: "#4f46e5"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 600
-    }
-  }, "Compte connect\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#64748b"
-    }
-  }, "Voir menu en haut \u2192")))), /*#__PURE__*/React.createElement("main", {
+  }), (() => {
+    // Priorité : Supabase auth (fetché en useEffect) puis HubAccess legacy
+    var cu = supaUser ? {
+      name: supaUser.user_metadata?.name || supaUser.email,
+      role: "Astorya"
+    } : window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser() || null;
+    var nm = cu && cu.name || "Non connecté";
+    var rl = cu && cu.role || "Cliquer pour s'identifier";
+    return /*#__PURE__*/React.createElement("a", {
+      href: "/administration-utilisateurs",
+      title: "Profil & pr\xE9f\xE9rences",
+      style: {
+        ...cliStyles.userRow,
+        textDecoration: "none",
+        color: "inherit",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement(Avatar, {
+      name: nm,
+      size: 26,
+      color: "#4f46e5"
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, nm), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, rl)));
+  })()), /*#__PURE__*/React.createElement("main", {
     style: cliStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: cliStyles.topbar
@@ -1081,9 +1206,19 @@ var ClientPage = () => {
   }), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
       if (!urlId) return;
-      if (confirm("Supprimer définitivement " + display.name + " ? Cette action est irréversible.")) {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Supprimer " + display.name + " ?",
+        message: "Soft-delete : la donnée reste en BDD, juste marquée supprimée. Elle peut être restaurée par un admin.",
+        okLabel: "Supprimer",
+        okStyle: "danger"
+      }) : confirm("Supprimer définitivement " + display.name + " ?");
+      if (!ok) return;
+      try {
         await window.api.clients.remove(urlId);
+        if (window.HubToast) window.HubToast.success("✓ Client supprimé");
         window.location.href = "/crm";
+      } catch (err) {
+        alert("Suppression échouée : " + (err && err.message || err));
       }
     },
     style: {
@@ -1117,11 +1252,69 @@ var ClientPage = () => {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: cliStyles.industryChip
-  }, display.sector), /*#__PURE__*/React.createElement("span", {
+  }, display.sector), display.tier && (() => {
+    var tierLabels = {
+      A: "Grand compte",
+      B: "Compte secondaire",
+      C: "Tactique"
+    };
+    var tierColors = {
+      A: {
+        bg: "#fef3c7",
+        color: "#a16207"
+      },
+      B: {
+        bg: "#eef2ff",
+        color: "#3730a3"
+      },
+      C: {
+        bg: "#f1f5f9",
+        color: "#475569"
+      }
+    };
+    var t = String(display.tier).toUpperCase();
+    var lbl = tierLabels[t] || display.tier;
+    var col = tierColors[t] || {
+      bg: "#eef1f5",
+      color: "#475569"
+    };
+    return /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...cliStyles.metaChip,
+        background: col.bg,
+        color: col.color,
+        fontWeight: 600
+      }
+    }, "Tier ", t, " \u2014 ", lbl);
+  })(), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.metaChip
-  }, "Grand compte"), /*#__PURE__*/React.createElement("span", {
-    style: cliStyles.metaChip
-  }, display.size), /*#__PURE__*/React.createElement("span", {
+  }, display.size), display.siren && window.ProcedureBadge && /*#__PURE__*/React.createElement(ProcedureBadge, {
+    siren: display.siren,
+    stored: c.procedure_collective || c.data && c.data.procedure_collective || null,
+    autoCheck: true,
+    onChange: async r => {
+      // Persiste le résultat dans clients.data
+      if (!urlId || !window.api || !window.api.clients) return;
+      try {
+        await window.api.clients.update(urlId, {
+          procedure_collective: r
+        });
+        // Notification si on vient de détecter un nouveau passage en procédure
+        var before = c.procedure_collective || c.data && c.data.procedure_collective;
+        if (window.HubToast && r.status === "warn" && (!before || before.status === "ok")) {
+          window.HubToast.warn("⚠ " + display.name + " est passé en procédure collective depuis le dernier check (" + (r.announcement?.type || "") + ")", {
+            duration: 10000
+          });
+        } else if (window.HubToast && r.status === "danger" && (!before || before.status !== "danger")) {
+          window.HubToast.error("🔴 " + display.name + " — " + (r.announcement?.type || "Liquidation"), {
+            duration: 12000
+          });
+        }
+      } catch (e) {
+        console.warn("[ClientPage] persist BODACC:", e);
+      }
+    }
+  }), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.dot
   }), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1340,46 +1533,7 @@ var ClientPage = () => {
       fontWeight: 600
     },
     title: "Extraction du parc informatique du client (CMDB)"
-  }, "\uD83D\uDCBB Parc IT"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var rows = [["Champ", "Valeur"]];
-      rows.push(["Nom", display.name]);
-      rows.push(["Référence", display.id]);
-      rows.push(["Secteur", display.sector]);
-      rows.push(["Effectif", display.size]);
-      rows.push(["Ville", display.city]);
-      rows.push(["Site web", display.web]);
-      rows.push(["Commercial", display.owner]);
-      rows.push(["SIREN", display.siren]);
-      rows.push(["NAF", display.naf]);
-      rows.push(["TVA", display.tva]);
-      rows.push(["Adresse", display.address]);
-      rows.push(["Code postal", display.cp]);
-      rows.push(["Ville", display.addressCity]);
-      rows.push(["Source", display.source]);
-      rows.push(["Concurrent", display.concurrent]);
-      rows.push(["Tier", display.tier]);
-      rows.push([]);
-      rows.push(["Opportunités"]);
-      rows.push(["Ref", "Nom", "Étape", "Montant", "Commercial", "Clôture"]);
-      opportunities.forEach(o => rows.push([o.ref, o.name, o.stage, o.amount, o.owner, o.close]));
-      var csv = rows.map(r => r.map(c => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob(["﻿" + csv], {
-        type: "text/csv;charset=utf-8;"
-      }));
-      a.download = `compte-AXA-Wealth-France-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-    },
-    style: {
-      ...cliStyles.ghostBtn,
-      cursor: "pointer"
-    }
-  }, "Exporter compte \u2193"))), /*#__PURE__*/React.createElement("section", {
+  }, "\uD83D\uDCBB Parc IT"))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.blockHead
@@ -1389,80 +1543,188 @@ var ClientPage = () => {
     style: cliStyles.blockCount
   }, opportunities.length)), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
-  }, "Vue d'ensemble des opportunit\xE9s et contrats actifs pour ce client")), /*#__PURE__*/React.createElement("div", {
+  }, "Vue d'ensemble des opportunit\xE9s et contrats actifs pour ce client"))), pipeView === "kanban" && /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      gap: 8
+      display: "grid",
+      gridTemplateColumns: "repeat(5, 1fr)",
+      gap: 10,
+      marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPipeView("kanban"),
-    style: {
-      ...cliStyles.filterPill,
-      cursor: "pointer",
-      ...(pipeView === "kanban" ? {
-        background: "#0f172a",
-        color: "#fff"
-      } : {})
-    }
-  }, "Vue Kanban \u25A6"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPipeView("list"),
-    style: {
-      ...cliStyles.filterPill,
-      cursor: "pointer",
-      ...(pipeView === "list" ? {
-        background: "#0f172a",
-        color: "#fff"
-      } : {})
-    }
-  }, "Vue Liste \u2630"))), pipeView === "kanban" && /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.stagesStrip
-  }, pipeStages.map((s, i) => {
-    var opps = opportunities.filter(o => o.stage === s.k);
-    var sum = opps.reduce((acc, o) => acc + parseInt(o.amount.replace(/\s/g, "").replace(" €", "").replace(/[^\d]/g, "")), 0);
+  }, pipeStages.map(s => {
+    var opps = opportunities.filter(o => (o.stage || "qualif") === s.k);
+    var sum = opps.reduce((acc, o) => acc + (parseInt(String(o.amount || "0").replace(/[^\d]/g, "")) || 0), 0);
     return /*#__PURE__*/React.createElement("div", {
       key: s.k,
-      style: cliStyles.stageCol
+      style: {
+        background: "#fafbfc",
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        padding: 10,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        minHeight: 200
+      }
     }, /*#__PURE__*/React.createElement("div", {
-      style: cliStyles.stageColHead
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 6,
-        height: 6,
-        borderRadius: 999,
+        width: 7,
+        height: 7,
+        borderRadius: 2,
         background: s.color
       }
     }), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11.5,
-        fontWeight: 600,
+        fontWeight: 700,
         color: "#0f172a"
       }
     }, s.label), /*#__PURE__*/React.createElement("span", {
-      style: cliStyles.stageCount
-    }, opps.length)), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 11,
+        fontSize: 10,
+        padding: "0 6px",
+        borderRadius: 999,
+        background: "#fff",
+        color: "#64748b",
+        border: "1px solid #e2e8f0",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600
+      }
+    }, opps.length)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
         color: "#64748b",
         fontFamily: "'JetBrains Mono', monospace",
-        padding: "0 4px"
+        fontWeight: 500
       }
-    }, opps.length ? `${(sum / 1000).toFixed(0)} k€` : "—"), /*#__PURE__*/React.createElement("div", {
-      style: cliStyles.stageColBar
-    }, /*#__PURE__*/React.createElement("div", {
+    }, opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €")), opps.length === 0 && /*#__PURE__*/React.createElement("div", {
       style: {
-        width: opps.length ? "100%" : "0%",
-        height: "100%",
-        background: s.color,
-        opacity: 0.6,
-        borderRadius: 999
+        padding: "16px 8px",
+        fontSize: 11,
+        color: "#cbd5e1",
+        textAlign: "center",
+        fontStyle: "italic",
+        border: "1px dashed #e2e8f0",
+        borderRadius: 6
       }
-    })));
+    }, "Aucune opportunit\xE9"), opps.map((o, j) => {
+      var openOpp = () => {
+        var cid = urlId || display.id || "";
+        window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
+      };
+      var stageColor = s.color;
+      return /*#__PURE__*/React.createElement("div", {
+        key: o.ref || j,
+        onClick: openOpp,
+        style: {
+          background: "#fff",
+          border: "1px solid #eef1f5",
+          borderRadius: 8,
+          padding: 10,
+          cursor: "pointer",
+          display: "flex",
+          flexDirection: "column",
+          gap: 7
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12,
+          fontWeight: 600,
+          color: "#0f172a",
+          lineHeight: 1.3,
+          wordBreak: "break-word"
+        }
+      }, o.name || "—"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 13,
+          fontWeight: 700,
+          color: "#0f172a",
+          fontFamily: "'JetBrains Mono', monospace"
+        }
+      }, o.amount), o.close && o.close !== "—" && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "#94a3b8"
+        }
+      }, o.close.split(" ").slice(0, 2).join(" "))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: 0.4,
+          fontWeight: 600
+        }
+      }, "Proba"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: stageColor,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 700
+        }
+      }, o.proba || 20, "%")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          height: 3,
+          background: "#eef1f5",
+          borderRadius: 999,
+          overflow: "hidden"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: (o.proba || 20) + "%",
+          height: "100%",
+          background: stageColor,
+          borderRadius: 999
+        }
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          marginTop: 2
+        }
+      }, /*#__PURE__*/React.createElement(Avatar, {
+        name: o.owner,
+        size: 16,
+        color: o.ownerColor || stageColor
+      }), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10.5,
+          color: "#64748b"
+        }
+      }, o.owner || "—")));
+    }));
   })), /*#__PURE__*/React.createElement("div", {
     style: pipeView === "list" ? {
       display: "flex",
       flexDirection: "column",
       gap: 6
-    } : cliStyles.oppGrid
+    } : {
+      display: "none"
+    }
   }, opportunities.map((o, i) => {
     var edited = oppEdits[o.ref] || {};
     var currentStage = edited.stage || o.stage;
@@ -1647,22 +1909,163 @@ var ClientPage = () => {
         opacity: done ? 0.5 : 1,
         textDecoration: done ? "line-through" : "none"
       }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "checkbox",
-      style: {
-        ...cliStyles.checkbox,
-        cursor: "pointer"
-      },
-      checked: done,
-      onChange: () => toggleAction(key, a)
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
+    }, (() => {
+      // Détection du type d'action :
+      //  - email → ouvre mailto:
+      //  - call/appel → ouvre 3CX Web Client avec le numéro
+      var tagL = (a.tag || "").toLowerCase();
+      var titleL = (a.title || "").toLowerCase();
+      var isEmail = tagL === "email" || titleL.includes("email") || a.icon === "✉" || a.icon === "📧";
+      var isCall = tagL === "appel" || tagL === "call" || tagL === "phone" || titleL.includes("appel") || titleL.includes("relance") || a.icon === "📞" || a.icon === "☎";
+      var isMeeting = tagL === "rdv" || tagL === "visio" || tagL === "meeting" || titleL.includes("rdv") || titleL.includes("rendez-vous") || a.icon === "📅" || a.icon === "🗓" || a.icon === "💻";
+      var baseStyle = {
         ...cliStyles.actionIcon,
         background: a.priority === "ai" ? "#0f172a" : "#fff",
         color: a.priority === "ai" ? "#fff" : "#475569",
         borderColor: a.priority === "ai" ? "#0f172a" : "#eef1f5"
+      };
+      var hoverStyle = {
+        ...baseStyle,
+        textDecoration: "none",
+        cursor: "pointer",
+        transition: "transform 120ms, box-shadow 120ms"
+      };
+      var hoverOn = e => {
+        e.currentTarget.style.transform = "scale(1.1)";
+        e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,0.12)";
+      };
+      var hoverOff = e => {
+        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.boxShadow = "none";
+      };
+      if (isEmail) {
+        var recipient = allContacts && allContacts[0] && allContacts[0].email || display.email || "";
+        var contactNom = allContacts && allContacts[0] && allContacts[0].name || "";
+        var lastName = contactNom.split(" ").slice(-1)[0] || "";
+        var subject = "Prise de contact - Plaquette Astorya";
+        var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
+        var href = "mailto:" + encodeURIComponent(recipient) + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+        return /*#__PURE__*/React.createElement("a", {
+          href: href,
+          title: recipient ? "Ouvrir un mail pour " + recipient : "Aucun destinataire renseigné",
+          onClick: e => {
+            if (!recipient) {
+              e.preventDefault();
+              if (window.HubToast) window.HubToast.warn("Aucun email — ajoute un contact d'abord");
+              return;
+            }
+            // Télécharge la plaquette automatiquement → l'utilisateur n'a
+            // qu'à glisser-déposer le PDF dans son mail (mailto: ne supporte
+            // pas les pièces jointes, contrainte navigateur).
+            var link = document.createElement("a");
+            link.href = "/assets/Plaquette-Astorya.pdf";
+            link.download = "Plaquette-Astorya.pdf";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail comme pièce jointe");
+          },
+          style: hoverStyle,
+          onMouseEnter: hoverOn,
+          onMouseLeave: hoverOff
+        }, a.icon);
       }
-    }, a.icon), /*#__PURE__*/React.createElement("div", {
+      if (isCall) {
+        // Numéro : contact principal d'abord, sinon téléphone du client
+        var targetPhone = allContacts && allContacts[0] && allContacts[0].phone || display.phone || "";
+        var targetName = allContacts && allContacts[0] && allContacts[0].name || display.name;
+        return /*#__PURE__*/React.createElement("button", {
+          onClick: () => {
+            if (!targetPhone) {
+              if (window.HubToast) window.HubToast.warn("Aucun téléphone renseigné — ajoute un contact");
+              return;
+            }
+            var tel = targetPhone.replace(/[^\d+]/g, "");
+            var supa = window.HubSupabase && window.HubSupabase.client;
+            var launch = server => {
+              var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+              window.open(url, "3cx-webclient");
+              if (window.HubToast) window.HubToast.info("📞 Appel de " + targetName + " via 3CX");
+            };
+            if (supa) {
+              supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+                data
+              }) => launch(data && data.value)).catch(() => launch(null));
+            } else {
+              launch(null);
+            }
+          },
+          title: "Appeler " + targetName + " via 3CX" + (targetPhone ? " (" + targetPhone + ")" : ""),
+          style: {
+            ...hoverStyle,
+            border: 0
+          },
+          onMouseEnter: hoverOn,
+          onMouseLeave: hoverOff
+        }, a.icon);
+      }
+      if (isMeeting) {
+        // Ouvre Outlook Calendar pour créer un événement avec :
+        //  - l'invité (contact principal)
+        //  - le commercial du compte (display.owner) en copie pour
+        //    que le RDV se cale aussi sur son calendrier
+        var attendeeEmail = allContacts && allContacts[0] && allContacts[0].email || "";
+        var attendeeName = allContacts && allContacts[0] && allContacts[0].name || display.name;
+        var now = new Date();
+        var tomorrow = new Date(now.getTime() + 24 * 3600 * 1000);
+        tomorrow.setHours(9, 0, 0, 0);
+        var start = tomorrow;
+        var end = new Date(start.getTime() + 60 * 60 * 1000); // +1h
+        var toIso = d => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+        var _subject = (a.title || "Rendez-vous") + " — " + (display.name || "");
+        var _body = [a.meta || "", "", "Préparé via Hub Astorya"].filter(Boolean).join("\n");
+        var params = new URLSearchParams({
+          subject: _subject,
+          body: _body,
+          startdt: toIso(start),
+          enddt: toIso(end),
+          location: "Visio (à confirmer)",
+          path: "/calendar/action/compose",
+          rru: "addevent"
+        });
+        // Open the link async-after-lookup so we get the owner's email
+        return /*#__PURE__*/React.createElement("button", {
+          onClick: async () => {
+            // Lookup l'email du commercial du compte via la table profiles
+            var ownerEmail = "";
+            try {
+              if (display.owner && display.owner !== "—" && window.HubSupabase && window.HubSupabase.client) {
+                var {
+                  data: prof
+                } = await window.HubSupabase.client.from("profiles").select("email").eq("name", display.owner).maybeSingle();
+                if (prof && prof.email) ownerEmail = prof.email;
+              }
+            } catch (e) {}
+            // Compose la liste des destinataires : contact + commercial
+            var attendees = [];
+            if (attendeeEmail) attendees.push(attendeeEmail);
+            if (ownerEmail && ownerEmail !== attendeeEmail) attendees.push(ownerEmail);
+            if (attendees.length > 0) params.set("to", attendees.join(";"));
+            var url = "https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString();
+            window.open(url, "_blank", "noopener");
+            if (window.HubToast) {
+              var msg = "📅 RDV avec " + attendeeName + (ownerEmail ? " + " + display.owner + " en copie" : "") + " — Outlook ouvert";
+              window.HubToast.info(msg);
+            }
+          },
+          title: "Créer un RDV Outlook avec " + attendeeName + (attendeeEmail ? " (" + attendeeEmail + ")" : ""),
+          style: {
+            ...hoverStyle,
+            border: 0
+          },
+          onMouseEnter: hoverOn,
+          onMouseLeave: hoverOff
+        }, a.icon);
+      }
+      return /*#__PURE__*/React.createElement("div", {
+        style: baseStyle
+      }, a.icon);
+    })(), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
@@ -1780,13 +2183,19 @@ var ClientPage = () => {
       },
       style: cliStyles.menuItem
     }, done ? "↺ Marquer à faire" : "✓ Marquer terminée"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        var newTitle = prompt("Nouveau titre :", a.title);
-        if (newTitle && a.id) {
+      onClick: async () => {
+        var newTitle = window.HubModal ? await window.HubModal.prompt({
+          title: "Renommer l'action",
+          label: "Nouveau titre",
+          default: a.title,
+          okLabel: "Renommer"
+        }) : prompt("Nouveau titre :", a.title);
+        if (newTitle && newTitle.trim() && a.id) {
           setExtraActions(arr => arr.map(x => x.id === a.id ? {
             ...x,
-            title: newTitle
+            title: newTitle.trim()
           } : x));
+          if (window.HubToast) window.HubToast.success("✓ Action renommée");
         }
         setActionMenuKey(null);
       },
@@ -1919,12 +2328,15 @@ var ClientPage = () => {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "1.5fr 1fr",
+      display: "flex",
+      flexDirection: "column",
       gap: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.subBlock
+    style: {
+      ...cliStyles.subBlock,
+      order: 2
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsHead
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
@@ -1986,12 +2398,36 @@ var ClientPage = () => {
       gap: 5,
       flexWrap: "wrap"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var parts = (p.name || "").split(" ");
+      var prenom = parts.shift() || "";
+      var nom = parts.join(" ");
+      setEditingContact({
+        id: p.id || null,
+        _legacyPrincipal: !p.id && p.last && p.last.indexOf("principal") >= 0,
+        prenom: p.prenom || prenom,
+        nom: p.nom || nom,
+        fonction: p.role || "",
+        email: p.email || "",
+        phone: p.phone || "",
+        linkedin: p.linkedin || "",
+        color: p.color
+      });
+    },
     style: {
+      background: "transparent",
+      border: 0,
+      padding: 0,
       fontSize: 13,
       fontWeight: 600,
-      color: "#0f172a"
-    }
+      color: "#0f172a",
+      cursor: "pointer",
+      textAlign: "left"
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#3730a3",
+    onMouseLeave: e => e.currentTarget.style.color = "#0f172a",
+    title: "Modifier ce contact"
   }, p.name), p.champion && /*#__PURE__*/React.createElement("span", {
     style: cliStyles.championPill
   }, "\u2605 Champion"), p.coldZone && /*#__PURE__*/React.createElement("span", {
@@ -2031,20 +2467,65 @@ var ClientPage = () => {
       color: r === "Champion" ? "#a65f00" : r === "Bloqueur" ? "#dc2626" : r === "Décideur" ? "#4338ca" : "#475569",
       border: r === "Champion" ? "1px solid #fde68a" : "none"
     }
-  }, r))), /*#__PURE__*/React.createElement("div", {
+  }, r))), p.email && /*#__PURE__*/React.createElement("a", {
+    href: "mailto:" + p.email,
     style: {
       fontSize: 11,
       color: "#475569",
       marginTop: 6,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontFamily: "'JetBrains Mono', monospace",
+      textDecoration: "none",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#3730a3",
+    onMouseLeave: e => e.currentTarget.style.color = "#475569",
+    title: "Envoyer un email à " + p.name
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10
     }
-  }, p.email), /*#__PURE__*/React.createElement("div", {
+  }, "\u2709"), p.email), p.phone && /*#__PURE__*/React.createElement("a", {
+    href: "#",
+    onClick: e => {
+      e.preventDefault();
+      var tel = (p.phone || "").replace(/[^\d+]/g, "");
+      if (!tel) return;
+      // Récupère l'URL du serveur 3CX configurée dans app_settings,
+      // fallback sur l'URL connue du Hub Astorya
+      var supa = window.HubSupabase && window.HubSupabase.client;
+      var launch = server => {
+        var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+        window.open(url, "3cx-webclient");
+        if (window.HubToast) window.HubToast.info("📞 Appel de " + p.name + " via 3CX");
+      };
+      if (supa) {
+        supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+          data
+        }) => launch(data && data.value)).catch(() => launch(null));
+      } else {
+        launch(null);
+      }
+    },
     style: {
       fontSize: 11,
       color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontFamily: "'JetBrains Mono', monospace",
+      textDecoration: "none",
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      cursor: "pointer"
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#10b981",
+    onMouseLeave: e => e.currentTarget.style.color = "#475569",
+    title: "Appeler " + p.name + " via 3CX (" + p.phone + ")"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10
     }
-  }, p.phone), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCDE"), p.phone), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "#94a3b8",
@@ -2067,16 +2548,32 @@ var ClientPage = () => {
       justifyContent: "center",
       cursor: "pointer"
     }
-  }, "\u2709"), /*#__PURE__*/React.createElement("a", {
-    href: "tel:" + (p.phone || "").replace(/[^\d+]/g, ""),
-    title: "Appeler " + p.name,
+  }, "\u2709"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var tel = (p.phone || "").replace(/[^\d+]/g, "");
+      if (!tel) {
+        if (window.HubToast) window.HubToast.warn("Aucun téléphone renseigné");
+        return;
+      }
+      var supa = window.HubSupabase && window.HubSupabase.client;
+      var launch = server => {
+        var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+        window.open(url, "3cx-webclient");
+        if (window.HubToast) window.HubToast.info("📞 Appel de " + p.name + " via 3CX");
+      };
+      if (supa) {
+        supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+          data
+        }) => launch(data && data.value)).catch(() => launch(null));
+      } else {
+        launch(null);
+      }
+    },
+    title: "Appeler " + p.name + " via 3CX",
     style: {
       ...cliStyles.iconMini,
-      textDecoration: "none",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer"
+      cursor: "pointer",
+      border: 0
     }
   }, "\u260E"), p._custom && /*#__PURE__*/React.createElement("button", {
     onClick: () => removeContact(p.id),
@@ -2087,7 +2584,10 @@ var ClientPage = () => {
       color: "#dc2626"
     }
   }, "\xD7"))))))), /*#__PURE__*/React.createElement("div", {
-    style: cliStyles.subBlock
+    style: {
+      ...cliStyles.subBlock,
+      order: 1
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.actionsHead
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
@@ -2511,12 +3011,50 @@ var ClientPage = () => {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: async () => {
-        var choice = prompt(`Contrat ${ct.name}\n\n1. Voir détails\n2. Renouveler\n3. Supprimer\n\nTapez 1, 2 ou 3 :`, "1");
-        if (choice === "1") alert(`${ct.name}\n\nType : ${ct.type}\nMontant : ${ct.amount}\nDébut : ${ct.start}\nFin : ${ct.end}\nStatut : ${ct.status}`);else if (choice === "2") window.location.href = "/nouveau-contrat?client=" + encodeURIComponent(urlId || "");else if (choice === "3" && confirm("Supprimer ce contrat ?")) {
-          setContractsList(arr => arr.filter(x => x.id !== ct.id));
+        var choice;
+        if (window.HubModal) {
+          choice = await window.HubModal.choice({
+            title: ct.name,
+            message: ct.type + " · " + ct.amount + " · " + (ct.status || "actif"),
+            options: [{
+              value: "1",
+              label: "Voir détails",
+              sub: "Afficher le récapitulatif complet"
+            }, {
+              value: "2",
+              label: "Renouveler",
+              sub: "Créer un nouveau contrat lié à ce client"
+            }, {
+              value: "3",
+              label: "Supprimer",
+              sub: "Soft-delete : la donnée reste en BDD"
+            }]
+          });
+        } else {
+          choice = prompt("Contrat " + ct.name + "\n\n1. Voir détails\n2. Renouveler\n3. Supprimer\n\nTapez 1, 2 ou 3 :", "1");
+        }
+        if (!choice) return;
+        if (choice === "1") {
+          if (window.HubToast) window.HubToast.info(ct.name + "\nType : " + ct.type + "\nMontant : " + ct.amount + "\nDébut : " + ct.start + "\nFin : " + ct.end + "\nStatut : " + ct.status, {
+            duration: 8000
+          });else alert(ct.name + "\n\nType : " + ct.type + "\nMontant : " + ct.amount);
+        } else if (choice === "2") {
+          window.location.href = "/nouveau-contrat?client=" + encodeURIComponent(urlId || "");
+        } else if (choice === "3") {
+          var ok = window.HubModal ? await window.HubModal.confirm({
+            title: "Supprimer ce contrat ?",
+            message: "Le contrat sera marqué supprimé (soft-delete). Il peut être restauré par un admin.",
+            okLabel: "Supprimer",
+            okStyle: "danger"
+          }) : confirm("Supprimer ce contrat ?");
+          if (!ok) return;
           try {
-            (await window.api.contracts) && window.api.contracts.remove && window.api.contracts.remove(ct.id);
-          } catch (e) {}
+            await window.api.contracts.remove(ct.id);
+            setContractsList(arr => arr.filter(x => x.id !== ct.id));
+            if (window.HubToast) window.HubToast.success("✓ Contrat supprimé");
+          } catch (e) {
+            if (window.HubToast) window.HubToast.error("Suppression échouée : " + (e.message || e));
+          }
         }
       },
       style: {
@@ -2526,7 +3064,8 @@ var ClientPage = () => {
         fontSize: 16,
         cursor: "pointer",
         padding: "4px 8px"
-      }
+      },
+      title: "Actions sur ce contrat"
     }, "\u22EF")));
   }))))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
@@ -2695,11 +3234,28 @@ var ClientPage = () => {
         color: "#64748b"
       }
     }, t.opened_at ? new Date(t.opened_at).toLocaleDateString("fr-FR") : "—"));
-  }))))), /*#__PURE__*/React.createElement("div", {
+  }))))), /*#__PURE__*/React.createElement(TechModule, {
+    clientId: urlId,
+    value: loadedClient && loadedClient.tech || {},
+    onChange: async tech => {
+      try {
+        var updated = await window.api.clients.update(urlId, {
+          tech
+        });
+        if (updated) setLoadedClient(updated);
+      } catch (e) {
+        console.warn("[ClientPage] save tech:", e);
+      }
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 24
     }
-  }))), /*#__PURE__*/React.createElement(CallStatsModal, {
+  }))), editingContact && /*#__PURE__*/React.createElement(ContactEditModal, {
+    contact: editingContact,
+    onClose: () => setEditingContact(null),
+    onSave: saveContactEdit
+  }), /*#__PURE__*/React.createElement(CallStatsModal, {
     open: statsOpen,
     client: {
       name: display.name
@@ -3090,15 +3646,19 @@ var ClientPage = () => {
     style: editInput
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
-  }, "Fonction (intitul\xE9)"), /*#__PURE__*/React.createElement("input", {
+  }, "Fonction (intitul\xE9)"), /*#__PURE__*/React.createElement("select", {
     value: editDraft.cp_fonction || "",
     onChange: e => setEditDraft({
       ...editDraft,
       cp_fonction: e.target.value
     }),
-    placeholder: "Ex. CFO, DSI\u2026",
     style: editInput
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir une fonction \u2014"), (window.HubConstants && window.HubConstants.FONCTIONS || []).map(f => /*#__PURE__*/React.createElement("option", {
+    key: f,
+    value: f
+  }, f)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -3203,113 +3763,7 @@ var ClientPage = () => {
   }, "\u2014 Aucun \u2014"), ownerListE.map(o => /*#__PURE__*/React.createElement("option", {
     key: o.name,
     value: o.name
-  }, o.name, " \xB7 ", o.role)))), /*#__PURE__*/React.createElement("div", {
-    style: editSection
-  }, "04 \xB7 Qualification"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Besoin exprim\xE9"), /*#__PURE__*/React.createElement("textarea", {
-    value: editDraft.besoin || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      besoin: e.target.value
-    }),
-    rows: 2,
-    placeholder: "Modernisation, contraintes, contexte concurrentiel\u2026",
-    style: {
-      ...editInput,
-      resize: "vertical",
-      fontFamily: "inherit"
-    }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Concurrent actuel"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.concurrent || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      concurrent: e.target.value
-    }),
-    placeholder: "Ex. Salesforce, Pega\u2026",
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Montant concurrent (k\u20AC/an)"), /*#__PURE__*/React.createElement("input", {
-    value: editDraft.concurrentAmount || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      concurrentAmount: e.target.value
-    }),
-    placeholder: "0",
-    style: editInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: editDraft.projectDate || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      projectDate: e.target.value
-    }),
-    style: editInput
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: editSection
-  }, "05 \xB7 Origine & prochaines \xE9tapes"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Source du prospect"), /*#__PURE__*/React.createElement("select", {
-    value: editDraft.source || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      source: e.target.value
-    }),
-    style: editInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014 Choisir \u2014"), /*#__PURE__*/React.createElement("option", null, "Radar fin de contrat concurrent"), /*#__PURE__*/React.createElement("option", null, "LinkedIn / Sales Navigator"), /*#__PURE__*/React.createElement("option", null, "Salon professionnel"), /*#__PURE__*/React.createElement("option", null, "Recommandation client"), /*#__PURE__*/React.createElement("option", null, "Inbound site web"), /*#__PURE__*/React.createElement("option", null, "Demande de devis"), /*#__PURE__*/React.createElement("option", null, "Cold call sortant"), /*#__PURE__*/React.createElement("option", null, "Cold email sortant"), /*#__PURE__*/React.createElement("option", null, "Webinar / \xE9v\xE9nement Astorya"), /*#__PURE__*/React.createElement("option", null, "R\xE9f\xE9rencement (Google, Bing)"), /*#__PURE__*/React.createElement("option", null, "R\xE9seau partenaires"), /*#__PURE__*/React.createElement("option", null, "Article de presse"), /*#__PURE__*/React.createElement("option", null, "Autre"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Premi\xE8re action"), /*#__PURE__*/React.createElement("select", {
-    value: editDraft.action || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      action: e.target.value
-    }),
-    style: editInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
-    value: "email"
-  }, "\uD83D\uDCE7 Email d'introduction"), /*#__PURE__*/React.createElement("option", {
-    value: "call"
-  }, "\uD83D\uDCDE Cold call"), /*#__PURE__*/React.createElement("option", {
-    value: "in"
-  }, "in LinkedIn"), /*#__PURE__*/React.createElement("option", {
-    value: "wait"
-  }, "\uD83D\uDCC5 Inviter \xE0 un \xE9v\xE9nement")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: editLabel
-  }, "Notes internes"), /*#__PURE__*/React.createElement("textarea", {
-    value: editDraft.desc || "",
-    onChange: e => setEditDraft({
-      ...editDraft,
-      desc: e.target.value
-    }),
-    rows: 3,
-    placeholder: "Contexte additionnel, contacts mutuels, anecdotes\u2026",
-    style: {
-      ...editInput,
-      resize: "vertical",
-      fontFamily: "inherit"
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, o.name, " \xB7 ", o.role))))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "14px 22px",
       borderTop: "1px solid #eef1f5",
@@ -3416,15 +3870,19 @@ var ClientPage = () => {
     style: modalInput
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: modalLabel
-  }, "Fonction"), /*#__PURE__*/React.createElement("input", {
+  }, "Fonction"), /*#__PURE__*/React.createElement("select", {
     value: newContactForm.fonction,
     onChange: e => setNewContactForm({
       ...newContactForm,
       fonction: e.target.value
     }),
-    placeholder: "Ex. CFO, DSI\u2026",
     style: modalInput
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir une fonction \u2014"), (window.HubConstants && window.HubConstants.FONCTIONS || []).map(f => /*#__PURE__*/React.createElement("option", {
+    key: f,
+    value: f
+  }, f)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -4446,6 +4904,678 @@ var cliStyles = {
     background: "#eef1f5",
     color: "#475569",
     fontWeight: 500
+  }
+};
+
+// ════════════════════════════════════════════════════════════════════
+// TechModule — État technique du client (cf. Monday "Base client")
+// Sections : Infrastructure, Sauvegarde, Cybersécurité, Mail, Logiciels,
+//            Téléphonie, Web, Lien internet
+// Stockage : clients.data.tech = { [fieldId]: status }
+// ════════════════════════════════════════════════════════════════════
+var TECH_SECTIONS = [{
+  icon: "🖥",
+  title: "Infrastructure & serveur",
+  color: "#4f46e5",
+  fields: [{
+    id: "serveur_physique",
+    label: "Serveur Physique"
+  }, {
+    id: "serveur_cloud",
+    label: "Serveur CLOUD"
+  }, {
+    id: "owncloud",
+    label: "Owncloud"
+  }, {
+    id: "nas",
+    label: "NAS"
+  }, {
+    id: "maintenance",
+    label: "Maintenance / Infogérance"
+  }, {
+    id: "imprimante",
+    label: "Imprimante (équipement)"
+  }, {
+    id: "wifi",
+    label: "Wifi"
+  }, {
+    id: "firewall",
+    label: "Firewall"
+  }, {
+    id: "onduleur",
+    label: "Onduleur"
+  }]
+}, {
+  icon: "💾",
+  title: "Sauvegarde",
+  color: "#0ea5e9",
+  fields: [{
+    id: "sauvegarde_serveur_local",
+    label: "Sauvegarde serveur local"
+  }, {
+    id: "sauvegarde_serveur_cloud",
+    label: "Sauvegarde serveur CLOUD"
+  }, {
+    id: "sauvegarde_externe_local",
+    label: "Sauvegarde externe du serveur local"
+  }, {
+    id: "sauvegarde_c2",
+    label: "Sauvegarde C2"
+  }, {
+    id: "nas_offsite",
+    label: "NAS Offsite"
+  }, {
+    id: "sauvegarde_3_2_1",
+    label: "Sauvegarde 3.2.1"
+  }]
+}, {
+  icon: "🛡",
+  title: "Cybersécurité",
+  color: "#dc2626",
+  fields: [{
+    id: "antivirus_edr",
+    label: "Antivirus EDR poste"
+  }, {
+    id: "antispam",
+    label: "Antispam"
+  }, {
+    id: "passbolt",
+    label: "Passbolt / coffre numérique"
+  }, {
+    id: "bitlockage",
+    label: "Bitlockage"
+  }, {
+    id: "phishing",
+    label: "Campagne de phishing"
+  }, {
+    id: "formation_rsync",
+    label: "Formation RSYNC"
+  }]
+}, {
+  icon: "📧",
+  title: "Mail",
+  color: "#a855f7",
+  fields: [{
+    id: "mail_pop_imap",
+    label: "Mail POP / IMAP"
+  }, {
+    id: "exchange",
+    label: "Exchange Plan1 / Plan2"
+  }, {
+    id: "o365",
+    label: "Microsoft 365"
+  }, {
+    id: "google_workspace",
+    label: "Google Workspace"
+  }]
+}, {
+  icon: "🧮",
+  title: "Logiciels métier",
+  color: "#10b981",
+  fields: [{
+    id: "sage",
+    label: "Sage"
+  }, {
+    id: "ebp",
+    label: "EBP"
+  }, {
+    id: "factorial",
+    label: "Factorial"
+  }]
+}, {
+  icon: "📞",
+  title: "Téléphonie",
+  color: "#f59e0b",
+  fields: [{
+    id: "telephonie_ovh",
+    label: "Téléphonie (OVH)"
+  }, {
+    id: "mobile_telephonie",
+    label: "Mobile téléphonie"
+  }, {
+    id: "teams_phone",
+    label: "Teams & Phone"
+  }]
+}, {
+  icon: "🌐",
+  title: "Web",
+  color: "#0891b2",
+  fields: [{
+    id: "nom_de_domaine",
+    label: "Nom de domaine"
+  }, {
+    id: "hebergement_web",
+    label: "Hébergement Web"
+  }]
+}, {
+  icon: "🔌",
+  title: "Lien internet",
+  color: "#8b5cf6",
+  fields: [{
+    id: "lien_internet",
+    label: "Lien internet principal"
+  }, {
+    id: "type_lien_internet",
+    label: "Type de lien (ADSL / VDSL / FTTH …)"
+  }, {
+    id: "partenaire_lien_internet",
+    label: "Partenaire (OVH, Free Pro …)"
+  }, {
+    id: "lien_internet_secours",
+    label: "Lien internet (secours)"
+  }]
+}];
+var TECH_STATUSES = [{
+  value: "",
+  label: "—",
+  bg: "#fafbfc",
+  color: "#94a3b8"
+}, {
+  value: "actif",
+  label: "● Actif",
+  bg: "#dcfce7",
+  color: "#065f46"
+}, {
+  value: "inactif",
+  label: "○ Inactif",
+  bg: "#fee2e2",
+  color: "#991b1b"
+}, {
+  value: "a_installer",
+  label: "▲ À installer",
+  bg: "#fef3c7",
+  color: "#92400e"
+}, {
+  value: "non_concerne",
+  label: "✕ Non concerné",
+  bg: "#f1f5f9",
+  color: "#64748b"
+}, {
+  value: "a_verifier",
+  label: "? À vérifier",
+  bg: "#dbeafe",
+  color: "#1e40af"
+}];
+var TechModule = ({
+  clientId,
+  value,
+  onChange
+}) => {
+  var [tech, setTech] = React.useState(value || {});
+  React.useEffect(() => {
+    setTech(value || {});
+  }, [value]);
+  var [openSections, setOpenSections] = React.useState(() => new Set(TECH_SECTIONS.slice(0, 3).map(s => s.title)));
+  var [saving, setSaving] = React.useState(false);
+  var setField = (id, v) => {
+    var next = {
+      ...tech,
+      [id]: v
+    };
+    setTech(next);
+    // Debounce sauvegarde 400ms
+    if (setField._timer) clearTimeout(setField._timer);
+    setField._timer = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await onChange(next);
+      } finally {
+        setSaving(false);
+      }
+    }, 400);
+  };
+  var toggleSection = title => {
+    setOpenSections(prev => {
+      var next = new Set(prev);
+      if (next.has(title)) next.delete(title);else next.add(title);
+      return next;
+    });
+  };
+
+  // Compteur global
+  var totalFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.length, 0);
+  var filledFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.filter(f => tech[f.id] && tech[f.id] !== "").length, 0);
+  return /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 18,
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0,
+      letterSpacing: -0.3
+    }
+  }, "\uD83D\uDEE0 Module technique"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "3px 0 0"
+    }
+  }, "\xC9tat du parc IT du client \xB7 ", filledFields, "/", totalFields, " champs renseign\xE9s")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, saving && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#10b981"
+    }
+  }, "\u25CF Sauvegarde\u2026"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      padding: "2px 8px",
+      background: "#eef2ff",
+      color: "#3730a3",
+      borderRadius: 999,
+      fontWeight: 700
+    }
+  }, Math.round(filledFields / totalFields * 100), "%"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, TECH_SECTIONS.map(sec => {
+    var isOpen = openSections.has(sec.title);
+    var secFilled = sec.fields.filter(f => tech[f.id] && tech[f.id] !== "").length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: sec.title,
+      style: {
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => toggleSection(sec.title),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 14px",
+        background: isOpen ? sec.color + "0d" : "#fafbfc",
+        border: 0,
+        cursor: "pointer",
+        textAlign: "left"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 16
+      }
+    }, sec.icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, sec.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, secFilled, "/", sec.fields.length), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#94a3b8"
+      }
+    }, isOpen ? "▾" : "▸")), isOpen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 14px",
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8
+      }
+    }, sec.fields.map(f => {
+      var v = tech[f.id] || "";
+      var meta = TECH_STATUSES.find(s => s.value === v) || TECH_STATUSES[0];
+      return /*#__PURE__*/React.createElement("label", {
+        key: f.id,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 10px",
+          background: "#fafbfc",
+          border: "1px solid #eef1f5",
+          borderRadius: 8
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          flex: 1,
+          fontSize: 12,
+          color: "#0f172a",
+          fontWeight: 500,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, f.label), /*#__PURE__*/React.createElement("select", {
+        value: v,
+        onChange: e => setField(f.id, e.target.value),
+        style: {
+          padding: "3px 6px",
+          border: "1px solid " + (v ? meta.color + "40" : "#e2e8f0"),
+          borderRadius: 5,
+          fontSize: 11,
+          fontWeight: 700,
+          background: meta.bg,
+          color: meta.color,
+          cursor: "pointer",
+          outline: "none"
+        }
+      }, TECH_STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+        key: s.value,
+        value: s.value
+      }, s.label))));
+    })));
+  })));
+};
+
+// ════════════════════════════════════════════════════════════════════
+// ContactEditModal — formulaire d'édition d'un contact existant
+// Permet de modifier prénom, nom, fonction, email, phone, linkedin
+// Sauvegarde via api.contacts.update (ou api.clients.update si legacy
+// contact_principal stocké dans clients.data).
+// ════════════════════════════════════════════════════════════════════
+var ContactEditModal = ({
+  contact,
+  onClose,
+  onSave
+}) => {
+  var [form, setForm] = React.useState(contact);
+  var [saving, setSaving] = React.useState(false);
+  React.useEffect(() => {
+    var onKey = e => {
+      if (e.key === "Escape") onClose && onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  var submit = async e => {
+    if (e && e.preventDefault) e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+  var portalTarget = typeof document !== "undefined" ? document.body : null;
+  var tree = /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: CE.backdrop
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: CE.modal
+  }, /*#__PURE__*/React.createElement("div", {
+    style: CE.head
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...CE.icon,
+      background: (form.color || "#3730a3") + "20",
+      color: form.color || "#3730a3"
+    }
+  }, ((form.prenom || "").slice(0, 1) + (form.nom || "").slice(0, 1)).toUpperCase() || "?"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: CE.eyebrow
+  }, "Fiche client \xB7 Contact"), /*#__PURE__*/React.createElement("div", {
+    style: CE.title
+  }, "Modifier le contact"))), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: CE.close
+  }, "\xD7")), /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit,
+    style: CE.body
+  }, /*#__PURE__*/React.createElement("div", {
+    style: CE.row
+  }, /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Pr\xE9nom"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.prenom || "",
+    onChange: e => setForm({
+      ...form,
+      prenom: e.target.value
+    }),
+    style: CE.input,
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Nom"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.nom || "",
+    onChange: e => setForm({
+      ...form,
+      nom: e.target.value
+    }),
+    style: CE.input
+  }))), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Fonction"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.fonction || "",
+    onChange: e => setForm({
+      ...form,
+      fonction: e.target.value
+    }),
+    placeholder: "Ex : CFO / Directeur financier",
+    style: CE.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: CE.row
+  }, /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: form.email || "",
+    onChange: e => setForm({
+      ...form,
+      email: e.target.value
+    }),
+    placeholder: "prenom.nom@entreprise.fr",
+    style: CE.input
+  })), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "T\xE9l\xE9phone"), /*#__PURE__*/React.createElement("input", {
+    type: "tel",
+    value: form.phone || "",
+    onChange: e => setForm({
+      ...form,
+      phone: e.target.value
+    }),
+    placeholder: "+33 6 12 34 56 78",
+    style: {
+      ...CE.input,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }))), /*#__PURE__*/React.createElement("label", {
+    style: CE.field
+  }, /*#__PURE__*/React.createElement("span", {
+    style: CE.label
+  }, "LinkedIn"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: form.linkedin || "",
+    onChange: e => setForm({
+      ...form,
+      linkedin: e.target.value
+    }),
+    placeholder: "linkedin.com/in/prenom-nom",
+    style: {
+      ...CE.input,
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 12
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: CE.foot
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClose,
+    style: CE.btnGhost
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    disabled: saving,
+    style: {
+      ...CE.btnPrimary,
+      opacity: saving ? 0.6 : 1,
+      cursor: saving ? "wait" : "pointer"
+    }
+  }, saving ? "Enregistrement…" : "💾 Enregistrer")))));
+  return portalTarget ? ReactDOM.createPortal(tree, portalTarget) : tree;
+};
+var CE = {
+  backdrop: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15,23,42,0.55)",
+    backdropFilter: "blur(4px)",
+    zIndex: 3000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20
+  },
+  modal: {
+    width: "100%",
+    maxWidth: 560,
+    maxHeight: "92vh",
+    overflowY: "auto",
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 25px 60px rgba(0,0,0,.3)",
+    display: "flex",
+    flexDirection: "column"
+  },
+  head: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "20px 24px 16px",
+    borderBottom: "1px solid #f1f5f9"
+  },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 14,
+    fontWeight: 700
+  },
+  eyebrow: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: 700,
+    color: "#0f172a",
+    marginTop: 2
+  },
+  close: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    background: "transparent",
+    border: 0,
+    fontSize: 22,
+    color: "#94a3b8",
+    cursor: "pointer"
+  },
+  body: {
+    padding: "16px 24px 20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12
+  },
+  row: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 5
+  },
+  label: {
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: 0.4
+  },
+  input: {
+    padding: "9px 12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 7,
+    fontSize: 13,
+    color: "#0f172a",
+    outline: "none",
+    background: "#fff",
+    boxSizing: "border-box"
+  },
+  foot: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 8,
+    paddingTop: 12,
+    borderTop: "1px solid #f1f5f9"
+  },
+  btnGhost: {
+    padding: "9px 14px",
+    background: "#fff",
+    color: "#334155",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer"
+  },
+  btnPrimary: {
+    padding: "9px 18px",
+    background: "#3730a3",
+    color: "#fff",
+    border: 0,
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 700
   }
 };
 window.ClientPage = ClientPage;

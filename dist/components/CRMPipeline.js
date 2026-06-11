@@ -1,4 +1,25 @@
-// Écran CRM 1 — Pipeline commercial (kanban + KPIs)
+// ════════════════════════════════════════════════════════════════════
+// CRMPipeline — Pipeline commercial (route : /crm)
+// ════════════════════════════════════════════════════════════════════
+//
+// Composé de 2 sections (deux composants empilés) :
+//   1. <CRMPipeline>      → header + kanban des opportunités + KPI strip
+//   2. <CRMAccountsList>  → sous-composant tableau Comptes & Contacts
+//   3. <ActionsRow>       → sous-composant liste "Actions à mener"
+//
+// Sources de données :
+//   - opportunités : api.opportunities.list() — colonne kanban par stage
+//   - clients      : api.clients.list() — table Comptes
+//   - contacts     : api.contacts.list() — compteur sidebar
+//   - actions      : api.actions.list() — compteur sidebar
+//
+// Filtres :
+//   - crmFilter { kind: "all"|"view"|"product"|"status", value }
+//     → contrôle ce qui apparaît dans le kanban
+//   - globalSearch → recherche transversale (clients + opps + contacts)
+//
+// Compteurs sidebar (Comptes/Contacts/Activités) sont mis à jour live au mount.
+// ════════════════════════════════════════════════════════════════════
 
 var CRMPipeline = () => {
   // Filtre actif sur le pipeline (vue, produit, savedView…)
@@ -19,6 +40,25 @@ var CRMPipeline = () => {
   var [globalSearch, setGlobalSearch] = React.useState("");
   var [searchClients, setSearchClients] = React.useState([]);
   var [searchOpen, setSearchOpen] = React.useState(false);
+
+  // ───── Comptes : décomptes pour la sidebar (Comptes / Contacts / Activités)
+  var [sidebarCounts, setSidebarCounts] = React.useState({
+    comptes: 0,
+    contacts: 0,
+    activites: 0
+  });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([window.api.clients.list(), window.api.contacts.list(), window.api.actions.list({
+      status: "todo"
+    })]).then(([cl, co, ac]) => {
+      setSidebarCounts({
+        comptes: (cl || []).length,
+        contacts: (co || []).length,
+        activites: (ac || []).length
+      });
+    }).catch(() => {});
+  }, []);
   React.useEffect(() => {
     if (!window.api) return;
     window.api.clients.list().then(list => {
@@ -34,9 +74,75 @@ var CRMPipeline = () => {
     }).catch(() => {});
   }, []);
   var [searchOpps, setSearchOpps] = React.useState([]);
+  var [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!userMenuOpen) return;
+    var onDoc = () => setUserMenuOpen(false);
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, [userMenuOpen]);
+
+  // Applique le filtre sidebar (Vues sauvegardées / Produits) sur les opps
+  var filteredOpps = React.useMemo(() => {
+    var all = searchOpps || [];
+    if (crmFilter.kind === "all") return all;
+    if (crmFilter.kind === "view") {
+      var now = Date.now();
+      switch (crmFilter.value) {
+        case "q2":
+          return all.filter(o => {
+            if (!o.close_date) return false;
+            var d = new Date(o.close_date);
+            return d.getFullYear() === new Date().getFullYear() && d.getMonth() >= 3 && d.getMonth() <= 5;
+          });
+        case "big":
+          return all.filter(o => (Number(o.amount_eur) || 0) >= 50000);
+        case "follow":
+          return all.filter(o => {
+            if (!o.updated_at) return true;
+            return now - new Date(o.updated_at).getTime() > 7 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+          });
+        case "stale":
+          return all.filter(o => {
+            if (!o.updated_at) return false;
+            return now - new Date(o.updated_at).getTime() > 14 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+          });
+        default:
+          return all;
+      }
+    }
+    if (crmFilter.kind === "product") {
+      var tag = String(crmFilter.value || "").toLowerCase();
+      return all.filter(o => {
+        var blob = ((o.modules || []).join(" ") + " " + (o.produit || "") + " " + (o.name || "")).toLowerCase();
+        return blob.includes(tag.replace("astorya ", ""));
+      });
+    }
+    return all;
+  }, [searchOpps, crmFilter]);
+  // Charge initial + s'abonne aux changements realtime (multi-onglets).
   React.useEffect(() => {
     if (!window.api) return;
-    window.api.opportunities.list().then(list => setSearchOpps(list || [])).catch(() => {});
+    var reload = () => {
+      window.api.opportunities.list().then(list => setSearchOpps(list || [])).catch(() => {});
+      if (window.api.clients && window.api.contacts && window.api.actions) {
+        Promise.all([window.api.clients.list(), window.api.contacts.list(), window.api.actions.list({
+          status: "todo"
+        })]).then(([cl, co, ac]) => {
+          setSidebarCounts({
+            comptes: (cl || []).length,
+            contacts: (co || []).length,
+            activites: (ac || []).length
+          });
+        }).catch(() => {});
+      }
+    };
+    reload();
+    // Realtime : tout changement sur opportunities/clients/contacts/actions
+    // recharge automatiquement.
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reload);
+    }
   }, []);
   var gq = globalSearch.trim().toLowerCase();
   var globalResults = gq.length >= 2 ? {
@@ -83,25 +189,27 @@ var CRMPipeline = () => {
   };
 
   // Colonnes du Kanban — alimentées par les opportunités Supabase
+  // Pipeline SPANCO — cohérent avec la page Faire avancer l'opportunité.
+  // Mapping interne stage BDD → label SPANCO (pas de migration de données).
   var stageMeta = [{
     key: "qualif",
-    label: "Qualification",
+    label: "Prospect",
     color: "#94a3b8"
   }, {
     key: "discovery",
-    label: "Discovery",
+    label: "Approche",
     color: "#3b82f6"
   }, {
     key: "propo",
-    label: "Proposition",
+    label: "Négociation",
     color: "#a855f7"
   }, {
     key: "nego",
-    label: "Négociation",
+    label: "Conclusion",
     color: "#ea580c"
   }, {
     key: "won",
-    label: "Gagné",
+    label: "Ordre",
     color: "#10b981"
   }];
   var palette = ["#1e40af", "#dc2626", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#0f766e", "#ec4899", "#a855f7"];
@@ -115,7 +223,7 @@ var CRMPipeline = () => {
     return "Suite";
   };
   var columns = stageMeta.map((s, idx) => {
-    var stageOpps = (searchOpps || []).filter(o => (o.stage || "qualif") === s.key);
+    var stageOpps = (filteredOpps || []).filter(o => (o.stage || "qualif") === s.key);
     var total = stageOpps.reduce((sum, o) => sum + (Number(o.amount_eur) || 0), 0);
     return {
       ...s,
@@ -177,46 +285,51 @@ var CRMPipeline = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "CRM commercial"))), /*#__PURE__*/React.createElement("a", {
-    href: "/nouvelle-opportunite",
-    style: {
-      ...crmStyles.newBtn,
-      textDecoration: "none",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      lineHeight: 1
-    }
-  }, "+"), /*#__PURE__*/React.createElement("span", null, "Nouvelle opportunit\xE9"), /*#__PURE__*/React.createElement("span", {
-    style: crmStyles.kbd
-  }, "N")), /*#__PURE__*/React.createElement("a", {
-    href: "/nouveau-prospect",
-    style: {
-      ...crmStyles.newBtn,
-      textDecoration: "none",
-      cursor: "pointer",
-      background: "#fff",
-      color: "#0f172a",
-      border: "1px solid #e2e8f0"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      lineHeight: 1
-    }
-  }, "+"), /*#__PURE__*/React.createElement("span", null, "Nouveau prospect"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...crmStyles.kbd,
-      background: "#f1f5f9",
-      color: "#475569"
-    }
-  }, "P")), /*#__PURE__*/React.createElement("div", {
+  }, "CRM commercial"))), /*#__PURE__*/React.createElement("div", {
     style: crmStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: crmStyles.navLabel
-  }, "Espace de travail"), [{
+  }, "Espace de travail"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8",
+      fontSize: 12
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: globalSearch,
+    onChange: e => setGlobalSearch(e.target.value),
+    placeholder: "Rechercher\u2026",
+    style: {
+      width: "100%",
+      padding: "7px 10px 7px 28px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12,
+      color: "#0f172a",
+      outline: "none",
+      background: "#fafbfc",
+      boxSizing: "border-box"
+    }
+  }), globalSearch && /*#__PURE__*/React.createElement("span", {
+    onClick: () => setGlobalSearch(""),
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "\xD7")), [{
     label: "Pipeline",
     icon: "▦",
     href: "/crm",
@@ -224,15 +337,18 @@ var CRMPipeline = () => {
   }, {
     label: "Comptes",
     icon: "◰",
-    href: "/crm#comptes"
+    href: "/crm#comptes-section",
+    count: sidebarCounts.comptes
   }, {
     label: "Contacts",
     icon: "◉",
-    href: "/crm#contacts"
+    href: "/crm#comptes-section",
+    count: sidebarCounts.contacts
   }, {
     label: "Activités",
     icon: "✦",
-    href: "/crm#actions"
+    href: "/crm#actions-section",
+    count: sidebarCounts.activites
   }].map(n => {
     var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -244,7 +360,7 @@ var CRMPipeline = () => {
       style: {
         flex: 1
       }
-    }, n.label), n.count && /*#__PURE__*/React.createElement("span", {
+    }, n.label), n.count > 0 && /*#__PURE__*/React.createElement("span", {
       style: crmStyles.navCount
     }, n.count));
     var styleAct = {
@@ -363,11 +479,14 @@ var CRMPipeline = () => {
       flex: 1
     }
   }), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.userRow
+    style: {
+      ...crmStyles.userRow,
+      position: "relative"
+    }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: "Nadia Lef\xE8vre",
+    name: "Romain Daviaud",
     size: 26,
-    color: "#a855f7"
+    color: "#6366f1"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -379,17 +498,74 @@ var CRMPipeline = () => {
       fontWeight: 600,
       color: "#0f172a"
     }
-  }, "Nadia Lef\xE8vre"), /*#__PURE__*/React.createElement("div", {
+  }, "Romain Daviaud"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Account Executive \xB7 EMEA")), /*#__PURE__*/React.createElement("span", {
+  }, "Direction \xB7 Astorya")), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setUserMenuOpen(v => !v);
+    },
+    title: "Menu utilisateur",
     style: {
+      background: "transparent",
+      border: 0,
       color: "#94a3b8",
-      fontSize: 14
+      fontSize: 14,
+      cursor: "pointer",
+      padding: 4,
+      borderRadius: 6
     }
-  }, "\u22EF"))), /*#__PURE__*/React.createElement("main", {
+  }, "\u22EF"), userMenuOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "absolute",
+      bottom: "calc(100% + 6px)",
+      right: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      boxShadow: "0 12px 32px rgba(15,23,42,0.16)",
+      zIndex: 1000,
+      minWidth: 200,
+      padding: 6
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/administration-utilisateurs",
+    style: crmStyles.userMenuItem
+  }, "\uD83D\uDC64 Administration"), /*#__PURE__*/React.createElement("a", {
+    href: "/",
+    style: crmStyles.userMenuItem
+  }, "\uD83C\uDFE0 Accueil ERP"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "#eef1f5",
+      margin: "4px 0"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Se déconnecter ?",
+        okLabel: "Déconnexion",
+        okStyle: "danger"
+      }) : confirm("Se déconnecter ?");
+      if (!ok) return;
+      if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
+      if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
+      window.location.href = "/login";
+    },
+    style: {
+      ...crmStyles.userMenuItem,
+      color: "#dc2626",
+      textAlign: "left",
+      cursor: "pointer",
+      border: 0,
+      background: "transparent",
+      width: "100%"
+    }
+  }, "\u23FB Se d\xE9connecter")))), /*#__PURE__*/React.createElement("main", {
     style: crmStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: crmStyles.topbar
@@ -637,10 +813,10 @@ var CRMPipeline = () => {
       color: "#64748b"
     }
   }, o.client_name, " \xB7 ", o.amount && o.amount + " €"))))))))), (() => {
-    var active = (searchOpps || []).filter(o => o.stage !== "won" && o.stage !== "lost");
+    var active = (filteredOpps || []).filter(o => o.stage !== "won" && o.stage !== "lost");
     var totalActive = active.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
     var pondere = active.reduce((s, o) => s + (Number(o.amount_eur) || 0) * (Number(o.proba) || 0) / 100, 0);
-    var wonOpps = (searchOpps || []).filter(o => o.stage === "won");
+    var wonOpps = (filteredOpps || []).filter(o => o.stage === "won");
     var wonAmount = wonOpps.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
     var fmtK = n => n > 999999 ? (n / 1000000).toFixed(2).replace(".", ",") + " M€" : Math.round(n / 1000) + " k€";
     return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -693,8 +869,8 @@ var CRMPipeline = () => {
       color: "#10b981"
     }, {
       label: "Total opportunités",
-      value: String((searchOpps || []).length),
-      delta: "Toutes étapes",
+      value: String((filteredOpps || []).length),
+      delta: crmFilter.kind !== "all" ? "Filtré" : "Toutes étapes",
       color: "#0ea5e9"
     }].map(k => /*#__PURE__*/React.createElement("div", {
       key: k.label,
@@ -739,6 +915,39 @@ var CRMPipeline = () => {
     style: crmStyles.kanban
   }, columns.map(col => /*#__PURE__*/React.createElement("div", {
     key: col.key,
+    onDragOver: e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      e.currentTarget.style.background = col.color + "0d";
+    },
+    onDragLeave: e => {
+      e.currentTarget.style.background = "";
+    },
+    onDrop: async e => {
+      e.preventDefault();
+      e.currentTarget.style.background = "";
+      var oppId = e.dataTransfer.getData("oppId");
+      if (!oppId || !window.api) return;
+      var stageProba = {
+        qualif: 20,
+        discovery: 35,
+        propo: 55,
+        nego: 75,
+        won: 100
+      };
+      try {
+        await window.api.opportunities.update(oppId, {
+          stage: col.key,
+          proba: stageProba[col.key] || 20
+        });
+        if (window.HubToast) window.HubToast.success("✓ Opportunité déplacée en " + col.label);
+        // Reload opps
+        var list = await window.api.opportunities.list();
+        setSearchOpps(list || []);
+      } catch (err) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+      }
+    },
     style: crmStyles.column
   }, /*#__PURE__*/React.createElement("div", {
     style: crmStyles.colHead
@@ -802,6 +1011,13 @@ var CRMPipeline = () => {
     };
     return /*#__PURE__*/React.createElement("div", {
       key: c.id || i,
+      draggable: !!c.id,
+      onDragStart: e => {
+        if (c.id) {
+          e.dataTransfer.setData("oppId", c.id);
+          e.dataTransfer.effectAllowed = "move";
+        }
+      },
       onClick: goto,
       style: {
         ...crmStyles.card,
@@ -1053,6 +1269,15 @@ var crmStyles = {
     padding: "8px 6px",
     borderTop: "1px solid #eef1f5",
     marginTop: 4
+  },
+  userMenuItem: {
+    display: "block",
+    padding: "8px 10px",
+    fontSize: 12.5,
+    color: "#0f172a",
+    textDecoration: "none",
+    borderRadius: 6,
+    fontWeight: 500
   },
   main: {
     flex: 1,
@@ -1405,17 +1630,32 @@ var CRMAccountsList = () => {
     }).catch(() => {});
   }, []);
 
-  // Auto-scroll vers la section si URL contient #comptes
+  // Auto-scroll vers la section ciblée par le hash URL (Comptes, Contacts, Activités)
   React.useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#comptes") {
+    if (typeof window === "undefined") return;
+    var scrollToHash = () => {
+      var h = window.location.hash || "";
+      // Mappe les anciens #comptes/#contacts/#actions vers les vrais IDs DOM
+      var mapping = {
+        "#comptes": "comptes-section",
+        "#contacts": "comptes-section",
+        "#actions": "actions-section",
+        "#comptes-section": "comptes-section",
+        "#actions-section": "actions-section"
+      };
+      var targetId = mapping[h];
+      if (!targetId) return;
       setTimeout(() => {
-        var el = document.getElementById("comptes-section");
+        var el = document.getElementById(targetId);
         if (el) el.scrollIntoView({
           behavior: "smooth",
           block: "start"
         });
       }, 300);
-    }
+    };
+    scrollToHash();
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
   // Fusionne les deux sources en évitant les doublons par id
@@ -1481,13 +1721,12 @@ var CRMAccountsList = () => {
       display: "flex",
       alignItems: "center",
       gap: 8,
-      flex: 1,
-      maxWidth: 480
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      flex: 1
+      width: 320
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1500,7 +1739,7 @@ var CRMAccountsList = () => {
   }, "\u2315"), /*#__PURE__*/React.createElement("input", {
     value: search,
     onChange: e => setSearch(e.target.value),
-    placeholder: "Rechercher (raison sociale, ville, SIREN, secteur\u2026)",
+    placeholder: "Rechercher (raison sociale, ville, SIREN\u2026)",
     style: {
       width: "100%",
       padding: "8px 12px 8px 32px",
@@ -1508,7 +1747,8 @@ var CRMAccountsList = () => {
       borderRadius: 8,
       fontSize: 13,
       outline: "none",
-      background: "#fff"
+      background: "#fff",
+      boxSizing: "border-box"
     }
   })), /*#__PURE__*/React.createElement("a", {
     href: "/nouveau-prospect",
@@ -1520,7 +1760,8 @@ var CRMAccountsList = () => {
       fontSize: 12.5,
       fontWeight: 600,
       textDecoration: "none",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      flexShrink: 0
     }
   }, "+ Nouveau prospect"))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1751,6 +1992,134 @@ var CRMActionsList = () => {
     }
   }, filtered.map((a, i) => {
     var pm = prioMeta[a.priority] || prioMeta.basse;
+    // Icône cliquable selon le type d'action :
+    //   email → mailto: (Outlook/webmail par défaut OS)
+    //   appel → 3CX Web Client dialer
+    //   rdv   → Outlook Calendar deeplink
+    var tagL = (a.tag || "").toLowerCase();
+    var titleL = (a.title || "").toLowerCase();
+    var isEmail = tagL === "email" || titleL.includes("email") || a.icon === "✉" || a.icon === "📧";
+    var isCall = tagL === "appel" || tagL === "call" || titleL.includes("appel") || titleL.includes("relance") || a.icon === "📞" || a.icon === "☎";
+    var isMeeting = tagL === "rdv" || tagL === "visio" || titleL.includes("rdv") || titleL.includes("rendez-vous") || a.icon === "📅" || a.icon === "🗓" || a.icon === "💻";
+    var actionable = isEmail || isCall || isMeeting;
+    var iconBaseStyle = {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      background: "#f8fafc",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 16,
+      flexShrink: 0
+    };
+    var fetchClientCtx = async () => {
+      if (!a.client_id || !window.api) return {
+        contact: null,
+        client: null
+      };
+      try {
+        var [conts, client] = await Promise.all([window.api.contacts.list({
+          client_id: a.client_id
+        }), window.api.clients.getById(a.client_id)]);
+        var contact = (conts || []).find(c => c.is_principal) || (conts || [])[0] || null;
+        return {
+          contact,
+          client
+        };
+      } catch (e) {
+        return {
+          contact: null,
+          client: null
+        };
+      }
+    };
+    var handleIconClick = async e => {
+      e.stopPropagation();
+      if (!actionable) return;
+      var {
+        contact,
+        client
+      } = await fetchClientCtx();
+      if (isEmail) {
+        var email = contact && contact.email || client && client.email || "";
+        if (!email) {
+          if (window.HubToast) window.HubToast.warn("Aucun email — ouvre la fiche client pour ajouter un contact");
+          return;
+        }
+        var lastName = (contact && contact.nom || "").trim();
+        var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
+        // Téléchargement local de la plaquette → l'utilisateur la
+        // glisse dans son mail (mailto: ne supporte pas les pièces
+        // jointes, contrainte sécurité navigateur)
+        var link = document.createElement("a");
+        link.href = "/assets/Plaquette-Astorya.pdf";
+        link.download = "Plaquette-Astorya.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.location.href = "mailto:" + encodeURIComponent(email) + "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") + "&body=" + encodeURIComponent(body);
+        if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail");
+        return;
+      }
+      if (isCall) {
+        var phone = contact && contact.phone || client && client.phone || "";
+        if (!phone) {
+          if (window.HubToast) window.HubToast.warn("Aucun téléphone — ouvre la fiche client pour ajouter un contact");
+          return;
+        }
+        var tel = phone.replace(/[^\d+]/g, "");
+        var supa = window.HubSupabase && window.HubSupabase.client;
+        var launch = server => {
+          var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+          window.open(url, "3cx-webclient");
+          if (window.HubToast) window.HubToast.info("📞 Appel via 3CX");
+        };
+        if (supa) {
+          supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+            data
+          }) => launch(data && data.value)).catch(() => launch(null));
+        } else {
+          launch(null);
+        }
+        return;
+      }
+      if (isMeeting) {
+        var attendeeEmail = contact && contact.email || "";
+        var clientName = client && (client.raison_sociale || client.name) || "";
+        var tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+        tomorrow.setHours(9, 0, 0, 0);
+        var end = new Date(tomorrow.getTime() + 60 * 60 * 1000);
+        var toIso = d => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+        var subject = (a.title || "Rendez-vous") + (clientName ? " — " + clientName : "");
+        var params = new URLSearchParams({
+          subject,
+          body: a.meta || "Préparé via Hub Astorya",
+          startdt: toIso(tomorrow),
+          enddt: toIso(end),
+          path: "/calendar/action/compose",
+          rru: "addevent"
+        });
+        if (attendeeEmail) params.set("to", attendeeEmail);
+        window.open("https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString(), "_blank", "noopener");
+        if (window.HubToast) window.HubToast.info("📅 RDV — Outlook ouvert");
+        return;
+      }
+    };
+    var iconEl = actionable ? /*#__PURE__*/React.createElement("button", {
+      onClick: handleIconClick,
+      title: isEmail ? "Envoyer un email" : isCall ? "Lancer l'appel via 3CX" : "Créer le RDV Outlook",
+      style: {
+        ...iconBaseStyle,
+        border: 0,
+        cursor: "pointer",
+        transition: "transform 120ms"
+      },
+      onMouseEnter: e => e.currentTarget.style.transform = "scale(1.1)",
+      onMouseLeave: e => e.currentTarget.style.transform = "scale(1)"
+    }, a.icon) : /*#__PURE__*/React.createElement("span", {
+      style: iconBaseStyle
+    }, a.icon);
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -1762,19 +2131,7 @@ var CRMActionsList = () => {
         border: "1px solid " + (a.overdue ? "#fdba74" : "#e2e8f0"),
         borderRadius: 10
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: "#f8fafc",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 16,
-        flexShrink: 0
-      }
-    }, a.icon), /*#__PURE__*/React.createElement("span", {
+    }, iconEl, /*#__PURE__*/React.createElement("span", {
       style: {
         padding: "2px 8px",
         borderRadius: 999,

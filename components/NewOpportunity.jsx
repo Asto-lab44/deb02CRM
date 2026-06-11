@@ -34,22 +34,27 @@ const NewOpportunity = () => {
   const [oppAmount, setOppAmount] = React.useState("");
   const [oppDate, setOppDate]     = React.useState("");
   const [oppNotes, setOppNotes]   = React.useState("");
+  // Qualification commerciale — déplacée depuis NewProspect : une qualif
+  // par opportunité (besoin, concurrent, échéance).
+  const [oppBesoin, setOppBesoin]                 = React.useState("");
+  const [oppConcurrent, setOppConcurrent]         = React.useState("");
+  const [oppConcurrentAmount, setOppConcurrentAmount] = React.useState("");
+  const [oppProjectDate, setOppProjectDate]       = React.useState("");
   const [oppType, setOppType]     = React.useState("new"); // new | extension | renewal | upsell
   const [oppProduit, setOppProduit] = React.useState("Astorya Suite");
   const [oppModules, setOppModules] = React.useState([]); // ["Cyber", "Hub", ...]
-  const [oppSource, setOppSource] = React.useState("Référence client existant");
   const [oppDuration, setOppDuration] = React.useState("3 ans");
   const [oppStage, setOppStage] = React.useState("qualif");
-  const [oppOwner, setOppOwner] = React.useState("Romain Daviaud");
+  // Owner par défaut = nom de l'utilisateur connecté (via HubAccess).
+  // Fallback "Romain Daviaud" si pas de session.
+  const initialOwner = (() => {
+    try {
+      const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser();
+      return (u && u.name) || "Romain Daviaud";
+    } catch (e) { return "Romain Daviaud"; }
+  })();
+  const [oppOwner, setOppOwner] = React.useState(initialOwner);
   const [oppTags,  setOppTags]  = React.useState([]);
-  React.useEffect(() => {
-    if (!window.api || !window.api.auth) return;
-    window.api.auth.getUser().then((u) => {
-      if (!u) return;
-      if (u.email === "a.morin@astorya.fr") setOppOwner("Augustin Morin");
-      else if (u.email === "achat@astorya.fr") setOppOwner("Romain Daviaud");
-    }).catch(() => {});
-  }, []);
   // Stage pré-sélectionné via ?stage=
   React.useEffect(() => {
     const s = new URLSearchParams(window.location.search).get("stage");
@@ -57,14 +62,51 @@ const NewOpportunity = () => {
   }, []);
   const [flash, setFlash]         = React.useState(null);
 
-  // Résolution du dossier prospect complet (pour récupérer contact_principal + contacts_additionnels)
+  // Résolution du dossier prospect complet : contacts depuis Supabase
+  // en priorité (table contacts), fallback localStorage legacy si rien.
+  const [clientContacts, setClientContacts] = React.useState([]);
+  // IDs des co-contacts sélectionnés pour cette opportunité (parmi
+  // les contacts existants du client, hors contact principal).
+  const [selectedCoContactIds, setSelectedCoContactIds] = React.useState(new Set());
+  React.useEffect(() => { setSelectedCoContactIds(new Set()); }, [selectedClient && selectedClient.id]);
+  React.useEffect(() => {
+    if (!selectedClient || !selectedClient.id) { setClientContacts([]); return; }
+    (async () => {
+      try {
+        const conts = await window.api.contacts.list({ client_id: selectedClient.id });
+        setClientContacts(conts || []);
+      } catch (e) { setClientContacts([]); }
+    })();
+  }, [selectedClient && selectedClient.id]);
+
   const fullProspect = React.useMemo(() => {
     if (!selectedClient) return null;
+    // Construit un fullProspect virtuel à partir des contacts BDD
+    const principal = clientContacts.find((c) => c.is_principal);
+    const additionnels = clientContacts.filter((c) => !c.is_principal);
+    if (clientContacts.length > 0) {
+      return {
+        id: selectedClient.id,
+        contact_principal: principal ? {
+          prenom: principal.prenom || "",
+          nom: principal.nom || "",
+          fonction: principal.fonction || "",
+          email: principal.email || "",
+          phone: principal.phone || "",
+        } : null,
+        contacts_additionnels: additionnels.map((c) => ({
+          prenom: c.prenom || "", nom: c.nom || "", fonction: c.fonction || "",
+          email: c.email || "", phone: c.phone || "",
+        })),
+        roles: (principal && principal.roles) || [],
+      };
+    }
+    // Fallback localStorage legacy
     try {
       const local = JSON.parse(localStorage.getItem("hubAstorya.prospects.v1") || "[]");
       return local.find((p) => p.id === selectedClient.id) || null;
     } catch (e) { return null; }
-  }, [selectedClient]);
+  }, [selectedClient, clientContacts]);
 
   // Probabilité auto selon étape
   const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
@@ -88,12 +130,18 @@ const NewOpportunity = () => {
       type: oppType,
       produit: oppProduit,
       modules: oppModules,
-      source: oppSource,
       duration: oppDuration,
       stage: oppStage,
       proba,
       owner: oppOwner,
       tags: oppTags,
+      // Co-contacts sélectionnés sur cette opp (IDs de la table contacts)
+      co_contact_ids: Array.from(selectedCoContactIds),
+      // Qualification commerciale
+      besoin: oppBesoin || null,
+      concurrent: oppConcurrent || null,
+      concurrent_amount: oppConcurrentAmount || null,
+      project_date: oppProjectDate || null,
     };
     try {
       await window.api.opportunities.create(opp);
@@ -195,6 +243,9 @@ const NewOpportunity = () => {
             {/* LEFT — form fields */}
             <div style={noStyles.formCol}>
 
+              {/* Row 1 : Compte + Détails opportunité */}
+              <div style={noStyles.pairGrid}>
+
               {/* SECTION 1 — Compte */}
               <section style={noStyles.section}>
                 <SectionHead num="01" title="Compte & demandeur" subtitle="Lié à un compte existant" required done />
@@ -280,23 +331,64 @@ const NewOpportunity = () => {
                   })()}
                 </FormRow>
 
-                <FormRow label="Co-contacts" subtitle="Décideurs supplémentaires identifiés à la création du prospect">
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    {(() => {
-                      const add = (fullProspect && fullProspect.contacts_additionnels) || [];
-                      if (!add.length) return <span style={{ fontSize: 11.5, color: "#94a3b8", fontStyle: "italic" }}>Aucun co-contact</span>;
-                      const colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
-                      return add.map((x, i) => {
-                        const n = ((x.prenom || "") + " " + (x.nom || "")).trim() || x.email || "Contact";
-                        return (
-                          <div key={i} style={noStyles.contactChip}>
-                            <Avatar name={n} size={18} color={colors[i % colors.length]} />
-                            <span style={{ fontSize: 11.5, fontWeight: 500 }}>{n}</span>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
+                <FormRow label="Co-contacts" subtitle="Sélectionnez d'autres contacts du client à inclure dans cette opportunité">
+                  {(() => {
+                    // Filtre les contacts éligibles : tous sauf le principal
+                    const eligible = clientContacts.filter((c) => !c.is_principal);
+                    if (!selectedClient) {
+                      return <span style={{ fontSize: 11.5, color: "#94a3b8", fontStyle: "italic" }}>Sélectionne d'abord un client.</span>;
+                    }
+                    if (eligible.length === 0) {
+                      return (
+                        <div style={{ padding: "10px 12px", background: "#fafbfc", border: "1px dashed #e2e8f0", borderRadius: 8, fontSize: 12, color: "#94a3b8" }}>
+                          Aucun co-contact disponible.{" "}
+                          <a href={"/fiche-client?id=" + encodeURIComponent(selectedClient.id)} style={{ color: "#3730a3", textDecoration: "none", fontWeight: 600 }}>
+                            Ajouter un contact à ce client →
+                          </a>
+                        </div>
+                      );
+                    }
+                    const colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {eligible.map((c, i) => {
+                          const checked = selectedCoContactIds.has(c.id);
+                          const n = ((c.prenom || "") + " " + (c.nom || "")).trim() || c.email || "Contact";
+                          return (
+                            <label key={c.id} onClick={() => {
+                              setSelectedCoContactIds((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                                return next;
+                              });
+                            }}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
+                              border: "1px solid " + (checked ? "#c7d2fe" : "#e2e8f0"),
+                              background: checked ? "#eef2ff" : "#fff",
+                              borderRadius: 8, cursor: "pointer",
+                            }}>
+                              <input type="checkbox" checked={checked} readOnly style={{ accentColor: "#3730a3" }} />
+                              <Avatar name={n} size={26} color={colors[i % colors.length]} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{n}</div>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>
+                                  {c.fonction || "Fonction non renseignée"}
+                                  {c.email ? " · " + c.email : ""}
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                          💡 Besoin d'un contact qui n'apparaît pas ?{" "}
+                          <a href={"/fiche-client?id=" + encodeURIComponent(selectedClient.id)} style={{ color: "#3730a3", textDecoration: "none", fontWeight: 600 }}>
+                            Ajoute-le dans la fiche client →
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </FormRow>
               </section>
 
@@ -342,39 +434,24 @@ const NewOpportunity = () => {
                   </FormRow>
                 </div>
 
-                <div style={noStyles.formGrid2}>
-                  <FormRow label="Type d'opportunité" required>
-                    <div style={noStyles.radioGroup}>
-                      {[
-                        { k: "new",       label: "Nouveau client" },
-                        { k: "extension", label: "Extension" },
-                        { k: "renewal",   label: "Renouvellement" },
-                        { k: "upsell",    label: "Up-sell" },
-                      ].map((t) => (
-                        <label
-                          key={t.k}
-                          onClick={() => setOppType(t.k)}
-                          style={{ ...noStyles.radio, ...(oppType === t.k ? noStyles.radioOn : {}), cursor: "pointer" }}
-                        >
-                          <input type="radio" name="type" checked={oppType === t.k} onChange={() => setOppType(t.k)} /> <span>{t.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </FormRow>
-
-                  <FormRow label="Source" required>
-                    <select value={oppSource} onChange={(e) => setOppSource(e.target.value)} style={{ ...noStyles.input, padding: "8px 12px" }}>
-                      <option>Référence client existant</option>
-                      <option>Cold outbound</option>
-                      <option>Inbound site web</option>
-                      <option>Salon professionnel</option>
-                      <option>Partenaire revendeur</option>
-                      <option>Renouvellement automatique</option>
-                      <option>Réseau personnel</option>
-                      <option>Autre</option>
-                    </select>
-                  </FormRow>
-                </div>
+                <FormRow label="Type d'opportunité" required>
+                  <div style={noStyles.radioGroup}>
+                    {[
+                      { k: "new",       label: "Nouveau produit" },
+                      { k: "extension", label: "Extension" },
+                      { k: "renewal",   label: "Renouvellement" },
+                      { k: "upsell",    label: "Up-sell" },
+                    ].map((t) => (
+                      <label
+                        key={t.k}
+                        onClick={() => setOppType(t.k)}
+                        style={{ ...noStyles.radio, ...(oppType === t.k ? noStyles.radioOn : {}), cursor: "pointer" }}
+                      >
+                        <input type="radio" name="type" checked={oppType === t.k} onChange={() => setOppType(t.k)} /> <span>{t.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </FormRow>
 
                 <FormRow label="Description & contexte" subtitle="Quel est le besoin ? Quel déclencheur ?">
                   <textarea
@@ -391,13 +468,22 @@ const NewOpportunity = () => {
                 </FormRow>
               </section>
 
+              </div>{/* /Row 1 */}
+
+              {/* Row 2 : Montant & timing + Commercial & étiquettes */}
+              <div style={noStyles.pairGrid}>
+
               {/* SECTION 3 — Montant & timing */}
               <section style={noStyles.section}>
                 <SectionHead num="03" title="Montant & timing" subtitle="Indicateurs financiers et calendaires" required />
 
                 <div style={noStyles.formGrid2}>
                   <FormRow label="Montant estimé" required>
-                    <div style={noStyles.inputWithSuffix}>
+                    {(() => {
+                      const V = window.HubValidators;
+                      const amtErr = V && V.numberRange(oppAmount, 0, 100000000);
+                      return <>
+                    <div style={{ ...noStyles.inputWithSuffix, ...(amtErr ? V.errorStyle(amtErr) : {}) }}>
                       <input
                         style={{ ...noStyles.input, border: "none", padding: "0 4px", fontSize: 18, fontWeight: 600 }}
                         value={oppAmount}
@@ -406,7 +492,10 @@ const NewOpportunity = () => {
                       />
                       <span style={noStyles.suffix}>€ / an</span>
                     </div>
+                    {amtErr && <div style={V.errorMsgStyle(amtErr)}>{amtErr.message}</div>}
                     <div style={noStyles.inputHelp}>Récurrent annuel HT</div>
+                      </>;
+                    })()}
                   </FormRow>
 
                   <FormRow label="Durée contrat">
@@ -429,14 +518,14 @@ const NewOpportunity = () => {
                   </FormRow>
                 </div>
 
-                <FormRow label="Étape pipeline" required>
+                <FormRow label="Étape SPANCO" required>
                   <div style={noStyles.pipelineSelector}>
                     {[
-                      { k: "qualif", label: "Qualification", color: "#94a3b8", proba: 20 },
-                      { k: "discovery", label: "Discovery", color: "#3b82f6", proba: 35 },
-                      { k: "propo", label: "Proposition", color: "#a855f7", proba: 55 },
-                      { k: "nego", label: "Négociation", color: "#ea580c", proba: 75 },
-                      { k: "won", label: "Gagné", color: "#10b981", proba: 100 },
+                      { k: "qualif",    label: "Prospect",    color: "#94a3b8", proba: 20 },
+                      { k: "discovery", label: "Approche",    color: "#3b82f6", proba: 35 },
+                      { k: "propo",     label: "Négociation", color: "#a855f7", proba: 55 },
+                      { k: "nego",      label: "Conclusion",  color: "#ea580c", proba: 75 },
+                      { k: "won",       label: "Ordre",       color: "#10b981", proba: 100 },
                     ].map((s) => {
                       const active = oppStage === s.k;
                       return (
@@ -470,7 +559,7 @@ const NewOpportunity = () => {
                     <div style={noStyles.inputHelp}>Auto-rempli depuis l'étape</div>
                   </FormRow>
 
-                  <FormRow label="Date de clôture cible" required>
+                  <FormRow label="Date de décision potentielle" required>
                     <div style={noStyles.dateInput}>
                       <span style={{ color: "#94a3b8" }}>📅</span>
                       <input
@@ -508,14 +597,58 @@ const NewOpportunity = () => {
                       </span>
                     ))}
                     <button
-                      onClick={() => {
-                        const t = prompt("Nouvelle étiquette :");
+                      onClick={async () => {
+                        const t = window.HubModal
+                          ? await window.HubModal.prompt({ title: "Nouvelle étiquette", label: "Tag", placeholder: "ex : Hot deal Q2", okLabel: "Ajouter" })
+                          : prompt("Nouvelle étiquette :");
                         if (t && t.trim()) setOppTags((arr) => [...arr, t.trim()]);
                       }}
                       style={{ ...noStyles.addChip, cursor: "pointer" }}
                     >+ Ajouter</button>
                   </div>
                 </FormRow>
+              </section>
+
+              </div>{/* /Row 2 */}
+
+              {/* SECTION 5 — Qualification commerciale */}
+              <section style={noStyles.section}>
+                <SectionHead num="05" title="Qualification commerciale" subtitle="Besoin, contexte concurrentiel et échéance du contrat actuel" />
+                <FormRow label="Besoin exprimé / problème à résoudre">
+                  <textarea
+                    style={{ ...noStyles.input, fontFamily: "inherit", resize: "vertical", minHeight: 70 }}
+                    rows="3"
+                    value={oppBesoin}
+                    onChange={(e) => setOppBesoin(e.target.value)}
+                    placeholder="Modernisation, contraintes, contexte concurrentiel…"
+                  />
+                </FormRow>
+                <div style={noStyles.formGrid2}>
+                  <FormRow label="Concurrent actuel">
+                    <input
+                      style={noStyles.input}
+                      value={oppConcurrent}
+                      onChange={(e) => setOppConcurrent(e.target.value)}
+                      placeholder="Ex. Salesforce, Pega, HubSpot…"
+                    />
+                    <div style={{ ...noStyles.inputWithSuffix, marginTop: 6 }}>
+                      <input
+                        style={{ ...noStyles.input, border: "none", padding: "0 4px" }}
+                        value={oppConcurrentAmount}
+                        onChange={(e) => setOppConcurrentAmount(e.target.value)}
+                        placeholder="Montant annuel"
+                      />
+                      <span style={noStyles.suffix}>k€/an</span>
+                    </div>
+                  </FormRow>
+                  <FormRow label="Échéance du contrat actuel">
+                    <div style={noStyles.dateInput}>
+                      <span style={{ color: "#94a3b8" }}>📅</span>
+                      <input type="date" style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                             value={oppProjectDate} onChange={(e) => setOppProjectDate(e.target.value)} />
+                    </div>
+                  </FormRow>
+                </div>
               </section>
 
               {/* Bottom actions */}
@@ -579,73 +712,100 @@ const NewOpportunity = () => {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>{({ qualif: "Qualification", discovery: "Discovery", propo: "Proposition", nego: "Négociation", won: "Gagné" })[oppStage]}</strong></div>
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, textAlign: "center" }}>↑ Aperçu en colonne <strong>{({ qualif: "Prospect", discovery: "Approche", propo: "Négociation", nego: "Conclusion", won: "Ordre" })[oppStage]}</strong></div>
               </div>
 
-              {/* IA suggestions */}
-              <div style={noStyles.aiPanel}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <span style={{ width: 24, height: 24, borderRadius: 999, background: "#0f172a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>★</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>Suggestions Hub Assistant</span>
-                </div>
+              {/* IA suggestions — dynamiques, basées sur les champs saisis */}
+              {(() => {
+                const amtN = parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) || 0;
+                const yearsN = oppDuration === "1 an" ? 1 : oppDuration === "3 ans" ? 3 : oppDuration === "5 ans" ? 5 : 0;
+                const concurrentAmtN = parseFloat(String(oppConcurrentAmount || "").replace(/[^\d.]/g, "")) || 0;
+                const cycleDays = { qualif: 145, discovery: 110, propo: 75, nego: 35, won: 0 }[oppStage] || 90;
+                const estCloseDate = (() => {
+                  const d = new Date(); d.setDate(d.getDate() + cycleDays);
+                  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+                })();
+                const dateMismatch = oppDate && Math.abs(((new Date(oppDate) - new Date()) / 86400000) - cycleDays) > 30;
+                const items = [];
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>💡</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Montant estimé : 92 k€</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>Basé sur 3 deals similaires (extension Suite · 200-300 sièges) — moyenne 87 k€ et médiane 91 k€.</div>
-                    <button style={noStyles.aiAccept}>Accepter le montant</button>
-                  </div>
-                </div>
+                if (selectedClient) {
+                  items.push({ icon: "🏷️", title: "Compte sélectionné", desc: <>Vous travaillez sur <strong style={{ color: "#0f172a" }}>{selectedClient.name}</strong>{selectedClient.sector ? " (" + selectedClient.sector + ")" : ""}.</> });
+                } else {
+                  items.push({ icon: "💡", title: "Sélectionnez un compte", desc: "Choisissez le compte concerné en haut à gauche pour démarrer." });
+                }
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>📅</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Cycle attendu : 115 jours</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>Date de clôture probable : <strong style={{ color: "#0f172a" }}>18 sept. 2026</strong>. Vous avez saisi le 15.</div>
-                  </div>
-                </div>
+                if (amtN > 0 && yearsN > 0) {
+                  const tcv = (amtN * yearsN).toLocaleString("fr-FR").replace(/,/g, " ");
+                  items.push({ icon: "💰", title: "TCV : " + tcv + " €", desc: <>Sur la base de <strong style={{ color: "#0f172a" }}>{amtN.toLocaleString("fr-FR").replace(/,/g, " ")} €/an</strong> × {oppDuration}.</> });
+                } else if (amtN === 0) {
+                  items.push({ icon: "💡", title: "Renseignez un montant", desc: "Pour calculer le TCV et la pondération du pipeline." });
+                }
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>⚠</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Concurrent Pega détecté</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>3 deals AXA précédents ont mentionné Pega. Le voulez-vous dans la liste ?</div>
-                    <button style={noStyles.aiAccept}>Ajouter Pega</button>
-                  </div>
-                </div>
+                items.push({ icon: "📅", title: "Cycle attendu : " + cycleDays + " jours", desc: <>Date de clôture probable : <strong style={{ color: "#0f172a" }}>{estCloseDate}</strong>.{oppDate ? " Vous avez saisi le " + new Date(oppDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) + "." : ""}{dateMismatch ? <span style={{ color: "#f59e0b", display: "block", marginTop: 3 }}>⚠ Écart important avec la date saisie.</span> : null}</> });
 
-                <div style={noStyles.aiItem}>
-                  <span style={noStyles.aiItemIcon}>👥</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Champion à activer</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>Émilie Roux est marquée Champion sur le compte. Suggérée comme contact principal.</div>
-                    <div style={{ fontSize: 10.5, color: "#10b981", marginTop: 4, fontWeight: 600 }}>✓ Déjà sélectionnée</div>
-                  </div>
-                </div>
-              </div>
+                if (oppConcurrent && oppConcurrent.trim()) {
+                  items.push({ icon: "⚠", title: "Concurrent : " + oppConcurrent, desc: concurrentAmtN > 0 ? <>Budget actuel <strong style={{ color: "#0f172a" }}>{concurrentAmtN.toLocaleString("fr-FR").replace(/,/g, " ")} k€/an</strong>.{amtN > 0 && concurrentAmtN > 0 ? (amtN > concurrentAmtN * 1000 ? " Notre offre est plus chère." : " Notre offre est compétitive.") : ""}</> : "Pensez à documenter le montant actuel pour mieux argumenter." });
+                }
 
-              {/* Checklist */}
-              <div style={noStyles.checklist}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>Complétion du brouillon</div>
-                <ChecklistRow done label="Compte renseigné" />
-                <ChecklistRow done label="Contact principal" />
-                <ChecklistRow done label="Nom & description" />
-                <ChecklistRow done label="Montant & durée" />
-                <ChecklistRow done label="Date de clôture" />
-                <ChecklistRow active label="Commercial & équipe" />
-                <ChecklistRow label="Produits & pricing détaillé" />
-                <ChecklistRow label="Validation finale" />
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #eef1f5" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, color: "#64748b" }}>Complété</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>6 / 8</span>
+                if (clientContacts.length > 1 && selectedCoContactIds.size === 0) {
+                  items.push({ icon: "👥", title: "Co-contacts disponibles", desc: <>{clientContacts.length - 1} contact(s) supplémentaire(s) chez ce client. Pensez à en sélectionner si plusieurs interlocuteurs sont impliqués.</> });
+                }
+
+                if (!oppBesoin || !oppBesoin.trim()) {
+                  items.push({ icon: "📝", title: "Décrivez le besoin", desc: "Le champ « Besoin exprimé » est vide. Un besoin documenté améliore la conversion de 30 %." });
+                }
+
+                return (
+                  <div style={noStyles.aiPanel}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span style={{ width: 24, height: 24, borderRadius: 999, background: "#0f172a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>★</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>Suggestions Hub Assistant</span>
+                    </div>
+                    {items.map((it, i) => (
+                      <div key={i} style={noStyles.aiItem}>
+                        <span style={noStyles.aiItemIcon}>{it.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{it.title}</div>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.45 }}>{it.desc}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ height: 4, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ width: "75%", height: "100%", background: "#4f46e5", borderRadius: 999 }} />
+                );
+              })()}
+
+              {/* Checklist — dynamique */}
+              {(() => {
+                const checks = [
+                  { label: "Compte renseigné",          done: !!selectedClient },
+                  { label: "Contact principal",         done: !!(fullProspect && fullProspect.contact_principal && (fullProspect.contact_principal.nom || fullProspect.contact_principal.email)) },
+                  { label: "Nom & description",         done: !!(oppName && oppName.trim() && oppNotes && oppNotes.trim()) },
+                  { label: "Montant & durée",           done: !!(parseFloat(String(oppAmount || "").replace(/[^\d.]/g, "")) > 0 && oppDuration) },
+                  { label: "Date de décision",          done: !!oppDate },
+                  { label: "Commercial & équipe",       done: !!oppOwner },
+                  { label: "Qualification commerciale", done: !!(oppBesoin && oppBesoin.trim()) },
+                  { label: "Étape SPANCO",              done: !!oppStage },
+                ];
+                const doneCount = checks.filter((c) => c.done).length;
+                const pct = Math.round((doneCount / checks.length) * 100);
+                return (
+                  <div style={noStyles.checklist}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>Complétion du brouillon</div>
+                    {checks.map((c, i) => (
+                      <ChecklistRow key={i} done={c.done} label={c.label} />
+                    ))}
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #eef1f5" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Complété</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{doneCount} / {checks.length}</span>
+                      </div>
+                      <div style={{ height: 4, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
+                        <div style={{ width: pct + "%", height: "100%", background: pct >= 75 ? "#10b981" : "#4f46e5", borderRadius: 999 }} />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </aside>
           </div>
         </div>
@@ -733,7 +893,8 @@ const noStyles = {
   // Body
   body: { flex: 1, overflowY: "auto" },
   bodyGrid: { display: "grid", gridTemplateColumns: "1fr 340px", minHeight: "100%" },
-  formCol: { padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 20 },
+  formCol: { padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 16 },
+  pairGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "start" },
 
   section: { padding: 18, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
 

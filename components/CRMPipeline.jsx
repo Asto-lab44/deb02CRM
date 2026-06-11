@@ -1,4 +1,25 @@
-// Écran CRM 1 — Pipeline commercial (kanban + KPIs)
+// ════════════════════════════════════════════════════════════════════
+// CRMPipeline — Pipeline commercial (route : /crm)
+// ════════════════════════════════════════════════════════════════════
+//
+// Composé de 2 sections (deux composants empilés) :
+//   1. <CRMPipeline>      → header + kanban des opportunités + KPI strip
+//   2. <CRMAccountsList>  → sous-composant tableau Comptes & Contacts
+//   3. <ActionsRow>       → sous-composant liste "Actions à mener"
+//
+// Sources de données :
+//   - opportunités : api.opportunities.list() — colonne kanban par stage
+//   - clients      : api.clients.list() — table Comptes
+//   - contacts     : api.contacts.list() — compteur sidebar
+//   - actions      : api.actions.list() — compteur sidebar
+//
+// Filtres :
+//   - crmFilter { kind: "all"|"view"|"product"|"status", value }
+//     → contrôle ce qui apparaît dans le kanban
+//   - globalSearch → recherche transversale (clients + opps + contacts)
+//
+// Compteurs sidebar (Comptes/Contacts/Activités) sont mis à jour live au mount.
+// ════════════════════════════════════════════════════════════════════
 
 const CRMPipeline = () => {
   // Filtre actif sur le pipeline (vue, produit, savedView…)
@@ -10,6 +31,23 @@ const CRMPipeline = () => {
   const [globalSearch, setGlobalSearch] = React.useState("");
   const [searchClients, setSearchClients] = React.useState([]);
   const [searchOpen, setSearchOpen] = React.useState(false);
+
+  // ───── Comptes : décomptes pour la sidebar (Comptes / Contacts / Activités)
+  const [sidebarCounts, setSidebarCounts] = React.useState({ comptes: 0, contacts: 0, activites: 0 });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([
+      window.api.clients.list(),
+      window.api.contacts.list(),
+      window.api.actions.list({ status: "todo" }),
+    ]).then(([cl, co, ac]) => {
+      setSidebarCounts({
+        comptes: (cl || []).length,
+        contacts: (co || []).length,
+        activites: (ac || []).length,
+      });
+    }).catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     if (!window.api) return;
@@ -27,9 +65,72 @@ const CRMPipeline = () => {
   }, []);
 
   const [searchOpps, setSearchOpps] = React.useState([]);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDoc = () => setUserMenuOpen(false);
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, [userMenuOpen]);
+
+  // Applique le filtre sidebar (Vues sauvegardées / Produits) sur les opps
+  const filteredOpps = React.useMemo(() => {
+    const all = searchOpps || [];
+    if (crmFilter.kind === "all") return all;
+    if (crmFilter.kind === "view") {
+      const now = Date.now();
+      switch (crmFilter.value) {
+        case "q2": return all.filter((o) => {
+          if (!o.close_date) return false;
+          const d = new Date(o.close_date);
+          return d.getFullYear() === new Date().getFullYear() && d.getMonth() >= 3 && d.getMonth() <= 5;
+        });
+        case "big": return all.filter((o) => (Number(o.amount_eur) || 0) >= 50000);
+        case "follow": return all.filter((o) => {
+          if (!o.updated_at) return true;
+          return now - new Date(o.updated_at).getTime() > 7 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+        });
+        case "stale": return all.filter((o) => {
+          if (!o.updated_at) return false;
+          return now - new Date(o.updated_at).getTime() > 14 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+        });
+        default: return all;
+      }
+    }
+    if (crmFilter.kind === "product") {
+      const tag = String(crmFilter.value || "").toLowerCase();
+      return all.filter((o) => {
+        const blob = ((o.modules || []).join(" ") + " " + (o.produit || "") + " " + (o.name || "")).toLowerCase();
+        return blob.includes(tag.replace("astorya ", ""));
+      });
+    }
+    return all;
+  }, [searchOpps, crmFilter]);
+  // Charge initial + s'abonne aux changements realtime (multi-onglets).
   React.useEffect(() => {
     if (!window.api) return;
-    window.api.opportunities.list().then((list) => setSearchOpps(list || [])).catch(() => {});
+    const reload = () => {
+      window.api.opportunities.list().then((list) => setSearchOpps(list || [])).catch(() => {});
+      if (window.api.clients && window.api.contacts && window.api.actions) {
+        Promise.all([
+          window.api.clients.list(),
+          window.api.contacts.list(),
+          window.api.actions.list({ status: "todo" }),
+        ]).then(([cl, co, ac]) => {
+          setSidebarCounts({
+            comptes: (cl || []).length,
+            contacts: (co || []).length,
+            activites: (ac || []).length,
+          });
+        }).catch(() => {});
+      }
+    };
+    reload();
+    // Realtime : tout changement sur opportunities/clients/contacts/actions
+    // recharge automatiquement.
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reload);
+    }
   }, []);
 
   const gq = globalSearch.trim().toLowerCase();
@@ -55,12 +156,14 @@ const CRMPipeline = () => {
   };
 
   // Colonnes du Kanban — alimentées par les opportunités Supabase
+  // Pipeline SPANCO — cohérent avec la page Faire avancer l'opportunité.
+  // Mapping interne stage BDD → label SPANCO (pas de migration de données).
   const stageMeta = [
-    { key: "qualif",    label: "Qualification", color: "#94a3b8" },
-    { key: "discovery", label: "Discovery",     color: "#3b82f6" },
-    { key: "propo",     label: "Proposition",   color: "#a855f7" },
-    { key: "nego",      label: "Négociation",   color: "#ea580c" },
-    { key: "won",       label: "Gagné",         color: "#10b981" },
+    { key: "qualif",    label: "Prospect",    color: "#94a3b8" },
+    { key: "discovery", label: "Approche",    color: "#3b82f6" },
+    { key: "propo",     label: "Négociation", color: "#a855f7" },
+    { key: "nego",      label: "Conclusion",  color: "#ea580c" },
+    { key: "won",       label: "Ordre",       color: "#10b981" },
   ];
   const palette = ["#1e40af", "#dc2626", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#0f766e", "#ec4899", "#a855f7"];
   const moduleTag = (modules, produit) => {
@@ -73,7 +176,7 @@ const CRMPipeline = () => {
     return "Suite";
   };
   const columns = stageMeta.map((s, idx) => {
-    const stageOpps = (searchOpps || []).filter((o) => (o.stage || "qualif") === s.key);
+    const stageOpps = (filteredOpps || []).filter((o) => (o.stage || "qualif") === s.key);
     const total = stageOpps.reduce((sum, o) => sum + (Number(o.amount_eur) || 0), 0);
     return {
       ...s,
@@ -114,30 +217,31 @@ const CRMPipeline = () => {
           </div>
         </a>
 
-        <a href="/nouvelle-opportunite" style={{ ...crmStyles.newBtn, textDecoration: "none", cursor: "pointer" }}>
-          <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
-          <span>Nouvelle opportunité</span>
-          <span style={crmStyles.kbd}>N</span>
-        </a>
-        <a href="/nouveau-prospect" style={{ ...crmStyles.newBtn, textDecoration: "none", cursor: "pointer", background: "#fff", color: "#0f172a", border: "1px solid #e2e8f0" }}>
-          <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
-          <span>Nouveau prospect</span>
-          <span style={{ ...crmStyles.kbd, background: "#f1f5f9", color: "#475569" }}>P</span>
-        </a>
-
         <div style={crmStyles.navSection}>
           <div style={crmStyles.navLabel}>Espace de travail</div>
+          <div style={{ position: "relative", marginBottom: 8 }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 12 }}>⌕</span>
+            <input
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              placeholder="Rechercher…"
+              style={{ width: "100%", padding: "7px 10px 7px 28px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, color: "#0f172a", outline: "none", background: "#fafbfc", boxSizing: "border-box" }}
+            />
+            {globalSearch && (
+              <span onClick={() => setGlobalSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14, cursor: "pointer" }}>×</span>
+            )}
+          </div>
           {[
-            { label: "Pipeline",    icon: "▦", href: "/crm",                      active: isCrmActive("all") },
-            { label: "Comptes",     icon: "◰", href: "/crm#comptes" },
-            { label: "Contacts",    icon: "◉", href: "/crm#contacts" },
-            { label: "Activités",   icon: "✦", href: "/crm#actions" },
+            { label: "Pipeline",    icon: "▦", href: "/crm",          active: isCrmActive("all") },
+            { label: "Comptes",     icon: "◰", href: "/crm#comptes-section",  count: sidebarCounts.comptes },
+            { label: "Contacts",    icon: "◉", href: "/crm#comptes-section", count: sidebarCounts.contacts },
+            { label: "Activités",   icon: "✦", href: "/crm#actions-section",  count: sidebarCounts.activites },
           ].map((n) => {
             const inner = (
               <>
                 <span style={{ width: 14, color: n.active ? "#4f46e5" : "#94a3b8", fontSize: 11 }}>{n.icon}</span>
                 <span style={{ flex: 1 }}>{n.label}</span>
-                {n.count && <span style={crmStyles.navCount}>{n.count}</span>}
+                {n.count > 0 && <span style={crmStyles.navCount}>{n.count}</span>}
               </>
             );
             const styleAct = { ...crmStyles.navItem, ...(n.active ? crmStyles.navItemActive : {}), cursor: "pointer" };
@@ -190,13 +294,34 @@ const CRMPipeline = () => {
 
         <div style={{ flex: 1 }} />
 
-        <div style={crmStyles.userRow}>
-          <Avatar name="Nadia Lefèvre" size={26} color="#a855f7" />
+        <div style={{ ...crmStyles.userRow, position: "relative" }}>
+          <Avatar name="Romain Daviaud" size={26} color="#6366f1" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Nadia Lefèvre</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Account Executive · EMEA</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>Romain Daviaud</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Direction · Astorya</div>
           </div>
-          <span style={{ color: "#94a3b8", fontSize: 14 }}>⋯</span>
+          <button onClick={(e) => { e.stopPropagation(); setUserMenuOpen((v) => !v); }} title="Menu utilisateur"
+                  style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 14, cursor: "pointer", padding: 4, borderRadius: 6 }}>⋯</button>
+          {userMenuOpen && (
+            <div onClick={(e) => e.stopPropagation()}
+                 style={{ position: "absolute", bottom: "calc(100% + 6px)", right: 4, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 12px 32px rgba(15,23,42,0.16)", zIndex: 1000, minWidth: 200, padding: 6 }}>
+              <a href="/administration-utilisateurs" style={crmStyles.userMenuItem}>👤 Administration</a>
+              <a href="/" style={crmStyles.userMenuItem}>🏠 Accueil ERP</a>
+              <div style={{ height: 1, background: "#eef1f5", margin: "4px 0" }} />
+              <button
+                onClick={async () => {
+                  const ok = window.HubModal
+                    ? await window.HubModal.confirm({ title: "Se déconnecter ?", okLabel: "Déconnexion", okStyle: "danger" })
+                    : confirm("Se déconnecter ?");
+                  if (!ok) return;
+                  if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
+                  if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
+                  window.location.href = "/login";
+                }}
+                style={{ ...crmStyles.userMenuItem, color: "#dc2626", textAlign: "left", cursor: "pointer", border: 0, background: "transparent", width: "100%" }}
+              >⏻ Se déconnecter</button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -284,10 +409,10 @@ const CRMPipeline = () => {
         </header>
 
         {(() => {
-          const active = (searchOpps || []).filter((o) => o.stage !== "won" && o.stage !== "lost");
+          const active = (filteredOpps || []).filter((o) => o.stage !== "won" && o.stage !== "lost");
           const totalActive = active.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
           const pondere = active.reduce((s, o) => s + (Number(o.amount_eur) || 0) * (Number(o.proba) || 0) / 100, 0);
-          const wonOpps = (searchOpps || []).filter((o) => o.stage === "won");
+          const wonOpps = (filteredOpps || []).filter((o) => o.stage === "won");
           const wonAmount = wonOpps.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
           const fmtK = (n) => n > 999999 ? (n / 1000000).toFixed(2).replace(".", ",") + " M€" : Math.round(n / 1000) + " k€";
           return (
@@ -308,7 +433,7 @@ const CRMPipeline = () => {
                   { label: "Pipeline total", value: fmtK(totalActive), delta: active.length + " opp. actives", color: "#4f46e5" },
                   { label: "Pondéré (probabilité)", value: fmtK(pondere), delta: "Selon stage de chaque opp.", color: "#a855f7" },
                   { label: "Signées", value: fmtK(wonAmount), delta: wonOpps.length + " deal" + (wonOpps.length > 1 ? "s" : ""), color: "#10b981" },
-                  { label: "Total opportunités", value: String((searchOpps || []).length), delta: "Toutes étapes", color: "#0ea5e9" },
+                  { label: "Total opportunités", value: String((filteredOpps || []).length), delta: crmFilter.kind !== "all" ? "Filtré" : "Toutes étapes", color: "#0ea5e9" },
                 ].map((k) => (
             <div key={k.label} style={crmStyles.kpi}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
@@ -329,7 +454,26 @@ const CRMPipeline = () => {
         {/* Kanban */}
         <div style={crmStyles.kanban}>
           {columns.map((col) => (
-            <div key={col.key} style={crmStyles.column}>
+            <div key={col.key}
+                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.style.background = col.color + "0d"; }}
+                 onDragLeave={(e) => { e.currentTarget.style.background = ""; }}
+                 onDrop={async (e) => {
+                   e.preventDefault();
+                   e.currentTarget.style.background = "";
+                   const oppId = e.dataTransfer.getData("oppId");
+                   if (!oppId || !window.api) return;
+                   const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
+                   try {
+                     await window.api.opportunities.update(oppId, { stage: col.key, proba: stageProba[col.key] || 20 });
+                     if (window.HubToast) window.HubToast.success("✓ Opportunité déplacée en " + col.label);
+                     // Reload opps
+                     const list = await window.api.opportunities.list();
+                     setSearchOpps(list || []);
+                   } catch (err) {
+                     if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+                   }
+                 }}
+                 style={crmStyles.column}>
               {/* col head */}
               <div style={crmStyles.colHead}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -354,7 +498,11 @@ const CRMPipeline = () => {
                   const tag = tagMeta[c.tag] || { bg: "#eef1f5", color: "#475569" };
                   const goto = () => { if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id); };
                   return (
-                    <div key={c.id || i} onClick={goto} style={{ ...crmStyles.card, ...(c.hot ? crmStyles.cardHot : {}), ...(c.won ? crmStyles.cardWon : {}), cursor: c.id ? "pointer" : "default" }}>
+                    <div key={c.id || i}
+                         draggable={!!c.id}
+                         onDragStart={(e) => { if (c.id) { e.dataTransfer.setData("oppId", c.id); e.dataTransfer.effectAllowed = "move"; } }}
+                         onClick={goto}
+                         style={{ ...crmStyles.card, ...(c.hot ? crmStyles.cardHot : {}), ...(c.won ? crmStyles.cardWon : {}), cursor: c.id ? "pointer" : "default" }}>
                       {c.isNew && <div style={crmStyles.newRibbon}>Nouveau</div>}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 9, marginBottom: 8 }}>
                         <div style={{ ...crmStyles.coLogo, background: c.logoBg }}>{c.logo}</div>
@@ -440,6 +588,7 @@ const crmStyles = {
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
   navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "8px 6px", borderTop: "1px solid #eef1f5", marginTop: 4 },
+  userMenuItem: { display: "block", padding: "8px 10px", fontSize: 12.5, color: "#0f172a", textDecoration: "none", borderRadius: 6, fontWeight: 500 },
 
   main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar: { height: 48, padding: "0 20px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
@@ -509,14 +658,29 @@ const CRMAccountsList = () => {
     }).catch(() => {});
   }, []);
 
-  // Auto-scroll vers la section si URL contient #comptes
+  // Auto-scroll vers la section ciblée par le hash URL (Comptes, Contacts, Activités)
   React.useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#comptes") {
+    if (typeof window === "undefined") return;
+    const scrollToHash = () => {
+      const h = window.location.hash || "";
+      // Mappe les anciens #comptes/#contacts/#actions vers les vrais IDs DOM
+      const mapping = {
+        "#comptes": "comptes-section",
+        "#contacts": "comptes-section",
+        "#actions": "actions-section",
+        "#comptes-section": "comptes-section",
+        "#actions-section": "actions-section",
+      };
+      const targetId = mapping[h];
+      if (!targetId) return;
       setTimeout(() => {
-        const el = document.getElementById("comptes-section");
+        const el = document.getElementById(targetId);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 300);
-    }
+    };
+    scrollToHash();
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
   // Fusionne les deux sources en évitant les doublons par id
@@ -540,14 +704,14 @@ const CRMAccountsList = () => {
             {merged.length} compte{merged.length > 1 ? "s" : ""} ({localProspects.length} créé{localProspects.length > 1 ? "s" : ""} récemment · {supaClients.length} en base)
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 480 }}>
-          <div style={{ position: "relative", flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <div style={{ position: "relative", width: 320 }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
             <input value={search} onChange={(e) => setSearch(e.target.value)}
-                   placeholder="Rechercher (raison sociale, ville, SIREN, secteur…)"
-                   style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff" }} />
+                   placeholder="Rechercher (raison sociale, ville, SIREN…)"
+                   style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }} />
           </div>
-          <a href="/nouveau-prospect" style={{ padding: "8px 14px", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>+ Nouveau prospect</a>
+          <a href="/nouveau-prospect" style={{ padding: "8px 14px", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>+ Nouveau prospect</a>
         </div>
       </div>
 
@@ -649,9 +813,104 @@ const CRMActionsList = () => {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {filtered.map((a, i) => {
           const pm = prioMeta[a.priority] || prioMeta.basse;
+          // Icône cliquable selon le type d'action :
+          //   email → mailto: (Outlook/webmail par défaut OS)
+          //   appel → 3CX Web Client dialer
+          //   rdv   → Outlook Calendar deeplink
+          const tagL = (a.tag || "").toLowerCase();
+          const titleL = (a.title || "").toLowerCase();
+          const isEmail = tagL === "email" || titleL.includes("email") || a.icon === "✉" || a.icon === "📧";
+          const isCall = tagL === "appel" || tagL === "call" || titleL.includes("appel") || titleL.includes("relance") || a.icon === "📞" || a.icon === "☎";
+          const isMeeting = tagL === "rdv" || tagL === "visio" || titleL.includes("rdv") || titleL.includes("rendez-vous") || a.icon === "📅" || a.icon === "🗓" || a.icon === "💻";
+          const actionable = isEmail || isCall || isMeeting;
+          const iconBaseStyle = { width: 32, height: 32, borderRadius: 8, background: "#f8fafc", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 };
+          const fetchClientCtx = async () => {
+            if (!a.client_id || !window.api) return { contact: null, client: null };
+            try {
+              const [conts, client] = await Promise.all([
+                window.api.contacts.list({ client_id: a.client_id }),
+                window.api.clients.getById(a.client_id),
+              ]);
+              const contact = (conts || []).find((c) => c.is_principal) || (conts || [])[0] || null;
+              return { contact, client };
+            } catch (e) { return { contact: null, client: null }; }
+          };
+          const handleIconClick = async (e) => {
+            e.stopPropagation();
+            if (!actionable) return;
+            const { contact, client } = await fetchClientCtx();
+            if (isEmail) {
+              const email = (contact && contact.email) || (client && client.email) || "";
+              if (!email) { if (window.HubToast) window.HubToast.warn("Aucun email — ouvre la fiche client pour ajouter un contact"); return; }
+              const lastName = ((contact && contact.nom) || "").trim();
+              const body = [
+                "Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",",
+                "",
+                "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe.",
+              ].join("\n");
+              // Téléchargement local de la plaquette → l'utilisateur la
+              // glisse dans son mail (mailto: ne supporte pas les pièces
+              // jointes, contrainte sécurité navigateur)
+              const link = document.createElement("a");
+              link.href = "/assets/Plaquette-Astorya.pdf";
+              link.download = "Plaquette-Astorya.pdf";
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              window.location.href = "mailto:" + encodeURIComponent(email) +
+                "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") +
+                "&body=" + encodeURIComponent(body);
+              if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail");
+              return;
+            }
+            if (isCall) {
+              const phone = (contact && contact.phone) || (client && client.phone) || "";
+              if (!phone) { if (window.HubToast) window.HubToast.warn("Aucun téléphone — ouvre la fiche client pour ajouter un contact"); return; }
+              const tel = phone.replace(/[^\d+]/g, "");
+              const supa = window.HubSupabase && window.HubSupabase.client;
+              const launch = (server) => {
+                const url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+                window.open(url, "3cx-webclient");
+                if (window.HubToast) window.HubToast.info("📞 Appel via 3CX");
+              };
+              if (supa) {
+                supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle()
+                  .then(({ data }) => launch(data && data.value)).catch(() => launch(null));
+              } else { launch(null); }
+              return;
+            }
+            if (isMeeting) {
+              const attendeeEmail = (contact && contact.email) || "";
+              const clientName = (client && (client.raison_sociale || client.name)) || "";
+              const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+              tomorrow.setHours(9, 0, 0, 0);
+              const end = new Date(tomorrow.getTime() + 60 * 60 * 1000);
+              const toIso = (d) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+              const subject = (a.title || "Rendez-vous") + (clientName ? " — " + clientName : "");
+              const params = new URLSearchParams({
+                subject, body: a.meta || "Préparé via Hub Astorya",
+                startdt: toIso(tomorrow), enddt: toIso(end),
+                path: "/calendar/action/compose", rru: "addevent",
+              });
+              if (attendeeEmail) params.set("to", attendeeEmail);
+              window.open("https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString(), "_blank", "noopener");
+              if (window.HubToast) window.HubToast.info("📅 RDV — Outlook ouvert");
+              return;
+            }
+          };
+          const iconEl = actionable ? (
+            <button onClick={handleIconClick}
+                    title={isEmail ? "Envoyer un email" : isCall ? "Lancer l'appel via 3CX" : "Créer le RDV Outlook"}
+                    style={{ ...iconBaseStyle, border: 0, cursor: "pointer", transition: "transform 120ms" }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            >{a.icon}</button>
+          ) : (
+            <span style={iconBaseStyle}>{a.icon}</span>
+          );
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: a.overdue ? "#fff7ed" : "#fff", border: "1px solid " + (a.overdue ? "#fdba74" : "#e2e8f0"), borderRadius: 10 }}>
-              <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f8fafc", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{a.icon}</span>
+              {iconEl}
               <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 700, color: pm.color, background: pm.bg, textTransform: "uppercase", letterSpacing: 0.4, flexShrink: 0 }}>
                 {a.overdue ? "⚠ EN RETARD" : pm.label}
               </span>

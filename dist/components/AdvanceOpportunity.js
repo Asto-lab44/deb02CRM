@@ -362,13 +362,19 @@ var AdvanceOpportunity = () => {
     var isCurrent = i === curIdx;
     var isPast = i < curIdx;
     var isTarget = i === targetIdx && !isCurrent;
-    var clickable = i > curIdx;
+    // Toutes les étapes futures ET l'étape courante sont cliquables
+    // (étape courante = retour, étape future = avancement).
+    var clickable = i >= curIdx;
     return /*#__PURE__*/React.createElement("div", {
       key: s.k,
-      onClick: () => clickable && setTargetIdx(i),
+      onClick: e => {
+        e.stopPropagation();
+        if (clickable) setTargetIdx(i);
+      },
       style: {
         ...S.spancoStep,
-        cursor: clickable ? "pointer" : "default"
+        cursor: clickable ? "pointer" : "default",
+        userSelect: "none"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -904,7 +910,8 @@ var S = {
     right: "calc(-50% + 22px)",
     height: 2,
     background: "#e2e8f0",
-    zIndex: 0
+    zIndex: 0,
+    pointerEvents: "none"
   },
   body: {
     display: "grid",

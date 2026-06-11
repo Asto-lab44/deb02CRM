@@ -209,11 +209,16 @@ const AdvanceOpportunity = () => {
           const isCurrent = i === curIdx;
           const isPast = i < curIdx;
           const isTarget = i === targetIdx && !isCurrent;
-          const clickable = i > curIdx;
+          // Toutes les étapes futures ET l'étape courante sont cliquables
+          // (étape courante = retour, étape future = avancement).
+          const clickable = i >= curIdx;
           return (
             <div key={s.k}
-                 onClick={() => clickable && setTargetIdx(i)}
-                 style={{ ...S.spancoStep, cursor: clickable ? "pointer" : "default" }}>
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   if (clickable) setTargetIdx(i);
+                 }}
+                 style={{ ...S.spancoStep, cursor: clickable ? "pointer" : "default", userSelect: "none" }}>
               <div style={{
                 ...S.spancoDot,
                 background: isPast ? s.color : isCurrent ? "#fff" : isTarget ? s.color + "22" : "#fff",
@@ -416,7 +421,7 @@ const S = {
   spancoStepper: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "22px 28px", background: "#fff", borderBottom: "1px solid #eef1f5", gap: 8 },
   spancoStep: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", textAlign: "center" },
   spancoDot: { width: 38, height: 38, borderRadius: 999, border: "2px solid", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, transition: "all 180ms", zIndex: 1 },
-  spancoLine: { position: "absolute", top: 18, left: "calc(50% + 22px)", right: "calc(-50% + 22px)", height: 2, background: "#e2e8f0", zIndex: 0 },
+  spancoLine: { position: "absolute", top: 18, left: "calc(50% + 22px)", right: "calc(-50% + 22px)", height: 2, background: "#e2e8f0", zIndex: 0, pointerEvents: "none" },
 
   body: { display: "grid", gridTemplateColumns: "1fr 320px", gap: 14, padding: "20px 28px" },
   main: { display: "flex", flexDirection: "column", gap: 14, minWidth: 0 },

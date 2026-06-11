@@ -156,12 +156,14 @@ const CRMPipeline = () => {
   };
 
   // Colonnes du Kanban — alimentées par les opportunités Supabase
+  // Pipeline SPANCO — cohérent avec la page Faire avancer l'opportunité.
+  // Mapping interne stage BDD → label SPANCO (pas de migration de données).
   const stageMeta = [
-    { key: "qualif",    label: "Qualification", color: "#94a3b8" },
-    { key: "discovery", label: "Discovery",     color: "#3b82f6" },
-    { key: "propo",     label: "Proposition",   color: "#a855f7" },
-    { key: "nego",      label: "Négociation",   color: "#ea580c" },
-    { key: "won",       label: "Gagné",         color: "#10b981" },
+    { key: "qualif",    label: "Suspect",     color: "#94a3b8" },
+    { key: "discovery", label: "Approche",    color: "#3b82f6" },
+    { key: "propo",     label: "Négociation", color: "#a855f7" },
+    { key: "nego",      label: "Conclusion",  color: "#ea580c" },
+    { key: "won",       label: "Ordre",       color: "#10b981" },
   ];
   const palette = ["#1e40af", "#dc2626", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#0f766e", "#ec4899", "#a855f7"];
   const moduleTag = (modules, produit) => {
@@ -452,7 +454,26 @@ const CRMPipeline = () => {
         {/* Kanban */}
         <div style={crmStyles.kanban}>
           {columns.map((col) => (
-            <div key={col.key} style={crmStyles.column}>
+            <div key={col.key}
+                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.style.background = col.color + "0d"; }}
+                 onDragLeave={(e) => { e.currentTarget.style.background = ""; }}
+                 onDrop={async (e) => {
+                   e.preventDefault();
+                   e.currentTarget.style.background = "";
+                   const oppId = e.dataTransfer.getData("oppId");
+                   if (!oppId || !window.api) return;
+                   const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
+                   try {
+                     await window.api.opportunities.update(oppId, { stage: col.key, proba: stageProba[col.key] || 20 });
+                     if (window.HubToast) window.HubToast.success("✓ Opportunité déplacée en " + col.label);
+                     // Reload opps
+                     const list = await window.api.opportunities.list();
+                     setSearchOpps(list || []);
+                   } catch (err) {
+                     if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+                   }
+                 }}
+                 style={crmStyles.column}>
               {/* col head */}
               <div style={crmStyles.colHead}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -477,7 +498,11 @@ const CRMPipeline = () => {
                   const tag = tagMeta[c.tag] || { bg: "#eef1f5", color: "#475569" };
                   const goto = () => { if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id); };
                   return (
-                    <div key={c.id || i} onClick={goto} style={{ ...crmStyles.card, ...(c.hot ? crmStyles.cardHot : {}), ...(c.won ? crmStyles.cardWon : {}), cursor: c.id ? "pointer" : "default" }}>
+                    <div key={c.id || i}
+                         draggable={!!c.id}
+                         onDragStart={(e) => { if (c.id) { e.dataTransfer.setData("oppId", c.id); e.dataTransfer.effectAllowed = "move"; } }}
+                         onClick={goto}
+                         style={{ ...crmStyles.card, ...(c.hot ? crmStyles.cardHot : {}), ...(c.won ? crmStyles.cardWon : {}), cursor: c.id ? "pointer" : "default" }}>
                       {c.isNew && <div style={crmStyles.newRibbon}>Nouveau</div>}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 9, marginBottom: 8 }}>
                         <div style={{ ...crmStyles.coLogo, background: c.logoBg }}>{c.logo}</div>

@@ -14,7 +14,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 const StockCatalogue = () => {
-  const [view, setView] = React.useState("matrix");
+  const [view, setView] = React.useState("list");
   const [rows, setRows] = React.useState([]);
   const [suppliers, setSuppliers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -288,64 +288,108 @@ const RECEPTION_STATUS = {
 };
 
 const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit }) => {
+  // Groupe les lignes par document (devis / commande) pour ne pas répéter
+  // l'info client × N lignes
+  const groups = React.useMemo(() => {
+    const m = {};
+    rows.forEach((r) => {
+      const key = r.doc_ref;
+      if (!m[key]) m[key] = { doc_ref: key, doc_type: r.doc_type, doc_status: r.doc_status, doc_title: r.doc_title, client_name: r.client_name, doc_date: r.doc_date, items: [], totalPurchase: 0, totalSell: 0 };
+      m[key].items.push(r);
+      m[key].totalPurchase += (Number(r.purchase_price_ht) || 0) * r.quantity;
+      m[key].totalSell += r.sell_price_ht * r.quantity;
+    });
+    return Object.values(m).sort((a, b) => (b.doc_date || "").localeCompare(a.doc_date || ""));
+  }, [rows]);
+
+  const TYPE_META = {
+    devis:    { icon: "📄", label: "Devis",    color: "#3b82f6", bg: "#dbeafe" },
+    commande: { icon: "📋", label: "Commande", color: "#a855f7", bg: "#f3e8ff" },
+  };
+
   return (
-    <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
-        <thead>
-          <tr style={{ background: "#f8fafc" }}>
-            <th style={scStyles.thHead}>Article</th>
-            <th style={scStyles.thHead}>Client / Doc</th>
-            <th style={{ ...scStyles.thHead, textAlign: "center" }}>Qté</th>
-            <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Acheté</th>
-            <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Vendu</th>
-            <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>
-            <th style={scStyles.thHead}>Fournisseur</th>
-            <th style={scStyles.thHead}>Achat</th>
-            <th style={scStyles.thHead}>Réception</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const ps = PURCHASE_STATUS[r.purchase_status] || PURCHASE_STATUS.panier;
-            const rs = RECEPTION_STATUS[r.reception_status] || RECEPTION_STATUS.en_cours;
-            return (
-              <tr key={r.line_id} onClick={() => onEdit(r)} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}>
-                <td style={scStyles.td}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{r.designation || r.ref || "—"}</div>
-                  {r.ref && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{r.ref}</div>}
-                </td>
-                <td style={scStyles.td}>
-                  <div style={{ fontSize: 12, color: "#0f172a", fontWeight: 500 }}>{r.client_name || "—"}</div>
-                  <div style={{ fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{r.doc_ref}</div>
-                </td>
-                <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{r.quantity}</td>
-                <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", color: r.purchase_price_ht ? "#0f172a" : "#dc2626", fontWeight: 600 }}>
-                  {r.purchase_price_ht ? fmtEURP(r.purchase_price_ht) : "⚠ —"}
-                </td>
-                <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{fmtEURP(r.sell_price_ht)}</td>
-                <td style={{ ...scStyles.td, textAlign: "right" }}>
-                  {r.margin_pct != null ? (
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: r.margin_pct >= 20 ? "#10b981" : r.margin_pct >= 10 ? "#f59e0b" : "#dc2626" }}>
-                      {r.margin_pct.toFixed(1)} %
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {groups.map((g) => {
+        const meta = TYPE_META[g.doc_type] || TYPE_META.devis;
+        const groupMarginEur = g.totalSell - g.totalPurchase;
+        const groupMarginPct = g.totalPurchase > 0 ? (groupMarginEur / g.totalPurchase * 100) : null;
+        return (
+          <div key={g.doc_ref} style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "hidden" }}>
+            {/* Header du groupe : client + doc + KPI */}
+            <div style={{ padding: "14px 18px", background: "#fafbfc", borderBottom: "1px solid #eef1f5", display: "flex", alignItems: "center", gap: 14 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: meta.bg, color: meta.color, fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>{meta.icon} {meta.label}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {g.client_name || "Client non renseigné"}
+                </div>
+                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#3730a3", fontWeight: 600 }}>{g.doc_ref}</span>
+                  {g.doc_title && <span> · {g.doc_title}</span>}
+                  <span style={{ color: "#94a3b8" }}> · {g.items.length} article(s)</span>
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.4, textTransform: "uppercase", fontWeight: 700 }}>Total</div>
+                <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#10b981" }}>+{fmtEUR(g.totalSell)} HT</div>
+                {g.totalPurchase > 0 && (
+                  <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: groupMarginPct >= 20 ? "#10b981" : groupMarginPct >= 10 ? "#f59e0b" : "#dc2626" }}>
+                    Marge {fmtEUR(groupMarginEur)} ({groupMarginPct.toFixed(1)} %)
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Lignes articles : carte par ligne avec édition rapide visible */}
+            <div>
+              {g.items.map((r) => {
+                const ps = PURCHASE_STATUS[r.purchase_status] || PURCHASE_STATUS.panier;
+                const rs = RECEPTION_STATUS[r.reception_status] || RECEPTION_STATUS.en_cours;
+                const hasMargin = r.margin_pct != null;
+                return (
+                  <div key={r.line_id} onClick={() => onEdit(r)} style={{ display: "grid", gridTemplateColumns: "1fr 130px 110px 110px 200px", gap: 14, alignItems: "center", padding: "12px 18px", borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.1s" }}
+                       onMouseEnter={(e) => e.currentTarget.style.background = "#fafbfc"}
+                       onMouseLeave={(e) => e.currentTarget.style.background = ""}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{r.designation || r.ref || "—"}</div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                        Qté <strong style={{ fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }}>{r.quantity} {r.unit || ""}</strong>
+                        {r.ref && <span style={{ marginLeft: 8, fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8" }}>· {r.ref}</span>}
+                      </div>
                     </div>
-                  ) : <span style={{ color: "#cbd5e1" }}>—</span>}
-                </td>
-                <td style={scStyles.td}>
-                  {r.supplier ? (
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "#eef2ff", color: "#3730a3", fontWeight: 600 }}>{r.supplier}</span>
-                  ) : <span style={{ fontSize: 11, color: "#dc2626", fontWeight: 600 }}>⚠ À assigner</span>}
-                </td>
-                <td style={scStyles.td}>
-                  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: ps.bg, color: ps.color, fontWeight: 600 }}>{ps.label}</span>
-                </td>
-                <td style={scStyles.td}>
-                  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: rs.bg, color: rs.color, fontWeight: 600 }}>{rs.label}</span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 700 }}>PU Acheté</div>
+                      <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: r.purchase_price_ht ? "#0f172a" : "#dc2626" }}>
+                        {r.purchase_price_ht ? fmtEURP(r.purchase_price_ht) : "⚠ —"}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 700 }}>PU Vendu</div>
+                      <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#10b981" }}>{fmtEURP(r.sell_price_ht)}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 700 }}>Marge</div>
+                      <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: !hasMargin ? "#cbd5e1" : r.margin_pct >= 20 ? "#10b981" : r.margin_pct >= 10 ? "#f59e0b" : "#dc2626" }}>
+                        {hasMargin ? r.margin_pct.toFixed(1) + " %" : "—"}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                      {r.supplier ? (
+                        <span style={{ fontSize: 11, padding: "2px 9px", borderRadius: 999, background: "#eef2ff", color: "#3730a3", fontWeight: 700 }}>{r.supplier}</span>
+                      ) : (
+                        <span style={{ fontSize: 11, padding: "2px 9px", borderRadius: 999, background: "#fee2e2", color: "#991b1b", fontWeight: 700 }}>⚠ À assigner</span>
+                      )}
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 999, background: ps.bg, color: ps.color, fontWeight: 600 }}>{ps.label}</span>
+                        <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 999, background: rs.bg, color: rs.color, fontWeight: 600 }}>{rs.label}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

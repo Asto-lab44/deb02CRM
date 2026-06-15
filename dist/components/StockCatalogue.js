@@ -14,7 +14,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 var StockCatalogue = () => {
-  var [view, setView] = React.useState("matrix");
+  var [view, setView] = React.useState("list");
   var [rows, setRows] = React.useState([]);
   var [suppliers, setSuppliers] = React.useState([]);
   var [loading, setLoading] = React.useState(true);
@@ -552,169 +552,292 @@ var ListView = ({
   fmtEURP,
   onEdit
 }) => {
+  // Groupe les lignes par document (devis / commande) pour ne pas répéter
+  // l'info client × N lignes
+  var groups = React.useMemo(() => {
+    var m = {};
+    rows.forEach(r => {
+      var key = r.doc_ref;
+      if (!m[key]) m[key] = {
+        doc_ref: key,
+        doc_type: r.doc_type,
+        doc_status: r.doc_status,
+        doc_title: r.doc_title,
+        client_name: r.client_name,
+        doc_date: r.doc_date,
+        items: [],
+        totalPurchase: 0,
+        totalSell: 0
+      };
+      m[key].items.push(r);
+      m[key].totalPurchase += (Number(r.purchase_price_ht) || 0) * r.quantity;
+      m[key].totalSell += r.sell_price_ht * r.quantity;
+    });
+    return Object.values(m).sort((a, b) => (b.doc_date || "").localeCompare(a.doc_date || ""));
+  }, [rows]);
+  var TYPE_META = {
+    devis: {
+      icon: "📄",
+      label: "Devis",
+      color: "#3b82f6",
+      bg: "#dbeafe"
+    },
+    commande: {
+      icon: "📋",
+      label: "Commande",
+      color: "#a855f7",
+      bg: "#f3e8ff"
+    }
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
-      border: "1px solid #eef1f5",
-      borderRadius: 12,
-      overflow: "auto"
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
     }
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      minWidth: 1100
-    }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
-    style: {
-      background: "#f8fafc"
-    }
-  }, /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
-  }, "Article"), /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
-  }, "Client / Doc"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      ...scStyles.thHead,
-      textAlign: "center"
-    }
-  }, "Qt\xE9"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      ...scStyles.thHead,
-      textAlign: "right"
-    }
-  }, "PU Achet\xE9"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      ...scStyles.thHead,
-      textAlign: "right"
-    }
-  }, "PU Vendu"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      ...scStyles.thHead,
-      textAlign: "right"
-    }
-  }, "Marge"), /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
-  }, "Fournisseur"), /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
-  }, "Achat"), /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
-  }, "R\xE9ception"))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => {
-    var ps = PURCHASE_STATUS[r.purchase_status] || PURCHASE_STATUS.panier;
-    var rs = RECEPTION_STATUS[r.reception_status] || RECEPTION_STATUS.en_cours;
-    return /*#__PURE__*/React.createElement("tr", {
-      key: r.line_id,
-      onClick: () => onEdit(r),
+  }, groups.map(g => {
+    var meta = TYPE_META[g.doc_type] || TYPE_META.devis;
+    var groupMarginEur = g.totalSell - g.totalPurchase;
+    var groupMarginPct = g.totalPurchase > 0 ? groupMarginEur / g.totalPurchase * 100 : null;
+    return /*#__PURE__*/React.createElement("div", {
+      key: g.doc_ref,
       style: {
-        borderBottom: "1px solid #f1f5f9",
-        cursor: "pointer"
+        background: "#fff",
+        border: "1px solid #eef1f5",
+        borderRadius: 12,
+        overflow: "hidden"
       }
-    }, /*#__PURE__*/React.createElement("td", {
-      style: scStyles.td
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12.5,
-        fontWeight: 600,
-        color: "#0f172a"
+        padding: "14px 18px",
+        background: "#fafbfc",
+        borderBottom: "1px solid #eef1f5",
+        display: "flex",
+        alignItems: "center",
+        gap: 14
       }
-    }, r.designation || r.ref || "—"), r.ref && /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 10.5,
-        color: "#94a3b8",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, r.ref)), /*#__PURE__*/React.createElement("td", {
-      style: scStyles.td
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "#0f172a",
-        fontWeight: 500
-      }
-    }, r.client_name || "—"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        fontFamily: "'JetBrains Mono', monospace",
-        color: "#3730a3"
-      }
-    }, r.doc_ref)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        ...scStyles.td,
-        textAlign: "center",
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 600
-      }
-    }, r.quantity), /*#__PURE__*/React.createElement("td", {
-      style: {
-        ...scStyles.td,
-        textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace",
-        color: r.purchase_price_ht ? "#0f172a" : "#dc2626",
-        fontWeight: 600
-      }
-    }, r.purchase_price_ht ? fmtEURP(r.purchase_price_ht) : "⚠ —"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        ...scStyles.td,
-        textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 600
-      }
-    }, fmtEURP(r.sell_price_ht)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        ...scStyles.td,
-        textAlign: "right"
-      }
-    }, r.margin_pct != null ? /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 700,
-        color: r.margin_pct >= 20 ? "#10b981" : r.margin_pct >= 10 ? "#f59e0b" : "#dc2626"
-      }
-    }, r.margin_pct.toFixed(1), " %") : /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#cbd5e1"
-      }
-    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
-      style: scStyles.td
-    }, r.supplier ? /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        padding: "2px 8px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "4px 10px",
         borderRadius: 999,
-        background: "#eef2ff",
+        background: meta.bg,
+        color: meta.color,
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 0.3
+      }
+    }, meta.icon, " ", meta.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, g.client_name || "Client non renseigné"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'JetBrains Mono', monospace",
         color: "#3730a3",
         fontWeight: 600
       }
-    }, r.supplier) : /*#__PURE__*/React.createElement("span", {
+    }, g.doc_ref), g.doc_title && /*#__PURE__*/React.createElement("span", null, " \xB7 ", g.doc_title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, " \xB7 ", g.items.length, " article(s)"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "right"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "#94a3b8",
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
+        fontWeight: 700
+      }
+    }, "Total"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 700,
+        color: "#10b981"
+      }
+    }, "+", fmtEUR(g.totalSell), " HT"), g.totalPurchase > 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11,
-        color: "#dc2626",
-        fontWeight: 600
+        fontFamily: "'JetBrains Mono', monospace",
+        color: groupMarginPct >= 20 ? "#10b981" : groupMarginPct >= 10 ? "#f59e0b" : "#dc2626"
       }
-    }, "\u26A0 \xC0 assigner")), /*#__PURE__*/React.createElement("td", {
-      style: scStyles.td
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: ps.bg,
-        color: ps.color,
-        fontWeight: 600
-      }
-    }, ps.label)), /*#__PURE__*/React.createElement("td", {
-      style: scStyles.td
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: rs.bg,
-        color: rs.color,
-        fontWeight: 600
-      }
-    }, rs.label)));
-  }))));
+    }, "Marge ", fmtEUR(groupMarginEur), " (", groupMarginPct.toFixed(1), " %)"))), /*#__PURE__*/React.createElement("div", null, g.items.map(r => {
+      var ps = PURCHASE_STATUS[r.purchase_status] || PURCHASE_STATUS.panier;
+      var rs = RECEPTION_STATUS[r.reception_status] || RECEPTION_STATUS.en_cours;
+      var hasMargin = r.margin_pct != null;
+      return /*#__PURE__*/React.createElement("div", {
+        key: r.line_id,
+        onClick: () => onEdit(r),
+        style: {
+          display: "grid",
+          gridTemplateColumns: "1fr 130px 110px 110px 200px",
+          gap: 14,
+          alignItems: "center",
+          padding: "12px 18px",
+          borderBottom: "1px solid #f1f5f9",
+          cursor: "pointer",
+          transition: "background 0.1s"
+        },
+        onMouseEnter: e => e.currentTarget.style.background = "#fafbfc",
+        onMouseLeave: e => e.currentTarget.style.background = ""
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#0f172a"
+        }
+      }, r.designation || r.ref || "—"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "#64748b",
+          marginTop: 2
+        }
+      }, "Qt\xE9 ", /*#__PURE__*/React.createElement("strong", {
+        style: {
+          fontFamily: "'JetBrains Mono', monospace",
+          color: "#0f172a"
+        }
+      }, r.quantity, " ", r.unit || ""), r.ref && /*#__PURE__*/React.createElement("span", {
+        style: {
+          marginLeft: 8,
+          fontFamily: "'JetBrains Mono', monospace",
+          color: "#94a3b8"
+        }
+      }, "\xB7 ", r.ref))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          textAlign: "right"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          color: "#94a3b8",
+          letterSpacing: 0.3,
+          textTransform: "uppercase",
+          fontWeight: 700
+        }
+      }, "PU Achet\xE9"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 600,
+          color: r.purchase_price_ht ? "#0f172a" : "#dc2626"
+        }
+      }, r.purchase_price_ht ? fmtEURP(r.purchase_price_ht) : "⚠ —")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          textAlign: "right"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          color: "#94a3b8",
+          letterSpacing: 0.3,
+          textTransform: "uppercase",
+          fontWeight: 700
+        }
+      }, "PU Vendu"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 700,
+          color: "#10b981"
+        }
+      }, fmtEURP(r.sell_price_ht))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          textAlign: "right"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          color: "#94a3b8",
+          letterSpacing: 0.3,
+          textTransform: "uppercase",
+          fontWeight: 700
+        }
+      }, "Marge"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 700,
+          color: !hasMargin ? "#cbd5e1" : r.margin_pct >= 20 ? "#10b981" : r.margin_pct >= 10 ? "#f59e0b" : "#dc2626"
+        }
+      }, hasMargin ? r.margin_pct.toFixed(1) + " %" : "—")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          alignItems: "flex-end"
+        }
+      }, r.supplier ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          padding: "2px 9px",
+          borderRadius: 999,
+          background: "#eef2ff",
+          color: "#3730a3",
+          fontWeight: 700
+        }
+      }, r.supplier) : /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          padding: "2px 9px",
+          borderRadius: 999,
+          background: "#fee2e2",
+          color: "#991b1b",
+          fontWeight: 700
+        }
+      }, "\u26A0 \xC0 assigner"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 4
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          padding: "1px 7px",
+          borderRadius: 999,
+          background: ps.bg,
+          color: ps.color,
+          fontWeight: 600
+        }
+      }, ps.label), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          padding: "1px 7px",
+          borderRadius: 999,
+          background: rs.bg,
+          color: rs.color,
+          fontWeight: 600
+        }
+      }, rs.label))));
+    })));
+  }));
 };
 
 // ─────────────────────────────────────────────────────────────────

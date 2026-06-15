@@ -155,10 +155,12 @@ var ProjectsKanban = () => {
       reload(); // rollback
     }
   };
-  var newProject = async () => {
+  var newProject = async initialStage => {
     if (!window.HubModal) return;
+    var stage = initialStage || "recu";
+    var stageLabel = (STAGES.find(s => s.k === stage) || STAGES[0]).label;
     var name = await window.HubModal.prompt({
-      title: "Nouveau projet",
+      title: "Nouveau projet" + (initialStage ? " (étape " + stageLabel + ")" : ""),
       label: "Nom du projet",
       placeholder: "ex : Migration AD AXA Wealth",
       okLabel: "Créer"
@@ -167,9 +169,9 @@ var ProjectsKanban = () => {
     try {
       var proj = await window.api.projects.create({
         name: name.trim(),
-        stage: "recu"
+        stage
       });
-      if (window.HubToast) window.HubToast.success("✓ Projet créé");
+      if (window.HubToast) window.HubToast.success("✓ Projet créé en « " + stageLabel + " »");
       window.location.href = "/projet?id=" + encodeURIComponent(proj.id);
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
@@ -246,79 +248,231 @@ var ProjectsKanban = () => {
   };
 
   // Aperçu compact d'une carte projet
+  // ─── ProjectCard — style identique aux cartes du CRM Pipeline
+  // Logo coloré 28×28 / nom projet / client + tag stage / montant /
+  // barre de progression / avatar PM + jours depuis création
   var ProjectCard = ({
-    p
+    p,
+    idx
   }) => {
+    var stageMeta = STAGES.find(s => s.k === p.stage) || STAGES[0];
     var overdue = p.delivery_due && new Date(p.delivery_due) < new Date() && p.stage !== "clos";
+    var stageIdx = STAGES.findIndex(s => s.k === p.stage);
+    var progress = stageIdx >= 0 ? Math.round((stageIdx + 1) / STAGES.length * 100) : 0;
+    var logoPalette = ["#1e40af", "#7e22ce", "#0f766e", "#dc2626", "#a855f7", "#0ea5e9", "#ec4899", "#f59e0b"];
+    var logoBg = logoPalette[(idx || 0) % logoPalette.length];
+    var initials = (p.name || "??").trim().slice(0, 2).toUpperCase();
+    var tagBg = {
+      recu: "#f1f5f9",
+      preparation: "#f5efff",
+      pret_livrer: "#fef0e6",
+      livre: "#fffbeb",
+      installe: "#e0f4fc",
+      clos: "#dcfce7"
+    }[p.stage] || "#f1f5f9";
+    var tagColor = stageMeta.color;
+    var amountStr = p.amount_ttc ? Math.round(p.amount_ttc).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : p.amount_ht ? Math.round(p.amount_ht).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—";
+    var daysSince = p.created_at ? Math.floor((Date.now() - new Date(p.created_at).getTime()) / (24 * 3600 * 1000)) : 0;
+    var isWon = p.stage === "clos";
     return /*#__PURE__*/React.createElement("div", {
       draggable: true,
       onDragStart: () => setDraggedId(p.id),
       onDragEnd: () => setDraggedId(null),
       onClick: () => window.location.href = "/projet?id=" + encodeURIComponent(p.id),
       style: {
-        background: "#fff",
-        border: "1px solid " + (overdue ? "#fca5a5" : "#eef1f5"),
-        borderLeft: "3px solid " + (overdue ? "#dc2626" : STAGES.find(s => s.k === p.stage)?.color || "#94a3b8"),
-        borderRadius: 8,
-        padding: "10px 12px",
+        background: isWon ? "linear-gradient(180deg, #ecfdf5 0%, #fff 100%)" : "#fff",
+        border: "1px solid " + (overdue ? "#fca5a5" : isWon ? "#86efac" : "#eef1f5"),
+        borderRadius: 10,
+        padding: 12,
         marginBottom: 8,
         cursor: "pointer",
         boxShadow: draggedId === p.id ? "0 8px 24px rgba(0,0,0,0.15)" : "0 1px 2px rgba(0,0,0,0.04)",
         opacity: draggedId === p.id ? 0.6 : 1,
-        transition: "box-shadow .12s"
+        transition: "box-shadow .12s, transform .1s"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 9,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        background: logoBg,
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 10.5,
+        fontWeight: 700,
+        letterSpacing: 0.3,
+        flexShrink: 0
+      }
+    }, initials), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a",
+        lineHeight: 1.3,
+        wordBreak: "break-word"
+      }
+    }, p.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 2,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, p.client_name || (p.sage_ref ? "Réf " + p.sage_ref : "—")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4,
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "1px 6px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 700,
+        background: tagBg,
+        color: tagColor,
+        letterSpacing: 0.2
+      }
+    }, stageMeta.label), overdue && /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "1px 6px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 700,
+        background: "#fee2e2",
+        color: "#991b1b",
+        letterSpacing: 0.2
+      }
+    }, "\u23F0 En retard"), isWon && /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "1px 6px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 700,
+        background: "#dcfce7",
+        color: "#065f46",
+        letterSpacing: 0.2
+      }
+    }, "\u2713 Clos")))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        fontWeight: 600,
+        color: "#0f172a",
+        letterSpacing: -0.4,
+        fontFamily: "'Inter', sans-serif"
+      }
+    }, amountStr), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "flex-start",
-        gap: 6
+        marginBottom: 3
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        fontWeight: 600
+      }
+    }, "Progression"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#0f172a",
+        fontWeight: 600,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, progress, "%")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "100%",
+        height: 3,
+        background: "#eef1f5",
+        borderRadius: 999,
+        overflow: "hidden"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 11,
-        color: "#94a3b8",
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 600
+        width: progress + "%",
+        height: "100%",
+        background: stageMeta.color,
+        borderRadius: 999
       }
-    }, p.sage_ref || p.id.slice(0, 12)), overdue && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 9,
-        color: "#fff",
-        background: "#dc2626",
-        padding: "1px 6px",
-        borderRadius: 3,
-        fontWeight: 700,
-        letterSpacing: 0.4
-      }
-    }, "EN RETARD")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 600,
-        color: "#0f172a",
-        marginTop: 3,
-        lineHeight: 1.3
-      }
-    }, p.name), p.amount_ttc && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#475569",
-        marginTop: 4,
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, Math.round(p.amount_ttc / 1000), " k\u20AC TTC"), /*#__PURE__*/React.createElement("div", {
+    }))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        marginTop: 6,
-        fontSize: 10.5,
+        marginTop: 9,
+        paddingTop: 8,
+        borderTop: "1px solid #f1f5f9"
+      }
+    }, p.pm_name ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 20,
+        height: 20,
+        borderRadius: 999,
+        background: "#3730a3",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 9.5,
+        fontWeight: 700,
+        border: "1.5px solid #fff"
+      }
+    }, p.pm_name.split(" ").map(s => s[0]).slice(0, 2).join("")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
         color: "#64748b"
       }
-    }, /*#__PURE__*/React.createElement("span", null, p.pm_name || "— Non assigné"), p.delivery_due && /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC5 ", new Date(p.delivery_due).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short"
-    }))));
+    }, p.pm_name.split(" ")[0])) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#cbd5e1"
+      }
+    }, "Sans chef"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u25F7"), daysSince, "j")));
   };
   return /*#__PURE__*/React.createElement("div", {
     style: S.frame
@@ -584,6 +738,8 @@ var ProjectsKanban = () => {
     style: S.kanban
   }, STAGES.map(stage => {
     var stageProjects = filteredProjects.filter(p => p.stage === stage.k);
+    var stageTotal = stageProjects.reduce((sum, p) => sum + (Number(p.amount_ttc) || Number(p.amount_ht) || 0), 0);
+    var totalLabel = stageTotal >= 1000 ? Math.round(stageTotal / 1000) + " k€" : stageTotal > 0 ? Math.round(stageTotal) + " €" : "0 €";
     return /*#__PURE__*/React.createElement("div", {
       key: stage.k,
       onDragOver: e => e.preventDefault(),
@@ -593,27 +749,53 @@ var ProjectsKanban = () => {
       style: S.colHead
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 8,
-        height: 8,
-        borderRadius: 999,
+        width: 7,
+        height: 7,
+        borderRadius: 2,
         background: stage.color
       }
     }), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
+        fontSize: 11.5,
         fontWeight: 700,
         color: "#0f172a"
       }
     }, stage.label), /*#__PURE__*/React.createElement("span", {
       style: S.colCount
-    }, stageProjects.length)), /*#__PURE__*/React.createElement("div", {
+    }, stageProjects.length), /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginLeft: "auto",
+        fontSize: 10.5,
+        color: "#64748b",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 500
+      }
+    }, totalLabel)), /*#__PURE__*/React.createElement("div", {
       style: S.colBody
     }, stageProjects.length === 0 && /*#__PURE__*/React.createElement("div", {
       style: S.colEmpty
-    }, "Aucun projet \xE0 cette \xE9tape"), stageProjects.map(p => /*#__PURE__*/React.createElement(ProjectCard, {
+    }, "Aucun projet \xE0 cette \xE9tape"), stageProjects.map((p, i) => /*#__PURE__*/React.createElement(ProjectCard, {
       key: p.id,
-      p: p
-    }))));
+      p: p,
+      idx: i
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: () => newProject(stage.k),
+      style: {
+        display: "block",
+        width: "100%",
+        padding: "8px 10px",
+        marginTop: 4,
+        background: "transparent",
+        border: "1px dashed " + stage.color + "55",
+        color: stage.color,
+        borderRadius: 6,
+        fontSize: 11.5,
+        fontWeight: 600,
+        textAlign: "center",
+        cursor: "pointer"
+      },
+      title: "Créer un projet directement à l'étape " + stage.label
+    }, "+ Ajouter un projet")));
   }))));
 };
 var S = {
@@ -759,10 +941,11 @@ var S = {
     gap: 12,
     padding: 20,
     overflowX: "auto",
-    flex: 1
+    flex: 1,
+    alignItems: "flex-start"
   },
   col: {
-    width: 260,
+    width: 290,
     flexShrink: 0,
     background: "#f8fafc",
     borderRadius: 10,
@@ -779,23 +962,25 @@ var S = {
     marginBottom: 10
   },
   colCount: {
-    fontSize: 10.5,
-    padding: "2px 8px",
+    fontSize: 10,
+    padding: "0 6px",
     background: "#fff",
     color: "#64748b",
     borderRadius: 999,
-    fontWeight: 700,
-    marginLeft: "auto"
+    fontWeight: 600,
+    fontFamily: "'JetBrains Mono', monospace",
+    border: "1px solid #e2e8f0"
   },
   colBody: {
     minHeight: 100,
     flex: 1
   },
   colEmpty: {
-    padding: 14,
+    padding: "16px 8px",
     textAlign: "center",
     fontSize: 11,
     color: "#cbd5e1",
+    fontStyle: "italic",
     border: "1px dashed #e2e8f0",
     borderRadius: 6,
     background: "#fff"

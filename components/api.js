@@ -2537,7 +2537,8 @@
             client_name: d.client_name,
             opportunity_id: d.opportunity_id,
             doc_date: d.doc_date,
-            purchase_date: date,
+            purchase_date: purchase_date_val, // brut : null si non set explicitement
+            effective_date: date,             // fallback pour calculs (semaine, etc.)
             week_number,
             year_number: dt.getFullYear(),
             ref: l.ref,

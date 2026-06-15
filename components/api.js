@@ -1190,6 +1190,87 @@
   const TYPE_PREFIX = { devis: "DEV", commande: "BC", bl: "BL", facture: "FAC", avoir: "AVO" };
   const TYPE_LABEL  = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir" };
 
+  // Helper partagé : synchronise une COMMANDE vers Projets & Livrables.
+  // Idempotent : si un projet existe déjà pour la même commande (data.commande_id)
+  // ou la même opportunité (opportunity_id), pas de doublon. Sinon, création
+  // d'un projet en stage 'recu' avec les lignes du devis comme items.
+  async function syncCommandeToProject(s, commandeRow, lines) {
+    if (!commandeRow || commandeRow.type !== "commande") return;
+    // 1. Cherche un projet déjà lié à cette commande (via data.commande_id)
+    //    ou à la même opportunité (lien indirect).
+    let existing = null;
+    try {
+      const { data: byCmd } = await s.from("projects")
+        .select("id")
+        .contains("data", { commande_id: commandeRow.id })
+        .is("deleted_at", null)
+        .maybeSingle();
+      existing = byCmd;
+    } catch (e) {}
+    if (!existing && commandeRow.opportunity_id) {
+      try {
+        const { data: byOpp } = await s.from("projects")
+          .select("id")
+          .eq("opportunity_id", commandeRow.opportunity_id)
+          .is("deleted_at", null)
+          .maybeSingle();
+        existing = byOpp;
+      } catch (e) {}
+    }
+    if (existing) return existing;
+
+    // 2. Création d'un projet
+    const projId = genId("PRJ");
+    const created_by = await getCurrentUserId();
+    const cuName = getCurrentUserName();
+    const amtHT = Number(commandeRow.total_ht) || 0;
+    const amtTTC = Number(commandeRow.total_ttc) || 0;
+    const projRow = {
+      id: projId,
+      name: commandeRow.title || commandeRow.client_name || ("Commande " + commandeRow.id),
+      stage: "recu",
+      client_id: commandeRow.client_id || null,
+      client_name: commandeRow.client_name || null,
+      opportunity_id: commandeRow.opportunity_id || null,
+      amount_ht: amtHT,
+      amount_ttc: amtTTC,
+      description: commandeRow.notes || null,
+      data: { commande_id: commandeRow.id, opportunity_id: commandeRow.opportunity_id || null, created_from: "auto_commande" },
+    };
+    if (created_by) projRow.created_by = created_by;
+    let { error: pErr } = await s.from("projects").insert(projRow);
+    if (pErr && /opportunity_id|column/i.test(pErr.message)) {
+      delete projRow.opportunity_id;
+      const r = await s.from("projects").insert(projRow);
+      pErr = r.error;
+    }
+    if (pErr) { console.warn("[syncCommandeToProject] insert:", pErr.message); return null; }
+    // 3. Copie des lignes en items projet
+    if (lines && lines.length > 0) {
+      const items = lines.filter((l) => !l.is_text_only).map((l, i) => ({
+        id: genId("PIT"),
+        project_id: projId,
+        position: i,
+        ref: l.ref || null,
+        designation: l.designation || "",
+        quantity: Number(l.quantity) || 1,
+        unit: l.unit || "u",
+        unit_price_ht: Number(l.unit_price_ht) || 0,
+        status: "pending",
+      }));
+      if (items.length > 0) await s.from("project_items").insert(items).catch(() => {});
+    }
+    // 4. Event timeline projet
+    await s.from("project_events").insert({
+      id: "PEVT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      project_id: projId, type: "created",
+      payload: { from_commande: commandeRow.id, opportunity_id: commandeRow.opportunity_id || null, stage: "recu" },
+      author_id: created_by || null,
+      author_name: cuName,
+    }).catch(() => {});
+    return { id: projId };
+  }
+
   const commercialDocs = {
     TYPE_PREFIX, TYPE_LABEL,
 
@@ -1377,6 +1458,11 @@
             is_text_only: !!l.is_text_only,
           }));
           await s.from("commercial_doc_lines").insert(rows);
+        }
+        // Hook : si c'est une COMMANDE, on crée/synchronise un projet
+        // dans Projets & Livrables (colonne Reçu) pour la visibilité opérationnelle
+        if (type === "commande") {
+          try { await syncCommandeToProject(s, data, lines); } catch (e) { console.warn("[commande→projet auto]", e.message || e); }
         }
         return { ...data, lines };
       }

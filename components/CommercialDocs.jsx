@@ -886,28 +886,28 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); try { await window.api.commercialSends.log({ doc_id: d.id, doc_type: d.type, channel: "download", status: "sent", provider: "browser" }); } catch (e) {} } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); setSendOpen(true); } catch (e) {} }} style={cdStyles.ghostBtn}>✉ Envoyer</button>
             {d.type !== "facture" && d.status !== "transforme" && (() => {
-              // 3 états : OK (vert, cliquable) · Soft-block (orange, cliquable
-              // → propose d'updater le statut auto) · Hard-block (gris, désactivé)
-              const isOk = canTransform.ok;
-              const isSoft = !isOk && !canTransform.hard; // statut pas conforme mais récupérable
-              const isHard = !isOk && canTransform.hard;  // figé/annulé/refusé
+              // 2 états visuels : Cliquable (vert sur vert) · Hard-block (gris, désactivé)
+              // Le soft-block (statut pas conforme) reste vert et cliquable :
+              // le clic propose alors de basculer le statut automatiquement.
+              const isHard = !canTransform.ok && canTransform.hard; // figé/annulé/refusé
               return (
                 <button
                   onClick={transformTo}
                   disabled={isHard}
-                  title={isOk ? "Transformer ce document à l'étape suivante"
-                    : isSoft ? "Cliquer pour basculer le statut sur « " + canTransform.needStatusLbl + " » et transformer"
-                    : "Bloqué : " + canTransform.reason}
+                  title={canTransform.ok ? "Transformer ce document à l'étape suivante"
+                    : isHard ? "Bloqué : " + canTransform.reason
+                    : "Cliquer pour basculer le statut sur « " + canTransform.needStatusLbl + " » et transformer"}
                   style={{
                     ...cdStyles.ghostBtn,
                     opacity: isHard ? 0.45 : 1,
                     cursor: isHard ? "not-allowed" : "pointer",
-                    borderColor: isOk ? "#10b981" : isSoft ? "#f59e0b" : "#e2e8f0",
-                    color: isOk ? "#065f46" : isSoft ? "#b45309" : "#94a3b8",
-                    background: isOk ? "#ecfdf5" : isSoft ? "#fef0e6" : "#fff",
+                    borderColor: isHard ? "#e2e8f0" : "#10b981",
+                    color: isHard ? "#94a3b8" : "#065f46",
+                    background: isHard ? "#fff" : "#ecfdf5",
+                    fontWeight: 600,
                   }}
                 >
-                  {isOk ? "✓ " : isSoft ? "⚡ " : "🔒 "}Transformer en {{ devis: "commande", commande: "BL", bl: "facture" }[d.type]}
+                  {isHard ? "🔒 " : "✓ "}Transformer en {{ devis: "commande", commande: "BL", bl: "facture" }[d.type]}
                 </button>
               );
             })()}

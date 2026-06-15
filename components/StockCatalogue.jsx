@@ -364,12 +364,12 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
   return (
     <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
       <td style={scStyles.td}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{r.designation || r.ref || "—"}</div>
-        {r.ref && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{r.ref}</div>}
-      </td>
-      <td style={scStyles.td}>
         <div style={{ fontSize: 12, color: "#0f172a", fontWeight: 500 }}>{r.client_name || "—"}</div>
         <div style={{ fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{r.doc_ref}</div>
+      </td>
+      <td style={scStyles.td}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{r.designation || r.ref || "—"}</div>
+        {r.ref && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{r.ref}</div>}
       </td>
       <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{r.quantity}</td>
       <td style={{ ...scStyles.td, padding: "6px 8px" }}>
@@ -530,12 +530,37 @@ const ArchiveButton = ({ g, isArchive, onReload }) => {
 
 const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchive }) => {
   const [expanded, setExpanded] = React.useState({});
+  const [search, setSearch] = React.useState("");
   const toggle = (k) => setExpanded((cur) => ({ ...cur, [k]: !cur[k] }));
+
+  // Filtre fulltext sur tous les champs visibles d'une ligne
+  const filteredRows = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows || [];
+    return (rows || []).filter((r) => {
+      const hay = [
+        r.client_name, r.doc_ref, r.doc_number, r.doc_title,
+        r.designation, r.ref, r.description, r.supplier, r.supplier_ref,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }, [rows, search]);
+
+  // Si un terme de recherche cible un article précis, on déplie automatiquement son groupe.
+  React.useEffect(() => {
+    if (!search.trim()) return;
+    const docs = new Set(filteredRows.map((r) => r.doc_ref));
+    setExpanded((cur) => {
+      const next = { ...cur };
+      docs.forEach((d) => { next[d] = true; });
+      return next;
+    });
+  }, [search, filteredRows]);
 
   // Regroupe les lignes par devis/commande
   const groups = React.useMemo(() => {
     const map = new Map();
-    (rows || []).forEach((r) => {
+    (filteredRows || []).forEach((r) => {
       const k = r.doc_ref;
       if (!map.has(k)) {
         map.set(k, {
@@ -565,12 +590,43 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchiv
       g.lines.sort((a, b) => String(a.line_id).localeCompare(String(b.line_id)));
     });
     return out;
-  }, [rows]);
+  }, [filteredRows]);
+
+  const SearchBar = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "8px 12px", background: "#fff", border: "1px solid #eef1f5", borderRadius: 10 }}>
+      <span style={{ fontSize: 14, color: "#94a3b8" }}>🔍</span>
+      <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
+             placeholder="Rechercher un client, un article, un fournisseur, un n° de devis…"
+             style={{ flex: 1, border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", background: "transparent", padding: "4px 0", color: "#0f172a" }} />
+      {search && (
+        <button onClick={() => setSearch("")}
+                style={{ background: "transparent", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
+      )}
+      {search && (
+        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>
+          {filteredRows.length} ligne(s) · {new Set(filteredRows.map((r) => r.doc_ref)).size} devis
+        </span>
+      )}
+    </div>
+  );
 
   if (!rows || !rows.length) {
     return (
-      <div style={{ padding: 50, background: "#fff", border: "1px dashed #cbd5e1", borderRadius: 12, textAlign: "center", color: "#94a3b8" }}>
-        Aucun article à afficher avec les filtres actuels.
+      <div>
+        {SearchBar}
+        <div style={{ padding: 50, background: "#fff", border: "1px dashed #cbd5e1", borderRadius: 12, textAlign: "center", color: "#94a3b8" }}>
+          Aucun article à afficher avec les filtres actuels.
+        </div>
+      </div>
+    );
+  }
+  if (!filteredRows.length) {
+    return (
+      <div>
+        {SearchBar}
+        <div style={{ padding: 50, background: "#fff", border: "1px dashed #cbd5e1", borderRadius: 12, textAlign: "center", color: "#94a3b8" }}>
+          Aucun résultat pour « <strong>{search}</strong> ».
+        </div>
       </div>
     );
   }
@@ -627,7 +683,9 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchiv
   };
 
   return (
-    <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "auto" }}>
+    <div>
+      {SearchBar}
+      <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1280 }}>
         <thead>
           <tr style={{ background: "#f8fafc" }}>
@@ -708,8 +766,8 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchiv
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ background: "#eef2f7" }}>
-                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Article</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Client / Doc</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Article</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "center" }}>Qté</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>PU Acheté</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>PU Vendu</th>
@@ -732,6 +790,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchiv
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 };

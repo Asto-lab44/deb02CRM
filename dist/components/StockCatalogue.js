@@ -663,20 +663,6 @@ var EditableRow = ({
     style: scStyles.td
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, r.designation || r.ref || "—"), r.ref && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, r.ref)), /*#__PURE__*/React.createElement("td", {
-    style: scStyles.td
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
       fontSize: 12,
       color: "#0f172a",
       fontWeight: 500
@@ -688,6 +674,20 @@ var EditableRow = ({
       color: "#3730a3"
     }
   }, r.doc_ref)), /*#__PURE__*/React.createElement("td", {
+    style: scStyles.td
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, r.designation || r.ref || "—"), r.ref && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, r.ref)), /*#__PURE__*/React.createElement("td", {
     style: {
       ...scStyles.td,
       textAlign: "center",
@@ -1010,15 +1010,41 @@ var ListView = ({
   isArchive
 }) => {
   var [expanded, setExpanded] = React.useState({});
+  var [search, setSearch] = React.useState("");
   var toggle = k => setExpanded(cur => ({
     ...cur,
     [k]: !cur[k]
   }));
 
+  // Filtre fulltext sur tous les champs visibles d'une ligne
+  var filteredRows = React.useMemo(() => {
+    var q = search.trim().toLowerCase();
+    if (!q) return rows || [];
+    return (rows || []).filter(r => {
+      var hay = [r.client_name, r.doc_ref, r.doc_number, r.doc_title, r.designation, r.ref, r.description, r.supplier, r.supplier_ref].filter(Boolean).join(" ").toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }, [rows, search]);
+
+  // Si un terme de recherche cible un article précis, on déplie automatiquement son groupe.
+  React.useEffect(() => {
+    if (!search.trim()) return;
+    var docs = new Set(filteredRows.map(r => r.doc_ref));
+    setExpanded(cur => {
+      var next = {
+        ...cur
+      };
+      docs.forEach(d => {
+        next[d] = true;
+      });
+      return next;
+    });
+  }, [search, filteredRows]);
+
   // Regroupe les lignes par devis/commande
   var groups = React.useMemo(() => {
     var map = new Map();
-    (rows || []).forEach(r => {
+    (filteredRows || []).forEach(r => {
       var k = r.doc_ref;
       if (!map.has(k)) {
         map.set(k, {
@@ -1048,9 +1074,59 @@ var ListView = ({
       g.lines.sort((a, b) => String(a.line_id).localeCompare(String(b.line_id)));
     });
     return out;
-  }, [rows]);
+  }, [filteredRows]);
+  var SearchBar = /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 12,
+      padding: "8px 12px",
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("input", {
+    type: "search",
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Rechercher un client, un article, un fournisseur, un n\xB0 de devis\u2026",
+    style: {
+      flex: 1,
+      border: "none",
+      outline: "none",
+      fontSize: 13,
+      fontFamily: "inherit",
+      background: "transparent",
+      padding: "4px 0",
+      color: "#0f172a"
+    }
+  }), search && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSearch(""),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#94a3b8",
+      fontSize: 18,
+      cursor: "pointer",
+      padding: 0,
+      lineHeight: 1
+    }
+  }, "\xD7"), search && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      fontWeight: 600,
+      whiteSpace: "nowrap"
+    }
+  }, filteredRows.length, " ligne(s) \xB7 ", new Set(filteredRows.map(r => r.doc_ref)).size, " devis"));
   if (!rows || !rows.length) {
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement("div", null, SearchBar, /*#__PURE__*/React.createElement("div", {
       style: {
         padding: 50,
         background: "#fff",
@@ -1059,7 +1135,19 @@ var ListView = ({
         textAlign: "center",
         color: "#94a3b8"
       }
-    }, "Aucun article \xE0 afficher avec les filtres actuels.");
+    }, "Aucun article \xE0 afficher avec les filtres actuels."));
+  }
+  if (!filteredRows.length) {
+    return /*#__PURE__*/React.createElement("div", null, SearchBar, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 50,
+        background: "#fff",
+        border: "1px dashed #cbd5e1",
+        borderRadius: 12,
+        textAlign: "center",
+        color: "#94a3b8"
+      }
+    }, "Aucun r\xE9sultat pour \xAB ", /*#__PURE__*/React.createElement("strong", null, search), " \xBB."));
   }
   var TYPE_META = {
     devis: {
@@ -1157,7 +1245,7 @@ var ListView = ({
     d.setDate(d.getDate() + add);
     return d.toISOString().slice(0, 10);
   };
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement("div", null, SearchBar, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       border: "1px solid #eef1f5",
@@ -1377,12 +1465,12 @@ var ListView = ({
         ...scStyles.thHead,
         fontSize: 10.5
       }
-    }, "Article"), /*#__PURE__*/React.createElement("th", {
+    }, "Client / Doc"), /*#__PURE__*/React.createElement("th", {
       style: {
         ...scStyles.thHead,
         fontSize: 10.5
       }
-    }, "Client / Doc"), /*#__PURE__*/React.createElement("th", {
+    }, "Article"), /*#__PURE__*/React.createElement("th", {
       style: {
         ...scStyles.thHead,
         fontSize: 10.5,
@@ -1423,7 +1511,7 @@ var ListView = ({
       fmtEURP: fmtEURP,
       onUpdated: onReload
     })))))));
-  }))));
+  })))));
 };
 
 // ─────────────────────────────────────────────────────────────────

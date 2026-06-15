@@ -789,25 +789,59 @@ var EditableRow = ({
       ...cellInput,
       background: as.bg,
       color: as.color,
-      fontWeight: 600,
-      borderColor: as.bg
+      fontWeight: 700,
+      borderColor: as.color,
+      borderWidth: 2,
+      paddingRight: 22
     }
   }, /*#__PURE__*/React.createElement("option", {
-    value: "panier"
+    value: "panier",
+    style: {
+      background: ARTICLE_STATUS.panier.bg,
+      color: ARTICLE_STATUS.panier.color
+    }
   }, "\uD83D\uDED2 Panier"), /*#__PURE__*/React.createElement("option", {
-    value: "commande"
+    value: "commande",
+    style: {
+      background: ARTICLE_STATUS.commande.bg,
+      color: ARTICLE_STATUS.commande.color
+    }
   }, "\u2705 Command\xE9"), /*#__PURE__*/React.createElement("option", {
-    value: "partielle"
+    value: "partielle",
+    style: {
+      background: ARTICLE_STATUS.partielle.bg,
+      color: ARTICLE_STATUS.partielle.color
+    }
   }, "\u25D0 R\xE9ception partielle"), /*#__PURE__*/React.createElement("option", {
-    value: "recu"
+    value: "recu",
+    style: {
+      background: ARTICLE_STATUS.recu.bg,
+      color: ARTICLE_STATUS.recu.color
+    }
   }, "\u2713 Re\xE7u"), /*#__PURE__*/React.createElement("option", {
-    value: "en_stock"
+    value: "en_stock",
+    style: {
+      background: ARTICLE_STATUS.en_stock.bg,
+      color: ARTICLE_STATUS.en_stock.color
+    }
   }, "\uD83D\uDCE6 En stock"), /*#__PURE__*/React.createElement("option", {
-    value: "bloque"
+    value: "bloque",
+    style: {
+      background: ARTICLE_STATUS.bloque.bg,
+      color: ARTICLE_STATUS.bloque.color
+    }
   }, "\u26D4 Bloqu\xE9"), /*#__PURE__*/React.createElement("option", {
-    value: "differe"
+    value: "differe",
+    style: {
+      background: ARTICLE_STATUS.differe.bg,
+      color: ARTICLE_STATUS.differe.color
+    }
   }, "\u23F8 Diff\xE9r\xE9"), /*#__PURE__*/React.createElement("option", {
-    value: "na"
+    value: "na",
+    style: {
+      background: ARTICLE_STATUS.na.bg,
+      color: ARTICLE_STATUS.na.color
+    }
   }, "N/A"))));
 };
 
@@ -976,35 +1010,63 @@ var ListView = ({
     }
   };
 
-  // Suivi global statut article du devis (fusion achat × réception)
-  var articleStatusSummary = lines => {
+  // Barre de complétion : distribution des statuts dans le groupe.
+  var ArticleStatusBar = ({
+    lines
+  }) => {
+    var counts = {};
+    lines.forEach(l => {
+      var s = deriveArticleStatus(l.purchase_status, l.reception_status);
+      counts[s] = (counts[s] || 0) + 1;
+    });
     var total = lines.length;
-    var statuses = lines.map(l => deriveArticleStatus(l.purchase_status, l.reception_status));
-    var blocked = statuses.filter(s => s === "bloque").length;
-    if (blocked > 0) {
-      var _meta = ARTICLE_STATUS.bloque;
-      return {
-        label: "⛔ " + blocked + "/" + total + " bloqué(s)",
-        color: _meta.color,
-        bg: _meta.bg
-      };
-    }
-    var minOrder = Math.min.apply(null, statuses.map(s => ARTICLE_STATUS[s] && ARTICLE_STATUS[s].order || 1));
-    var minStatus = Object.keys(ARTICLE_STATUS).find(k => ARTICLE_STATUS[k].order === minOrder) || "panier";
-    var meta = ARTICLE_STATUS[minStatus];
-    var sameCount = statuses.filter(s => s === minStatus).length;
-    if (sameCount === total) {
-      return {
-        label: meta.label + (total > 1 ? " (×" + total + ")" : ""),
-        color: meta.color,
-        bg: meta.bg
-      };
-    }
-    return {
-      label: meta.label + " " + sameCount + "/" + total,
-      color: meta.color,
-      bg: meta.bg
-    };
+    var segments = Object.keys(counts).map(k => ({
+      key: k,
+      count: counts[k],
+      meta: ARTICLE_STATUS[k] || ARTICLE_STATUS.panier
+    })).sort((a, b) => (a.meta.order || 99) - (b.meta.order || 99));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 180
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        width: "100%",
+        height: 12,
+        borderRadius: 7,
+        overflow: "hidden",
+        border: "1px solid #e2e8f0",
+        background: "#f8fafc"
+      }
+    }, segments.map((s, i) => /*#__PURE__*/React.createElement("div", {
+      key: s.key,
+      title: s.meta.label + " · " + s.count + "/" + total + " article(s)",
+      style: {
+        width: s.count / total * 100 + "%",
+        background: s.meta.color,
+        borderRight: i < segments.length - 1 ? "1px solid rgba(255,255,255,0.45)" : "none"
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4,
+        marginTop: 5
+      }
+    }, segments.map(s => /*#__PURE__*/React.createElement("span", {
+      key: s.key,
+      style: {
+        fontSize: 9.5,
+        padding: "1.5px 6px",
+        borderRadius: 999,
+        background: s.meta.bg,
+        color: s.meta.color,
+        fontWeight: 700,
+        lineHeight: 1.4,
+        whiteSpace: "nowrap"
+      }
+    }, s.meta.label, " \xB7 ", s.count))));
   };
   // Calcule le jeudi suivant la date de validation du devis (date du doc).
   // Si le doc est validé un jeudi, on garde le même jour.
@@ -1083,7 +1145,6 @@ var ListView = ({
     var totalVente = g.lines.reduce((s, l) => s + (Number(l.sell_price_ht) || 0) * (Number(l.quantity) || 0), 0);
     var marge = totalVente - totalAchat;
     var margePct = totalAchat > 0 ? marge / totalAchat * 100 : null;
-    var as = articleStatusSummary(g.lines);
     return /*#__PURE__*/React.createElement(React.Fragment, {
       key: g.doc_ref
     }, /*#__PURE__*/React.createElement("tr", {
@@ -1199,17 +1260,9 @@ var ListView = ({
       }
     }, margePct.toFixed(1), " %")), /*#__PURE__*/React.createElement("td", {
       style: scStyles.td
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 10.5,
-        fontWeight: 600,
-        padding: "3px 8px",
-        borderRadius: 999,
-        background: as.bg,
-        color: as.color,
-        whiteSpace: "nowrap"
-      }
-    }, as.label))), isOpen && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    }, /*#__PURE__*/React.createElement(ArticleStatusBar, {
+      lines: g.lines
+    }))), isOpen && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
       colSpan: 9,
       style: {
         padding: 0,

@@ -397,15 +397,15 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
                   setLocal((cur) => ({ ...cur, ...patch }));
                   doSave(patch);
                 }}
-                style={{ ...cellInput, background: as.bg, color: as.color, fontWeight: 600, borderColor: as.bg }}>
-          <option value="panier">🛒 Panier</option>
-          <option value="commande">✅ Commandé</option>
-          <option value="partielle">◐ Réception partielle</option>
-          <option value="recu">✓ Reçu</option>
-          <option value="en_stock">📦 En stock</option>
-          <option value="bloque">⛔ Bloqué</option>
-          <option value="differe">⏸ Différé</option>
-          <option value="na">N/A</option>
+                style={{ ...cellInput, background: as.bg, color: as.color, fontWeight: 700, borderColor: as.color, borderWidth: 2, paddingRight: 22 }}>
+          <option value="panier"    style={{ background: ARTICLE_STATUS.panier.bg,    color: ARTICLE_STATUS.panier.color    }}>🛒 Panier</option>
+          <option value="commande"  style={{ background: ARTICLE_STATUS.commande.bg,  color: ARTICLE_STATUS.commande.color  }}>✅ Commandé</option>
+          <option value="partielle" style={{ background: ARTICLE_STATUS.partielle.bg, color: ARTICLE_STATUS.partielle.color }}>◐ Réception partielle</option>
+          <option value="recu"      style={{ background: ARTICLE_STATUS.recu.bg,      color: ARTICLE_STATUS.recu.color      }}>✓ Reçu</option>
+          <option value="en_stock"  style={{ background: ARTICLE_STATUS.en_stock.bg,  color: ARTICLE_STATUS.en_stock.color  }}>📦 En stock</option>
+          <option value="bloque"    style={{ background: ARTICLE_STATUS.bloque.bg,    color: ARTICLE_STATUS.bloque.color    }}>⛔ Bloqué</option>
+          <option value="differe"   style={{ background: ARTICLE_STATUS.differe.bg,   color: ARTICLE_STATUS.differe.color   }}>⏸ Différé</option>
+          <option value="na"        style={{ background: ARTICLE_STATUS.na.bg,        color: ARTICLE_STATUS.na.color        }}>N/A</option>
         </select>
       </td>
     </tr>
@@ -518,23 +518,37 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
     bl:       { icon: "📦", label: "BL",        color: "#9a3412", bg: "#ffedd5" },
   };
 
-  // Suivi global statut article du devis (fusion achat × réception)
-  const articleStatusSummary = (lines) => {
+  // Barre de complétion : distribution des statuts dans le groupe.
+  const ArticleStatusBar = ({ lines }) => {
+    const counts = {};
+    lines.forEach((l) => {
+      const s = deriveArticleStatus(l.purchase_status, l.reception_status);
+      counts[s] = (counts[s] || 0) + 1;
+    });
     const total = lines.length;
-    const statuses = lines.map((l) => deriveArticleStatus(l.purchase_status, l.reception_status));
-    const blocked = statuses.filter((s) => s === "bloque").length;
-    if (blocked > 0) {
-      const meta = ARTICLE_STATUS.bloque;
-      return { label: "⛔ " + blocked + "/" + total + " bloqué(s)", color: meta.color, bg: meta.bg };
-    }
-    const minOrder = Math.min.apply(null, statuses.map((s) => (ARTICLE_STATUS[s] && ARTICLE_STATUS[s].order) || 1));
-    const minStatus = Object.keys(ARTICLE_STATUS).find((k) => ARTICLE_STATUS[k].order === minOrder) || "panier";
-    const meta = ARTICLE_STATUS[minStatus];
-    const sameCount = statuses.filter((s) => s === minStatus).length;
-    if (sameCount === total) {
-      return { label: meta.label + (total > 1 ? " (×" + total + ")" : ""), color: meta.color, bg: meta.bg };
-    }
-    return { label: meta.label + " " + sameCount + "/" + total, color: meta.color, bg: meta.bg };
+    const segments = Object.keys(counts)
+      .map((k) => ({ key: k, count: counts[k], meta: ARTICLE_STATUS[k] || ARTICLE_STATUS.panier }))
+      .sort((a, b) => (a.meta.order || 99) - (b.meta.order || 99));
+    return (
+      <div style={{ minWidth: 180 }}>
+        <div style={{ display: "flex", width: "100%", height: 12, borderRadius: 7, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+          {segments.map((s, i) => (
+            <div key={s.key}
+                 title={s.meta.label + " · " + s.count + "/" + total + " article(s)"}
+                 style={{ width: (s.count / total * 100) + "%", background: s.meta.color,
+                          borderRight: i < segments.length - 1 ? "1px solid rgba(255,255,255,0.45)" : "none" }} />
+          ))}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+          {segments.map((s) => (
+            <span key={s.key}
+                  style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 999, background: s.meta.bg, color: s.meta.color, fontWeight: 700, lineHeight: 1.4, whiteSpace: "nowrap" }}>
+              {s.meta.label} · {s.count}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
   };
   // Calcule le jeudi suivant la date de validation du devis (date du doc).
   // Si le doc est validé un jeudi, on garde le même jour.
@@ -572,7 +586,6 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
             const totalVente = g.lines.reduce((s, l) => s + (Number(l.sell_price_ht) || 0) * (Number(l.quantity) || 0), 0);
             const marge = totalVente - totalAchat;
             const margePct = totalAchat > 0 ? (marge / totalAchat) * 100 : null;
-            const as = articleStatusSummary(g.lines);
             return (
               <React.Fragment key={g.doc_ref}>
                 <tr onClick={() => toggle(g.doc_ref)}
@@ -618,9 +631,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
                     )}
                   </td>
                   <td style={scStyles.td}>
-                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: as.bg, color: as.color, whiteSpace: "nowrap" }}>
-                      {as.label}
-                    </span>
+                    <ArticleStatusBar lines={g.lines} />
                   </td>
                 </tr>
                 {isOpen && (

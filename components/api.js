@@ -398,6 +398,49 @@
                 author_name: cuName,
               }).catch(() => {});
             }
+
+            // Auto-création d'une COMMANDE dans la Gestion Commerciale
+            // 1. Si un devis lié existe → on le transforme en commande
+            // 2. Sinon → on crée une commande directement depuis l'opp
+            try {
+              const { data: existingDocs } = await s.from("commercial_docs")
+                .select("id, type, status")
+                .eq("opportunity_id", id)
+                .is("deleted_at", null);
+              const docs = existingDocs || [];
+              const hasCommande = docs.some((d) => d.type === "commande");
+              if (!hasCommande) {
+                // Cherche un devis non transformé qui pourrait servir de base
+                const devisToTransform = docs.find((d) => d.type === "devis" && d.status !== "transforme" && d.status !== "annule" && d.status !== "refuse");
+                if (devisToTransform && window.api && window.api.commercialDocs && window.api.commercialDocs.transform) {
+                  // Marque le devis Accepté avant transformation pour respecter les portes
+                  await s.from("commercial_docs").update({ status: "accepte" }).eq("id", devisToTransform.id);
+                  await window.api.commercialDocs.transform(devisToTransform.id, "commande");
+                } else if (window.api && window.api.commercialDocs && window.api.commercialDocs.create) {
+                  // Création directe d'une commande pré-remplie depuis l'opp
+                  const amt = Number(data.amount_eur) || 0;
+                  await window.api.commercialDocs.create({
+                    type: "commande",
+                    status: "brouillon",
+                    client_id: data.client_id || null,
+                    client_name: data.client_name || (data.data && data.data.client_name) || null,
+                    opportunity_id: id,
+                    title: data.name || "Commande — " + id,
+                    notes: data.notes || null,
+                    owner: data.owner || null,
+                    lines: amt > 0 ? [{
+                      designation: data.name || "Prestation",
+                      quantity: 1, unit: "forfait",
+                      unit_price_ht: amt, discount_pct: 0,
+                      tva_rate: 20,
+                      total_ht: amt, total_tva: amt * 0.2, total_ttc: amt * 1.2,
+                    }] : [],
+                  });
+                }
+              }
+            } catch (e) {
+              console.warn("[opp→commande auto]", e.message || e);
+            }
           } catch (e) {
             console.warn("[opp→project auto]", e.message || e);
           }

@@ -467,6 +467,7 @@ var CommercialDocEditor = ({
   var [tvaRates, setTvaRates] = React.useState([]);
   var [paymentTerms, setPaymentTerms] = React.useState([]);
   var [saving, setSaving] = React.useState(false);
+  var [sendOpen, setSendOpen] = React.useState(false);
   React.useEffect(() => {
     (async () => {
       try {
@@ -692,7 +693,27 @@ var CommercialDocEditor = ({
       display: "flex",
       gap: 8
     }
-  }, d.type !== "facture" && d.status !== "transforme" && /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      try {
+        await save();
+        if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id);
+      } catch (e) {}
+    },
+    style: cdStyles.ghostBtn,
+    title: "G\xE9n\xE8re le PDF et l'ouvre"
+  }, "\uD83D\uDC41 Aper\xE7u PDF"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      try {
+        await save();
+        if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id);
+      } catch (e) {}
+    },
+    style: cdStyles.ghostBtn
+  }, "\u21E9 T\xE9l\xE9charger PDF"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSendOpen(true),
+    style: cdStyles.ghostBtn
+  }, "\u2709 Envoyer"), d.type !== "facture" && d.status !== "transforme" && /*#__PURE__*/React.createElement("button", {
     onClick: transformTo,
     style: cdStyles.ghostBtn
   }, "\u2192 Transformer en ", {
@@ -1018,7 +1039,9 @@ var CommercialDocEditor = ({
     style: {
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, fmtEUR(totals.ttc))))), /*#__PURE__*/React.createElement("div", {
+  }, fmtEUR(totals.ttc))))), /*#__PURE__*/React.createElement(DocSendHistory, {
+    docId: d.id
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       display: "grid",
@@ -1047,7 +1070,275 @@ var CommercialDocEditor = ({
       resize: "vertical"
     },
     placeholder: "Notes internes pour l'\xE9quipe\u2026"
-  }))))));
+  }))))), sendOpen && /*#__PURE__*/React.createElement(DocSendModal, {
+    doc: d,
+    onSave: save,
+    onClose: () => setSendOpen(false)
+  }));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Historique des envois d'un doc (depuis commercial_doc_sends)
+// ─────────────────────────────────────────────────────────────────
+var DocSendHistory = ({
+  docId
+}) => {
+  var [list, setList] = React.useState([]);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        setList((await window.api.commercialSends.list({
+          doc_id: docId
+        })) || []);
+      } catch (e) {}
+    })();
+  }, [docId]);
+  if (list.length === 0) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      padding: 14,
+      background: "#f8fafc",
+      border: "1px solid #eef1f5",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#475569",
+      marginBottom: 8
+    }
+  }, "\u2709 Historique des envois (", list.length, ")"), list.map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "6px 0",
+      fontSize: 12,
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 12,
+      height: 12,
+      borderRadius: 999,
+      background: s.status === "sent" ? "#10b981" : s.status === "failed" ? "#dc2626" : "#94a3b8"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, new Date(s.sent_at).toLocaleString("fr-FR")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      color: "#0f172a"
+    }
+  }, s.channel === "email" ? "✉ " + (s.recipient_email || "—") : s.channel === "download" ? "⇩ Téléchargement" : s.channel), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "1px 6px",
+      borderRadius: 4,
+      background: s.status === "sent" ? "#dcfce7" : "#f1f5f9",
+      color: s.status === "sent" ? "#065f46" : "#475569",
+      fontWeight: 600
+    }
+  }, s.status), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#94a3b8"
+    }
+  }, "par ", s.sent_by_name || "—"))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Modal "Envoyer le doc par email" — log dans commercial_doc_sends
+// ─────────────────────────────────────────────────────────────────
+var DocSendModal = ({
+  doc,
+  onSave,
+  onClose
+}) => {
+  var [recipientEmail, setRecipientEmail] = React.useState(doc.contact_email || "");
+  var [recipientName, setRecipientName] = React.useState(doc.contact_name || doc.client_name || "");
+  var [cc, setCc] = React.useState("");
+  var TYPE_LABEL = {
+    devis: "Devis",
+    commande: "Bon de commande",
+    bl: "Bon de livraison",
+    facture: "Facture"
+  };
+  var typeLbl = TYPE_LABEL[doc.type] || doc.type;
+  var [subject, setSubject] = React.useState(typeLbl + " " + doc.id + (doc.title ? " — " + doc.title : ""));
+  var [body, setBody] = React.useState("Bonjour" + (recipientName ? " " + recipientName.split(" ")[0] : "") + ",\n\n" + "Veuillez trouver ci-joint le " + typeLbl.toLowerCase() + " " + doc.id + ".\n\n" + "N'hésitez pas à revenir vers moi pour toute question.\n\n" + "Cordialement,\n" + (doc.owner || "Romain Daviaud") + "\nAstorya");
+  var [sending, setSending] = React.useState(false);
+  var send = async () => {
+    if (!recipientEmail) {
+      alert("Email destinataire requis");
+      return;
+    }
+    setSending(true);
+    try {
+      // Sauvegarde le doc puis génère le PDF côté navigateur
+      if (onSave) await onSave();
+      var pdfBase64 = null;
+      try {
+        if (window.HubCommercialPdf) pdfBase64 = await window.HubCommercialPdf.toBase64(doc.id);
+      } catch (e) {
+        console.warn("PDF gen failed:", e);
+      }
+
+      // Téléchargement local du PDF (pour drag-drop manuel dans le mail)
+      if (pdfBase64) {
+        try {
+          var a = document.createElement("a");
+          a.href = "data:application/pdf;base64," + pdfBase64;
+          a.download = doc.id + ".pdf";
+          a.click();
+        } catch (e) {}
+      }
+
+      // Ouvre le client mail par défaut avec subject/body pré-remplis
+      var mailto = "mailto:" + encodeURIComponent(recipientEmail) + (cc ? "?cc=" + encodeURIComponent(cc) + "&" : "?") + "subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body + "\n\n[Le PDF a été téléchargé localement — glissez-le en pièce jointe.]");
+      window.open(mailto, "_self");
+
+      // Log permanent en BDD
+      await window.api.commercialSends.log({
+        doc_id: doc.id,
+        doc_type: doc.type,
+        channel: "email",
+        recipient_email: recipientEmail,
+        recipient_name: recipientName,
+        cc: cc || null,
+        subject,
+        body,
+        attachment_url: pdfBase64 ? doc.id + ".pdf" : null,
+        status: "sent",
+        provider: "mailto"
+      });
+
+      // Met à jour le statut du doc → "envoye"
+      if (doc.status === "brouillon") {
+        try {
+          await window.api.commercialDocs.update(doc.id, {
+            status: "envoye"
+          });
+        } catch (e) {}
+      }
+      if (window.HubToast) window.HubToast.success("✓ Envoi enregistré — PDF téléchargé pour pièce jointe");
+      onClose && onClose();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+    setSending(false);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.modalOverlay,
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...cdStyles.modalCard,
+      maxWidth: 640
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("header", {
+    style: cdStyles.modalHead
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 15,
+      fontWeight: 700
+    }
+  }, "\u2709 Envoyer ", doc.id, " par email"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: cdStyles.closeBtn
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Destinataire (Nom)"), /*#__PURE__*/React.createElement("input", {
+    value: recipientName,
+    onChange: e => setRecipientName(e.target.value),
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Destinataire (Email) *"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: recipientEmail,
+    onChange: e => setRecipientEmail(e.target.value),
+    style: cdStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Cc (copies)"), /*#__PURE__*/React.createElement("input", {
+    value: cc,
+    onChange: e => setCc(e.target.value),
+    placeholder: "email1@ex.com, email2@ex.com",
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Objet"), /*#__PURE__*/React.createElement("input", {
+    value: subject,
+    onChange: e => setSubject(e.target.value),
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Corps du message"), /*#__PURE__*/React.createElement("textarea", {
+    value: body,
+    onChange: e => setBody(e.target.value),
+    rows: 8,
+    style: {
+      ...cdStyles.input,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 10,
+      background: "#fffbeb",
+      border: "1px solid #fde68a",
+      borderRadius: 7,
+      fontSize: 11.5,
+      color: "#92400e",
+      marginBottom: 14
+    }
+  }, "\u2139 Le PDF sera t\xE9l\xE9charg\xE9 localement (limitation navigateur sur les mailto). Glissez-le dans votre client mail comme pi\xE8ce jointe. Chaque envoi est trac\xE9 en BDD pour audit permanent."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: cdStyles.ghostBtn
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: send,
+    disabled: sending,
+    style: cdStyles.primaryBtn
+  }, sending ? "Envoi…" : "Envoyer + Tracer")))));
 };
 var cdStyles = {
   frame: {

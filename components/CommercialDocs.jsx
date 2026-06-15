@@ -236,6 +236,7 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
   const [tvaRates, setTvaRates] = React.useState([]);
   const [paymentTerms, setPaymentTerms] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
+  const [sendOpen, setSendOpen] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -382,6 +383,9 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{d.id}</h2>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={async () => { try { await save(); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id); } catch (e) {} }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
+            <button onClick={async () => { try { await save(); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
+            <button onClick={() => setSendOpen(true)} style={cdStyles.ghostBtn}>✉ Envoyer</button>
             {d.type !== "facture" && d.status !== "transforme" && (
               <button onClick={transformTo} style={cdStyles.ghostBtn}>
                 → Transformer en {{ devis: "commande", commande: "BL", bl: "facture" }[d.type]}
@@ -508,6 +512,9 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
             </div>
           </div>
 
+          {/* HISTORIQUE ENVOIS (visible si déjà envoyé) */}
+          <DocSendHistory docId={d.id} />
+
           {/* NOTES */}
           <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
@@ -518,6 +525,147 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
               <label style={cdStyles.lbl}>Notes internes (non imprimées)</label>
               <textarea value={d.internal_notes || ""} onChange={(e) => setField("internal_notes", e.target.value)} rows={3} style={{ ...cdStyles.input, resize: "vertical" }} placeholder="Notes internes pour l'équipe…" />
             </div>
+          </div>
+        </div>
+      </div>
+      {sendOpen && <DocSendModal doc={d} onSave={save} onClose={() => setSendOpen(false)} />}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Historique des envois d'un doc (depuis commercial_doc_sends)
+// ─────────────────────────────────────────────────────────────────
+const DocSendHistory = ({ docId }) => {
+  const [list, setList] = React.useState([]);
+  React.useEffect(() => {
+    (async () => {
+      try { setList(await window.api.commercialSends.list({ doc_id: docId }) || []); } catch (e) {}
+    })();
+  }, [docId]);
+  if (list.length === 0) return null;
+  return (
+    <div style={{ marginTop: 18, padding: 14, background: "#f8fafc", border: "1px solid #eef1f5", borderRadius: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>✉ Historique des envois ({list.length})</div>
+      {list.map((s) => (
+        <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", fontSize: 12, borderBottom: "1px solid #f1f5f9" }}>
+          <span style={{ width: 12, height: 12, borderRadius: 999, background: s.status === "sent" ? "#10b981" : s.status === "failed" ? "#dc2626" : "#94a3b8" }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#64748b" }}>{new Date(s.sent_at).toLocaleString("fr-FR")}</span>
+          <span style={{ flex: 1, color: "#0f172a" }}>{s.channel === "email" ? "✉ " + (s.recipient_email || "—") : s.channel === "download" ? "⇩ Téléchargement" : s.channel}</span>
+          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: s.status === "sent" ? "#dcfce7" : "#f1f5f9", color: s.status === "sent" ? "#065f46" : "#475569", fontWeight: 600 }}>{s.status}</span>
+          <span style={{ fontSize: 10, color: "#94a3b8" }}>par {s.sent_by_name || "—"}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Modal "Envoyer le doc par email" — log dans commercial_doc_sends
+// ─────────────────────────────────────────────────────────────────
+const DocSendModal = ({ doc, onSave, onClose }) => {
+  const [recipientEmail, setRecipientEmail] = React.useState(doc.contact_email || "");
+  const [recipientName, setRecipientName] = React.useState(doc.contact_name || doc.client_name || "");
+  const [cc, setCc] = React.useState("");
+  const TYPE_LABEL = { devis: "Devis", commande: "Bon de commande", bl: "Bon de livraison", facture: "Facture" };
+  const typeLbl = TYPE_LABEL[doc.type] || doc.type;
+  const [subject, setSubject] = React.useState(typeLbl + " " + doc.id + (doc.title ? " — " + doc.title : ""));
+  const [body, setBody] = React.useState(
+    "Bonjour" + (recipientName ? " " + recipientName.split(" ")[0] : "") + ",\n\n" +
+    "Veuillez trouver ci-joint le " + typeLbl.toLowerCase() + " " + doc.id + ".\n\n" +
+    "N'hésitez pas à revenir vers moi pour toute question.\n\n" +
+    "Cordialement,\n" + (doc.owner || "Romain Daviaud") + "\nAstorya"
+  );
+  const [sending, setSending] = React.useState(false);
+
+  const send = async () => {
+    if (!recipientEmail) { alert("Email destinataire requis"); return; }
+    setSending(true);
+    try {
+      // Sauvegarde le doc puis génère le PDF côté navigateur
+      if (onSave) await onSave();
+      let pdfBase64 = null;
+      try {
+        if (window.HubCommercialPdf) pdfBase64 = await window.HubCommercialPdf.toBase64(doc.id);
+      } catch (e) { console.warn("PDF gen failed:", e); }
+
+      // Téléchargement local du PDF (pour drag-drop manuel dans le mail)
+      if (pdfBase64) {
+        try {
+          const a = document.createElement("a");
+          a.href = "data:application/pdf;base64," + pdfBase64;
+          a.download = doc.id + ".pdf";
+          a.click();
+        } catch (e) {}
+      }
+
+      // Ouvre le client mail par défaut avec subject/body pré-remplis
+      const mailto = "mailto:" + encodeURIComponent(recipientEmail) +
+        (cc ? "?cc=" + encodeURIComponent(cc) + "&" : "?") +
+        "subject=" + encodeURIComponent(subject) +
+        "&body=" + encodeURIComponent(body + "\n\n[Le PDF a été téléchargé localement — glissez-le en pièce jointe.]");
+      window.open(mailto, "_self");
+
+      // Log permanent en BDD
+      await window.api.commercialSends.log({
+        doc_id: doc.id, doc_type: doc.type,
+        channel: "email",
+        recipient_email: recipientEmail, recipient_name: recipientName,
+        cc: cc || null, subject, body,
+        attachment_url: pdfBase64 ? doc.id + ".pdf" : null,
+        status: "sent",
+        provider: "mailto",
+      });
+
+      // Met à jour le statut du doc → "envoye"
+      if (doc.status === "brouillon") {
+        try { await window.api.commercialDocs.update(doc.id, { status: "envoye" }); } catch (e) {}
+      }
+
+      if (window.HubToast) window.HubToast.success("✓ Envoi enregistré — PDF téléchargé pour pièce jointe");
+      onClose && onClose();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+    setSending(false);
+  };
+
+  return (
+    <div style={cdStyles.modalOverlay} onClick={onClose}>
+      <div style={{ ...cdStyles.modalCard, maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+        <header style={cdStyles.modalHead}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>✉ Envoyer {doc.id} par email</h2>
+          <button onClick={onClose} style={cdStyles.closeBtn}>×</button>
+        </header>
+        <div style={{ padding: 22 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={cdStyles.lbl}>Destinataire (Nom)</label>
+              <input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} style={cdStyles.input} />
+            </div>
+            <div>
+              <label style={cdStyles.lbl}>Destinataire (Email) *</label>
+              <input type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} style={cdStyles.input} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={cdStyles.lbl}>Cc (copies)</label>
+            <input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="email1@ex.com, email2@ex.com" style={cdStyles.input} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={cdStyles.lbl}>Objet</label>
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} style={cdStyles.input} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={cdStyles.lbl}>Corps du message</label>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} style={{ ...cdStyles.input, resize: "vertical", fontFamily: "inherit" }} />
+          </div>
+          <div style={{ padding: 10, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 7, fontSize: 11.5, color: "#92400e", marginBottom: 14 }}>
+            ℹ Le PDF sera téléchargé localement (limitation navigateur sur les mailto). Glissez-le dans votre client mail comme pièce jointe. Chaque envoi est tracé en BDD pour audit permanent.
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button onClick={onClose} style={cdStyles.ghostBtn}>Annuler</button>
+            <button onClick={send} disabled={sending} style={cdStyles.primaryBtn}>{sending ? "Envoi…" : "Envoyer + Tracer"}</button>
           </div>
         </div>
       </div>

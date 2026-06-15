@@ -13,7 +13,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 const CommercialDocsAdmin = () => {
-  const [tab, setTab] = React.useState("articles");
+  const [tab, setTab] = React.useState("company");
   return (
     <div style={cdaStyles.frame}>
       <aside style={cdaStyles.sidebar}>
@@ -30,10 +30,12 @@ const CommercialDocsAdmin = () => {
         </a>
         <div style={cdaStyles.navLabel}>Paramètres</div>
         {[
+          { k: "company",  label: "Société émettrice", icon: "🏢" },
           { k: "articles", label: "Catalogue articles", icon: "📦" },
           { k: "tva",      label: "Taux TVA",           icon: "%" },
           { k: "payment",  label: "Cond. paiement",     icon: "💳" },
           { k: "counters", label: "Numérotation",       icon: "#" },
+          { k: "sends",    label: "Audit envois",       icon: "✉" },
         ].map((t) => (
           <div key={t.k} onClick={() => setTab(t.k)} style={{ ...cdaStyles.navItem, ...(tab === t.k ? cdaStyles.navItemActive : {}) }}>
             <span style={{ width: 16, color: tab === t.k ? "#3730a3" : "#94a3b8" }}>{t.icon}</span>
@@ -42,11 +44,159 @@ const CommercialDocsAdmin = () => {
         ))}
       </aside>
       <main style={cdaStyles.main}>
+        {tab === "company"  && <CompanyTab />}
         {tab === "articles" && <ArticlesTab />}
         {tab === "tva"      && <TvaTab />}
         {tab === "payment"  && <PaymentTab />}
         {tab === "counters" && <CountersTab />}
+        {tab === "sends"    && <SendsTab />}
       </main>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// COMPANY TAB — Coordonnées société émettrice (BDD : commercial_company_settings)
+// ─────────────────────────────────────────────────────────────────
+const CompanyTab = () => {
+  const [c, setC] = React.useState(null);
+  const [saving, setSaving] = React.useState(false);
+  React.useEffect(() => { (async () => setC(await window.api.commercialCompany.get()))(); }, []);
+  if (!c) return <div style={{ padding: 40, color: "#94a3b8" }}>Chargement…</div>;
+  const setField = (k, v) => setC((cur) => ({ ...cur, [k]: v }));
+  const save = async () => {
+    setSaving(true);
+    try {
+      await window.api.commercialCompany.update(c);
+      if (window.HubToast) window.HubToast.success("✓ Société enregistrée");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+    setSaving(false);
+  };
+  return (
+    <div>
+      <header style={cdaStyles.topbar}>
+        <div>
+          <h1 style={cdaStyles.h1}>Société émettrice</h1>
+          <p style={cdaStyles.sub}>Coordonnées imprimées sur tous les Devis / Commandes / BL / Factures</p>
+        </div>
+        <button onClick={save} disabled={saving} style={cdaStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
+      </header>
+      <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 22 }}>
+        <h3 style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🏢 Identité légale</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginBottom: 18 }}>
+          <div><label style={cdaStyles.lbl}>Raison sociale</label><input value={c.raison_sociale || ""} onChange={(e) => setField("raison_sociale", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>Forme juridique</label>
+            <select value={c.forme_juridique || ""} onChange={(e) => setField("forme_juridique", e.target.value)} style={cdaStyles.input}>
+              <option value="">—</option><option>SARL</option><option>SAS</option><option>SA</option><option>SASU</option><option>EURL</option><option>EI</option><option>Auto-entrepreneur</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
+          <div><label style={cdaStyles.lbl}>Adresse</label><input value={c.adresse || ""} onChange={(e) => setField("adresse", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>Code postal</label><input value={c.cp || ""} onChange={(e) => setField("cp", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>Ville</label><input value={c.ville || ""} onChange={(e) => setField("ville", e.target.value)} style={cdaStyles.input} /></div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
+          <div><label style={cdaStyles.lbl}>Tel</label><input value={c.tel || ""} onChange={(e) => setField("tel", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>Email contact</label><input value={c.email || ""} onChange={(e) => setField("email", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>Site web</label><input value={c.site_web || ""} onChange={(e) => setField("site_web", e.target.value)} style={cdaStyles.input} /></div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 22 }}>
+          <div><label style={cdaStyles.lbl}>SIRET</label><input value={c.siret || ""} onChange={(e) => setField("siret", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>NAF</label><input value={c.naf || ""} onChange={(e) => setField("naf", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>TVA intracom.</label><input value={c.tva_intra || ""} onChange={(e) => setField("tva_intra", e.target.value)} style={cdaStyles.input} /></div>
+          <div><label style={cdaStyles.lbl}>Capital (€)</label><input type="number" step="0.01" value={c.capital_eur || ""} onChange={(e) => setField("capital_eur", e.target.value ? Number(e.target.value) : null)} style={cdaStyles.input} /></div>
+        </div>
+
+        <h3 style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>💳 Coordonnées bancaires</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12, marginBottom: 22 }}>
+          <div><label style={cdaStyles.lbl}>IBAN</label><input value={c.iban || ""} onChange={(e) => setField("iban", e.target.value)} style={{ ...cdaStyles.input, fontFamily: "'JetBrains Mono', monospace" }} /></div>
+          <div><label style={cdaStyles.lbl}>BIC</label><input value={c.bic || ""} onChange={(e) => setField("bic", e.target.value)} style={{ ...cdaStyles.input, fontFamily: "'JetBrains Mono', monospace" }} /></div>
+          <div><label style={cdaStyles.lbl}>Banque</label><input value={c.banque_nom || ""} onChange={(e) => setField("banque_nom", e.target.value)} style={cdaStyles.input} /></div>
+        </div>
+
+        <h3 style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>👥 Contacts en pied de page PDF</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+          {[
+            { prefix: "commercial", label: "Service Commercial" },
+            { prefix: "admin",      label: "Administratif" },
+            { prefix: "compta",     label: "Comptabilité" },
+          ].map((c2) => (
+            <div key={c2.prefix} style={{ border: "1px solid #eef1f5", borderRadius: 7, padding: 12, background: "#fafbfc" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#3730a3", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.4 }}>{c2.label}</div>
+              <label style={cdaStyles.lbl}>Nom</label>
+              <input value={c["contact_" + c2.prefix + "_nom"] || ""} onChange={(e) => setField("contact_" + c2.prefix + "_nom", e.target.value)} style={{ ...cdaStyles.input, marginBottom: 6 }} />
+              <label style={cdaStyles.lbl}>Tel</label>
+              <input value={c["contact_" + c2.prefix + "_tel"] || ""} onChange={(e) => setField("contact_" + c2.prefix + "_tel", e.target.value)} style={{ ...cdaStyles.input, marginBottom: 6 }} />
+              <label style={cdaStyles.lbl}>Email</label>
+              <input value={c["contact_" + c2.prefix + "_email"] || ""} onChange={(e) => setField("contact_" + c2.prefix + "_email", e.target.value)} style={cdaStyles.input} />
+            </div>
+          ))}
+        </div>
+
+        <h3 style={{ margin: "18px 0 14px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>📝 Mentions & conditions</h3>
+        <div style={{ marginBottom: 12 }}>
+          <label style={cdaStyles.lbl}>Conditions de paiement par défaut (encart signature)</label>
+          <input value={c.conditions_paiement_default || ""} onChange={(e) => setField("conditions_paiement_default", e.target.value)} style={cdaStyles.input} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={cdaStyles.lbl}>Mention "Réserve de propriété" (pied de page tous docs)</label>
+          <textarea value={c.mention_reserve_propriete || ""} onChange={(e) => setField("mention_reserve_propriete", e.target.value)} rows={3} style={{ ...cdaStyles.input, resize: "vertical" }} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={cdaStyles.lbl}>Délai de validité Devis (jours)</label>
+          <input type="number" value={c.delai_validite_devis_jours || 30} onChange={(e) => setField("delai_validite_devis_jours", Number(e.target.value))} style={{ ...cdaStyles.input, maxWidth: 120 }} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// SENDS TAB — Audit log de tous les envois (BDD : commercial_doc_sends)
+// ─────────────────────────────────────────────────────────────────
+const SendsTab = () => {
+  const [list, setList] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => { (async () => {
+    try { setList(await window.api.commercialSends.list({}) || []); } catch (e) {}
+    setLoading(false);
+  })(); }, []);
+  return (
+    <div>
+      <header style={cdaStyles.topbar}>
+        <div><h1 style={cdaStyles.h1}>Audit log des envois</h1><p style={cdaStyles.sub}>Trace permanente de tous les documents envoyés / téléchargés / imprimés</p></div>
+      </header>
+      {loading ? <div style={{ padding: 40, color: "#94a3b8" }}>Chargement…</div> :
+       list.length === 0 ? <div style={cdaStyles.empty}>Aucun envoi enregistré.</div> :
+        <div style={cdaStyles.list}>
+          <div style={cdaStyles.tableHead}>
+            <span style={{ flex: "0 0 140px" }}>Date</span>
+            <span style={{ flex: "0 0 110px" }}>Doc</span>
+            <span style={{ flex: "0 0 70px" }}>Canal</span>
+            <span style={{ flex: 1 }}>Destinataire</span>
+            <span style={{ flex: "0 0 130px" }}>Envoyé par</span>
+            <span style={{ flex: "0 0 90px" }}>Statut</span>
+          </div>
+          {list.map((s) => (
+            <div key={s.id} style={cdaStyles.tableRow}>
+              <span style={{ flex: "0 0 140px", fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{new Date(s.sent_at).toLocaleString("fr-FR")}</span>
+              <span style={{ flex: "0 0 110px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#3730a3", fontWeight: 600 }}>{s.doc_id}</span>
+              <span style={{ flex: "0 0 70px", fontSize: 12, color: "#64748b" }}>{s.channel}</span>
+              <span style={{ flex: 1, fontSize: 12.5 }}>
+                <div style={{ color: "#0f172a", fontWeight: 500 }}>{s.recipient_email || "—"}</div>
+                <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.subject || ""}</div>
+              </span>
+              <span style={{ flex: "0 0 130px", fontSize: 12, color: "#64748b" }}>{s.sent_by_name || "—"}</span>
+              <span style={{ flex: "0 0 90px" }}>
+                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: s.status === "sent" ? "#dcfce7" : s.status === "failed" ? "#fee2e2" : "#f1f5f9", color: s.status === "sent" ? "#065f46" : s.status === "failed" ? "#991b1b" : "#475569", fontWeight: 600 }}>{s.status}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      }
     </div>
   );
 };

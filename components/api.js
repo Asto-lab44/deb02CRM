@@ -1494,6 +1494,110 @@
     },
   };
 
+  // ───────────────────────────────────────────────────────────────────
+  // §6.69 COMMERCIAL COMPANY SETTINGS — Coordonnées société émettrice
+  // ───────────────────────────────────────────────────────────────────
+  /** Settings stockés dans commercial_company_settings (1 ligne, id='default').
+   *  Utilisé par le renderer PDF + l'admin > Société. */
+  const commercialCompany = {
+    _cache: null,
+    async get() {
+      if (this._cache) return this._cache;
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("commercial_company_settings").select("*").eq("id", "default").maybeSingle();
+        if (data) { this._cache = data; return data; }
+      }
+      // Fallback : valeurs depuis le devis Astorya analysé
+      const fallback = {
+        id: "default",
+        raison_sociale: "S.A.R.L. ASTORYA SGI", forme_juridique: "SARL",
+        adresse: "9 rue du Petit Châtelier", cp: "44300", ville: "Nantes", pays: "France",
+        tel: "02 85 52 13 95", email: "contact@astorya.fr", site_web: "www.astorya.fr",
+        siret: "52362580400027", capital_eur: 7500,
+        iban: "FR7630004018540001003802740", bic: "BNPAFRPPNAN", banque_nom: "BNP Paribas",
+        contact_commercial_nom: "Romain DAVIAUD", contact_commercial_email: "r.daviaud@astorya.fr", contact_commercial_tel: "02 85 52 13 95",
+        contact_admin_nom: "Laëtitia LUCAS", contact_admin_email: "l.lucas@astorya.fr", contact_admin_tel: "02 85 52 13 95",
+        contact_compta_nom: "Louise NEAU", contact_compta_email: "l.neau@astorya.fr", contact_compta_tel: "02 85 52 13 95",
+        mention_reserve_propriete: "RESERVE DE PROPRIETE : Nous nous réservons la propriété des marchandises jusqu'au paiement du prix par l'acheteur. Notre droit de revendication porte aussi bien sur les marchandises que sur leur prix si elles ont déjà été revendues (Loi du 12 mai 1980).",
+        conditions_paiement_default: "Règlement à la commande d'un acompte de 40%",
+        delai_validite_devis_jours: 30,
+      };
+      this._cache = fallback;
+      return fallback;
+    },
+    async update(patch) {
+      const s = supa();
+      this._cache = null;
+      if (s) {
+        const row = { ...patch, id: "default", updated_at: new Date().toISOString() };
+        const { data, error } = await s.from("commercial_company_settings").upsert(row).select().maybeSingle();
+        if (error) { console.warn("[commercialCompany.update]", error.message); throw new Error(error.message); }
+        return data;
+      }
+      return null;
+    },
+  };
+
+  // ───────────────────────────────────────────────────────────────────
+  // §6.70 COMMERCIAL DOC SENDS — Audit log des envois (email/print/download)
+  // ───────────────────────────────────────────────────────────────────
+  const commercialSends = {
+    async list({ doc_id, status } = {}) {
+      const s = supa();
+      if (s) {
+        let q = s.from("commercial_doc_sends").select("*");
+        if (doc_id) q = q.eq("doc_id", doc_id);
+        if (status) q = q.eq("status", status);
+        const { data } = await q.order("sent_at", { ascending: false }).limit(100);
+        return data || [];
+      }
+      return lsGet("commercial_doc_sends").filter((d) => !doc_id || d.doc_id === doc_id);
+    },
+
+    /** Log un envoi (la pièce attachée peut être un blob URL, le PDF est régénéré côté UI). */
+    async log(payload) {
+      const s = supa();
+      const id = genId("SND");
+      const created_by = await getCurrentUserId();
+      const row = {
+        id,
+        doc_id: payload.doc_id,
+        doc_type: payload.doc_type || null,
+        channel: payload.channel || "email",
+        recipient_email: payload.recipient_email || null,
+        recipient_name: payload.recipient_name || null,
+        cc: payload.cc || null,
+        subject: payload.subject || null,
+        body: payload.body || null,
+        attachment_url: payload.attachment_url || null,
+        status: payload.status || "sent",
+        error_message: payload.error_message || null,
+        sent_by: created_by || null,
+        sent_by_name: getCurrentUserName(),
+        sent_at: new Date().toISOString(),
+        provider: payload.provider || "mailto",
+        provider_msg_id: payload.provider_msg_id || null,
+      };
+      if (s) {
+        const { data, error } = await s.from("commercial_doc_sends").insert(row).select().maybeSingle();
+        if (error) console.warn("[commercialSends.log]", error.message);
+        if (data) return data;
+      }
+      const arr = lsGet("commercial_doc_sends"); arr.unshift(row); lsSet("commercial_doc_sends", arr);
+      return row;
+    },
+
+    async updateStatus(id, status, patch = {}) {
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("commercial_doc_sends").update({ status, ...patch }).eq("id", id).select().maybeSingle();
+        if (data) return data;
+      }
+      return null;
+    },
+  };
+
   /** Référentiel TVA + conditions de paiement (lecture seule pour les users). */
   const commercialRefs = {
     async tvaRates() {
@@ -1782,5 +1886,5 @@
   // ───────────────────────────────────────────────────────────────────
   // §8. EXPORT global
   // ───────────────────────────────────────────────────────────────────
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs };
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends };
 })();

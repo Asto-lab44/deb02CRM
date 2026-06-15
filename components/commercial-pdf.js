@@ -1,0 +1,422 @@
+// ════════════════════════════════════════════════════════════════════
+// commercial-pdf.js — Renderer PDF pour les documents commerciaux
+// Reproduit la maquette du devis Astorya (DF4949) avec pdfmake.
+// ════════════════════════════════════════════════════════════════════
+//
+// Usage :
+//   await HubCommercialPdf.preview(doc)              // ouvre l'aperçu dans un onglet
+//   const blob = await HubCommercialPdf.toBlob(doc)  // → Blob pour upload/email
+//   await HubCommercialPdf.download(doc)             // déclenche un téléchargement
+//
+// Le `doc` est l'objet retourné par api.commercialDocs.getById() (avec lines).
+// ════════════════════════════════════════════════════════════════════
+
+(function () {
+  "use strict";
+
+  const PDFMAKE_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js";
+  const PDFMAKE_FONTS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js";
+
+  let _pdfmakeReady = null;
+  function loadPdfMake() {
+    if (window.pdfMake && window.pdfMake.vfs) return Promise.resolve(window.pdfMake);
+    if (_pdfmakeReady) return _pdfmakeReady;
+    _pdfmakeReady = new Promise((resolve, reject) => {
+      const s1 = document.createElement("script");
+      s1.src = PDFMAKE_URL;
+      s1.onload = () => {
+        const s2 = document.createElement("script");
+        s2.src = PDFMAKE_FONTS_URL;
+        s2.onload = () => resolve(window.pdfMake);
+        s2.onerror = () => reject(new Error("Échec chargement vfs_fonts"));
+        document.head.appendChild(s2);
+      };
+      s1.onerror = () => reject(new Error("Échec chargement pdfmake"));
+      document.head.appendChild(s1);
+    });
+    return _pdfmakeReady;
+  }
+
+  // Format euro avec 2 décimales, séparateur espace insécable
+  const fmtEUR = (n) => {
+    const v = Number(n) || 0;
+    return v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            .replace(/ /g, " ")
+            .replace(/,/g, " ");  // Note: in fr-FR, decimal is ',' — we want to keep that
+  };
+  // Plus propre :
+  const fmtEUR2 = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (s) => {
+    if (!s) return "";
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
+  const TYPE_LABEL = { devis: "DEVIS", commande: "COMMANDE", bl: "BON DE LIVRAISON", facture: "FACTURE", avoir: "AVOIR" };
+  const TYPE_PREFIX_LABEL = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir" };
+
+  /** Construit le docDefinition pdfmake à partir du doc + settings société. */
+  function buildDocDefinition(doc, company) {
+    const typeLabel = TYPE_LABEL[doc.type] || "DOCUMENT";
+    const typePrefixLabel = TYPE_PREFIX_LABEL[doc.type] || "Document";
+
+    // ───── Lignes du tableau (Article | Désignation | Qté | P.U. HT | Montant HT)
+    const tableBody = [];
+    tableBody.push([
+      { text: "Article", style: "tableHeader" },
+      { text: "Désignation", style: "tableHeader" },
+      { text: "Qté", style: "tableHeader", alignment: "right" },
+      { text: "P.U. HT", style: "tableHeader", alignment: "right" },
+      { text: "Montant\nHT", style: "tableHeader", alignment: "right" },
+    ]);
+    (doc.lines || []).forEach((l) => {
+      if (l.is_text_only) {
+        tableBody.push([
+          { text: "", style: "tableCell" },
+          { text: l.designation || "", style: "tableCell", colSpan: 4, italics: true, color: "#666" },
+          {}, {}, {},
+        ]);
+        return;
+      }
+      const desStack = [];
+      desStack.push({ text: l.designation || "", style: "tableCell", bold: true });
+      if (l.description && String(l.description).trim()) {
+        desStack.push({ text: l.description, style: "tableCellSm", margin: [0, 2, 0, 0] });
+      }
+      tableBody.push([
+        { text: l.ref || "—", style: "tableCellMono" },
+        { stack: desStack },
+        { text: fmtEUR2(l.quantity), style: "tableCell", alignment: "right" },
+        { text: fmtEUR2(l.unit_price_ht), style: "tableCell", alignment: "right" },
+        { text: fmtEUR2(l.total_ht), style: "tableCell", alignment: "right", bold: true },
+      ]);
+    });
+
+    // ───── Récap TVA par taux
+    const tvaMap = {};
+    (doc.lines || []).forEach((l) => {
+      if (l.is_text_only) return;
+      const rate = Number(l.tva_rate) || 0;
+      const ht = Number(l.total_ht) || 0;
+      const tva = Number(l.total_tva) || 0;
+      if (!tvaMap[rate]) tvaMap[rate] = { rate, ht: 0, tva: 0 };
+      tvaMap[rate].ht += ht;
+      tvaMap[rate].tva += tva;
+    });
+    const tvaRows = Object.values(tvaMap).map((t, i) => [
+      { text: String(i + 1), style: "tvaCell" },
+      { text: fmtEUR2(t.ht), style: "tvaCell", alignment: "right" },
+      { text: fmtEUR2(t.rate), style: "tvaCell", alignment: "right" },
+      { text: fmtEUR2(t.tva), style: "tvaCell", alignment: "right" },
+    ]);
+    if (tvaRows.length === 0) {
+      tvaRows.push([{ text: "—", colSpan: 4, alignment: "center", style: "tvaCell", color: "#999" }, {}, {}, {}]);
+    }
+
+    // ───── Bloc client (haut droite)
+    const clientLines = [];
+    if (doc.client_name) clientLines.push({ text: doc.client_name, bold: true, fontSize: 12 });
+    if (doc.client_address) clientLines.push({ text: doc.client_address, fontSize: 9 });
+    if (doc.client_cp || doc.client_city) clientLines.push({ text: (doc.client_cp || "") + " " + (doc.client_city || ""), fontSize: 9 });
+    if (doc.client_siren) clientLines.push({ text: "SIREN : " + doc.client_siren, fontSize: 8, color: "#666", margin: [0, 4, 0, 0] });
+    if (doc.client_tva) clientLines.push({ text: "TVA : " + doc.client_tva, fontSize: 8, color: "#666" });
+
+    // ───── Bloc société émettrice (gauche, sous le bandeau)
+    const companyBlock = {
+      columns: [
+        {
+          width: "*",
+          stack: [
+            { text: company.raison_sociale || "ASTORYA", bold: true, fontSize: 10 },
+            { text: company.adresse || "", fontSize: 8.5 },
+            { text: ((company.cp || "") + " " + (company.ville || "")).trim(), fontSize: 8.5 },
+            { text: company.email || "", fontSize: 8.5, margin: [0, 2, 0, 0] },
+          ],
+        },
+        {
+          width: "auto",
+          stack: [
+            { text: "Tel             : " + (company.tel || ""), fontSize: 8.5 },
+            { text: "Site internet   : " + (company.site_web || ""), fontSize: 8.5 },
+            { text: "Siret           : " + (company.siret || ""), fontSize: 8.5 },
+            { text: "Capital         : " + fmtEUR2(company.capital_eur || 0) + "€", fontSize: 8.5 },
+          ],
+        },
+      ],
+      margin: [0, 18, 0, 14],
+    };
+
+    // ───── Bandeau noir avec titre + bloc client
+    const headerBand = {
+      table: {
+        widths: ["*", 200],
+        body: [
+          [
+            { text: company.raison_sociale ? company.raison_sociale.split(" ")[0].toLowerCase() : "astorya",
+              fontSize: 22, bold: true, color: "#fff", margin: [12, 14, 0, 14] },
+            { text: typeLabel, fontSize: 22, bold: true, color: "#fff", alignment: "right", margin: [0, 14, 12, 14] },
+          ],
+        ],
+      },
+      layout: {
+        fillColor: () => "#0f172a",
+        hLineWidth: () => 0, vLineWidth: () => 0,
+        paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0,
+      },
+    };
+
+    // ───── Bloc Date / N° / Validité
+    const metaRow = {
+      columns: [
+        { text: "Date : " + fmtDate(doc.doc_date), fontSize: 10, bold: true },
+        { text: typePrefixLabel + " N° " + doc.id, fontSize: 11, bold: true, alignment: "center" },
+        {
+          text: doc.type === "devis" ? ("Validité : " + (doc.valid_until ? fmtDate(doc.valid_until) : "—"))
+              : doc.type === "facture" ? ("Échéance : " + (doc.payment_due ? fmtDate(doc.payment_due) : "—"))
+              : "",
+          fontSize: 10, bold: true, alignment: "right",
+        },
+      ],
+      margin: [0, 0, 0, 12],
+    };
+
+    // ───── Tableau lignes
+    const linesTable = {
+      table: {
+        headerRows: 1,
+        widths: [60, "*", 40, 65, 65],
+        body: tableBody,
+      },
+      layout: {
+        hLineWidth: (i) => (i === 0 || i === 1 ? 0.5 : 0.2),
+        vLineWidth: () => 0,
+        hLineColor: () => "#cbd5e1",
+        fillColor: (row) => (row === 0 ? "#f8fafc" : null),
+        paddingTop: () => 6, paddingBottom: () => 6,
+        paddingLeft: () => 6, paddingRight: () => 6,
+      },
+    };
+
+    // ───── Totaux (récap TVA + Total HT/TVA/NET A PAYER)
+    const totalsBlock = {
+      columns: [
+        {
+          width: "*",
+          margin: [0, 18, 0, 0],
+          table: {
+            widths: [25, 60, 50, 60],
+            body: [
+              [
+                { text: "Code", style: "tvaHead" },
+                { text: "Base HT", style: "tvaHead", alignment: "right" },
+                { text: "Taux TVA", style: "tvaHead", alignment: "right" },
+                { text: "Montant TVA", style: "tvaHead", alignment: "right" },
+              ],
+              ...tvaRows,
+            ],
+          },
+          layout: {
+            hLineWidth: (i) => (i === 0 ? 0.6 : 0.2),
+            vLineWidth: () => 0.2,
+            hLineColor: () => "#cbd5e1", vLineColor: () => "#cbd5e1",
+            fillColor: (row) => (row === 0 ? "#f1f5f9" : null),
+            paddingTop: () => 4, paddingBottom: () => 4,
+            paddingLeft: () => 5, paddingRight: () => 5,
+          },
+        },
+        {
+          width: 220,
+          margin: [12, 18, 0, 0],
+          table: {
+            widths: ["*", 90],
+            body: [
+              [
+                { text: "Total HT", bold: true, fontSize: 10, margin: [4, 6, 0, 6] },
+                { text: fmtEUR2(doc.total_ht), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
+              ],
+              [
+                { text: "Total TVA", bold: true, fontSize: 10, margin: [4, 6, 0, 6] },
+                { text: fmtEUR2(doc.total_tva), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
+              ],
+              [
+                { text: "NET A PAYER", bold: true, fontSize: 12, color: "#fff", margin: [4, 8, 0, 8], fillColor: "#0f172a" },
+                { text: fmtEUR2(doc.total_ttc), bold: true, fontSize: 12, alignment: "right", color: "#fff", margin: [0, 8, 6, 8], fillColor: "#0f172a" },
+              ],
+            ],
+          },
+          layout: {
+            hLineWidth: () => 0.3, vLineWidth: () => 0.3,
+            hLineColor: () => "#0f172a", vLineColor: () => "#0f172a",
+            fillColor: (row) => (row === 2 ? "#0f172a" : null),
+          },
+        },
+      ],
+    };
+
+    // ───── Devis suivi par + coordonnées bancaires + signature
+    const signatureBlock = {
+      margin: [0, 16, 0, 0],
+      columns: [
+        {
+          width: "*",
+          stack: [
+            { text: typePrefixLabel + " suivi par : " + (doc.owner || "—"), bold: true, fontSize: 10, margin: [0, 0, 0, 12] },
+            { text: "Nos coordonnées bancaires", bold: true, fontSize: 9 },
+            { text: "IBAN  : " + (company.iban || "—"), fontSize: 8.5 },
+            { text: "BIC   : " + (company.bic || "—"), fontSize: 8.5 },
+          ],
+        },
+        {
+          width: 240,
+          stack: [
+            { text: doc.payment_terms_label || company.conditions_paiement_default || "", fontSize: 9, italics: true, margin: [0, 0, 0, 10] },
+            { text: "Bon pour accord :", bold: true, fontSize: 10 },
+            { text: " ", fontSize: 16 },
+            { text: "Le :", bold: true, fontSize: 10, margin: [0, 14, 0, 0] },
+          ],
+        },
+      ],
+    };
+
+    // ───── Bas de page : 3 contacts (Commercial / Admin / Compta)
+    const contactsBlock = {
+      margin: [0, 24, 0, 0],
+      table: {
+        widths: ["*", "*", "*"],
+        body: [
+          [
+            { text: "Service Commercial", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
+            { text: "Administratif", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
+            { text: "Comptabilité", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
+          ],
+          [
+            { text: company.contact_commercial_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
+            { text: company.contact_admin_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
+            { text: company.contact_compta_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
+          ],
+          [
+            { text: company.contact_commercial_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
+            { text: company.contact_admin_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
+            { text: company.contact_compta_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
+          ],
+          [
+            { text: company.contact_commercial_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
+            { text: company.contact_admin_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
+            { text: company.contact_compta_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
+          ],
+        ],
+      },
+    };
+
+    // ───── Mention bas de page (réserve de propriété)
+    const reserveBlock = {
+      text: company.mention_reserve_propriete || "",
+      fontSize: 6.5,
+      color: "#555",
+      italics: true,
+      margin: [0, 14, 0, 0],
+    };
+
+    // ───── Notes du document (si présentes)
+    const notesBlock = doc.notes ? {
+      margin: [0, 14, 0, 0],
+      stack: [
+        { text: doc.notes, fontSize: 9, italics: true, color: "#333" },
+      ],
+    } : null;
+
+    // ─────────────────────────────────────────────────────────────────
+    // Assemblage final
+    // ─────────────────────────────────────────────────────────────────
+    const content = [
+      headerBand,
+      // Bloc client en haut droite (positionné absolu via colonnes)
+      {
+        columns: [
+          { width: "*", text: "" },
+          {
+            width: 230,
+            stack: clientLines,
+            margin: [0, 8, 0, 0],
+          },
+        ],
+      },
+      companyBlock,
+      metaRow,
+      linesTable,
+      notesBlock || { text: " " },
+      totalsBlock,
+      signatureBlock,
+      contactsBlock,
+      reserveBlock,
+    ].filter(Boolean);
+
+    return {
+      pageSize: "A4",
+      pageMargins: [28, 28, 28, 28],
+      defaultStyle: { font: "Roboto", fontSize: 9, color: "#0f172a" },
+      content,
+      styles: {
+        tableHeader:  { bold: true, fontSize: 9, color: "#0f172a" },
+        tableCell:    { fontSize: 9 },
+        tableCellSm:  { fontSize: 8, color: "#475569" },
+        tableCellMono:{ fontSize: 8, color: "#3730a3" },
+        tvaHead:      { bold: true, fontSize: 8.5, color: "#475569" },
+        tvaCell:      { fontSize: 8.5 },
+      },
+      footer: function (currentPage, pageCount) {
+        return {
+          columns: [
+            { text: "", width: "*" },
+            { text: "Page " + currentPage + " / " + pageCount, fontSize: 7.5, color: "#888", alignment: "right", margin: [0, 0, 28, 8] },
+          ],
+        };
+      },
+      info: {
+        title: doc.id,
+        author: company.raison_sociale || "Astorya",
+        subject: typePrefixLabel + " " + doc.id,
+      },
+    };
+  }
+
+  async function _resolveDoc(doc) {
+    let resolved = doc;
+    if (typeof doc === "string") {
+      resolved = await window.api.commercialDocs.getById(doc);
+      if (!resolved) throw new Error("Document introuvable");
+    }
+    const company = await window.api.commercialCompany.get();
+    return { doc: resolved, company };
+  }
+
+  const HubCommercialPdf = {
+    async preview(doc) {
+      const pm = await loadPdfMake();
+      const { doc: d, company } = await _resolveDoc(doc);
+      pm.createPdf(buildDocDefinition(d, company)).open();
+    },
+    async download(doc) {
+      const pm = await loadPdfMake();
+      const { doc: d, company } = await _resolveDoc(doc);
+      pm.createPdf(buildDocDefinition(d, company)).download(d.id + ".pdf");
+    },
+    async toBlob(doc) {
+      const pm = await loadPdfMake();
+      const { doc: d, company } = await _resolveDoc(doc);
+      return new Promise((resolve) => {
+        pm.createPdf(buildDocDefinition(d, company)).getBlob(resolve);
+      });
+    },
+    async toBase64(doc) {
+      const pm = await loadPdfMake();
+      const { doc: d, company } = await _resolveDoc(doc);
+      return new Promise((resolve) => {
+        pm.createPdf(buildDocDefinition(d, company)).getBase64(resolve);
+      });
+    },
+  };
+
+  window.HubCommercialPdf = HubCommercialPdf;
+})();

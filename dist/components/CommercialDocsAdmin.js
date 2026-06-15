@@ -13,7 +13,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 var CommercialDocsAdmin = () => {
-  var [tab, setTab] = React.useState("articles");
+  var [tab, setTab] = React.useState("company");
   return /*#__PURE__*/React.createElement("div", {
     style: cdaStyles.frame
   }, /*#__PURE__*/React.createElement("aside", {
@@ -56,6 +56,10 @@ var CommercialDocsAdmin = () => {
   }, "\u2190"), /*#__PURE__*/React.createElement("span", null, "Retour aux documents")), /*#__PURE__*/React.createElement("div", {
     style: cdaStyles.navLabel
   }, "Param\xE8tres"), [{
+    k: "company",
+    label: "Société émettrice",
+    icon: "🏢"
+  }, {
     k: "articles",
     label: "Catalogue articles",
     icon: "📦"
@@ -71,6 +75,10 @@ var CommercialDocsAdmin = () => {
     k: "counters",
     label: "Numérotation",
     icon: "#"
+  }, {
+    k: "sends",
+    label: "Audit envois",
+    icon: "✉"
   }].map(t => /*#__PURE__*/React.createElement("div", {
     key: t.k,
     onClick: () => setTab(t.k),
@@ -85,7 +93,433 @@ var CommercialDocsAdmin = () => {
     }
   }, t.icon), /*#__PURE__*/React.createElement("span", null, t.label)))), /*#__PURE__*/React.createElement("main", {
     style: cdaStyles.main
-  }, tab === "articles" && /*#__PURE__*/React.createElement(ArticlesTab, null), tab === "tva" && /*#__PURE__*/React.createElement(TvaTab, null), tab === "payment" && /*#__PURE__*/React.createElement(PaymentTab, null), tab === "counters" && /*#__PURE__*/React.createElement(CountersTab, null)));
+  }, tab === "company" && /*#__PURE__*/React.createElement(CompanyTab, null), tab === "articles" && /*#__PURE__*/React.createElement(ArticlesTab, null), tab === "tva" && /*#__PURE__*/React.createElement(TvaTab, null), tab === "payment" && /*#__PURE__*/React.createElement(PaymentTab, null), tab === "counters" && /*#__PURE__*/React.createElement(CountersTab, null), tab === "sends" && /*#__PURE__*/React.createElement(SendsTab, null)));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// COMPANY TAB — Coordonnées société émettrice (BDD : commercial_company_settings)
+// ─────────────────────────────────────────────────────────────────
+var CompanyTab = () => {
+  var [c, setC] = React.useState(null);
+  var [saving, setSaving] = React.useState(false);
+  React.useEffect(() => {
+    (async () => setC(await window.api.commercialCompany.get()))();
+  }, []);
+  if (!c) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 40,
+      color: "#94a3b8"
+    }
+  }, "Chargement\u2026");
+  var setField = (k, v) => setC(cur => ({
+    ...cur,
+    [k]: v
+  }));
+  var save = async () => {
+    setSaving(true);
+    try {
+      await window.api.commercialCompany.update(c);
+      if (window.HubToast) window.HubToast.success("✓ Société enregistrée");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+    setSaving(false);
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("header", {
+    style: cdaStyles.topbar
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: cdaStyles.h1
+  }, "Soci\xE9t\xE9 \xE9mettrice"), /*#__PURE__*/React.createElement("p", {
+    style: cdaStyles.sub
+  }, "Coordonn\xE9es imprim\xE9es sur tous les Devis / Commandes / BL / Factures")), /*#__PURE__*/React.createElement("button", {
+    onClick: save,
+    disabled: saving,
+    style: cdaStyles.primaryBtn
+  }, saving ? "Enregistrement…" : "Enregistrer")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 22
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: "0 0 14px",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83C\uDFE2 Identit\xE9 l\xE9gale"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "2fr 1fr",
+      gap: 12,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Raison sociale"), /*#__PURE__*/React.createElement("input", {
+    value: c.raison_sociale || "",
+    onChange: e => setField("raison_sociale", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Forme juridique"), /*#__PURE__*/React.createElement("select", {
+    value: c.forme_juridique || "",
+    onChange: e => setField("forme_juridique", e.target.value),
+    style: cdaStyles.input
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", null, "SARL"), /*#__PURE__*/React.createElement("option", null, "SAS"), /*#__PURE__*/React.createElement("option", null, "SA"), /*#__PURE__*/React.createElement("option", null, "SASU"), /*#__PURE__*/React.createElement("option", null, "EURL"), /*#__PURE__*/React.createElement("option", null, "EI"), /*#__PURE__*/React.createElement("option", null, "Auto-entrepreneur")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "2fr 1fr 1fr",
+      gap: 12,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Adresse"), /*#__PURE__*/React.createElement("input", {
+    value: c.adresse || "",
+    onChange: e => setField("adresse", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Code postal"), /*#__PURE__*/React.createElement("input", {
+    value: c.cp || "",
+    onChange: e => setField("cp", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Ville"), /*#__PURE__*/React.createElement("input", {
+    value: c.ville || "",
+    onChange: e => setField("ville", e.target.value),
+    style: cdaStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 12,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Tel"), /*#__PURE__*/React.createElement("input", {
+    value: c.tel || "",
+    onChange: e => setField("tel", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Email contact"), /*#__PURE__*/React.createElement("input", {
+    value: c.email || "",
+    onChange: e => setField("email", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Site web"), /*#__PURE__*/React.createElement("input", {
+    value: c.site_web || "",
+    onChange: e => setField("site_web", e.target.value),
+    style: cdaStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr 1fr",
+      gap: 12,
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "SIRET"), /*#__PURE__*/React.createElement("input", {
+    value: c.siret || "",
+    onChange: e => setField("siret", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "NAF"), /*#__PURE__*/React.createElement("input", {
+    value: c.naf || "",
+    onChange: e => setField("naf", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "TVA intracom."), /*#__PURE__*/React.createElement("input", {
+    value: c.tva_intra || "",
+    onChange: e => setField("tva_intra", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Capital (\u20AC)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: c.capital_eur || "",
+    onChange: e => setField("capital_eur", e.target.value ? Number(e.target.value) : null),
+    style: cdaStyles.input
+  }))), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: "0 0 14px",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCB3 Coordonn\xE9es bancaires"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "2fr 1fr 1fr",
+      gap: 12,
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "IBAN"), /*#__PURE__*/React.createElement("input", {
+    value: c.iban || "",
+    onChange: e => setField("iban", e.target.value),
+    style: {
+      ...cdaStyles.input,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "BIC"), /*#__PURE__*/React.createElement("input", {
+    value: c.bic || "",
+    onChange: e => setField("bic", e.target.value),
+    style: {
+      ...cdaStyles.input,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Banque"), /*#__PURE__*/React.createElement("input", {
+    value: c.banque_nom || "",
+    onChange: e => setField("banque_nom", e.target.value),
+    style: cdaStyles.input
+  }))), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: "0 0 14px",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDC65 Contacts en pied de page PDF"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, [{
+    prefix: "commercial",
+    label: "Service Commercial"
+  }, {
+    prefix: "admin",
+    label: "Administratif"
+  }, {
+    prefix: "compta",
+    label: "Comptabilité"
+  }].map(c2 => /*#__PURE__*/React.createElement("div", {
+    key: c2.prefix,
+    style: {
+      border: "1px solid #eef1f5",
+      borderRadius: 7,
+      padding: 12,
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#3730a3",
+      marginBottom: 8,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, c2.label), /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Nom"), /*#__PURE__*/React.createElement("input", {
+    value: c["contact_" + c2.prefix + "_nom"] || "",
+    onChange: e => setField("contact_" + c2.prefix + "_nom", e.target.value),
+    style: {
+      ...cdaStyles.input,
+      marginBottom: 6
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Tel"), /*#__PURE__*/React.createElement("input", {
+    value: c["contact_" + c2.prefix + "_tel"] || "",
+    onChange: e => setField("contact_" + c2.prefix + "_tel", e.target.value),
+    style: {
+      ...cdaStyles.input,
+      marginBottom: 6
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    value: c["contact_" + c2.prefix + "_email"] || "",
+    onChange: e => setField("contact_" + c2.prefix + "_email", e.target.value),
+    style: cdaStyles.input
+  })))), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: "18px 0 14px",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCDD Mentions & conditions"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Conditions de paiement par d\xE9faut (encart signature)"), /*#__PURE__*/React.createElement("input", {
+    value: c.conditions_paiement_default || "",
+    onChange: e => setField("conditions_paiement_default", e.target.value),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Mention \"R\xE9serve de propri\xE9t\xE9\" (pied de page tous docs)"), /*#__PURE__*/React.createElement("textarea", {
+    value: c.mention_reserve_propriete || "",
+    onChange: e => setField("mention_reserve_propriete", e.target.value),
+    rows: 3,
+    style: {
+      ...cdaStyles.input,
+      resize: "vertical"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "D\xE9lai de validit\xE9 Devis (jours)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: c.delai_validite_devis_jours || 30,
+    onChange: e => setField("delai_validite_devis_jours", Number(e.target.value)),
+    style: {
+      ...cdaStyles.input,
+      maxWidth: 120
+    }
+  }))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// SENDS TAB — Audit log de tous les envois (BDD : commercial_doc_sends)
+// ─────────────────────────────────────────────────────────────────
+var SendsTab = () => {
+  var [list, setList] = React.useState([]);
+  var [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        setList((await window.api.commercialSends.list({})) || []);
+      } catch (e) {}
+      setLoading(false);
+    })();
+  }, []);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("header", {
+    style: cdaStyles.topbar
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: cdaStyles.h1
+  }, "Audit log des envois"), /*#__PURE__*/React.createElement("p", {
+    style: cdaStyles.sub
+  }, "Trace permanente de tous les documents envoy\xE9s / t\xE9l\xE9charg\xE9s / imprim\xE9s"))), loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 40,
+      color: "#94a3b8"
+    }
+  }, "Chargement\u2026") : list.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: cdaStyles.empty
+  }, "Aucun envoi enregistr\xE9.") : /*#__PURE__*/React.createElement("div", {
+    style: cdaStyles.list
+  }, /*#__PURE__*/React.createElement("div", {
+    style: cdaStyles.tableHead
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 140px"
+    }
+  }, "Date"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 110px"
+    }
+  }, "Doc"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 70px"
+    }
+  }, "Canal"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Destinataire"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 130px"
+    }
+  }, "Envoy\xE9 par"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 90px"
+    }
+  }, "Statut")), list.map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.id,
+    style: cdaStyles.tableRow
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 140px",
+      fontSize: 11,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#475569"
+    }
+  }, new Date(s.sent_at).toLocaleString("fr-FR")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 110px",
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 11,
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, s.doc_id), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 70px",
+      fontSize: 12,
+      color: "#64748b"
+    }
+  }, s.channel), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 12.5
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#0f172a",
+      fontWeight: 500
+    }
+  }, s.recipient_email || "—"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, s.subject || "")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 130px",
+      fontSize: 12,
+      color: "#64748b"
+    }
+  }, s.sent_by_name || "—"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 90px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 8px",
+      borderRadius: 999,
+      background: s.status === "sent" ? "#dcfce7" : s.status === "failed" ? "#fee2e2" : "#f1f5f9",
+      color: s.status === "sent" ? "#065f46" : s.status === "failed" ? "#991b1b" : "#475569",
+      fontWeight: 600
+    }
+  }, s.status))))));
 };
 var ArticlesTab = () => {
   var [list, setList] = React.useState([]);

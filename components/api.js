@@ -404,22 +404,23 @@
             // 2. Sinon → on crée une commande directement depuis l'opp
             try {
               const { data: existingDocs } = await s.from("commercial_docs")
-                .select("id, type, status")
+                .select("id, type, status, parent_doc_id")
                 .eq("opportunity_id", id)
                 .is("deleted_at", null);
               const docs = existingDocs || [];
               const hasCommande = docs.some((d) => d.type === "commande");
+              const hasBL = docs.some((d) => d.type === "bl");
+
+              // 1. Crée la COMMANDE si absente
+              let commandeCreated = null;
               if (!hasCommande) {
-                // Cherche un devis non transformé qui pourrait servir de base
                 const devisToTransform = docs.find((d) => d.type === "devis" && d.status !== "transforme" && d.status !== "annule" && d.status !== "refuse");
                 if (devisToTransform && window.api && window.api.commercialDocs && window.api.commercialDocs.transform) {
-                  // Marque le devis Accepté avant transformation pour respecter les portes
                   await s.from("commercial_docs").update({ status: "accepte" }).eq("id", devisToTransform.id);
-                  await window.api.commercialDocs.transform(devisToTransform.id, "commande");
+                  commandeCreated = await window.api.commercialDocs.transform(devisToTransform.id, "commande");
                 } else if (window.api && window.api.commercialDocs && window.api.commercialDocs.create) {
-                  // Création directe d'une commande pré-remplie depuis l'opp
                   const amt = Number(data.amount_eur) || 0;
-                  await window.api.commercialDocs.create({
+                  commandeCreated = await window.api.commercialDocs.create({
                     type: "commande",
                     status: "brouillon",
                     client_id: data.client_id || null,
@@ -436,6 +437,19 @@
                       total_ht: amt, total_tva: amt * 0.2, total_ttc: amt * 1.2,
                     }] : [],
                   });
+                }
+              }
+
+              // 2. Cascade COMMANDE → BL automatiquement (cible des opp gagnées
+              //    où le matériel est livrable de suite, à la place du workflow manuel)
+              if (!hasBL) {
+                const commandeToBL = commandeCreated
+                  || docs.find((d) => d.type === "commande" && d.status !== "transforme" && d.status !== "annule" && d.status !== "refuse");
+                if (commandeToBL && window.api && window.api.commercialDocs && window.api.commercialDocs.transform) {
+                  try {
+                    await s.from("commercial_docs").update({ status: "accepte" }).eq("id", commandeToBL.id);
+                    await window.api.commercialDocs.transform(commandeToBL.id, "bl");
+                  } catch (eBL) { console.warn("[opp→BL auto]", eBL.message || eBL); }
                 }
               }
             } catch (e) {
@@ -1187,13 +1201,98 @@
   // Méthodes : list, getById, create, update, addLine, updateLine, removeLine
   //            transform (Devis→Commande, Commande→BL, BL→Facture),
   //            nextNumber, recompute, remove (soft)
-  const TYPE_PREFIX = { devis: "DEV", commande: "BC", bl: "BL", facture: "FAC", avoir: "AVO" };
-  const TYPE_LABEL  = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir" };
+  const TYPE_PREFIX = { devis: "DEV", commande: "BC", bl: "BL", facture: "FAC", avoir: "AVO", commande_achat: "CA" };
+  const TYPE_LABEL  = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir", commande_achat: "Commande d'achat" };
 
   // Helper partagé : synchronise une COMMANDE vers Projets & Livrables.
   // Idempotent : si un projet existe déjà pour la même commande (data.commande_id)
   // ou la même opportunité (opportunity_id), pas de doublon. Sinon, création
   // d'un projet en stage 'recu' avec les lignes du devis comme items.
+  // Helper : crée une commande d'achat fournisseur (type='commande_achat')
+  // à partir d'une commande client. Idempotent via data.parent_commande_id.
+  async function createPurchaseOrder(s, commandeRow, lines) {
+    if (!commandeRow || commandeRow.type !== "commande") return;
+    // Idempotence : ne crée pas si déjà liée
+    try {
+      const { data: existing } = await s.from("commercial_docs")
+        .select("id")
+        .eq("type", "commande_achat")
+        .contains("data", { parent_commande_id: commandeRow.id })
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (existing) return existing;
+    } catch (e) {}
+
+    // Numérotation CA-AAAA-NNNN via le RPC (réutilise commercial_next_doc_number)
+    const cur_year = new Date().getFullYear();
+    let seq = 1;
+    try {
+      const { data: rpc } = await s.rpc("commercial_next_doc_number", { p_type: "commande_achat" });
+      if (rpc && rpc[0]) { seq = rpc[0].out_seq; }
+    } catch (e) {
+      // Fallback : MAX existant
+      try {
+        const { data: maxRow } = await s.from("commercial_docs")
+          .select("number_seq").eq("type", "commande_achat").eq("number_year", cur_year)
+          .order("number_seq", { ascending: false }).limit(1).maybeSingle();
+        seq = (maxRow && maxRow.number_seq ? maxRow.number_seq : 0) + 1;
+      } catch (e2) {}
+    }
+    const poId = "CA-" + cur_year + "-" + String(seq).padStart(4, "0");
+
+    const created_by = await getCurrentUserId();
+    const poRow = {
+      id: poId,
+      type: "commande_achat",
+      status: "brouillon",
+      number_year: cur_year,
+      number_seq: seq,
+      client_id: null,                          // pas de client : c'est un fournisseur
+      client_name: "À renseigner",              // nom fournisseur à compléter manuellement
+      opportunity_id: commandeRow.opportunity_id || null,
+      title: "Achats pour " + (commandeRow.title || commandeRow.id),
+      notes: "Commande d'achat générée automatiquement depuis " + commandeRow.id + ". Sélectionner le fournisseur et ajuster les prix d'achat.",
+      total_ht: commandeRow.total_ht || 0,
+      total_tva: commandeRow.total_tva || 0,
+      total_ttc: commandeRow.total_ttc || 0,
+      doc_date: new Date().toISOString().slice(0, 10),
+      data: {
+        parent_commande_id: commandeRow.id,
+        opportunity_id: commandeRow.opportunity_id || null,
+        created_from: "auto_commande",
+        client_destinataire: commandeRow.client_name,  // pour rappel
+      },
+    };
+    if (created_by) poRow.created_by = created_by;
+
+    const { error: poErr } = await s.from("commercial_docs").insert(poRow);
+    if (poErr) {
+      console.warn("[createPurchaseOrder] insert:", poErr.message);
+      return null;
+    }
+    // Copie des lignes (sans TVA car achat HT chez le fournisseur)
+    if (lines && lines.length > 0) {
+      const poLines = lines.filter((l) => !l.is_text_only).map((l, i) => ({
+        id: "CDL-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + "-" + i,
+        doc_id: poId,
+        position: i,
+        ref: l.ref || null,
+        designation: l.designation || "",
+        quantity: Number(l.quantity) || 1,
+        unit: l.unit || "u",
+        unit_price_ht: Number(l.unit_price_ht) || 0,  // prix de vente — à ajuster manuellement
+        discount_pct: 0,
+        tva_rate: Number(l.tva_rate) || 20,
+        total_ht: Number(l.total_ht) || 0,
+        total_tva: Number(l.total_tva) || 0,
+        total_ttc: Number(l.total_ttc) || 0,
+        is_text_only: false,
+      }));
+      if (poLines.length > 0) await s.from("commercial_doc_lines").insert(poLines).catch(() => {});
+    }
+    return { id: poId };
+  }
+
   async function syncCommandeToProject(s, commandeRow, lines) {
     if (!commandeRow || commandeRow.type !== "commande") return;
     // 1. Cherche un projet déjà lié à cette commande (via data.commande_id)
@@ -1463,6 +1562,8 @@
         // dans Projets & Livrables (colonne Reçu) pour la visibilité opérationnelle
         if (type === "commande") {
           try { await syncCommandeToProject(s, data, lines); } catch (e) { console.warn("[commande→projet auto]", e.message || e); }
+          // Crée aussi une COMMANDE D'ACHAT fournisseur (CA-AAAA-NNNN)
+          try { await createPurchaseOrder(s, data, lines); } catch (e) { console.warn("[commande→commande_achat auto]", e.message || e); }
         }
         return { ...data, lines };
       }

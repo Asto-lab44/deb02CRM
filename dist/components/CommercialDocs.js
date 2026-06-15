@@ -37,6 +37,12 @@ var CommercialDocs = () => {
     newLabel: "Nouvelle facture",
     color: "#10b981",
     icon: "💶"
+  }, {
+    k: "commande_achat",
+    label: "Achats fournisseurs",
+    newLabel: "Nouvelle commande d'achat",
+    color: "#0ea5e9",
+    icon: "🛒"
   }];
   var STATUS_META = {
     brouillon: {
@@ -238,7 +244,8 @@ var CommercialDocs = () => {
         DEV: "devis",
         BC: "commande",
         BL: "bl",
-        FAC: "facture"
+        FAC: "facture",
+        CA: "commande_achat"
       };
       var matched = typeByPrefix[prefix];
       if (matched && matched !== activeType) setActiveType(matched);

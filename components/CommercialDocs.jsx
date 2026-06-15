@@ -14,10 +14,11 @@
 
 const CommercialDocs = () => {
   const TYPES = [
-    { k: "devis",    label: "Devis",          newLabel: "Nouveau devis",            color: "#3b82f6", icon: "📄" },
-    { k: "commande", label: "Commandes",      newLabel: "Nouvelle commande",        color: "#a855f7", icon: "📋" },
-    { k: "bl",       label: "Bons livraison", newLabel: "Nouveau bon de livraison", color: "#ea580c", icon: "🚚" },
-    { k: "facture",  label: "Factures",       newLabel: "Nouvelle facture",         color: "#10b981", icon: "💶" },
+    { k: "devis",          label: "Devis",          newLabel: "Nouveau devis",            color: "#3b82f6", icon: "📄" },
+    { k: "commande",       label: "Commandes",      newLabel: "Nouvelle commande",        color: "#a855f7", icon: "📋" },
+    { k: "bl",             label: "Bons livraison", newLabel: "Nouveau bon de livraison", color: "#ea580c", icon: "🚚" },
+    { k: "facture",        label: "Factures",       newLabel: "Nouvelle facture",         color: "#10b981", icon: "💶" },
+    { k: "commande_achat", label: "Achats fournisseurs", newLabel: "Nouvelle commande d'achat", color: "#0ea5e9", icon: "🛒" },
   ];
 
   const STATUS_META = {
@@ -157,7 +158,7 @@ const CommercialDocs = () => {
     if (openId && !editing) {
       // Bascule au bon type selon préfixe pour que la liste soit cohérente
       const prefix = openId.split("-")[0];
-      const typeByPrefix = { DEV: "devis", BC: "commande", BL: "bl", FAC: "facture" };
+      const typeByPrefix = { DEV: "devis", BC: "commande", BL: "bl", FAC: "facture", CA: "commande_achat" };
       const matched = typeByPrefix[prefix];
       if (matched && matched !== activeType) setActiveType(matched);
       (async () => {

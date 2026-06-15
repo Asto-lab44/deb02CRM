@@ -50,8 +50,8 @@
     return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  const TYPE_LABEL = { devis: "DEVIS", commande: "COMMANDE", bl: "BON DE LIVRAISON", facture: "FACTURE", avoir: "AVOIR" };
-  const TYPE_PREFIX_LABEL = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir" };
+  const TYPE_LABEL = { devis: "DEVIS", commande: "COMMANDE", bl: "BON DE LIVRAISON", facture: "FACTURE", avoir: "AVOIR", commande_achat: "COMMANDE D'ACHAT" };
+  const TYPE_PREFIX_LABEL = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir", commande_achat: "Commande d'achat" };
 
   /** Construit le docDefinition pdfmake à partir du doc + settings société. */
   function buildDocDefinition(doc, company) {

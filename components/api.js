@@ -2505,14 +2505,22 @@
         .filter((l) => !l.is_text_only)
         .map((l) => {
           const d = docMap[l.doc_id];
-          const date = l.purchase_date || d.doc_date;
+          // Fallback : si colonnes purchase_* absentes, lit le data jsonb
+          const meta = (l.data && typeof l.data === "object") ? l.data : {};
+          const purchase = Number(l.purchase_price_ht != null ? l.purchase_price_ht : meta.purchase_price_ht) || 0;
+          const supplier = l.supplier || meta.supplier || null;
+          const supplier_ref = l.supplier_ref || meta.supplier_ref || null;
+          const purchase_status = l.purchase_status || meta.purchase_status || "panier";
+          const reception_status = l.reception_status || meta.reception_status || "en_cours";
+          const received_at = l.received_at || meta.received_at || null;
+          const serial_number = l.serial_number || meta.serial_number || null;
+          const purchase_date_val = l.purchase_date || meta.purchase_date || null;
+          const date = purchase_date_val || d.doc_date;
           const dt = new Date(date);
-          // Calcul semaine ISO (approximatif)
           const start = new Date(dt.getFullYear(), 0, 1);
           const dayOfYear = Math.floor((dt - start) / (24 * 3600 * 1000)) + 1;
           const week_number = Math.ceil((dayOfYear + start.getDay()) / 7);
           const qty = Number(l.quantity) || 0;
-          const purchase = Number(l.purchase_price_ht) || 0;
           const sell = Number(l.unit_price_ht) || 0;
           return {
             line_id: l.id,
@@ -2535,12 +2543,12 @@
             sell_price_ht: sell,
             purchase_price_ht: purchase,
             tva_rate: l.tva_rate,
-            supplier: l.supplier || null,
-            supplier_ref: l.supplier_ref || null,
-            purchase_status: l.purchase_status || "panier",
-            reception_status: l.reception_status || "en_cours",
-            received_at: l.received_at,
-            serial_number: l.serial_number,
+            supplier,
+            supplier_ref,
+            purchase_status,
+            reception_status,
+            received_at,
+            serial_number,
             total_purchase_ht: qty * purchase,
             total_sell_ht: qty * sell,
             margin_eur: qty * (sell - purchase),
@@ -2567,9 +2575,26 @@
       for (const k of Object.keys(patch)) {
         if (allowed.includes(k)) row[k] = patch[k];
       }
-      const { data, error } = await s.from("commercial_doc_lines").update(row).eq("id", line_id).select().maybeSingle();
-      if (error) throw new Error(error.message);
-      return data;
+
+      // Tentative 1 : update direct (cas SQL migration passée)
+      let { data, error } = await s.from("commercial_doc_lines").update(row).eq("id", line_id).select().maybeSingle();
+      if (!error) return data;
+
+      // Tentative 2 : SQL migration pas encore passée → fallback dans data jsonb
+      if (/Could not find|does not exist|42703|PGRST204/i.test(error.message)) {
+        // Lit la ligne courante pour fusionner data existant
+        const { data: cur } = await s.from("commercial_doc_lines").select("data").eq("id", line_id).maybeSingle();
+        const mergedData = { ...((cur && cur.data) || {}), ...row };
+        const retry = await s.from("commercial_doc_lines").update({ data: mergedData }).eq("id", line_id).select().maybeSingle();
+        if (retry.error) {
+          // Si même data n'existe pas → on ne peut rien faire en BDD, on log et retourne
+          console.warn("[updateLine fallback]", retry.error.message);
+          throw new Error("Impossible de sauvegarder : exécute sql/20260615_stock_catalogue.sql dans Supabase pour activer les colonnes achat. Détail : " + retry.error.message);
+        }
+        // Reconstruit un objet plat lu pour cohérence avec l'app
+        return { ...(retry.data || {}), ...mergedData };
+      }
+      throw new Error(error.message);
     },
   };
 

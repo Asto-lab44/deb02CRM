@@ -2444,5 +2444,134 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties };
+  // ───────────────────────────────────────────────────────────────────
+  // §6.73 STOCK & CATALOGUE — Matrice d'achats hebdomadaires
+  // ───────────────────────────────────────────────────────────────────
+  const suppliers = {
+    async list({ active = true } = {}) {
+      const s = supa();
+      if (!s) return [];
+      let q = s.from("suppliers").select("*");
+      if (active) q = q.eq("active", true);
+      const { data } = await q.order("name");
+      return data || [];
+    },
+    async create(payload) {
+      const s = supa();
+      const id = payload.id || ("SUP-" + (payload.name || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) + "-" + Math.random().toString(36).slice(2, 4));
+      const row = { id, active: true, ...payload, created_at: new Date().toISOString() };
+      if (s) {
+        const { data, error } = await s.from("suppliers").insert(row).select().maybeSingle();
+        if (error) throw new Error(error.message);
+        return data;
+      }
+      return row;
+    },
+    async update(id, patch) {
+      const s = supa();
+      if (!s) return null;
+      const { data, error } = await s.from("suppliers").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  };
+
+  const purchaseMatrix = {
+    /** Toutes les lignes à acheter (devis acceptés/transformés/envoyés
+     *  + commandes). Filtrable par semaine, fournisseur, statut achat. */
+    async list({ week, year, supplier, purchase_status, reception_status, since_days = 60 } = {}) {
+      const s = supa();
+      if (!s) return [];
+      // Approche : on lit les docs commercial puis les lignes — plus robuste
+      // que de dépendre d'une vue SQL qui peut ne pas exister.
+      const sinceDate = new Date(Date.now() - since_days * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const { data: docs } = await s.from("commercial_docs")
+        .select("id, type, status, client_name, doc_date, opportunity_id, title")
+        .in("type", ["devis", "commande"])
+        .in("status", ["accepte", "transforme", "envoye", "brouillon"])
+        .is("deleted_at", null)
+        .gte("doc_date", sinceDate)
+        .order("doc_date", { ascending: false });
+      const docMap = {};
+      (docs || []).forEach((d) => { docMap[d.id] = d; });
+      const docIds = Object.keys(docMap);
+      if (docIds.length === 0) return [];
+
+      const { data: lines } = await s.from("commercial_doc_lines")
+        .select("*")
+        .in("doc_id", docIds);
+
+      const rows = (lines || [])
+        .filter((l) => !l.is_text_only)
+        .map((l) => {
+          const d = docMap[l.doc_id];
+          const date = l.purchase_date || d.doc_date;
+          const dt = new Date(date);
+          // Calcul semaine ISO (approximatif)
+          const start = new Date(dt.getFullYear(), 0, 1);
+          const dayOfYear = Math.floor((dt - start) / (24 * 3600 * 1000)) + 1;
+          const week_number = Math.ceil((dayOfYear + start.getDay()) / 7);
+          const qty = Number(l.quantity) || 0;
+          const purchase = Number(l.purchase_price_ht) || 0;
+          const sell = Number(l.unit_price_ht) || 0;
+          return {
+            line_id: l.id,
+            doc_id: l.doc_id,
+            doc_ref: d.id,
+            doc_type: d.type,
+            doc_status: d.status,
+            doc_title: d.title,
+            client_name: d.client_name,
+            opportunity_id: d.opportunity_id,
+            doc_date: d.doc_date,
+            purchase_date: date,
+            week_number,
+            year_number: dt.getFullYear(),
+            ref: l.ref,
+            designation: l.designation,
+            description: l.description,
+            quantity: qty,
+            unit: l.unit,
+            sell_price_ht: sell,
+            purchase_price_ht: purchase,
+            tva_rate: l.tva_rate,
+            supplier: l.supplier || null,
+            supplier_ref: l.supplier_ref || null,
+            purchase_status: l.purchase_status || "panier",
+            reception_status: l.reception_status || "en_cours",
+            received_at: l.received_at,
+            serial_number: l.serial_number,
+            total_purchase_ht: qty * purchase,
+            total_sell_ht: qty * sell,
+            margin_eur: qty * (sell - purchase),
+            margin_pct: purchase > 0 ? Math.round(((sell - purchase) / purchase) * 10000) / 100 : null,
+          };
+        });
+
+      // Filtres
+      let filtered = rows;
+      if (week) filtered = filtered.filter((r) => r.week_number === Number(week));
+      if (year) filtered = filtered.filter((r) => r.year_number === Number(year));
+      if (supplier) filtered = filtered.filter((r) => (r.supplier || "") === supplier);
+      if (purchase_status) filtered = filtered.filter((r) => r.purchase_status === purchase_status);
+      if (reception_status) filtered = filtered.filter((r) => r.reception_status === reception_status);
+      return filtered;
+    },
+
+    /** Mise à jour rapide d'une ligne (statut achat, fournisseur, prix d'achat…) */
+    async updateLine(line_id, patch) {
+      const s = supa();
+      if (!s) return null;
+      const allowed = ["supplier", "supplier_ref", "purchase_price_ht", "purchase_status", "reception_status", "received_at", "serial_number", "purchase_date"];
+      const row = {};
+      for (const k of Object.keys(patch)) {
+        if (allowed.includes(k)) row[k] = patch[k];
+      }
+      const { data, error } = await s.from("commercial_doc_lines").update(row).eq("id", line_id).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix };
 })();

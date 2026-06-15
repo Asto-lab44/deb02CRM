@@ -829,8 +829,19 @@ var ListView = ({
       }
       map.get(k).lines.push(r);
     });
-    // Tri par doc_date desc
-    return Array.from(map.values()).sort((a, b) => String(b.doc_date || "").localeCompare(String(a.doc_date || "")));
+    // Tri stable : doc_date desc, puis doc_ref pour départager (jamais
+    // basé sur le total acheté ou la quantité, pour que l'ordre des groupes
+    // ne change pas quand l'utilisateur modifie un PU).
+    var out = Array.from(map.values()).sort((a, b) => {
+      var d = String(b.doc_date || "").localeCompare(String(a.doc_date || ""));
+      if (d !== 0) return d;
+      return String(a.doc_ref).localeCompare(String(b.doc_ref));
+    });
+    // Tri stable des articles à l'intérieur de chaque groupe (line_id)
+    out.forEach(g => {
+      g.lines.sort((a, b) => String(a.line_id).localeCompare(String(b.line_id)));
+    });
+    return out;
   }, [rows]);
   if (!rows || !rows.length) {
     return /*#__PURE__*/React.createElement("div", {

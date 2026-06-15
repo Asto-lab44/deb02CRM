@@ -987,36 +987,53 @@
 
     async changeStage(id, newStage, reason) {
       const s = supa();
-      if (!s) return null;
-      const patch = { stage: newStage };
-      // Auto-fill des dates clés selon le stage
-      if (newStage === "livre" && !patch.delivery_done) patch.delivery_done = new Date().toISOString().slice(0, 10);
-      if (newStage === "installe" && !patch.install_done) patch.install_done = new Date().toISOString().slice(0, 10);
-      if (newStage === "clos") { patch.closed_at = new Date().toISOString(); patch.recette_done = new Date().toISOString().slice(0, 10); }
+      if (!s) {
+        // Fallback localStorage
+        const arr = lsGet("projects");
+        const idx = arr.findIndex((p) => p.id === id);
+        if (idx >= 0) {
+          arr[idx] = { ...arr[idx], stage: newStage, updated_at: new Date().toISOString() };
+          lsSet("projects", arr);
+          return arr[idx];
+        }
+        return null;
+      }
+      const patch = { stage: newStage, updated_at: new Date().toISOString() };
+      // Auto-fill des dates clés selon le stage — noms de colonnes corrects
+      if (newStage === "livre") patch.delivered_at = new Date().toISOString();
+      if (newStage === "installe") patch.installed_at = new Date().toISOString();
+      if (newStage === "clos") patch.closed_at = new Date().toISOString();
       const { data, error } = await s.from("projects").update(patch).eq("id", id).select().maybeSingle();
-      if (error) { console.warn("[api.projects.changeStage]", error.message); return null; }
-      // Log event
+      if (error) {
+        console.warn("[api.projects.changeStage]", error.message);
+        throw new Error(error.message);
+      }
+      // Log event (best-effort, ne bloque pas le retour si la table n'existe pas)
       const cuId = await getCurrentUserId();
       const cuName = getCurrentUserName();
-      await s.from("project_events").insert({
-        project_id: id, type: "stage_change",
-        payload: { to: newStage, reason: reason || null },
-        author_id: cuId, author_name: cuName,
-      });
-      // Notification au chef de projet (si défini et différent de l'auteur)
-      const stageLabels = { recu: "Reçu", preparation: "En préparation", pret_livrer: "Prêt à livrer", livre: "Livré", installe: "Installé", clos: "Clos", annule: "Annulé" };
-      const severity = newStage === "clos" ? "success" : newStage === "annule" ? "error" : (newStage === "livre" || newStage === "installe" ? "success" : "info");
-      const targetId = (data && data.pm_id && data.pm_id !== cuId) ? data.pm_id : null;
-      // Si pas de chef projet → broadcast (recipient_id null)
-      await s.from("notifications").insert({
-        recipient_id: targetId,
-        type: "project_stage",
-        title: "Projet " + (data?.sage_ref || data?.name || id) + " → " + (stageLabels[newStage] || newStage),
-        body: (cuName || "Quelqu'un") + " a fait avancer le projet" + (reason ? " · " + reason : ""),
-        link: "/projet?id=" + id,
-        severity,
-        payload: { project_id: id, from: data?.stage, to: newStage, author: cuName },
-      });
+      try {
+        await s.from("project_events").insert({
+          id: "PEVT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+          project_id: id, type: "stage_change",
+          payload: { to: newStage, reason: reason || null },
+          author_id: cuId, author_name: cuName,
+        });
+      } catch (e) { console.warn("[changeStage] events insert skipped:", e.message); }
+      // Notification (best-effort, skip si table notifications absente)
+      try {
+        const stageLabels = { recu: "Reçu", preparation: "En préparation", pret_livrer: "Prêt à livrer", livre: "Livré", installe: "Installé", clos: "Clos", annule: "Annulé" };
+        const severity = newStage === "clos" ? "success" : newStage === "annule" ? "error" : (newStage === "livre" || newStage === "installe" ? "success" : "info");
+        const targetId = (data && data.pm_id && data.pm_id !== cuId) ? data.pm_id : null;
+        await s.from("notifications").insert({
+          recipient_id: targetId,
+          type: "project_stage",
+          title: "Projet " + ((data && (data.sage_ref || data.name)) || id) + " → " + (stageLabels[newStage] || newStage),
+          body: (cuName || "Quelqu'un") + " a fait avancer le projet" + (reason ? " · " + reason : ""),
+          link: "/projet?id=" + id,
+          severity,
+          payload: { project_id: id, to: newStage, author: cuName },
+        });
+      } catch (e) { /* table notifications optionnelle */ }
       return data;
     },
 

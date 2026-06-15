@@ -188,7 +188,7 @@ const StockCatalogue = () => {
           <KPI label="⚠ Sans fournisseur" value={kpis.no_supplier} color="#f59e0b" />
         </div>
 
-        {loading ? (
+        {loading && rows.length === 0 ? (
           <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Chargement…</div>
         ) : filtered.length === 0 ? (
           <div style={scStyles.empty}>

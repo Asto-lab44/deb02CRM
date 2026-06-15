@@ -294,7 +294,7 @@ var StockCatalogue = () => {
     label: "\u26A0 Sans fournisseur",
     value: kpis.no_supplier,
     color: "#f59e0b"
-  })), loading ? /*#__PURE__*/React.createElement("div", {
+  })), loading && rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 60,
       textAlign: "center",

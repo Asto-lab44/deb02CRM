@@ -19,8 +19,7 @@ var StockCatalogue = () => {
   var [suppliers, setSuppliers] = React.useState([]);
   var [loading, setLoading] = React.useState(true);
   var [filter, setFilter] = React.useState({
-    purchase_status: "all",
-    reception_status: "all",
+    article_status: "all",
     supplier: "all"
   });
   var [editing, setEditing] = React.useState(null);
@@ -45,8 +44,10 @@ var StockCatalogue = () => {
 
   // ── Filtres
   var filtered = React.useMemo(() => rows.filter(r => {
-    if (filter.purchase_status !== "all" && r.purchase_status !== filter.purchase_status) return false;
-    if (filter.reception_status !== "all" && r.reception_status !== filter.reception_status) return false;
+    if (filter.article_status !== "all") {
+      var s = deriveArticleStatus(r.purchase_status, r.reception_status);
+      if (s !== filter.article_status) return false;
+    }
     if (filter.supplier !== "all" && (r.supplier || "") !== filter.supplier) return false;
     return true;
   }), [rows, filter]);
@@ -163,75 +164,47 @@ var StockCatalogue = () => {
     }
   }, /*#__PURE__*/React.createElement("span", null, v.label))), /*#__PURE__*/React.createElement("div", {
     style: scStyles.navLabel
-  }, "Statut achat"), [{
+  }, "Statut article"), [{
     k: "all",
     label: "Tous"
   }, {
     k: "panier",
-    label: "🛒 Panier",
-    color: "#a1e3f6"
+    label: "🛒 Panier"
   }, {
     k: "demande",
-    label: "📤 Demande envoyée",
-    color: "#ff7575"
+    label: "📤 Demande envoyée"
   }, {
     k: "transmis",
-    label: "📨 Panier transmis",
-    color: "#66ccff"
+    label: "📨 Panier transmis"
   }, {
     k: "commande",
-    label: "✅ Commandé",
-    color: "#bca58a"
-  }].map(s => {
-    var count = s.k === "all" ? rows.length : rows.filter(r => r.purchase_status === s.k).length;
-    return /*#__PURE__*/React.createElement("div", {
-      key: s.k,
-      onClick: () => setFilter(f => ({
-        ...f,
-        purchase_status: s.k
-      })),
-      style: {
-        ...scStyles.navItem,
-        ...(filter.purchase_status === s.k ? scStyles.navItemActive : {})
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: 1
-      }
-    }, s.label), /*#__PURE__*/React.createElement("span", {
-      style: scStyles.navCount
-    }, count));
-  }), /*#__PURE__*/React.createElement("div", {
-    style: scStyles.navLabel
-  }, "R\xE9ception"), [{
-    k: "all",
-    label: "Toutes"
+    label: "✅ Commandé"
   }, {
-    k: "en_cours",
-    label: "⏳ En cours"
+    k: "partielle",
+    label: "◐ Réception partielle"
   }, {
-    k: "ok",
-    label: "✓ Réception OK"
+    k: "recu",
+    label: "✓ Reçu"
   }, {
     k: "en_stock",
     label: "📦 En stock"
   }, {
-    k: "partielle",
-    label: "◐ Partielle"
-  }, {
     k: "bloque",
     label: "⛔ Bloqué"
+  }, {
+    k: "differe",
+    label: "⏸ Différé"
   }].map(s => {
-    var count = s.k === "all" ? rows.length : rows.filter(r => r.reception_status === s.k).length;
+    var count = s.k === "all" ? rows.length : rows.filter(r => deriveArticleStatus(r.purchase_status, r.reception_status) === s.k).length;
     return /*#__PURE__*/React.createElement("div", {
       key: s.k,
       onClick: () => setFilter(f => ({
         ...f,
-        reception_status: s.k
+        article_status: s.k
       })),
       style: {
         ...scStyles.navItem,
-        ...(filter.reception_status === s.k ? scStyles.navItemActive : {})
+        ...(filter.article_status === s.k ? scStyles.navItemActive : {})
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -486,63 +459,141 @@ var MatrixView = ({
 // ─────────────────────────────────────────────────────────────────
 // LISTE — table détaillée éditable
 // ─────────────────────────────────────────────────────────────────
-var PURCHASE_STATUS = {
+// ─── Statut unifié de l'article (fusion Achat × Réception) ───
+// Cycle de vie : panier → demande → transmis → commande →
+//                (partielle | recu | en_stock) | bloque | differe | na
+var ARTICLE_STATUS = {
   panier: {
     label: "🛒 Panier",
     color: "#0c4a6e",
-    bg: "#e0f2fe"
+    bg: "#e0f2fe",
+    order: 1
   },
   demande: {
     label: "📤 Demande envoyée",
     color: "#9f1239",
-    bg: "#ffe4e6"
+    bg: "#ffe4e6",
+    order: 2
   },
   transmis: {
     label: "📨 Panier transmis",
     color: "#075985",
-    bg: "#dbeafe"
+    bg: "#dbeafe",
+    order: 3
   },
   commande: {
     label: "✅ Commandé",
     color: "#854d0e",
-    bg: "#fef3c7"
-  }
-};
-var RECEPTION_STATUS = {
-  en_cours: {
-    label: "⏳ En cours",
-    color: "#92400e",
-    bg: "#fef3c7"
+    bg: "#fef3c7",
+    order: 4
   },
-  ok: {
-    label: "✓ OK",
-    color: "#065f46",
-    bg: "#d1fae5"
+  partielle: {
+    label: "◐ Réception partielle",
+    color: "#6b21a8",
+    bg: "#f3e8ff",
+    order: 5
   },
-  bloque: {
-    label: "⛔ Bloqué",
-    color: "#991b1b",
-    bg: "#fee2e2"
+  recu: {
+    label: "✓ Reçu",
+    color: "#0d9488",
+    bg: "#ccfbf1",
+    order: 6
   },
   en_stock: {
     label: "📦 En stock",
     color: "#075985",
-    bg: "#dbeafe"
+    bg: "#dbeafe",
+    order: 7
   },
-  partielle: {
-    label: "◐ Partielle",
-    color: "#6b21a8",
-    bg: "#f3e8ff"
-  },
-  na: {
-    label: "N/A",
-    color: "#475569",
-    bg: "#f1f5f9"
+  bloque: {
+    label: "⛔ Bloqué",
+    color: "#991b1b",
+    bg: "#fee2e2",
+    order: 99
   },
   differe: {
     label: "⏸ Différé",
     color: "#9f1239",
-    bg: "#ffe4e6"
+    bg: "#ffe4e6",
+    order: 99
+  },
+  na: {
+    label: "N/A",
+    color: "#475569",
+    bg: "#f1f5f9",
+    order: 99
+  }
+};
+
+// Dérive le statut unifié depuis les 2 colonnes existantes (rétrocompat).
+var deriveArticleStatus = (purchase, reception) => {
+  if (reception === "bloque") return "bloque";
+  if (reception === "differe") return "differe";
+  if (reception === "na") return "na";
+  if (reception === "en_stock") return "en_stock";
+  if (reception === "ok") return "recu";
+  if (reception === "partielle") return "partielle";
+  return purchase || "panier";
+};
+
+// Convertit un statut unifié en patch {purchase_status, reception_status}.
+var applyArticleStatus = status => {
+  switch (status) {
+    case "panier":
+      return {
+        purchase_status: "panier",
+        reception_status: "en_cours"
+      };
+    case "demande":
+      return {
+        purchase_status: "demande",
+        reception_status: "en_cours"
+      };
+    case "transmis":
+      return {
+        purchase_status: "transmis",
+        reception_status: "en_cours"
+      };
+    case "commande":
+      return {
+        purchase_status: "commande",
+        reception_status: "en_cours"
+      };
+    case "partielle":
+      return {
+        purchase_status: "commande",
+        reception_status: "partielle"
+      };
+    case "recu":
+      return {
+        purchase_status: "commande",
+        reception_status: "ok"
+      };
+    case "en_stock":
+      return {
+        purchase_status: "commande",
+        reception_status: "en_stock"
+      };
+    case "bloque":
+      return {
+        purchase_status: "commande",
+        reception_status: "bloque"
+      };
+    case "differe":
+      return {
+        purchase_status: "commande",
+        reception_status: "differe"
+      };
+    case "na":
+      return {
+        purchase_status: "commande",
+        reception_status: "na"
+      };
+    default:
+      return {
+        purchase_status: "panier",
+        reception_status: "en_cours"
+      };
   }
 };
 
@@ -608,8 +659,8 @@ var EditableRow = ({
       [k]: local[k]
     });
   };
-  var ps = PURCHASE_STATUS[local.purchase_status] || PURCHASE_STATUS.panier;
-  var rs = RECEPTION_STATUS[local.reception_status] || RECEPTION_STATUS.en_cours;
+  var articleStatusKey = deriveArticleStatus(local.purchase_status, local.reception_status);
+  var as = ARTICLE_STATUS[articleStatusKey] || ARTICLE_STATUS.panier;
   var purchaseN = Number(local.purchase_price_ht) || 0;
   var sellN = Number(r.sell_price_ht) || 0;
   var marginPct = purchaseN > 0 ? (sellN - purchaseN) / purchaseN * 100 : null;
@@ -748,17 +799,24 @@ var EditableRow = ({
     style: {
       ...scStyles.td,
       padding: "6px 8px",
-      minWidth: 140
+      minWidth: 180
     }
   }, /*#__PURE__*/React.createElement("select", {
-    value: local.purchase_status || "panier",
-    onChange: e => updateField("purchase_status", e.target.value),
+    value: articleStatusKey,
+    onChange: e => {
+      var patch = applyArticleStatus(e.target.value);
+      setLocal(cur => ({
+        ...cur,
+        ...patch
+      }));
+      doSave(patch);
+    },
     style: {
       ...cellInput,
-      background: ps.bg,
-      color: ps.color,
+      background: as.bg,
+      color: as.color,
       fontWeight: 600,
-      borderColor: ps.bg
+      borderColor: as.bg
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "panier"
@@ -768,31 +826,13 @@ var EditableRow = ({
     value: "transmis"
   }, "\uD83D\uDCE8 Panier transmis"), /*#__PURE__*/React.createElement("option", {
     value: "commande"
-  }, "\u2705 Command\xE9"))), /*#__PURE__*/React.createElement("td", {
-    style: {
-      ...scStyles.td,
-      padding: "6px 8px",
-      minWidth: 140
-    }
-  }, /*#__PURE__*/React.createElement("select", {
-    value: local.reception_status || "en_cours",
-    onChange: e => updateField("reception_status", e.target.value),
-    style: {
-      ...cellInput,
-      background: rs.bg,
-      color: rs.color,
-      fontWeight: 600,
-      borderColor: rs.bg
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "en_cours"
-  }, "\u23F3 En cours"), /*#__PURE__*/React.createElement("option", {
-    value: "ok"
-  }, "\u2713 R\xE9ception OK"), /*#__PURE__*/React.createElement("option", {
+  }, "\u2705 Command\xE9"), /*#__PURE__*/React.createElement("option", {
+    value: "partielle"
+  }, "\u25D0 R\xE9ception partielle"), /*#__PURE__*/React.createElement("option", {
+    value: "recu"
+  }, "\u2713 Re\xE7u"), /*#__PURE__*/React.createElement("option", {
     value: "en_stock"
   }, "\uD83D\uDCE6 En stock"), /*#__PURE__*/React.createElement("option", {
-    value: "partielle"
-  }, "\u25D0 Partielle"), /*#__PURE__*/React.createElement("option", {
     value: "bloque"
   }, "\u26D4 Bloqu\xE9"), /*#__PURE__*/React.createElement("option", {
     value: "differe"
@@ -966,30 +1006,34 @@ var ListView = ({
     }
   };
 
-  // Suivi global réception du devis
-  var receptionSummary = lines => {
+  // Suivi global statut article du devis (fusion achat × réception)
+  var articleStatusSummary = lines => {
     var total = lines.length;
-    var ok = lines.filter(l => l.reception_status === "ok" || l.reception_status === "en_stock").length;
-    var blocked = lines.filter(l => l.reception_status === "bloque").length;
-    if (ok === total) return {
-      label: "✓ Tout reçu",
-      color: "#065f46",
-      bg: "#d1fae5"
-    };
-    if (blocked > 0) return {
-      label: "⛔ " + blocked + " bloqué(s)",
-      color: "#991b1b",
-      bg: "#fee2e2"
-    };
-    if (ok > 0) return {
-      label: "◐ " + ok + "/" + total + " reçus",
-      color: "#6b21a8",
-      bg: "#f3e8ff"
-    };
+    var statuses = lines.map(l => deriveArticleStatus(l.purchase_status, l.reception_status));
+    var blocked = statuses.filter(s => s === "bloque").length;
+    if (blocked > 0) {
+      var _meta = ARTICLE_STATUS.bloque;
+      return {
+        label: "⛔ " + blocked + "/" + total + " bloqué(s)",
+        color: _meta.color,
+        bg: _meta.bg
+      };
+    }
+    var minOrder = Math.min.apply(null, statuses.map(s => ARTICLE_STATUS[s] && ARTICLE_STATUS[s].order || 1));
+    var minStatus = Object.keys(ARTICLE_STATUS).find(k => ARTICLE_STATUS[k].order === minOrder) || "panier";
+    var meta = ARTICLE_STATUS[minStatus];
+    var sameCount = statuses.filter(s => s === minStatus).length;
+    if (sameCount === total) {
+      return {
+        label: meta.label + (total > 1 ? " (×" + total + ")" : ""),
+        color: meta.color,
+        bg: meta.bg
+      };
+    }
     return {
-      label: "⏳ En attente",
-      color: "#92400e",
-      bg: "#fef3c7"
+      label: meta.label + " " + sameCount + "/" + total,
+      color: meta.color,
+      bg: meta.bg
     };
   };
   // Calcule le jeudi suivant la date de validation du devis (date du doc).
@@ -1002,37 +1046,6 @@ var ListView = ({
     var add = (4 - day + 7) % 7;
     d.setDate(d.getDate() + add);
     return d.toISOString().slice(0, 10);
-  };
-  var purchaseSummary = lines => {
-    var total = lines.length;
-    var cmd = lines.filter(l => l.purchase_status === "commande").length;
-    var trans = lines.filter(l => l.purchase_status === "transmis").length;
-    var dem = lines.filter(l => l.purchase_status === "demande").length;
-    if (cmd === total) return {
-      label: "✅ Tout commandé",
-      color: "#065f46",
-      bg: "#d1fae5"
-    };
-    if (cmd > 0) return {
-      label: "✅ " + cmd + "/" + total + " commandés",
-      color: "#075985",
-      bg: "#dbeafe"
-    };
-    if (trans > 0) return {
-      label: "📨 Transmis",
-      color: "#075985",
-      bg: "#dbeafe"
-    };
-    if (dem > 0) return {
-      label: "📤 Demandé",
-      color: "#92400e",
-      bg: "#fef3c7"
-    };
-    return {
-      label: "🛒 Panier",
-      color: "#475569",
-      bg: "#f1f5f9"
-    };
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1088,9 +1101,7 @@ var ListView = ({
     }
   }, "Marge"), /*#__PURE__*/React.createElement("th", {
     style: scStyles.thHead
-  }, "Achat"), /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
-  }, "R\xE9ception"))), /*#__PURE__*/React.createElement("tbody", null, groups.map(g => {
+  }, "Statut article"))), /*#__PURE__*/React.createElement("tbody", null, groups.map(g => {
     var isOpen = !!expanded[g.doc_ref];
     var tm = TYPE_META[g.doc_type] || {
       icon: "📄",
@@ -1102,8 +1113,7 @@ var ListView = ({
     var totalVente = g.lines.reduce((s, l) => s + (Number(l.sell_price_ht) || 0) * (Number(l.quantity) || 0), 0);
     var marge = totalVente - totalAchat;
     var margePct = totalAchat > 0 ? marge / totalAchat * 100 : null;
-    var ps = purchaseSummary(g.lines);
-    var rs = receptionSummary(g.lines);
+    var as = articleStatusSummary(g.lines);
     return /*#__PURE__*/React.createElement(React.Fragment, {
       key: g.doc_ref
     }, /*#__PURE__*/React.createElement("tr", {
@@ -1225,24 +1235,12 @@ var ListView = ({
         fontWeight: 600,
         padding: "3px 8px",
         borderRadius: 999,
-        background: ps.bg,
-        color: ps.color,
+        background: as.bg,
+        color: as.color,
         whiteSpace: "nowrap"
       }
-    }, ps.label)), /*#__PURE__*/React.createElement("td", {
-      style: scStyles.td
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 10.5,
-        fontWeight: 600,
-        padding: "3px 8px",
-        borderRadius: 999,
-        background: rs.bg,
-        color: rs.color,
-        whiteSpace: "nowrap"
-      }
-    }, rs.label))), isOpen && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-      colSpan: 10,
+    }, as.label))), isOpen && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+      colSpan: 9,
       style: {
         padding: 0,
         background: "#fafbfc",
@@ -1301,12 +1299,7 @@ var ListView = ({
         ...scStyles.thHead,
         fontSize: 10.5
       }
-    }, "Achat"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        ...scStyles.thHead,
-        fontSize: 10.5
-      }
-    }, "R\xE9ception"))), /*#__PURE__*/React.createElement("tbody", null, g.lines.map(r => /*#__PURE__*/React.createElement(EditableRow, {
+    }, "Statut article"))), /*#__PURE__*/React.createElement("tbody", null, g.lines.map(r => /*#__PURE__*/React.createElement(EditableRow, {
       key: r.line_id,
       r: r,
       suppliers: suppliers,
@@ -1468,11 +1461,21 @@ var EditLineModal = ({
     style: {
       color: (row.sell_price_ht - d.purchase_price_ht) / d.purchase_price_ht * 100 >= 20 ? "#10b981" : "#dc2626"
     }
-  }, ((row.sell_price_ht - d.purchase_price_ht) / d.purchase_price_ht * 100).toFixed(1), " %")) : null), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, ((row.sell_price_ht - d.purchase_price_ht) / d.purchase_price_ht * 100).toFixed(1), " %")) : null), /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / span 2"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
     style: scStyles.lbl
-  }, "Statut achat"), /*#__PURE__*/React.createElement("select", {
-    value: d.purchase_status || "panier",
-    onChange: e => setF("purchase_status", e.target.value),
+  }, "Statut article"), /*#__PURE__*/React.createElement("select", {
+    value: deriveArticleStatus(d.purchase_status, d.reception_status),
+    onChange: e => {
+      var patch = applyArticleStatus(e.target.value);
+      setD(cur => ({
+        ...cur,
+        ...patch
+      }));
+    },
     style: scStyles.input
   }, /*#__PURE__*/React.createElement("option", {
     value: "panier"
@@ -1482,27 +1485,19 @@ var EditLineModal = ({
     value: "transmis"
   }, "\uD83D\uDCE8 Panier transmis"), /*#__PURE__*/React.createElement("option", {
     value: "commande"
-  }, "\u2705 Command\xE9"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: scStyles.lbl
-  }, "Statut r\xE9ception"), /*#__PURE__*/React.createElement("select", {
-    value: d.reception_status || "en_cours",
-    onChange: e => setF("reception_status", e.target.value),
-    style: scStyles.input
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "en_cours"
-  }, "\u23F3 En cours"), /*#__PURE__*/React.createElement("option", {
-    value: "ok"
-  }, "\u2713 R\xE9ception OK"), /*#__PURE__*/React.createElement("option", {
+  }, "\u2705 Command\xE9"), /*#__PURE__*/React.createElement("option", {
+    value: "partielle"
+  }, "\u25D0 R\xE9ception partielle"), /*#__PURE__*/React.createElement("option", {
+    value: "recu"
+  }, "\u2713 Re\xE7u"), /*#__PURE__*/React.createElement("option", {
     value: "en_stock"
   }, "\uD83D\uDCE6 En stock"), /*#__PURE__*/React.createElement("option", {
-    value: "partielle"
-  }, "\u25D0 Partielle"), /*#__PURE__*/React.createElement("option", {
     value: "bloque"
   }, "\u26D4 Bloqu\xE9"), /*#__PURE__*/React.createElement("option", {
     value: "differe"
-  }, "\u23F8 Achat diff\xE9r\xE9"), /*#__PURE__*/React.createElement("option", {
+  }, "\u23F8 Diff\xE9r\xE9"), /*#__PURE__*/React.createElement("option", {
     value: "na"
-  }, "Non applicable")))), /*#__PURE__*/React.createElement("div", {
+  }, "N/A")))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",

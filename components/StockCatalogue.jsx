@@ -19,8 +19,7 @@ const StockCatalogue = () => {
   const [suppliers, setSuppliers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [filter, setFilter] = React.useState({
-    purchase_status: "all",
-    reception_status: "all",
+    article_status: "all",
     supplier: "all",
   });
   const [editing, setEditing] = React.useState(null);
@@ -41,8 +40,10 @@ const StockCatalogue = () => {
 
   // ── Filtres
   const filtered = React.useMemo(() => rows.filter((r) => {
-    if (filter.purchase_status !== "all" && r.purchase_status !== filter.purchase_status) return false;
-    if (filter.reception_status !== "all" && r.reception_status !== filter.reception_status) return false;
+    if (filter.article_status !== "all") {
+      const s = deriveArticleStatus(r.purchase_status, r.reception_status);
+      if (s !== filter.article_status) return false;
+    }
     if (filter.supplier !== "all" && (r.supplier || "") !== filter.supplier) return false;
     return true;
   }), [rows, filter]);
@@ -118,37 +119,23 @@ const StockCatalogue = () => {
           </div>
         ))}
 
-        <div style={scStyles.navLabel}>Statut achat</div>
+        <div style={scStyles.navLabel}>Statut article</div>
         {[
-          { k: "all",         label: "Tous" },
-          { k: "panier",      label: "🛒 Panier",         color: "#a1e3f6" },
-          { k: "demande",     label: "📤 Demande envoyée", color: "#ff7575" },
-          { k: "transmis",    label: "📨 Panier transmis", color: "#66ccff" },
-          { k: "commande",    label: "✅ Commandé",        color: "#bca58a" },
-        ].map((s) => {
-          const count = s.k === "all" ? rows.length : rows.filter((r) => r.purchase_status === s.k).length;
-          return (
-            <div key={s.k} onClick={() => setFilter((f) => ({ ...f, purchase_status: s.k }))}
-                 style={{ ...scStyles.navItem, ...(filter.purchase_status === s.k ? scStyles.navItemActive : {}) }}>
-              <span style={{ flex: 1 }}>{s.label}</span>
-              <span style={scStyles.navCount}>{count}</span>
-            </div>
-          );
-        })}
-
-        <div style={scStyles.navLabel}>Réception</div>
-        {[
-          { k: "all",       label: "Toutes" },
-          { k: "en_cours",  label: "⏳ En cours" },
-          { k: "ok",        label: "✓ Réception OK" },
+          { k: "all",       label: "Tous" },
+          { k: "panier",    label: "🛒 Panier" },
+          { k: "demande",   label: "📤 Demande envoyée" },
+          { k: "transmis",  label: "📨 Panier transmis" },
+          { k: "commande",  label: "✅ Commandé" },
+          { k: "partielle", label: "◐ Réception partielle" },
+          { k: "recu",      label: "✓ Reçu" },
           { k: "en_stock",  label: "📦 En stock" },
-          { k: "partielle", label: "◐ Partielle" },
           { k: "bloque",    label: "⛔ Bloqué" },
+          { k: "differe",   label: "⏸ Différé" },
         ].map((s) => {
-          const count = s.k === "all" ? rows.length : rows.filter((r) => r.reception_status === s.k).length;
+          const count = s.k === "all" ? rows.length : rows.filter((r) => deriveArticleStatus(r.purchase_status, r.reception_status) === s.k).length;
           return (
-            <div key={s.k} onClick={() => setFilter((f) => ({ ...f, reception_status: s.k }))}
-                 style={{ ...scStyles.navItem, ...(filter.reception_status === s.k ? scStyles.navItemActive : {}) }}>
+            <div key={s.k} onClick={() => setFilter((f) => ({ ...f, article_status: s.k }))}
+                 style={{ ...scStyles.navItem, ...(filter.article_status === s.k ? scStyles.navItemActive : {}) }}>
               <span style={{ flex: 1 }}>{s.label}</span>
               <span style={scStyles.navCount}>{count}</span>
             </div>
@@ -271,20 +258,48 @@ const MatrixView = ({ matrix, fmtEUR, onCellClick }) => {
 // ─────────────────────────────────────────────────────────────────
 // LISTE — table détaillée éditable
 // ─────────────────────────────────────────────────────────────────
-const PURCHASE_STATUS = {
-  panier:   { label: "🛒 Panier",          color: "#0c4a6e", bg: "#e0f2fe" },
-  demande:  { label: "📤 Demande envoyée",  color: "#9f1239", bg: "#ffe4e6" },
-  transmis: { label: "📨 Panier transmis",  color: "#075985", bg: "#dbeafe" },
-  commande: { label: "✅ Commandé",         color: "#854d0e", bg: "#fef3c7" },
+// ─── Statut unifié de l'article (fusion Achat × Réception) ───
+// Cycle de vie : panier → demande → transmis → commande →
+//                (partielle | recu | en_stock) | bloque | differe | na
+const ARTICLE_STATUS = {
+  panier:    { label: "🛒 Panier",              color: "#0c4a6e", bg: "#e0f2fe", order: 1 },
+  demande:   { label: "📤 Demande envoyée",      color: "#9f1239", bg: "#ffe4e6", order: 2 },
+  transmis:  { label: "📨 Panier transmis",      color: "#075985", bg: "#dbeafe", order: 3 },
+  commande:  { label: "✅ Commandé",              color: "#854d0e", bg: "#fef3c7", order: 4 },
+  partielle: { label: "◐ Réception partielle",   color: "#6b21a8", bg: "#f3e8ff", order: 5 },
+  recu:      { label: "✓ Reçu",                  color: "#0d9488", bg: "#ccfbf1", order: 6 },
+  en_stock:  { label: "📦 En stock",             color: "#075985", bg: "#dbeafe", order: 7 },
+  bloque:    { label: "⛔ Bloqué",               color: "#991b1b", bg: "#fee2e2", order: 99 },
+  differe:   { label: "⏸ Différé",              color: "#9f1239", bg: "#ffe4e6", order: 99 },
+  na:        { label: "N/A",                     color: "#475569", bg: "#f1f5f9", order: 99 },
 };
-const RECEPTION_STATUS = {
-  en_cours:  { label: "⏳ En cours",  color: "#92400e", bg: "#fef3c7" },
-  ok:        { label: "✓ OK",         color: "#065f46", bg: "#d1fae5" },
-  bloque:    { label: "⛔ Bloqué",    color: "#991b1b", bg: "#fee2e2" },
-  en_stock:  { label: "📦 En stock",  color: "#075985", bg: "#dbeafe" },
-  partielle: { label: "◐ Partielle", color: "#6b21a8", bg: "#f3e8ff" },
-  na:        { label: "N/A",          color: "#475569", bg: "#f1f5f9" },
-  differe:   { label: "⏸ Différé",   color: "#9f1239", bg: "#ffe4e6" },
+
+// Dérive le statut unifié depuis les 2 colonnes existantes (rétrocompat).
+const deriveArticleStatus = (purchase, reception) => {
+  if (reception === "bloque") return "bloque";
+  if (reception === "differe") return "differe";
+  if (reception === "na") return "na";
+  if (reception === "en_stock") return "en_stock";
+  if (reception === "ok") return "recu";
+  if (reception === "partielle") return "partielle";
+  return purchase || "panier";
+};
+
+// Convertit un statut unifié en patch {purchase_status, reception_status}.
+const applyArticleStatus = (status) => {
+  switch (status) {
+    case "panier":    return { purchase_status: "panier",    reception_status: "en_cours" };
+    case "demande":   return { purchase_status: "demande",   reception_status: "en_cours" };
+    case "transmis":  return { purchase_status: "transmis",  reception_status: "en_cours" };
+    case "commande":  return { purchase_status: "commande",  reception_status: "en_cours" };
+    case "partielle": return { purchase_status: "commande",  reception_status: "partielle" };
+    case "recu":      return { purchase_status: "commande",  reception_status: "ok" };
+    case "en_stock":  return { purchase_status: "commande",  reception_status: "en_stock" };
+    case "bloque":    return { purchase_status: "commande",  reception_status: "bloque" };
+    case "differe":   return { purchase_status: "commande",  reception_status: "differe" };
+    case "na":        return { purchase_status: "commande",  reception_status: "na" };
+    default:          return { purchase_status: "panier",    reception_status: "en_cours" };
+  }
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -332,8 +347,8 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
     doSave({ [k]: local[k] });
   };
 
-  const ps = PURCHASE_STATUS[local.purchase_status] || PURCHASE_STATUS.panier;
-  const rs = RECEPTION_STATUS[local.reception_status] || RECEPTION_STATUS.en_cours;
+  const articleStatusKey = deriveArticleStatus(local.purchase_status, local.reception_status);
+  const as = ARTICLE_STATUS[articleStatusKey] || ARTICLE_STATUS.panier;
   const purchaseN = Number(local.purchase_price_ht) || 0;
   const sellN = Number(r.sell_price_ht) || 0;
   const marginPct = purchaseN > 0 ? (sellN - purchaseN) / purchaseN * 100 : null;
@@ -379,24 +394,21 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
           {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
         </select>
       </td>
-      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }}>
-        <select value={local.purchase_status || "panier"}
-                onChange={(e) => updateField("purchase_status", e.target.value)}
-                style={{ ...cellInput, background: ps.bg, color: ps.color, fontWeight: 600, borderColor: ps.bg }}>
+      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 180 }}>
+        <select value={articleStatusKey}
+                onChange={(e) => {
+                  const patch = applyArticleStatus(e.target.value);
+                  setLocal((cur) => ({ ...cur, ...patch }));
+                  doSave(patch);
+                }}
+                style={{ ...cellInput, background: as.bg, color: as.color, fontWeight: 600, borderColor: as.bg }}>
           <option value="panier">🛒 Panier</option>
           <option value="demande">📤 Demande envoyée</option>
           <option value="transmis">📨 Panier transmis</option>
           <option value="commande">✅ Commandé</option>
-        </select>
-      </td>
-      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }}>
-        <select value={local.reception_status || "en_cours"}
-                onChange={(e) => updateField("reception_status", e.target.value)}
-                style={{ ...cellInput, background: rs.bg, color: rs.color, fontWeight: 600, borderColor: rs.bg }}>
-          <option value="en_cours">⏳ En cours</option>
-          <option value="ok">✓ Réception OK</option>
+          <option value="partielle">◐ Réception partielle</option>
+          <option value="recu">✓ Reçu</option>
           <option value="en_stock">📦 En stock</option>
-          <option value="partielle">◐ Partielle</option>
           <option value="bloque">⛔ Bloqué</option>
           <option value="differe">⏸ Différé</option>
           <option value="na">N/A</option>
@@ -512,15 +524,23 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
     bl:       { icon: "📦", label: "BL",        color: "#9a3412", bg: "#ffedd5" },
   };
 
-  // Suivi global réception du devis
-  const receptionSummary = (lines) => {
+  // Suivi global statut article du devis (fusion achat × réception)
+  const articleStatusSummary = (lines) => {
     const total = lines.length;
-    const ok = lines.filter((l) => l.reception_status === "ok" || l.reception_status === "en_stock").length;
-    const blocked = lines.filter((l) => l.reception_status === "bloque").length;
-    if (ok === total) return { label: "✓ Tout reçu", color: "#065f46", bg: "#d1fae5" };
-    if (blocked > 0) return { label: "⛔ " + blocked + " bloqué(s)", color: "#991b1b", bg: "#fee2e2" };
-    if (ok > 0) return { label: "◐ " + ok + "/" + total + " reçus", color: "#6b21a8", bg: "#f3e8ff" };
-    return { label: "⏳ En attente", color: "#92400e", bg: "#fef3c7" };
+    const statuses = lines.map((l) => deriveArticleStatus(l.purchase_status, l.reception_status));
+    const blocked = statuses.filter((s) => s === "bloque").length;
+    if (blocked > 0) {
+      const meta = ARTICLE_STATUS.bloque;
+      return { label: "⛔ " + blocked + "/" + total + " bloqué(s)", color: meta.color, bg: meta.bg };
+    }
+    const minOrder = Math.min.apply(null, statuses.map((s) => (ARTICLE_STATUS[s] && ARTICLE_STATUS[s].order) || 1));
+    const minStatus = Object.keys(ARTICLE_STATUS).find((k) => ARTICLE_STATUS[k].order === minOrder) || "panier";
+    const meta = ARTICLE_STATUS[minStatus];
+    const sameCount = statuses.filter((s) => s === minStatus).length;
+    if (sameCount === total) {
+      return { label: meta.label + (total > 1 ? " (×" + total + ")" : ""), color: meta.color, bg: meta.bg };
+    }
+    return { label: meta.label + " " + sameCount + "/" + total, color: meta.color, bg: meta.bg };
   };
   // Calcule le jeudi suivant la date de validation du devis (date du doc).
   // Si le doc est validé un jeudi, on garde le même jour.
@@ -532,17 +552,6 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
     const add = (4 - day + 7) % 7;
     d.setDate(d.getDate() + add);
     return d.toISOString().slice(0, 10);
-  };
-  const purchaseSummary = (lines) => {
-    const total = lines.length;
-    const cmd = lines.filter((l) => l.purchase_status === "commande").length;
-    const trans = lines.filter((l) => l.purchase_status === "transmis").length;
-    const dem = lines.filter((l) => l.purchase_status === "demande").length;
-    if (cmd === total) return { label: "✅ Tout commandé", color: "#065f46", bg: "#d1fae5" };
-    if (cmd > 0) return { label: "✅ " + cmd + "/" + total + " commandés", color: "#075985", bg: "#dbeafe" };
-    if (trans > 0) return { label: "📨 Transmis", color: "#075985", bg: "#dbeafe" };
-    if (dem > 0) return { label: "📤 Demandé", color: "#92400e", bg: "#fef3c7" };
-    return { label: "🛒 Panier", color: "#475569", bg: "#f1f5f9" };
   };
 
   return (
@@ -558,8 +567,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Achat HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Vente HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>
-            <th style={scStyles.thHead}>Achat</th>
-            <th style={scStyles.thHead}>Réception</th>
+            <th style={scStyles.thHead}>Statut article</th>
           </tr>
         </thead>
         <tbody>
@@ -570,8 +578,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
             const totalVente = g.lines.reduce((s, l) => s + (Number(l.sell_price_ht) || 0) * (Number(l.quantity) || 0), 0);
             const marge = totalVente - totalAchat;
             const margePct = totalAchat > 0 ? (marge / totalAchat) * 100 : null;
-            const ps = purchaseSummary(g.lines);
-            const rs = receptionSummary(g.lines);
+            const as = articleStatusSummary(g.lines);
             return (
               <React.Fragment key={g.doc_ref}>
                 <tr onClick={() => toggle(g.doc_ref)}
@@ -617,19 +624,14 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
                     )}
                   </td>
                   <td style={scStyles.td}>
-                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
-                      {ps.label}
-                    </span>
-                  </td>
-                  <td style={scStyles.td}>
-                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: rs.bg, color: rs.color, whiteSpace: "nowrap" }}>
-                      {rs.label}
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: as.bg, color: as.color, whiteSpace: "nowrap" }}>
+                      {as.label}
                     </span>
                   </td>
                 </tr>
                 {isOpen && (
                   <tr>
-                    <td colSpan={10} style={{ padding: 0, background: "#fafbfc", borderBottom: "1px solid #e2e8f0" }}>
+                    <td colSpan={9} style={{ padding: 0, background: "#fafbfc", borderBottom: "1px solid #e2e8f0" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ background: "#eef2f7" }}>
@@ -640,8 +642,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
                             <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>PU Vendu</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>Marge</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Fournisseur</th>
-                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Achat</th>
-                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Réception</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Statut article</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -737,25 +738,24 @@ const EditLineModal = ({ row, suppliers, onClose, onSaved }) => {
                 </div>
               ) : null}
             </div>
-            <div>
-              <label style={scStyles.lbl}>Statut achat</label>
-              <select value={d.purchase_status || "panier"} onChange={(e) => setF("purchase_status", e.target.value)} style={scStyles.input}>
+            <div style={{ gridColumn: "1 / span 2" }}>
+              <label style={scStyles.lbl}>Statut article</label>
+              <select value={deriveArticleStatus(d.purchase_status, d.reception_status)}
+                      onChange={(e) => {
+                        const patch = applyArticleStatus(e.target.value);
+                        setD((cur) => ({ ...cur, ...patch }));
+                      }}
+                      style={scStyles.input}>
                 <option value="panier">🛒 Panier</option>
                 <option value="demande">📤 Demande envoyée</option>
                 <option value="transmis">📨 Panier transmis</option>
                 <option value="commande">✅ Commandé</option>
-              </select>
-            </div>
-            <div>
-              <label style={scStyles.lbl}>Statut réception</label>
-              <select value={d.reception_status || "en_cours"} onChange={(e) => setF("reception_status", e.target.value)} style={scStyles.input}>
-                <option value="en_cours">⏳ En cours</option>
-                <option value="ok">✓ Réception OK</option>
+                <option value="partielle">◐ Réception partielle</option>
+                <option value="recu">✓ Reçu</option>
                 <option value="en_stock">📦 En stock</option>
-                <option value="partielle">◐ Partielle</option>
                 <option value="bloque">⛔ Bloqué</option>
-                <option value="differe">⏸ Achat différé</option>
-                <option value="na">Non applicable</option>
+                <option value="differe">⏸ Différé</option>
+                <option value="na">N/A</option>
               </select>
             </div>
           </div>

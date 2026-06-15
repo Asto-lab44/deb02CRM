@@ -934,11 +934,34 @@ var CommercialDocEditor = ({
       } catch (e) {}
     })();
   }, []);
+
+  // Si on ouvre un doc existant avec un client mais sans contact rempli,
+  // on récupère le contact principal pour pré-remplir contact_name + email
+  React.useEffect(() => {
+    if (!d.client_id) return;
+    if (d.contact_name && d.contact_email) return;
+    (async () => {
+      try {
+        var contacts = await window.api.contacts.list({
+          client_id: d.client_id
+        });
+        var principal = (contacts || []).find(ct => ct.is_principal) || (contacts || [])[0];
+        if (principal) {
+          var fullName = [principal.prenom, principal.nom].filter(Boolean).join(" ").trim();
+          setD(cur => ({
+            ...cur,
+            contact_name: cur.contact_name || fullName || null,
+            contact_email: cur.contact_email || principal.email || null
+          }));
+        }
+      } catch (e) {}
+    })();
+  }, [d.client_id]);
   var setField = (k, v) => setD(cur => ({
     ...cur,
     [k]: v
   }));
-  var pickClient = clientId => {
+  var pickClient = async clientId => {
     var c = clients.find(x => x.id === clientId);
     if (!c) {
       setField("client_id", null);
@@ -954,6 +977,32 @@ var CommercialDocEditor = ({
       client_siren: c.siren || "",
       client_tva: c.tva || c.tva_intracom || ""
     }));
+    // Récupère le contact principal du client → pré-remplit contact_name + contact_email
+    try {
+      var contacts = await window.api.contacts.list({
+        client_id: c.id
+      });
+      var principal = (contacts || []).find(ct => ct.is_principal) || (contacts || [])[0];
+      if (principal) {
+        var fullName = [principal.prenom, principal.nom].filter(Boolean).join(" ").trim();
+        setD(cur => ({
+          ...cur,
+          contact_name: fullName || cur.contact_name,
+          contact_email: principal.email || cur.contact_email
+        }));
+      }
+    } catch (e) {
+      // Fallback : si la fiche client a un contact_principal dans son data jsonb
+      if (c.contact_principal) {
+        var cp = c.contact_principal;
+        var _fullName = [cp.prenom, cp.nom].filter(Boolean).join(" ").trim();
+        setD(cur => ({
+          ...cur,
+          contact_name: _fullName || cur.contact_name,
+          contact_email: cp.email || cur.contact_email
+        }));
+      }
+    }
   };
   var addLine = article => {
     var line = article ? {

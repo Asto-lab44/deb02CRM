@@ -149,7 +149,7 @@ var ProjectsKanban = () => {
     } : p));
     try {
       await window.api.projects.changeStage(draggedId, newStage);
-      if (window.HubToast) window.HubToast.success("✓ Projet déplacé vers « " + STAGES.find(s => s.k === newStage).label + " »");
+      if (window.HubToast) window.HubToast.success("✓ Projet déplacé vers « " + ((STAGES.find(s => s.k === newStage) || {}).label || newStage) + " »");
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
       reload(); // rollback

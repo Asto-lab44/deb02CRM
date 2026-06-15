@@ -37,15 +37,8 @@
     return _pdfmakeReady;
   }
 
-  // Format euro avec 2 décimales, séparateur espace insécable
-  const fmtEUR = (n) => {
-    const v = Number(n) || 0;
-    return v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            .replace(/ /g, " ")
-            .replace(/,/g, " ");  // Note: in fr-FR, decimal is ',' — we want to keep that
-  };
-  // Plus propre :
-  const fmtEUR2 = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Format euro 2 décimales en locale fr-FR (séparateur décimal = virgule).
+  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtDate = (s) => {
     if (!s) return "";
     const d = new Date(s);
@@ -87,9 +80,9 @@
       tableBody.push([
         { text: l.ref || "—", style: "tableCellMono" },
         { stack: desStack },
-        { text: fmtEUR2(l.quantity), style: "tableCell", alignment: "right" },
-        { text: fmtEUR2(l.unit_price_ht), style: "tableCell", alignment: "right" },
-        { text: fmtEUR2(l.total_ht), style: "tableCell", alignment: "right", bold: true },
+        { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" },
+        { text: fmtEUR(l.unit_price_ht), style: "tableCell", alignment: "right" },
+        { text: fmtEUR(l.total_ht), style: "tableCell", alignment: "right", bold: true },
       ]);
     });
 
@@ -106,9 +99,9 @@
     });
     const tvaRows = Object.values(tvaMap).map((t, i) => [
       { text: String(i + 1), style: "tvaCell" },
-      { text: fmtEUR2(t.ht), style: "tvaCell", alignment: "right" },
-      { text: fmtEUR2(t.rate), style: "tvaCell", alignment: "right" },
-      { text: fmtEUR2(t.tva), style: "tvaCell", alignment: "right" },
+      { text: fmtEUR(t.ht), style: "tvaCell", alignment: "right" },
+      { text: fmtEUR(t.rate), style: "tvaCell", alignment: "right" },
+      { text: fmtEUR(t.tva), style: "tvaCell", alignment: "right" },
     ]);
     if (tvaRows.length === 0) {
       tvaRows.push([{ text: "—", colSpan: 4, alignment: "center", style: "tvaCell", color: "#999" }, {}, {}, {}]);
@@ -140,7 +133,7 @@
             { text: "Tel             : " + (company.tel || ""), fontSize: 8.5 },
             { text: "Site internet   : " + (company.site_web || ""), fontSize: 8.5 },
             { text: "Siret           : " + (company.siret || ""), fontSize: 8.5 },
-            { text: "Capital         : " + fmtEUR2(company.capital_eur || 0) + "€", fontSize: 8.5 },
+            { text: "Capital         : " + fmtEUR(company.capital_eur || 0) + "€", fontSize: 8.5 },
           ],
         },
       ],
@@ -153,7 +146,7 @@
         widths: ["*", 200],
         body: [
           [
-            { text: company.raison_sociale ? company.raison_sociale.split(" ")[0].toLowerCase() : "astorya",
+            { text: "astorya",
               fontSize: 22, bold: true, color: "#fff", margin: [12, 14, 0, 14] },
             { text: typeLabel, fontSize: 22, bold: true, color: "#fff", alignment: "right", margin: [0, 14, 12, 14] },
           ],
@@ -233,15 +226,15 @@
             body: [
               [
                 { text: "Total HT", bold: true, fontSize: 10, margin: [4, 6, 0, 6] },
-                { text: fmtEUR2(doc.total_ht), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
+                { text: fmtEUR(doc.total_ht), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
               ],
               [
                 { text: "Total TVA", bold: true, fontSize: 10, margin: [4, 6, 0, 6] },
-                { text: fmtEUR2(doc.total_tva), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
+                { text: fmtEUR(doc.total_tva), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
               ],
               [
                 { text: "NET A PAYER", bold: true, fontSize: 12, color: "#fff", margin: [4, 8, 0, 8], fillColor: "#0f172a" },
-                { text: fmtEUR2(doc.total_ttc), bold: true, fontSize: 12, alignment: "right", color: "#fff", margin: [0, 8, 6, 8], fillColor: "#0f172a" },
+                { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 12, alignment: "right", color: "#fff", margin: [0, 8, 6, 8], fillColor: "#0f172a" },
               ],
             ],
           },

@@ -901,62 +901,81 @@ var CommercialDocEditor = ({
       ttc: Math.round((ht + tva) * 100) / 100
     };
   }, [d.lines]);
-  var save = async () => {
+  var save = async (options = {}) => {
     setSaving(true);
     try {
+      // Normalisation : pas de string vide pour les FKs (sinon erreur Supabase)
+      var cleanFK = v => v && String(v).trim() ? v : null;
+      var cleanDate = v => v && String(v).trim() ? v : null;
+      var numOrNull = v => {
+        var n = Number(v);
+        return isFinite(n) ? n : null;
+      };
+
       // 1. Update du doc principal (hors lignes)
       var patch = {
         status: d.status,
-        title: d.title,
-        notes: d.notes,
-        internal_notes: d.internal_notes,
-        client_id: d.client_id,
-        client_name: d.client_name,
-        client_address: d.client_address,
-        client_cp: d.client_cp,
-        client_city: d.client_city,
-        client_siren: d.client_siren,
-        client_tva: d.client_tva,
-        contact_name: d.contact_name,
-        contact_email: d.contact_email,
-        project_id: d.project_id || null,
-        opportunity_id: d.opportunity_id || null,
-        doc_date: d.doc_date,
-        valid_until: d.valid_until,
-        payment_due: d.payment_due,
-        payment_terms_id: d.payment_terms_id,
-        owner: d.owner,
-        total_ht: totals.ht,
-        total_tva: totals.tva,
-        total_ttc: totals.ttc
+        title: d.title || null,
+        notes: d.notes || null,
+        internal_notes: d.internal_notes || null,
+        client_id: cleanFK(d.client_id),
+        client_name: d.client_name || null,
+        client_address: d.client_address || null,
+        client_cp: d.client_cp || null,
+        client_city: d.client_city || null,
+        client_siren: d.client_siren || null,
+        client_tva: d.client_tva || null,
+        contact_name: d.contact_name || null,
+        contact_email: d.contact_email || null,
+        project_id: cleanFK(d.project_id),
+        opportunity_id: cleanFK(d.opportunity_id),
+        doc_date: cleanDate(d.doc_date) || new Date().toISOString().slice(0, 10),
+        valid_until: cleanDate(d.valid_until),
+        payment_due: cleanDate(d.payment_due),
+        payment_terms_id: cleanFK(d.payment_terms_id),
+        owner: d.owner || null,
+        total_ht: numOrNull(totals.ht) || 0,
+        total_tva: numOrNull(totals.tva) || 0,
+        total_ttc: numOrNull(totals.ttc) || 0
       };
       await window.api.commercialDocs.update(d.id, patch);
-      // 2. Lignes : insère les nouvelles, met à jour les existantes
-      for (var line of d.lines || []) {
+
+      // 2. Lignes : insère les nouvelles avec conversion Number + ré-hydrate les ids
+      var updatedLines = [];
+      for (var i = 0; i < (d.lines || []).length; i++) {
+        var line = d.lines[i];
+        var normalizedLine = {
+          article_id: cleanFK(line.article_id),
+          ref: line.ref || null,
+          designation: line.designation || "",
+          description: line.description || null,
+          quantity: Number(line.quantity) || 0,
+          unit: line.unit || "u",
+          unit_price_ht: Number(line.unit_price_ht) || 0,
+          discount_pct: Number(line.discount_pct) || 0,
+          tva_rate: Number(line.tva_rate) || 0,
+          is_text_only: !!line.is_text_only,
+          position: i
+        };
         if (line._new || String(line.id || "").startsWith("tmp_")) {
-          await window.api.commercialDocs.addLine(d.id, {
-            ...line,
-            id: undefined,
-            position: d.lines.indexOf(line)
-          });
+          var created = await window.api.commercialDocs.addLine(d.id, normalizedLine);
+          if (created) updatedLines.push(created);
         } else {
-          await window.api.commercialDocs.updateLine(line.id, {
-            designation: line.designation,
-            description: line.description,
-            quantity: line.quantity,
-            unit: line.unit,
-            unit_price_ht: line.unit_price_ht,
-            discount_pct: line.discount_pct,
-            tva_rate: line.tva_rate,
-            position: d.lines.indexOf(line)
-          });
+          var updated = await window.api.commercialDocs.updateLine(line.id, normalizedLine);
+          if (updated) updatedLines.push(updated);else updatedLines.push(line);
         }
       }
+      // Met à jour le state local avec les vrais IDs (au cas où l'utilisateur ne ferme pas)
+      setD(cur => ({
+        ...cur,
+        lines: updatedLines
+      }));
       if (window.HubToast) window.HubToast.success("✓ Document enregistré");
       onSaved && onSaved();
-      onClose && onClose();
+      if (!options.keepOpen) onClose && onClose();
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      throw e;
     }
     setSaving(false);
   };
@@ -968,8 +987,12 @@ var CommercialDocEditor = ({
     };
     var next = flow[d.type];
     if (!next) return;
-    if (!confirm("Transformer ce " + d.type + " en " + next + " ?")) return;
+    if (!confirm("Transformer ce " + d.type + " en " + next + " ?\n\nLes modifications en cours seront sauvegardées avant la transformation.")) return;
     try {
+      // Sauve d'abord les modifs en cours pour ne pas les perdre
+      await save({
+        keepOpen: true
+      });
       var child = await window.api.commercialDocs.transform(d.id, next);
       if (window.HubToast) window.HubToast.success("✓ " + child.id + " créé");
       onSaved && onSaved();
@@ -1013,7 +1036,9 @@ var CommercialDocEditor = ({
   }, /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
       try {
-        await save();
+        await save({
+          keepOpen: true
+        });
         if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id);
       } catch (e) {}
     },
@@ -1022,13 +1047,31 @@ var CommercialDocEditor = ({
   }, "\uD83D\uDC41 Aper\xE7u PDF"), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
       try {
-        await save();
+        await save({
+          keepOpen: true
+        });
         if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id);
+        try {
+          await window.api.commercialSends.log({
+            doc_id: d.id,
+            doc_type: d.type,
+            channel: "download",
+            status: "sent",
+            provider: "browser"
+          });
+        } catch (e) {}
       } catch (e) {}
     },
     style: cdStyles.ghostBtn
   }, "\u21E9 T\xE9l\xE9charger PDF"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setSendOpen(true),
+    onClick: async () => {
+      try {
+        await save({
+          keepOpen: true
+        });
+        setSendOpen(true);
+      } catch (e) {}
+    },
     style: cdStyles.ghostBtn
   }, "\u2709 Envoyer"), d.type !== "facture" && d.status !== "transforme" && /*#__PURE__*/React.createElement("button", {
     onClick: transformTo,
@@ -1133,7 +1176,9 @@ var CommercialDocEditor = ({
     value: "accepte"
   }, "Accept\xE9"), d.type === "devis" && /*#__PURE__*/React.createElement("option", {
     value: "refuse"
-  }, "Refus\xE9"), d.type === "bl" && /*#__PURE__*/React.createElement("option", {
+  }, "Refus\xE9"), d.type !== "facture" && /*#__PURE__*/React.createElement("option", {
+    value: "transforme"
+  }, "Transform\xE9"), d.type === "bl" && /*#__PURE__*/React.createElement("option", {
     value: "livre"
   }, "Livr\xE9"), d.type === "facture" && /*#__PURE__*/React.createElement("option", {
     value: "paye"
@@ -1518,8 +1563,7 @@ var DocSendModal = ({
     }
     setSending(true);
     try {
-      // Sauvegarde le doc puis génère le PDF côté navigateur
-      if (onSave) await onSave();
+      // Le doc a déjà été sauvé via save({keepOpen:true}) avant l'ouverture de cette modal
       var pdfBase64 = null;
       try {
         if (window.HubCommercialPdf) pdfBase64 = await window.HubCommercialPdf.toBase64(doc.id);

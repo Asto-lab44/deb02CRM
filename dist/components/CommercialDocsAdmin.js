@@ -549,6 +549,19 @@ var ArticlesTab = () => {
     description: ""
   });
   var save = async a => {
+    // Validation minimale
+    if (!a.ref || !a.ref.trim()) {
+      if (window.HubToast) window.HubToast.error("Référence obligatoire");
+      return;
+    }
+    if (!a.name || !a.name.trim()) {
+      if (window.HubToast) window.HubToast.error("Désignation obligatoire");
+      return;
+    }
+    if (a.price_ht == null || a.price_ht === "") {
+      if (window.HubToast) window.HubToast.error("Prix HT obligatoire (peut être 0)");
+      return;
+    }
     try {
       if (a.id) await window.api.commercialArticles.update(a.id, a);else await window.api.commercialArticles.create(a);
       if (window.HubToast) window.HubToast.success("✓ Article enregistré");

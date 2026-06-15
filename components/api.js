@@ -1454,10 +1454,13 @@
         let q = s.from("commercial_articles").select("*");
         if (active) q = q.eq("active", true);
         const { data, error } = await q.order("category").order("ref");
-        if (error) { console.warn("[articles.list]", error.message); return lsGet("commercial_articles"); }
-        return data || [];
+        if (error) { console.warn("[articles.list]", error.message); }
+        else { return data || []; }
       }
-      return lsGet("commercial_articles");
+      // Fallback localStorage : applique aussi le filtre actif
+      let arr = lsGet("commercial_articles");
+      if (active) arr = arr.filter((a) => a.active !== false);
+      return arr;
     },
 
     async create(payload) {
@@ -1486,11 +1489,16 @@
       return null;
     },
 
+    /** Soft-delete : passe active=false. Si Supabase indispo, on désactive aussi en localStorage. */
     async remove(id) {
       const s = supa();
-      if (s) await s.from("commercial_articles").update({ active: false }).eq("id", id);
-      const arr = lsGet("commercial_articles").filter((a) => a.id !== id);
-      lsSet("commercial_articles", arr);
+      if (s) {
+        const { error } = await s.from("commercial_articles").update({ active: false }).eq("id", id);
+        if (error) console.warn("[articles.remove]", error.message);
+      }
+      const arr = lsGet("commercial_articles");
+      const idx = arr.findIndex((a) => a.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], active: false }; lsSet("commercial_articles", arr); }
     },
   };
 

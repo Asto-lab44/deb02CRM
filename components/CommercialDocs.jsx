@@ -38,7 +38,7 @@ const CommercialDocs = () => {
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
   const [clients, setClients] = React.useState([]);
-  const [projects, setProjects] = React.useState([]);
+  const [opps, setOpps] = React.useState([]);
   const [editing, setEditing] = React.useState(null); // null ou doc en cours d'édition
 
   const reload = React.useCallback(async () => {
@@ -54,7 +54,11 @@ const CommercialDocs = () => {
   React.useEffect(() => {
     (async () => {
       try { setClients(await window.api.clients.list() || []); } catch (e) {}
-      try { setProjects(await window.api.projects.list() || []); } catch (e) {}
+      try {
+        const all = await window.api.opportunities.list() || [];
+        // Pipeline ouvert : on garde tout sauf won (déjà gagné) et lost (perdu)
+        setOpps(all.filter((o) => o.stage !== "won" && o.stage !== "lost"));
+      } catch (e) {}
     })();
   }, []);
 
@@ -238,7 +242,7 @@ const CommercialDocs = () => {
         <CommercialDocEditor
           doc={editing}
           clients={clients}
-          projects={projects}
+          opps={opps}
           onClose={closeEditor}
           onSaved={reload}
         />
@@ -308,13 +312,24 @@ const WorkflowBar = ({ doc, canTransform }) => {
 // ─────────────────────────────────────────────────────────────────
 const DocRow = ({ doc, statusMeta, fmtEUR, onOpen, onReload }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const menuRef = React.useRef(null);
   const sm = statusMeta[doc.status] || statusMeta.brouillon;
 
+  // Click outside : on attend la frame suivante pour ne pas catcher
+  // le click qui vient d'ouvrir le menu (sinon il se referme aussitôt).
   React.useEffect(() => {
     if (!menuOpen) return;
-    const close = () => setMenuOpen(false);
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
+    const close = (e) => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setMenuOpen(false);
+    };
+    const id = window.requestAnimationFrame(() => {
+      document.addEventListener("mousedown", close);
+    });
+    return () => {
+      window.cancelAnimationFrame(id);
+      document.removeEventListener("mousedown", close);
+    };
   }, [menuOpen]);
 
   const stop = (e) => e.stopPropagation();
@@ -455,7 +470,7 @@ const KPI = ({ label, value, color }) => (
 // ─────────────────────────────────────────────────────────────────
 // EDITOR : édition d'un doc + ses lignes
 // ─────────────────────────────────────────────────────────────────
-const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
+const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
   const [d, setD] = React.useState(doc);
   const [articles, setArticles] = React.useState([]);
   const [tvaRates, setTvaRates] = React.useState([]);
@@ -705,6 +720,20 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
                 <option value="">— Sélectionner —</option>
                 {clients.map((c) => <option key={c.id} value={c.id}>{c.raison_sociale || c.name}</option>)}
               </select>
+              <a
+                href={"/nouveau-prospect?returnTo=" + encodeURIComponent(window.location.pathname + window.location.search)}
+                target="_blank"
+                rel="noopener"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  marginTop: 6, padding: "6px 10px",
+                  background: "#eef2ff", color: "#3730a3",
+                  border: "1px solid #c7d2fe", borderRadius: 6,
+                  fontSize: 11.5, fontWeight: 600, textDecoration: "none",
+                  cursor: "pointer",
+                }}
+                title="Ouvrir la fiche de création de prospect dans un nouvel onglet"
+              >+ Nouveau prospect</a>
               {d.client_address && (
                 <div style={{ marginTop: 6, padding: 8, background: "#f8fafc", borderRadius: 6, fontSize: 11, color: "#475569" }}>
                   {d.client_address}<br/>{d.client_cp} {d.client_city}{d.client_siren ? " · SIREN " + d.client_siren : ""}
@@ -731,11 +760,30 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
           {/* Lien projet + statut + conditions */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
             <div>
-              <label style={cdStyles.lbl}>Rattacher à un projet (optionnel)</label>
-              <select value={d.project_id || ""} onChange={(e) => setField("project_id", e.target.value || null)} style={cdStyles.input}>
-                <option value="">— Aucun —</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name} {p.client_name ? "· " + p.client_name : ""}</option>)}
+              <label style={cdStyles.lbl}>Rattacher à une opportunité (pipeline ouvert)</label>
+              <select value={d.opportunity_id || ""} onChange={(e) => {
+                const oppId = e.target.value || null;
+                setField("opportunity_id", oppId);
+                // Si on sélectionne une opp ET qu'aucun client n'est encore choisi,
+                // on récupère le client de l'opp
+                if (oppId && !d.client_id) {
+                  const opp = opps.find((o) => o.id === oppId);
+                  if (opp && opp.client_id) {
+                    const c = clients.find((c) => c.id === opp.client_id);
+                    if (c) pickClient(c.id);
+                  }
+                }
+              }} style={cdStyles.input}>
+                <option value="">— Aucune —</option>
+                {opps.map((o) => {
+                  const stages = { qualif: "Prospect", discovery: "Approche", propo: "Négociation", nego: "Conclusion" };
+                  const stageLbl = stages[o.stage] || o.stage;
+                  return <option key={o.id} value={o.id}>{o.name || o.id} · {o.client_name || "—"} ({stageLbl})</option>;
+                })}
               </select>
+              {opps.length === 0 && (
+                <div style={{ marginTop: 4, fontSize: 10.5, color: "#94a3b8" }}>Aucune opportunité ouverte dans le pipeline</div>
+              )}
             </div>
             <div>
               <label style={cdStyles.lbl}>Statut</label>

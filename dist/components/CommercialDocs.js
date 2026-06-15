@@ -91,7 +91,7 @@ var CommercialDocs = () => {
   var [loading, setLoading] = React.useState(true);
   var [search, setSearch] = React.useState("");
   var [clients, setClients] = React.useState([]);
-  var [projects, setProjects] = React.useState([]);
+  var [opps, setOpps] = React.useState([]);
   var [editing, setEditing] = React.useState(null); // null ou doc en cours d'édition
 
   var reload = React.useCallback(async () => {
@@ -115,7 +115,9 @@ var CommercialDocs = () => {
         setClients((await window.api.clients.list()) || []);
       } catch (e) {}
       try {
-        setProjects((await window.api.projects.list()) || []);
+        var all = (await window.api.opportunities.list()) || [];
+        // Pipeline ouvert : on garde tout sauf won (déjà gagné) et lost (perdu)
+        setOpps(all.filter(o => o.stage !== "won" && o.stage !== "lost"));
       } catch (e) {}
     })();
   }, []);
@@ -431,7 +433,7 @@ var CommercialDocs = () => {
   })))), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
     doc: editing,
     clients: clients,
-    projects: projects,
+    opps: opps,
     onClose: closeEditor,
     onSaved: reload
   }));
@@ -565,12 +567,24 @@ var DocRow = ({
   onReload
 }) => {
   var [menuOpen, setMenuOpen] = React.useState(false);
+  var menuRef = React.useRef(null);
   var sm = statusMeta[doc.status] || statusMeta.brouillon;
+
+  // Click outside : on attend la frame suivante pour ne pas catcher
+  // le click qui vient d'ouvrir le menu (sinon il se referme aussitôt).
   React.useEffect(() => {
     if (!menuOpen) return;
-    var close = () => setMenuOpen(false);
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
+    var close = e => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setMenuOpen(false);
+    };
+    var id = window.requestAnimationFrame(() => {
+      document.addEventListener("mousedown", close);
+    });
+    return () => {
+      window.cancelAnimationFrame(id);
+      document.removeEventListener("mousedown", close);
+    };
   }, [menuOpen]);
   var stop = e => e.stopPropagation();
   var duplicate = async () => {
@@ -895,7 +909,7 @@ var KPI = ({
 var CommercialDocEditor = ({
   doc,
   clients,
-  projects,
+  opps,
   onClose,
   onSaved
 }) => {
@@ -1285,7 +1299,27 @@ var CommercialDocEditor = ({
   }, "\u2014 S\xE9lectionner \u2014"), clients.map(c => /*#__PURE__*/React.createElement("option", {
     key: c.id,
     value: c.id
-  }, c.raison_sociale || c.name))), d.client_address && /*#__PURE__*/React.createElement("div", {
+  }, c.raison_sociale || c.name))), /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect?returnTo=" + encodeURIComponent(window.location.pathname + window.location.search),
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 6,
+      padding: "6px 10px",
+      background: "#eef2ff",
+      color: "#3730a3",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 11.5,
+      fontWeight: 600,
+      textDecoration: "none",
+      cursor: "pointer"
+    },
+    title: "Ouvrir la fiche de cr\xE9ation de prospect dans un nouvel onglet"
+  }, "+ Nouveau prospect"), d.client_address && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 6,
       padding: 8,
@@ -1331,16 +1365,43 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
-  }, "Rattacher \xE0 un projet (optionnel)"), /*#__PURE__*/React.createElement("select", {
-    value: d.project_id || "",
-    onChange: e => setField("project_id", e.target.value || null),
+  }, "Rattacher \xE0 une opportunit\xE9 (pipeline ouvert)"), /*#__PURE__*/React.createElement("select", {
+    value: d.opportunity_id || "",
+    onChange: e => {
+      var oppId = e.target.value || null;
+      setField("opportunity_id", oppId);
+      // Si on sélectionne une opp ET qu'aucun client n'est encore choisi,
+      // on récupère le client de l'opp
+      if (oppId && !d.client_id) {
+        var opp = opps.find(o => o.id === oppId);
+        if (opp && opp.client_id) {
+          var c = clients.find(c => c.id === opp.client_id);
+          if (c) pickClient(c.id);
+        }
+      }
+    },
     style: cdStyles.input
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "\u2014 Aucun \u2014"), projects.map(p => /*#__PURE__*/React.createElement("option", {
-    key: p.id,
-    value: p.id
-  }, p.name, " ", p.client_name ? "· " + p.client_name : "")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, "\u2014 Aucune \u2014"), opps.map(o => {
+    var stages = {
+      qualif: "Prospect",
+      discovery: "Approche",
+      propo: "Négociation",
+      nego: "Conclusion"
+    };
+    var stageLbl = stages[o.stage] || o.stage;
+    return /*#__PURE__*/React.createElement("option", {
+      key: o.id,
+      value: o.id
+    }, o.name || o.id, " \xB7 ", o.client_name || "—", " (", stageLbl, ")");
+  })), opps.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 10.5,
+      color: "#94a3b8"
+    }
+  }, "Aucune opportunit\xE9 ouverte dans le pipeline")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
   }, "Statut"), (() => {
     // Workflow Sage : statuts autorisés et transitions valides selon le type

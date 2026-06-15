@@ -434,6 +434,123 @@ var CommercialDocs = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────
+// WorkflowBar — Visualisation du cycle Devis→Commande→BL→Facture
+//                avec étape courante + portes de validation
+// ─────────────────────────────────────────────────────────────────
+var WorkflowBar = ({
+  doc,
+  canTransform
+}) => {
+  var STEPS = [{
+    k: "devis",
+    label: "Devis",
+    icon: "📄"
+  }, {
+    k: "commande",
+    label: "Commande",
+    icon: "📋"
+  }, {
+    k: "bl",
+    label: "BL",
+    icon: "🚚"
+  }, {
+    k: "facture",
+    label: "Facture",
+    icon: "💶"
+  }];
+  var curIdx = STEPS.findIndex(s => s.k === doc.type);
+  var isLocked = doc.status === "transforme";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "linear-gradient(135deg, #f0f9ff, #eef2ff)",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      padding: "12px 14px",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#3730a3",
+      letterSpacing: 0.4,
+      textTransform: "uppercase"
+    }
+  }, "Workflow Sage"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#475569"
+    }
+  }, isLocked ? "🔒 Document figé après transformation" : canTransform.ok ? "✅ Transformation autorisée" : "⚠ Bloqué : " + canTransform.reason)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, STEPS.map((s, i) => {
+    var isCurrent = i === curIdx;
+    var isPast = i < curIdx;
+    var isFuture = i > curIdx;
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: s.k
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        padding: "8px 10px",
+        borderRadius: 7,
+        background: isCurrent ? "#3730a3" : isPast ? "#dcfce7" : "#fff",
+        color: isCurrent ? "#fff" : isPast ? "#065f46" : "#94a3b8",
+        border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : "#e2e8f0"),
+        fontSize: 12,
+        fontWeight: 600,
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14
+      }
+    }, s.icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, s.label), isCurrent && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "1px 6px",
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.25)",
+        fontWeight: 700
+      }
+    }, (doc.status || "").toUpperCase()), isPast && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12
+      }
+    }, "\u2713")), i < STEPS.length - 1 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        color: isPast ? "#10b981" : isCurrent && canTransform.ok ? "#10b981" : "#cbd5e1"
+      }
+    }, isPast ? "→" : isCurrent && canTransform.ok ? "→" : "✕"));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#64748b",
+      marginTop: 8,
+      lineHeight: 1.5
+    }
+  }, "\uD83D\uDCA1 ", /*#__PURE__*/React.createElement("strong", null, "R\xE8gles de validation"), " : un devis doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9"), " pour \xEAtre transform\xE9 en commande \xB7 une commande doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9e"), " pour g\xE9n\xE9rer un BL \xB7 un BL doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Livr\xE9"), " pour produire une facture. Une fois transform\xE9, le document est fig\xE9."));
+};
+
+// ─────────────────────────────────────────────────────────────────
 // DocRow — Ligne de la liste avec menu d'actions rapides
 // ─────────────────────────────────────────────────────────────────
 var DocRow = ({
@@ -978,22 +1095,68 @@ var CommercialDocEditor = ({
     }
     setSaving(false);
   };
-  var transformTo = async () => {
-    var flow = {
-      devis: "commande",
-      commande: "bl",
-      bl: "facture"
+
+  // ─── Portes de validation Sage : un doc ne peut passer à l'étape suivante
+  //     que si son statut est conforme. Évite que brouillon→commande→BL→facture
+  //     puisse se faire en chaîne sans aucune validation intermédiaire.
+  var TRANSITION_REQ = {
+    devis: {
+      next: "commande",
+      requires: "accepte",
+      reqLabel: "Accepté"
+    },
+    commande: {
+      next: "bl",
+      requires: "accepte",
+      reqLabel: "Accepté"
+    },
+    bl: {
+      next: "facture",
+      requires: "livre",
+      reqLabel: "Livré"
+    }
+  };
+  var canTransform = (() => {
+    var rule = TRANSITION_REQ[d.type];
+    if (!rule) return {
+      ok: false,
+      reason: "Aucune étape suivante (document final)"
     };
-    var next = flow[d.type];
-    if (!next) return;
-    if (!confirm("Transformer ce " + d.type + " en " + next + " ?\n\nLes modifications en cours seront sauvegardées avant la transformation.")) return;
+    if (d.status === "transforme") return {
+      ok: false,
+      reason: "Ce document a déjà été transformé"
+    };
+    if (d.status === "refuse" || d.status === "annule") return {
+      ok: false,
+      reason: "Document " + (d.status === "refuse" ? "refusé" : "annulé") + " — transformation impossible"
+    };
+    if (d.status !== rule.requires) return {
+      ok: false,
+      reason: "Statut requis : « " + rule.reqLabel + " ». Actuellement : « " + d.status + " »"
+    };
+    return {
+      ok: true,
+      nextType: rule.next
+    };
+  })();
+  var transformTo = async () => {
+    if (!canTransform.ok) {
+      if (window.HubToast) window.HubToast.error("Transformation refusée — " + canTransform.reason);else alert("Transformation refusée : " + canTransform.reason);
+      return;
+    }
+    var next = canTransform.nextType;
+    var labels = {
+      commande: "bon de commande",
+      bl: "bon de livraison",
+      facture: "facture"
+    };
+    if (!confirm("Transformer ce " + d.type + " (statut « " + d.status + " ») en " + labels[next] + " ?\n\n• Le " + d.type + " sera figé avec le statut « Transformé » et ne pourra plus être modifié.\n• Un nouveau document " + next + " sera créé en brouillon.\n• Les modifications en cours seront sauvegardées avant.")) return;
     try {
-      // Sauve d'abord les modifs en cours pour ne pas les perdre
       await save({
         keepOpen: true
       });
       var child = await window.api.commercialDocs.transform(d.id, next);
-      if (window.HubToast) window.HubToast.success("✓ " + child.id + " créé");
+      if (window.HubToast) window.HubToast.success("✓ " + child.id + " créé · " + d.id + " figé en Transformé");
       onSaved && onSaved();
       onClose && onClose();
     } catch (e) {
@@ -1074,8 +1237,17 @@ var CommercialDocEditor = ({
     style: cdStyles.ghostBtn
   }, "\u2709 Envoyer"), d.type !== "facture" && d.status !== "transforme" && /*#__PURE__*/React.createElement("button", {
     onClick: transformTo,
-    style: cdStyles.ghostBtn
-  }, "\u2192 Transformer en ", {
+    disabled: !canTransform.ok,
+    title: canTransform.ok ? "Transformer ce document à l'étape suivante" : "Blocage : " + canTransform.reason,
+    style: {
+      ...cdStyles.ghostBtn,
+      opacity: canTransform.ok ? 1 : 0.5,
+      cursor: canTransform.ok ? "pointer" : "not-allowed",
+      borderColor: canTransform.ok ? "#10b981" : "#e2e8f0",
+      color: canTransform.ok ? "#065f46" : "#94a3b8",
+      background: canTransform.ok ? "#ecfdf5" : "#fff"
+    }
+  }, canTransform.ok ? "✓ " : "🔒 ", "Transformer en ", {
     devis: "commande",
     commande: "BL",
     bl: "facture"
@@ -1088,7 +1260,10 @@ var CommercialDocEditor = ({
     style: cdStyles.closeBtn
   }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
     style: cdStyles.modalBody
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(WorkflowBar, {
+    doc: d,
+    canTransform: canTransform
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -1163,27 +1338,41 @@ var CommercialDocEditor = ({
     value: p.id
   }, p.name, " ", p.client_name ? "· " + p.client_name : "")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
-  }, "Statut"), /*#__PURE__*/React.createElement("select", {
-    value: d.status,
-    onChange: e => setField("status", e.target.value),
-    style: cdStyles.input
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "brouillon"
-  }, "Brouillon"), /*#__PURE__*/React.createElement("option", {
-    value: "envoye"
-  }, "Envoy\xE9"), d.type === "devis" && /*#__PURE__*/React.createElement("option", {
-    value: "accepte"
-  }, "Accept\xE9"), d.type === "devis" && /*#__PURE__*/React.createElement("option", {
-    value: "refuse"
-  }, "Refus\xE9"), d.type !== "facture" && /*#__PURE__*/React.createElement("option", {
-    value: "transforme"
-  }, "Transform\xE9"), d.type === "bl" && /*#__PURE__*/React.createElement("option", {
-    value: "livre"
-  }, "Livr\xE9"), d.type === "facture" && /*#__PURE__*/React.createElement("option", {
-    value: "paye"
-  }, "Pay\xE9"), /*#__PURE__*/React.createElement("option", {
-    value: "annule"
-  }, "Annul\xE9"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, "Statut"), (() => {
+    // Workflow Sage : statuts autorisés et transitions valides selon le type
+    var STATUS_FLOW = {
+      devis: ["brouillon", "envoye", "accepte", "refuse", "transforme", "annule"],
+      commande: ["brouillon", "envoye", "accepte", "refuse", "transforme", "annule"],
+      bl: ["brouillon", "envoye", "livre", "transforme", "annule"],
+      facture: ["brouillon", "envoye", "paye", "annule"]
+    };
+    var STATUS_LABEL = {
+      brouillon: "Brouillon",
+      envoye: "Envoyé",
+      accepte: "Accepté",
+      refuse: "Refusé",
+      transforme: "Transformé (figé)",
+      livre: "Livré",
+      paye: "Payé",
+      annule: "Annulé"
+    };
+    var allowed = STATUS_FLOW[d.type] || [];
+    var isLocked = d.status === "transforme";
+    return /*#__PURE__*/React.createElement("select", {
+      value: d.status,
+      disabled: isLocked,
+      title: isLocked ? "Document figé après transformation — statut verrouillé" : "",
+      onChange: e => setField("status", e.target.value),
+      style: {
+        ...cdStyles.input,
+        background: isLocked ? "#f1f5f9" : "#fff",
+        cursor: isLocked ? "not-allowed" : "pointer"
+      }
+    }, allowed.map(st => /*#__PURE__*/React.createElement("option", {
+      key: st,
+      value: st
+    }, STATUS_LABEL[st] || st)));
+  })()), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
   }, "Conditions de paiement"), /*#__PURE__*/React.createElement("select", {
     value: d.payment_terms_id || "",

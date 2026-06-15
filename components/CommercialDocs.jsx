@@ -248,6 +248,62 @@ const CommercialDocs = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────
+// WorkflowBar — Visualisation du cycle Devis→Commande→BL→Facture
+//                avec étape courante + portes de validation
+// ─────────────────────────────────────────────────────────────────
+const WorkflowBar = ({ doc, canTransform }) => {
+  const STEPS = [
+    { k: "devis",    label: "Devis",    icon: "📄" },
+    { k: "commande", label: "Commande", icon: "📋" },
+    { k: "bl",       label: "BL",       icon: "🚚" },
+    { k: "facture",  label: "Facture",  icon: "💶" },
+  ];
+  const curIdx = STEPS.findIndex((s) => s.k === doc.type);
+  const isLocked = doc.status === "transforme";
+  return (
+    <div style={{ background: "linear-gradient(135deg, #f0f9ff, #eef2ff)", border: "1px solid #c7d2fe", borderRadius: 10, padding: "12px 14px", marginBottom: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#3730a3", letterSpacing: 0.4, textTransform: "uppercase" }}>Workflow Sage</div>
+        <div style={{ fontSize: 11, color: "#475569" }}>
+          {isLocked ? "🔒 Document figé après transformation" : canTransform.ok ? "✅ Transformation autorisée" : "⚠ Bloqué : " + canTransform.reason}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {STEPS.map((s, i) => {
+          const isCurrent = i === curIdx;
+          const isPast = i < curIdx;
+          const isFuture = i > curIdx;
+          return (
+            <React.Fragment key={s.k}>
+              <div style={{
+                flex: 1, padding: "8px 10px", borderRadius: 7,
+                background: isCurrent ? "#3730a3" : isPast ? "#dcfce7" : "#fff",
+                color: isCurrent ? "#fff" : isPast ? "#065f46" : "#94a3b8",
+                border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : "#e2e8f0"),
+                fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
+              }}>
+                <span style={{ fontSize: 14 }}>{s.icon}</span>
+                <span style={{ flex: 1 }}>{s.label}</span>
+                {isCurrent && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(255,255,255,0.25)", fontWeight: 700 }}>{(doc.status || "").toUpperCase()}</span>}
+                {isPast && <span style={{ fontSize: 12 }}>✓</span>}
+              </div>
+              {i < STEPS.length - 1 && (
+                <div style={{ fontSize: 14, color: isPast ? "#10b981" : isCurrent && canTransform.ok ? "#10b981" : "#cbd5e1" }}>
+                  {isPast ? "→" : isCurrent && canTransform.ok ? "→" : "✕"}
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 8, lineHeight: 1.5 }}>
+        💡 <strong>Règles de validation</strong> : un devis doit être <strong>Accepté</strong> pour être transformé en commande · une commande doit être <strong>Acceptée</strong> pour générer un BL · un BL doit être <strong>Livré</strong> pour produire une facture. Une fois transformé, le document est figé.
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
 // DocRow — Ligne de la liste avec menu d'actions rapides
 // ─────────────────────────────────────────────────────────────────
 const DocRow = ({ doc, statusMeta, fmtEUR, onOpen, onReload }) => {
@@ -563,16 +619,37 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
     setSaving(false);
   };
 
+  // ─── Portes de validation Sage : un doc ne peut passer à l'étape suivante
+  //     que si son statut est conforme. Évite que brouillon→commande→BL→facture
+  //     puisse se faire en chaîne sans aucune validation intermédiaire.
+  const TRANSITION_REQ = {
+    devis:    { next: "commande", requires: "accepte", reqLabel: "Accepté" },
+    commande: { next: "bl",       requires: "accepte", reqLabel: "Accepté" },
+    bl:       { next: "facture",  requires: "livre",   reqLabel: "Livré" },
+  };
+
+  const canTransform = (() => {
+    const rule = TRANSITION_REQ[d.type];
+    if (!rule) return { ok: false, reason: "Aucune étape suivante (document final)" };
+    if (d.status === "transforme") return { ok: false, reason: "Ce document a déjà été transformé" };
+    if (d.status === "refuse" || d.status === "annule") return { ok: false, reason: "Document " + (d.status === "refuse" ? "refusé" : "annulé") + " — transformation impossible" };
+    if (d.status !== rule.requires) return { ok: false, reason: "Statut requis : « " + rule.reqLabel + " ». Actuellement : « " + d.status + " »" };
+    return { ok: true, nextType: rule.next };
+  })();
+
   const transformTo = async () => {
-    const flow = { devis: "commande", commande: "bl", bl: "facture" };
-    const next = flow[d.type];
-    if (!next) return;
-    if (!confirm("Transformer ce " + d.type + " en " + next + " ?\n\nLes modifications en cours seront sauvegardées avant la transformation.")) return;
+    if (!canTransform.ok) {
+      if (window.HubToast) window.HubToast.error("Transformation refusée — " + canTransform.reason);
+      else alert("Transformation refusée : " + canTransform.reason);
+      return;
+    }
+    const next = canTransform.nextType;
+    const labels = { commande: "bon de commande", bl: "bon de livraison", facture: "facture" };
+    if (!confirm("Transformer ce " + d.type + " (statut « " + d.status + " ») en " + labels[next] + " ?\n\n• Le " + d.type + " sera figé avec le statut « Transformé » et ne pourra plus être modifié.\n• Un nouveau document " + next + " sera créé en brouillon.\n• Les modifications en cours seront sauvegardées avant.")) return;
     try {
-      // Sauve d'abord les modifs en cours pour ne pas les perdre
       await save({ keepOpen: true });
       const child = await window.api.commercialDocs.transform(d.id, next);
-      if (window.HubToast) window.HubToast.success("✓ " + child.id + " créé");
+      if (window.HubToast) window.HubToast.success("✓ " + child.id + " créé · " + d.id + " figé en Transformé");
       onSaved && onSaved();
       onClose && onClose();
     } catch (e) {
@@ -595,8 +672,20 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); try { await window.api.commercialSends.log({ doc_id: d.id, doc_type: d.type, channel: "download", status: "sent", provider: "browser" }); } catch (e) {} } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); setSendOpen(true); } catch (e) {} }} style={cdStyles.ghostBtn}>✉ Envoyer</button>
             {d.type !== "facture" && d.status !== "transforme" && (
-              <button onClick={transformTo} style={cdStyles.ghostBtn}>
-                → Transformer en {{ devis: "commande", commande: "BL", bl: "facture" }[d.type]}
+              <button
+                onClick={transformTo}
+                disabled={!canTransform.ok}
+                title={canTransform.ok ? "Transformer ce document à l'étape suivante" : "Blocage : " + canTransform.reason}
+                style={{
+                  ...cdStyles.ghostBtn,
+                  opacity: canTransform.ok ? 1 : 0.5,
+                  cursor: canTransform.ok ? "pointer" : "not-allowed",
+                  borderColor: canTransform.ok ? "#10b981" : "#e2e8f0",
+                  color: canTransform.ok ? "#065f46" : "#94a3b8",
+                  background: canTransform.ok ? "#ecfdf5" : "#fff",
+                }}
+              >
+                {canTransform.ok ? "✓ " : "🔒 "}Transformer en {{ devis: "commande", commande: "BL", bl: "facture" }[d.type]}
               </button>
             )}
             <button onClick={save} disabled={saving} style={cdStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
@@ -605,6 +694,9 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
         </header>
 
         <div style={cdStyles.modalBody}>
+          {/* WORKFLOW SAGE — fil de fer + validation gates */}
+          <WorkflowBar doc={d} canTransform={canTransform} />
+
           {/* Bloc client + meta */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
             <div>
@@ -647,16 +739,25 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
             </div>
             <div>
               <label style={cdStyles.lbl}>Statut</label>
-              <select value={d.status} onChange={(e) => setField("status", e.target.value)} style={cdStyles.input}>
-                <option value="brouillon">Brouillon</option>
-                <option value="envoye">Envoyé</option>
-                {d.type === "devis" && <option value="accepte">Accepté</option>}
-                {d.type === "devis" && <option value="refuse">Refusé</option>}
-                {d.type !== "facture" && <option value="transforme">Transformé</option>}
-                {d.type === "bl" && <option value="livre">Livré</option>}
-                {d.type === "facture" && <option value="paye">Payé</option>}
-                <option value="annule">Annulé</option>
-              </select>
+              {(() => {
+                // Workflow Sage : statuts autorisés et transitions valides selon le type
+                const STATUS_FLOW = {
+                  devis:    ["brouillon", "envoye", "accepte", "refuse", "transforme", "annule"],
+                  commande: ["brouillon", "envoye", "accepte", "refuse", "transforme", "annule"],
+                  bl:       ["brouillon", "envoye", "livre", "transforme", "annule"],
+                  facture:  ["brouillon", "envoye", "paye", "annule"],
+                };
+                const STATUS_LABEL = { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", refuse: "Refusé", transforme: "Transformé (figé)", livre: "Livré", paye: "Payé", annule: "Annulé" };
+                const allowed = STATUS_FLOW[d.type] || [];
+                const isLocked = d.status === "transforme";
+                return (
+                  <select value={d.status} disabled={isLocked} title={isLocked ? "Document figé après transformation — statut verrouillé" : ""}
+                          onChange={(e) => setField("status", e.target.value)}
+                          style={{ ...cdStyles.input, background: isLocked ? "#f1f5f9" : "#fff", cursor: isLocked ? "not-allowed" : "pointer" }}>
+                    {allowed.map((st) => <option key={st} value={st}>{STATUS_LABEL[st] || st}</option>)}
+                  </select>
+                );
+              })()}
             </div>
             <div>
               <label style={cdStyles.lbl}>Conditions de paiement</label>

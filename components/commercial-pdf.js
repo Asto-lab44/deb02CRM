@@ -14,6 +14,10 @@
 (function () {
   "use strict";
 
+  // ───── Logo Astorya — SVG inline, embarqué dans l'en-tête des PDFs.
+  // Sphère 3D rouge + "astorya" italique + "solution globale informatique".
+  const ASTORYA_LOGO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" font-family="Helvetica, Arial, sans-serif"><defs><radialGradient id="aSphere" cx="35%" cy="32%" r="68%"><stop offset="0%" stop-color="#f5d1d8"/><stop offset="22%" stop-color="#e8a5b2"/><stop offset="55%" stop-color="#c91c45"/><stop offset="100%" stop-color="#7a1126"/></radialGradient></defs><circle cx="165" cy="165" r="148" fill="url(#aSphere)"/><ellipse cx="120" cy="105" rx="55" ry="35" fill="#ffffff" opacity="0.45"/><text x="390" y="200" font-size="220" font-weight="500" font-style="italic" fill="#c91c45" letter-spacing="-4">astorya</text><text x="400" y="280" font-size="44" font-weight="700" fill="#252e44" letter-spacing="1">solution globale informatique</text></svg>';
+
   const PDFMAKE_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js";
   const PDFMAKE_FONTS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js";
 
@@ -140,21 +144,33 @@
       margin: [0, 18, 0, 14],
     };
 
-    // ───── Bandeau noir avec titre + bloc client
+    // ───── Bandeau header : logo Astorya à gauche, titre type à droite
+    // Le logo SVG est embarqué inline (pas de dépendance asset externe).
     const headerBand = {
       table: {
-        widths: ["*", 200],
+        widths: ["*", 220],
         body: [
           [
-            { text: "astorya",
-              fontSize: 22, bold: true, color: "#fff", margin: [12, 14, 0, 14] },
-            { text: typeLabel, fontSize: 22, bold: true, color: "#fff", alignment: "right", margin: [0, 14, 12, 14] },
+            {
+              svg: ASTORYA_LOGO_SVG,
+              width: 220, height: 60,
+              margin: [4, 8, 0, 8],
+              alignment: "left",
+            },
+            {
+              text: typeLabel,
+              fontSize: 26, bold: true, color: "#c91c45",
+              alignment: "right",
+              margin: [0, 24, 8, 8],
+            },
           ],
         ],
       },
       layout: {
-        fillColor: () => "#0f172a",
-        hLineWidth: () => 0, vLineWidth: () => 0,
+        fillColor: () => "#ffffff",
+        hLineWidth: (i, node) => (i === node.table.body.length ? 2 : 0),
+        vLineWidth: () => 0,
+        hLineColor: () => "#c91c45",
         paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0,
       },
     };

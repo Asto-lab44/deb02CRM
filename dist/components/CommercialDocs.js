@@ -171,8 +171,15 @@ var CommercialDocs = () => {
       } catch (e) {}
       try {
         var all = (await window.api.opportunities.list()) || [];
-        // Pipeline ouvert : on garde tout sauf won (déjà gagné) et lost (perdu)
-        setOpps(all.filter(o => o.stage !== "won" && o.stage !== "lost"));
+        // Pipeline ouvert ET récent : on garde tout sauf won/lost,
+        // ET on limite aux opp créées (ou updatées) dans les 30 derniers jours.
+        // Évite de polluer le picker avec des vieilles opps dormantes.
+        var thirtyDaysAgo = Date.now() - 30 * 24 * 3600 * 1000;
+        setOpps(all.filter(o => {
+          if (o.stage === "won" || o.stage === "lost") return false;
+          var ts = new Date(o.updated_at || o.created_at || 0).getTime();
+          return ts >= thirtyDaysAgo;
+        }));
       } catch (e) {}
     })();
   }, []);
@@ -1687,7 +1694,7 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
-  }, "Rattacher \xE0 une opportunit\xE9 (pipeline ouvert)"), /*#__PURE__*/React.createElement("select", {
+  }, "Rattacher \xE0 une opportunit\xE9 (\u2264 30 jours)"), /*#__PURE__*/React.createElement("select", {
     value: d.opportunity_id || "",
     onChange: e => {
       var oppId = e.target.value || null;
@@ -1717,13 +1724,19 @@ var CommercialDocEditor = ({
       key: o.id,
       value: o.id
     }, o.name || o.id, " \xB7 ", o.client_name || "—", " (", stageLbl, ")");
-  })), opps.length === 0 && /*#__PURE__*/React.createElement("div", {
+  })), opps.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 4,
       fontSize: 10.5,
       color: "#94a3b8"
     }
-  }, "Aucune opportunit\xE9 ouverte dans le pipeline")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, "Aucune opportunit\xE9 ouverte des 30 derniers jours") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 10.5,
+      color: "#94a3b8"
+    }
+  }, opps.length, " opp(s) r\xE9cente(s) du pipeline ouvert")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
   }, "Statut"), (() => {
     // Workflow Sage : statuts autorisés et transitions valides selon le type

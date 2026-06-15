@@ -95,8 +95,15 @@ const CommercialDocs = () => {
       try { setClients(await window.api.clients.list() || []); } catch (e) {}
       try {
         const all = await window.api.opportunities.list() || [];
-        // Pipeline ouvert : on garde tout sauf won (déjà gagné) et lost (perdu)
-        setOpps(all.filter((o) => o.stage !== "won" && o.stage !== "lost"));
+        // Pipeline ouvert ET récent : on garde tout sauf won/lost,
+        // ET on limite aux opp créées (ou updatées) dans les 30 derniers jours.
+        // Évite de polluer le picker avec des vieilles opps dormantes.
+        const thirtyDaysAgo = Date.now() - 30 * 24 * 3600 * 1000;
+        setOpps(all.filter((o) => {
+          if (o.stage === "won" || o.stage === "lost") return false;
+          const ts = new Date(o.updated_at || o.created_at || 0).getTime();
+          return ts >= thirtyDaysAgo;
+        }));
       } catch (e) {}
     })();
   }, []);
@@ -1008,7 +1015,7 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
           {/* Lien projet + statut + conditions */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
             <div>
-              <label style={cdStyles.lbl}>Rattacher à une opportunité (pipeline ouvert)</label>
+              <label style={cdStyles.lbl}>Rattacher à une opportunité (≤ 30 jours)</label>
               <select value={d.opportunity_id || ""} onChange={(e) => {
                 const oppId = e.target.value || null;
                 setField("opportunity_id", oppId);
@@ -1029,8 +1036,10 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                   return <option key={o.id} value={o.id}>{o.name || o.id} · {o.client_name || "—"} ({stageLbl})</option>;
                 })}
               </select>
-              {opps.length === 0 && (
-                <div style={{ marginTop: 4, fontSize: 10.5, color: "#94a3b8" }}>Aucune opportunité ouverte dans le pipeline</div>
+              {opps.length === 0 ? (
+                <div style={{ marginTop: 4, fontSize: 10.5, color: "#94a3b8" }}>Aucune opportunité ouverte des 30 derniers jours</div>
+              ) : (
+                <div style={{ marginTop: 4, fontSize: 10.5, color: "#94a3b8" }}>{opps.length} opp(s) récente(s) du pipeline ouvert</div>
               )}
             </div>
             <div>

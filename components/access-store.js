@@ -38,8 +38,8 @@
    *  un groupe a un sous-ensemble de ces clés dans son `access` array. */
   const ALL_KEYS = [
     "crm", "intel", "marketing",
-    "tech", "projects", "inventory",
-    "accounting", "billing", "treasury",
+    "tech", "projects", "commercial",
+    "inventory", "accounting", "billing", "treasury",
     "hr", "time",
     "reports", "settings",
   ];
@@ -137,6 +137,35 @@
   };
   const emit = () => { invalidate(); listeners.forEach((fn) => { try { fn(); } catch (e) {} }); };
 
+  // Migration silencieuse : si un nouveau module est ajouté à ALL_KEYS,
+  // on l'injecte automatiquement dans tous les groupes qui ont déjà l'accès
+  // étendu (admin/superadmin) pour ne pas masquer les nouvelles tuiles.
+  const NEW_KEYS_AUTO_GRANT = ["commercial"];
+
+  function migrateGroups(groups) {
+    let mutated = false;
+    const out = groups.map((g) => {
+      const acc = new Set(g.access || []);
+      // Si le groupe a déjà 80%+ des modules, on lui donne automatiquement
+      // les nouveaux (signal "admin/superadmin")
+      const isWideAccess = acc.size >= ALL_KEYS.length * 0.8;
+      let touched = false;
+      NEW_KEYS_AUTO_GRANT.forEach((k) => {
+        if (isWideAccess && !acc.has(k)) { acc.add(k); touched = true; }
+      });
+      if (touched) {
+        mutated = true;
+        return { ...g, access: Array.from(acc) };
+      }
+      return g;
+    });
+    if (mutated) {
+      try { localStorage.setItem(GROUPS_KEY, JSON.stringify(out)); } catch (e) {}
+      _groupsRaw = null; // force reload
+    }
+    return out;
+  }
+
   function loadGroups() {
     const raw = localStorage.getItem(GROUPS_KEY);
     if (raw === _groupsRaw) return _groupsCache;
@@ -144,7 +173,8 @@
     try {
       if (!raw) { _groupsCache = DEFAULT_GROUPS; return _groupsCache; }
       const parsed = JSON.parse(raw);
-      _groupsCache = (Array.isArray(parsed) && parsed.length > 0) ? parsed : DEFAULT_GROUPS;
+      const base = (Array.isArray(parsed) && parsed.length > 0) ? parsed : DEFAULT_GROUPS;
+      _groupsCache = migrateGroups(base);
     } catch (e) { _groupsCache = DEFAULT_GROUPS; }
     return _groupsCache;
   }

@@ -702,19 +702,25 @@ var DocRow = ({
     }
   };
   var downloadPdf = async () => {
+    if (!window.HubCommercialPdf) {
+      if (window.HubToast) window.HubToast.error("Module PDF non chargé — rechargez la page (F5)");else alert("Module PDF non chargé — rechargez la page");
+      return;
+    }
     try {
-      if (window.HubCommercialPdf) await window.HubCommercialPdf.download(doc.id);
-      // Log téléchargement
-      await window.api.commercialSends.log({
-        doc_id: doc.id,
-        doc_type: doc.type,
-        channel: "download",
-        status: "sent",
-        provider: "browser"
-      });
+      await window.HubCommercialPdf.download(doc.id);
+      // Log téléchargement (best-effort, ne bloque pas si la table n'existe pas)
+      try {
+        await window.api.commercialSends.log({
+          doc_id: doc.id,
+          doc_type: doc.type,
+          channel: "download",
+          status: "sent",
+          provider: "browser"
+        });
+      } catch (e) {}
       onReload && onReload();
     } catch (e) {
-      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      if (window.HubToast) window.HubToast.error("Erreur PDF : " + (e.message || e));
     }
   };
   var remove = async () => {
@@ -828,7 +834,9 @@ var DocRow = ({
     },
     title: "Actions"
   }, "\u22EF"), menuOpen && /*#__PURE__*/React.createElement("div", {
+    ref: menuRef,
     onClick: stop,
+    onMouseDown: stop,
     style: {
       position: "absolute",
       right: 0,
@@ -844,9 +852,17 @@ var DocRow = ({
   }, /*#__PURE__*/React.createElement(MenuItem, {
     icon: "\uD83D\uDC41",
     label: "Aper\xE7u PDF",
-    onClick: () => {
+    onClick: async () => {
       setMenuOpen(false);
-      window.HubCommercialPdf && window.HubCommercialPdf.preview(doc.id);
+      if (!window.HubCommercialPdf) {
+        if (window.HubToast) window.HubToast.error("Module PDF non chargé — rechargez la page");
+        return;
+      }
+      try {
+        await window.HubCommercialPdf.preview(doc.id);
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur PDF : " + (e.message || e));
+      }
     }
   }), /*#__PURE__*/React.createElement(MenuItem, {
     icon: "\u21E9",
@@ -1324,27 +1340,38 @@ var CommercialDocEditor = ({
     var rule = TRANSITION_REQ[d.type];
     if (!rule) return {
       ok: false,
+      hard: true,
       reason: "Aucune étape suivante (document final)"
     };
     if (d.status === "transforme") return {
       ok: false,
+      hard: true,
       reason: "Ce document a déjà été transformé"
     };
     if (d.status === "refuse" || d.status === "annule") return {
       ok: false,
+      hard: true,
       reason: "Document " + (d.status === "refuse" ? "refusé" : "annulé") + " — transformation impossible"
     };
-    if (d.status !== rule.requires) return {
-      ok: false,
-      reason: "Statut requis : « " + rule.reqLabel + " ». Actuellement : « " + d.status + " »"
-    };
+    if (d.status !== rule.requires) {
+      // Bloqué doux : statut peut être mis à jour automatiquement pour passer
+      return {
+        ok: false,
+        hard: false,
+        reason: "Statut requis : « " + rule.reqLabel + " ». Actuellement : « " + d.status + " »",
+        needStatus: rule.requires,
+        needStatusLbl: rule.reqLabel,
+        nextType: rule.next
+      };
+    }
     return {
       ok: true,
       nextType: rule.next
     };
   })();
   var transformTo = async () => {
-    if (!canTransform.ok) {
+    // Si bloqué dur (déjà transformé/refusé/annulé) → on s'arrête
+    if (!canTransform.ok && canTransform.hard) {
       if (window.HubToast) window.HubToast.error("Transformation refusée — " + canTransform.reason);else alert("Transformation refusée : " + canTransform.reason);
       return;
     }
@@ -1354,13 +1381,32 @@ var CommercialDocEditor = ({
       bl: "bon de livraison",
       facture: "facture"
     };
+    // Cas "blocage doux" : on propose d'updater le statut et transformer
+    if (!canTransform.ok && !canTransform.hard) {
+      var ok = confirm("Le " + d.type + " est actuellement en « " + d.status + " ».\n\nPour le transformer en " + labels[next] + ", il doit d'abord être marqué « " + canTransform.needStatusLbl + " ».\n\n• Cliquer OK : on bascule le statut sur « " + canTransform.needStatusLbl + " » puis on crée le " + labels[next] + ".\n• Annuler : aucun changement.");
+      if (!ok) return;
+      try {
+        setField("status", canTransform.needStatus);
+        await save({
+          keepOpen: true
+        });
+        var child = await window.api.commercialDocs.transform(d.id, next);
+        if (window.HubToast) window.HubToast.success("✓ Statut → " + canTransform.needStatusLbl + " · " + child.id + " créé");
+        onSaved && onSaved();
+        onClose && onClose();
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      }
+      return;
+    }
+    // Cas nominal : statut OK
     if (!confirm("Transformer ce " + d.type + " (statut « " + d.status + " ») en " + labels[next] + " ?\n\n• Le " + d.type + " sera figé avec le statut « Transformé » et ne pourra plus être modifié.\n• Un nouveau document " + next + " sera créé en brouillon.\n• Les modifications en cours seront sauvegardées avant.")) return;
     try {
       await save({
         keepOpen: true
       });
-      var child = await window.api.commercialDocs.transform(d.id, next);
-      if (window.HubToast) window.HubToast.success("✓ " + child.id + " créé · " + d.id + " figé en Transformé");
+      var _child = await window.api.commercialDocs.transform(d.id, next);
+      if (window.HubToast) window.HubToast.success("✓ " + _child.id + " créé · " + d.id + " figé en Transformé");
       onSaved && onSaved();
       onClose && onClose();
     } catch (e) {

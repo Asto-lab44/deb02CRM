@@ -2488,7 +2488,7 @@
       const typeFilter = types && types.length ? types : ["commande"];
       const sinceDate = new Date(Date.now() - since_days * 24 * 3600 * 1000).toISOString().slice(0, 10);
       const { data: docs } = await s.from("commercial_docs")
-        .select("id, type, status, client_name, doc_date, opportunity_id, title")
+        .select("id, type, status, client_name, doc_date, opportunity_id, title, number_year, number_seq")
         .in("type", typeFilter)
         .in("status", ["accepte", "transforme", "envoye", "brouillon"])
         .is("deleted_at", null)
@@ -2531,6 +2531,9 @@
             doc_type: d.type,
             doc_status: d.status,
             doc_title: d.title,
+            doc_number: (d.number_year && d.number_seq)
+              ? ((d.type === "commande" ? "CDE" : d.type === "facture" ? "FAC" : d.type === "bl" ? "BL" : "DEV") + "-" + d.number_year + "-" + String(d.number_seq).padStart(4, "0"))
+              : null,
             client_name: d.client_name,
             opportunity_id: d.opportunity_id,
             doc_date: d.doc_date,

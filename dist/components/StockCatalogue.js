@@ -803,6 +803,35 @@ var ListView = ({
   onEdit,
   onReload
 }) => {
+  var [expanded, setExpanded] = React.useState({});
+  var toggle = k => setExpanded(cur => ({
+    ...cur,
+    [k]: !cur[k]
+  }));
+
+  // Regroupe les lignes par devis/commande
+  var groups = React.useMemo(() => {
+    var map = new Map();
+    (rows || []).forEach(r => {
+      var k = r.doc_ref;
+      if (!map.has(k)) {
+        map.set(k, {
+          doc_ref: r.doc_ref,
+          doc_number: r.doc_number,
+          doc_type: r.doc_type,
+          doc_status: r.doc_status,
+          doc_title: r.doc_title,
+          doc_date: r.doc_date,
+          client_name: r.client_name,
+          opportunity_id: r.opportunity_id,
+          lines: []
+        });
+      }
+      map.get(k).lines.push(r);
+    });
+    // Tri par doc_date desc
+    return Array.from(map.values()).sort((a, b) => String(b.doc_date || "").localeCompare(String(a.doc_date || "")));
+  }, [rows]);
   if (!rows || !rows.length) {
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -819,15 +848,85 @@ var ListView = ({
     devis: {
       icon: "📄",
       label: "Devis",
-      color: "#3b82f6",
+      color: "#1d4ed8",
       bg: "#dbeafe"
     },
     commande: {
       icon: "📋",
       label: "Commande",
-      color: "#a855f7",
+      color: "#7c3aed",
       bg: "#f3e8ff"
+    },
+    facture: {
+      icon: "🧾",
+      label: "Facture",
+      color: "#0e7490",
+      bg: "#cffafe"
+    },
+    bl: {
+      icon: "📦",
+      label: "BL",
+      color: "#9a3412",
+      bg: "#ffedd5"
     }
+  };
+
+  // Suivi global réception du devis
+  var receptionSummary = lines => {
+    var total = lines.length;
+    var ok = lines.filter(l => l.reception_status === "ok" || l.reception_status === "en_stock").length;
+    var blocked = lines.filter(l => l.reception_status === "bloque").length;
+    if (ok === total) return {
+      label: "✓ Tout reçu",
+      color: "#065f46",
+      bg: "#d1fae5"
+    };
+    if (blocked > 0) return {
+      label: "⛔ " + blocked + " bloqué(s)",
+      color: "#991b1b",
+      bg: "#fee2e2"
+    };
+    if (ok > 0) return {
+      label: "◐ " + ok + "/" + total + " reçus",
+      color: "#6b21a8",
+      bg: "#f3e8ff"
+    };
+    return {
+      label: "⏳ En attente",
+      color: "#92400e",
+      bg: "#fef3c7"
+    };
+  };
+  var purchaseSummary = lines => {
+    var total = lines.length;
+    var cmd = lines.filter(l => l.purchase_status === "commande").length;
+    var trans = lines.filter(l => l.purchase_status === "transmis").length;
+    var dem = lines.filter(l => l.purchase_status === "demande").length;
+    if (cmd === total) return {
+      label: "✅ Tout commandé",
+      color: "#065f46",
+      bg: "#d1fae5"
+    };
+    if (cmd > 0) return {
+      label: "✅ " + cmd + "/" + total + " commandés",
+      color: "#075985",
+      bg: "#dbeafe"
+    };
+    if (trans > 0) return {
+      label: "📨 Transmis",
+      color: "#075985",
+      bg: "#dbeafe"
+    };
+    if (dem > 0) return {
+      label: "📤 Demandé",
+      color: "#92400e",
+      bg: "#fef3c7"
+    };
+    return {
+      label: "🛒 Panier",
+      color: "#475569",
+      bg: "#f1f5f9"
+    };
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -847,48 +946,258 @@ var ListView = ({
       background: "#f8fafc"
     }
   }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      width: 32
+    }
+  }), /*#__PURE__*/React.createElement("th", {
     style: scStyles.thHead
-  }, "Article"), /*#__PURE__*/React.createElement("th", {
+  }, "Document"), /*#__PURE__*/React.createElement("th", {
     style: scStyles.thHead
-  }, "Client / Doc"), /*#__PURE__*/React.createElement("th", {
+  }, "Client"), /*#__PURE__*/React.createElement("th", {
     style: {
       ...scStyles.thHead,
       textAlign: "center"
     }
-  }, "Qt\xE9"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      ...scStyles.thHead,
-      textAlign: "center",
-      minWidth: 130
-    }
-  }, "\uD83D\uDCC5 Date achat"), /*#__PURE__*/React.createElement("th", {
+  }, "Articles"), /*#__PURE__*/React.createElement("th", {
     style: {
       ...scStyles.thHead,
       textAlign: "right"
     }
-  }, "PU Achet\xE9"), /*#__PURE__*/React.createElement("th", {
+  }, "Total Achat HT"), /*#__PURE__*/React.createElement("th", {
     style: {
       ...scStyles.thHead,
       textAlign: "right"
     }
-  }, "PU Vendu"), /*#__PURE__*/React.createElement("th", {
+  }, "Total Vente HT"), /*#__PURE__*/React.createElement("th", {
     style: {
       ...scStyles.thHead,
       textAlign: "right"
     }
   }, "Marge"), /*#__PURE__*/React.createElement("th", {
     style: scStyles.thHead
-  }, "Fournisseur"), /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
   }, "Achat"), /*#__PURE__*/React.createElement("th", {
     style: scStyles.thHead
-  }, "R\xE9ception"))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => /*#__PURE__*/React.createElement(EditableRow, {
-    key: r.line_id,
-    r: r,
-    suppliers: suppliers,
-    fmtEURP: fmtEURP,
-    onUpdated: onReload
-  })))));
+  }, "R\xE9ception"))), /*#__PURE__*/React.createElement("tbody", null, groups.map(g => {
+    var isOpen = !!expanded[g.doc_ref];
+    var tm = TYPE_META[g.doc_type] || {
+      icon: "📄",
+      label: g.doc_type,
+      color: "#475569",
+      bg: "#f1f5f9"
+    };
+    var totalAchat = g.lines.reduce((s, l) => s + (Number(l.purchase_price_ht) || 0) * (Number(l.quantity) || 0), 0);
+    var totalVente = g.lines.reduce((s, l) => s + (Number(l.sell_price_ht) || 0) * (Number(l.quantity) || 0), 0);
+    var marge = totalVente - totalAchat;
+    var margePct = totalAchat > 0 ? marge / totalAchat * 100 : null;
+    var ps = purchaseSummary(g.lines);
+    var rs = receptionSummary(g.lines);
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: g.doc_ref
+    }, /*#__PURE__*/React.createElement("tr", {
+      onClick: () => toggle(g.doc_ref),
+      style: {
+        borderBottom: "1px solid #e2e8f0",
+        background: isOpen ? "#f8fafc" : "#fff",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...scStyles.td,
+        textAlign: "center",
+        fontSize: 14,
+        color: "#475569"
+      }
+    }, isOpen ? "▼" : "▶"), /*#__PURE__*/React.createElement("td", {
+      style: scStyles.td
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        padding: "3px 8px",
+        borderRadius: 999,
+        background: tm.bg,
+        color: tm.color
+      }
+    }, tm.icon, " ", tm.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        fontFamily: "'JetBrains Mono', monospace",
+        color: "#0f172a"
+      }
+    }, g.doc_number || g.doc_ref.slice(0, 8))), g.doc_title && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 3
+      }
+    }, g.doc_title), g.doc_date && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "#94a3b8",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, "\uD83D\uDCC5 ", String(g.doc_date).slice(0, 10))), /*#__PURE__*/React.createElement("td", {
+      style: scStyles.td
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, g.client_name || "—")), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...scStyles.td,
+        textAlign: "center",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, g.lines.length), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...scStyles.td,
+        textAlign: "right",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600,
+        color: "#dc2626"
+      }
+    }, fmtEURP ? fmtEURP(totalAchat) : totalAchat.toFixed(2)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...scStyles.td,
+        textAlign: "right",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600,
+        color: "#10b981"
+      }
+    }, fmtEURP ? fmtEURP(totalVente) : totalVente.toFixed(2)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...scStyles.td,
+        textAlign: "right"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 700,
+        color: marge >= 0 ? "#10b981" : "#dc2626"
+      }
+    }, fmtEURP ? fmtEURP(marge) : marge.toFixed(2)), margePct != null && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: margePct >= 20 ? "#10b981" : margePct >= 10 ? "#f59e0b" : "#dc2626",
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, margePct.toFixed(1), " %")), /*#__PURE__*/React.createElement("td", {
+      style: scStyles.td
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        padding: "3px 8px",
+        borderRadius: 999,
+        background: ps.bg,
+        color: ps.color,
+        whiteSpace: "nowrap"
+      }
+    }, ps.label)), /*#__PURE__*/React.createElement("td", {
+      style: scStyles.td
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        padding: "3px 8px",
+        borderRadius: 999,
+        background: rs.bg,
+        color: rs.color,
+        whiteSpace: "nowrap"
+      }
+    }, rs.label))), isOpen && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+      colSpan: 9,
+      style: {
+        padding: 0,
+        background: "#fafbfc",
+        borderBottom: "1px solid #e2e8f0"
+      }
+    }, /*#__PURE__*/React.createElement("table", {
+      style: {
+        width: "100%",
+        borderCollapse: "collapse"
+      }
+    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+      style: {
+        background: "#eef2f7"
+      }
+    }, /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5
+      }
+    }, "Article"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5
+      }
+    }, "Client / Doc"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5,
+        textAlign: "center"
+      }
+    }, "Qt\xE9"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5,
+        textAlign: "center",
+        minWidth: 130
+      }
+    }, "\uD83D\uDCC5 Date achat"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5,
+        textAlign: "right"
+      }
+    }, "PU Achet\xE9"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5,
+        textAlign: "right"
+      }
+    }, "PU Vendu"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5,
+        textAlign: "right"
+      }
+    }, "Marge"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5
+      }
+    }, "Fournisseur"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5
+      }
+    }, "Achat"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        ...scStyles.thHead,
+        fontSize: 10.5
+      }
+    }, "R\xE9ception"))), /*#__PURE__*/React.createElement("tbody", null, g.lines.map(r => /*#__PURE__*/React.createElement(EditableRow, {
+      key: r.line_id,
+      r: r,
+      suppliers: suppliers,
+      fmtEURP: fmtEURP,
+      onUpdated: onReload
+    })))))));
+  }))));
 };
 
 // ─────────────────────────────────────────────────────────────────

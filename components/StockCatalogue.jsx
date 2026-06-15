@@ -402,6 +402,33 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
 };
 
 const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
+  const [expanded, setExpanded] = React.useState({});
+  const toggle = (k) => setExpanded((cur) => ({ ...cur, [k]: !cur[k] }));
+
+  // Regroupe les lignes par devis/commande
+  const groups = React.useMemo(() => {
+    const map = new Map();
+    (rows || []).forEach((r) => {
+      const k = r.doc_ref;
+      if (!map.has(k)) {
+        map.set(k, {
+          doc_ref: r.doc_ref,
+          doc_number: r.doc_number,
+          doc_type: r.doc_type,
+          doc_status: r.doc_status,
+          doc_title: r.doc_title,
+          doc_date: r.doc_date,
+          client_name: r.client_name,
+          opportunity_id: r.opportunity_id,
+          lines: [],
+        });
+      }
+      map.get(k).lines.push(r);
+    });
+    // Tri par doc_date desc
+    return Array.from(map.values()).sort((a, b) => String(b.doc_date || "").localeCompare(String(a.doc_date || "")));
+  }, [rows]);
+
   if (!rows || !rows.length) {
     return (
       <div style={{ padding: 50, background: "#fff", border: "1px dashed #cbd5e1", borderRadius: 12, textAlign: "center", color: "#94a3b8" }}>
@@ -411,8 +438,32 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
   }
 
   const TYPE_META = {
-    devis:    { icon: "📄", label: "Devis",    color: "#3b82f6", bg: "#dbeafe" },
-    commande: { icon: "📋", label: "Commande", color: "#a855f7", bg: "#f3e8ff" },
+    devis:    { icon: "📄", label: "Devis",    color: "#1d4ed8", bg: "#dbeafe" },
+    commande: { icon: "📋", label: "Commande", color: "#7c3aed", bg: "#f3e8ff" },
+    facture:  { icon: "🧾", label: "Facture",  color: "#0e7490", bg: "#cffafe" },
+    bl:       { icon: "📦", label: "BL",        color: "#9a3412", bg: "#ffedd5" },
+  };
+
+  // Suivi global réception du devis
+  const receptionSummary = (lines) => {
+    const total = lines.length;
+    const ok = lines.filter((l) => l.reception_status === "ok" || l.reception_status === "en_stock").length;
+    const blocked = lines.filter((l) => l.reception_status === "bloque").length;
+    if (ok === total) return { label: "✓ Tout reçu", color: "#065f46", bg: "#d1fae5" };
+    if (blocked > 0) return { label: "⛔ " + blocked + " bloqué(s)", color: "#991b1b", bg: "#fee2e2" };
+    if (ok > 0) return { label: "◐ " + ok + "/" + total + " reçus", color: "#6b21a8", bg: "#f3e8ff" };
+    return { label: "⏳ En attente", color: "#92400e", bg: "#fef3c7" };
+  };
+  const purchaseSummary = (lines) => {
+    const total = lines.length;
+    const cmd = lines.filter((l) => l.purchase_status === "commande").length;
+    const trans = lines.filter((l) => l.purchase_status === "transmis").length;
+    const dem = lines.filter((l) => l.purchase_status === "demande").length;
+    if (cmd === total) return { label: "✅ Tout commandé", color: "#065f46", bg: "#d1fae5" };
+    if (cmd > 0) return { label: "✅ " + cmd + "/" + total + " commandés", color: "#075985", bg: "#dbeafe" };
+    if (trans > 0) return { label: "📨 Transmis", color: "#075985", bg: "#dbeafe" };
+    if (dem > 0) return { label: "📤 Demandé", color: "#92400e", bg: "#fef3c7" };
+    return { label: "🛒 Panier", color: "#475569", bg: "#f1f5f9" };
   };
 
   return (
@@ -420,22 +471,109 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1280 }}>
         <thead>
           <tr style={{ background: "#f8fafc" }}>
-            <th style={scStyles.thHead}>Article</th>
-            <th style={scStyles.thHead}>Client / Doc</th>
-            <th style={{ ...scStyles.thHead, textAlign: "center" }}>Qté</th>
-            <th style={{ ...scStyles.thHead, textAlign: "center", minWidth: 130 }}>📅 Date achat</th>
-            <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Acheté</th>
-            <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Vendu</th>
+            <th style={{ ...scStyles.thHead, width: 32 }}></th>
+            <th style={scStyles.thHead}>Document</th>
+            <th style={scStyles.thHead}>Client</th>
+            <th style={{ ...scStyles.thHead, textAlign: "center" }}>Articles</th>
+            <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Achat HT</th>
+            <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Vente HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>
-            <th style={scStyles.thHead}>Fournisseur</th>
             <th style={scStyles.thHead}>Achat</th>
             <th style={scStyles.thHead}>Réception</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <EditableRow key={r.line_id} r={r} suppliers={suppliers} fmtEURP={fmtEURP} onUpdated={onReload} />
-          ))}
+          {groups.map((g) => {
+            const isOpen = !!expanded[g.doc_ref];
+            const tm = TYPE_META[g.doc_type] || { icon: "📄", label: g.doc_type, color: "#475569", bg: "#f1f5f9" };
+            const totalAchat = g.lines.reduce((s, l) => s + (Number(l.purchase_price_ht) || 0) * (Number(l.quantity) || 0), 0);
+            const totalVente = g.lines.reduce((s, l) => s + (Number(l.sell_price_ht) || 0) * (Number(l.quantity) || 0), 0);
+            const marge = totalVente - totalAchat;
+            const margePct = totalAchat > 0 ? (marge / totalAchat) * 100 : null;
+            const ps = purchaseSummary(g.lines);
+            const rs = receptionSummary(g.lines);
+            return (
+              <React.Fragment key={g.doc_ref}>
+                <tr onClick={() => toggle(g.doc_ref)}
+                    style={{ borderBottom: "1px solid #e2e8f0", background: isOpen ? "#f8fafc" : "#fff", cursor: "pointer" }}>
+                  <td style={{ ...scStyles.td, textAlign: "center", fontSize: 14, color: "#475569" }}>
+                    {isOpen ? "▼" : "▶"}
+                  </td>
+                  <td style={scStyles.td}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: tm.bg, color: tm.color }}>
+                        {tm.icon} {tm.label}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }}>
+                        {g.doc_number || g.doc_ref.slice(0, 8)}
+                      </span>
+                    </div>
+                    {g.doc_title && <div style={{ fontSize: 11, color: "#64748b", marginTop: 3 }}>{g.doc_title}</div>}
+                    {g.doc_date && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>📅 {String(g.doc_date).slice(0, 10)}</div>}
+                  </td>
+                  <td style={scStyles.td}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{g.client_name || "—"}</div>
+                  </td>
+                  <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#0f172a" }}>
+                    {g.lines.length}
+                  </td>
+                  <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#dc2626" }}>
+                    {fmtEURP ? fmtEURP(totalAchat) : totalAchat.toFixed(2)}
+                  </td>
+                  <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#10b981" }}>
+                    {fmtEURP ? fmtEURP(totalVente) : totalVente.toFixed(2)}
+                  </td>
+                  <td style={{ ...scStyles.td, textAlign: "right" }}>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: marge >= 0 ? "#10b981" : "#dc2626" }}>
+                      {fmtEURP ? fmtEURP(marge) : marge.toFixed(2)}
+                    </div>
+                    {margePct != null && (
+                      <div style={{ fontSize: 10.5, color: margePct >= 20 ? "#10b981" : margePct >= 10 ? "#f59e0b" : "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>
+                        {margePct.toFixed(1)} %
+                      </div>
+                    )}
+                  </td>
+                  <td style={scStyles.td}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
+                      {ps.label}
+                    </span>
+                  </td>
+                  <td style={scStyles.td}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: rs.bg, color: rs.color, whiteSpace: "nowrap" }}>
+                      {rs.label}
+                    </span>
+                  </td>
+                </tr>
+                {isOpen && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 0, background: "#fafbfc", borderBottom: "1px solid #e2e8f0" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ background: "#eef2f7" }}>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Article</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Client / Doc</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "center" }}>Qté</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "center", minWidth: 130 }}>📅 Date achat</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>PU Acheté</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>PU Vendu</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>Marge</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Fournisseur</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Achat</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Réception</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {g.lines.map((r) => (
+                            <EditableRow key={r.line_id} r={r} suppliers={suppliers} fmtEURP={fmtEURP} onUpdated={onReload} />
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -293,18 +293,22 @@ const RECEPTION_STATUS = {
 const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
   const [local, setLocal] = React.useState(r);
   const [saving, setSaving] = React.useState(null);
-  React.useEffect(() => { setLocal(r); }, [r.line_id, r.purchase_price_ht, r.supplier, r.purchase_status, r.reception_status]);
+  // Champs en cours de saisie : on n'écrase pas local depuis r tant que l'utilisateur tape.
+  const dirtyRef = React.useRef(new Set());
+  React.useEffect(() => {
+    // Sync local depuis r SAUF pour les champs en cours de saisie
+    setLocal((cur) => {
+      const next = { ...r };
+      dirtyRef.current.forEach((k) => { next[k] = cur[k]; });
+      return next;
+    });
+  }, [r.line_id, r.purchase_price_ht, r.supplier, r.purchase_status, r.reception_status]);
 
-  // Auto-save debounce sur les inputs numbers/texts (500ms)
-  const debounceRef = React.useRef(null);
-  const queueSave = (patch) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSave(patch), 500);
-  };
   const doSave = async (patch) => {
     setSaving(Object.keys(patch)[0]);
     try {
       await window.api.purchaseMatrix.updateLine(r.line_id, patch);
+      Object.keys(patch).forEach((k) => dirtyRef.current.delete(k));
       if (onUpdated) onUpdated();
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
@@ -312,10 +316,20 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
     setSaving(null);
   };
 
-  const updateField = (k, v, immediate) => {
+  // Saisie locale uniquement (pas de sauvegarde auto). Marque le champ comme « dirty ».
+  const typeField = (k, v) => {
+    dirtyRef.current.add(k);
     setLocal((cur) => ({ ...cur, [k]: v }));
-    if (immediate) doSave({ [k]: v });
-    else queueSave({ [k]: v });
+  };
+  // Save immédiat (pour les select : status, supplier, reception, etc.)
+  const updateField = (k, v) => {
+    setLocal((cur) => ({ ...cur, [k]: v }));
+    doSave({ [k]: v });
+  };
+  // Save au blur uniquement si la valeur a changé
+  const blurSave = (k) => {
+    if (!dirtyRef.current.has(k)) return;
+    doSave({ [k]: local[k] });
   };
 
   const ps = PURCHASE_STATUS[local.purchase_status] || PURCHASE_STATUS.panier;
@@ -338,10 +352,14 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
       </td>
       <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{r.quantity}</td>
       <td style={{ ...scStyles.td, padding: "6px 8px" }}>
-        <input type="number" step="0.01" value={local.purchase_price_ht || ""} placeholder="—"
-               onChange={(e) => updateField("purchase_price_ht", e.target.value ? Number(e.target.value) : null)}
-               style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, borderColor: !local.purchase_price_ht ? "#fca5a5" : "#e2e8f0", background: !local.purchase_price_ht ? "#fef2f2" : "#fff" }} />
+        <input type="number" step="0.01" value={local.purchase_price_ht == null ? "" : local.purchase_price_ht} placeholder="—"
+               onChange={(e) => typeField("purchase_price_ht", e.target.value === "" ? null : Number(e.target.value))}
+               onBlur={() => blurSave("purchase_price_ht")}
+               onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+               title="Tape le prix puis appuie sur Entrée ou clique ailleurs pour sauvegarder"
+               style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, borderColor: !local.purchase_price_ht ? "#fca5a5" : (dirtyRef.current.has("purchase_price_ht") ? "#f59e0b" : "#e2e8f0"), background: !local.purchase_price_ht ? "#fef2f2" : (dirtyRef.current.has("purchase_price_ht") ? "#fffbeb" : "#fff") }} />
         {saving === "purchase_price_ht" && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 2 }}>💾</div>}
+        {dirtyRef.current.has("purchase_price_ht") && saving !== "purchase_price_ht" && <div style={{ fontSize: 9, color: "#b45309", textAlign: "right", marginTop: 2 }}>✎ non sauvegardé</div>}
       </td>
       <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#10b981" }}>
         {fmtEURP(r.sell_price_ht)}
@@ -355,7 +373,7 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
       </td>
       <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 160 }}>
         <select value={local.supplier || ""}
-                onChange={(e) => updateField("supplier", e.target.value || null, true)}
+                onChange={(e) => updateField("supplier", e.target.value || null)}
                 style={{ ...cellInput, borderColor: !local.supplier ? "#fca5a5" : "#e2e8f0", color: !local.supplier ? "#dc2626" : "#0f172a", fontWeight: 600 }}>
           <option value="">⚠ À assigner</option>
           {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
@@ -363,7 +381,7 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
       </td>
       <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }}>
         <select value={local.purchase_status || "panier"}
-                onChange={(e) => updateField("purchase_status", e.target.value, true)}
+                onChange={(e) => updateField("purchase_status", e.target.value)}
                 style={{ ...cellInput, background: ps.bg, color: ps.color, fontWeight: 600, borderColor: ps.bg }}>
           <option value="panier">🛒 Panier</option>
           <option value="demande">📤 Demande envoyée</option>
@@ -373,7 +391,7 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
       </td>
       <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }}>
         <select value={local.reception_status || "en_cours"}
-                onChange={(e) => updateField("reception_status", e.target.value, true)}
+                onChange={(e) => updateField("reception_status", e.target.value)}
                 style={{ ...cellInput, background: rs.bg, color: rs.color, fontWeight: 600, borderColor: rs.bg }}>
           <option value="en_cours">⏳ En cours</option>
           <option value="ok">✓ Réception OK</option>

@@ -557,35 +557,55 @@ var EditableRow = ({
 }) => {
   var [local, setLocal] = React.useState(r);
   var [saving, setSaving] = React.useState(null);
+  // Champs en cours de saisie : on n'écrase pas local depuis r tant que l'utilisateur tape.
+  var dirtyRef = React.useRef(new Set());
   React.useEffect(() => {
-    setLocal(r);
+    // Sync local depuis r SAUF pour les champs en cours de saisie
+    setLocal(cur => {
+      var next = {
+        ...r
+      };
+      dirtyRef.current.forEach(k => {
+        next[k] = cur[k];
+      });
+      return next;
+    });
   }, [r.line_id, r.purchase_price_ht, r.supplier, r.purchase_status, r.reception_status]);
-
-  // Auto-save debounce sur les inputs numbers/texts (500ms)
-  var debounceRef = React.useRef(null);
-  var queueSave = patch => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSave(patch), 500);
-  };
   var doSave = async patch => {
     setSaving(Object.keys(patch)[0]);
     try {
       await window.api.purchaseMatrix.updateLine(r.line_id, patch);
+      Object.keys(patch).forEach(k => dirtyRef.current.delete(k));
       if (onUpdated) onUpdated();
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
     }
     setSaving(null);
   };
-  var updateField = (k, v, immediate) => {
+
+  // Saisie locale uniquement (pas de sauvegarde auto). Marque le champ comme « dirty ».
+  var typeField = (k, v) => {
+    dirtyRef.current.add(k);
     setLocal(cur => ({
       ...cur,
       [k]: v
     }));
-    if (immediate) doSave({
+  };
+  // Save immédiat (pour les select : status, supplier, reception, etc.)
+  var updateField = (k, v) => {
+    setLocal(cur => ({
+      ...cur,
       [k]: v
-    });else queueSave({
+    }));
+    doSave({
       [k]: v
+    });
+  };
+  // Save au blur uniquement si la valeur a changé
+  var blurSave = k => {
+    if (!dirtyRef.current.has(k)) return;
+    doSave({
+      [k]: local[k]
     });
   };
   var ps = PURCHASE_STATUS[local.purchase_status] || PURCHASE_STATUS.panier;
@@ -651,16 +671,21 @@ var EditableRow = ({
   }, /*#__PURE__*/React.createElement("input", {
     type: "number",
     step: "0.01",
-    value: local.purchase_price_ht || "",
+    value: local.purchase_price_ht == null ? "" : local.purchase_price_ht,
     placeholder: "\u2014",
-    onChange: e => updateField("purchase_price_ht", e.target.value ? Number(e.target.value) : null),
+    onChange: e => typeField("purchase_price_ht", e.target.value === "" ? null : Number(e.target.value)),
+    onBlur: () => blurSave("purchase_price_ht"),
+    onKeyDown: e => {
+      if (e.key === "Enter") e.currentTarget.blur();
+    },
+    title: "Tape le prix puis appuie sur Entr\xE9e ou clique ailleurs pour sauvegarder",
     style: {
       ...cellInput,
       textAlign: "right",
       fontFamily: "'JetBrains Mono', monospace",
       fontWeight: 600,
-      borderColor: !local.purchase_price_ht ? "#fca5a5" : "#e2e8f0",
-      background: !local.purchase_price_ht ? "#fef2f2" : "#fff"
+      borderColor: !local.purchase_price_ht ? "#fca5a5" : dirtyRef.current.has("purchase_price_ht") ? "#f59e0b" : "#e2e8f0",
+      background: !local.purchase_price_ht ? "#fef2f2" : dirtyRef.current.has("purchase_price_ht") ? "#fffbeb" : "#fff"
     }
   }), saving === "purchase_price_ht" && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -669,7 +694,14 @@ var EditableRow = ({
       textAlign: "right",
       marginTop: 2
     }
-  }, "\uD83D\uDCBE")), /*#__PURE__*/React.createElement("td", {
+  }, "\uD83D\uDCBE"), dirtyRef.current.has("purchase_price_ht") && saving !== "purchase_price_ht" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: "#b45309",
+      textAlign: "right",
+      marginTop: 2
+    }
+  }, "\u270E non sauvegard\xE9")), /*#__PURE__*/React.createElement("td", {
     style: {
       ...scStyles.td,
       textAlign: "right",
@@ -700,7 +732,7 @@ var EditableRow = ({
     }
   }, /*#__PURE__*/React.createElement("select", {
     value: local.supplier || "",
-    onChange: e => updateField("supplier", e.target.value || null, true),
+    onChange: e => updateField("supplier", e.target.value || null),
     style: {
       ...cellInput,
       borderColor: !local.supplier ? "#fca5a5" : "#e2e8f0",
@@ -720,7 +752,7 @@ var EditableRow = ({
     }
   }, /*#__PURE__*/React.createElement("select", {
     value: local.purchase_status || "panier",
-    onChange: e => updateField("purchase_status", e.target.value, true),
+    onChange: e => updateField("purchase_status", e.target.value),
     style: {
       ...cellInput,
       background: ps.bg,
@@ -744,7 +776,7 @@ var EditableRow = ({
     }
   }, /*#__PURE__*/React.createElement("select", {
     value: local.reception_status || "en_cours",
-    onChange: e => updateField("reception_status", e.target.value, true),
+    onChange: e => updateField("reception_status", e.target.value),
     style: {
       ...cellInput,
       background: rs.bg,

@@ -159,7 +159,9 @@ const CommercialDocs = () => {
       {/* SIDEBAR */}
       <aside style={cdStyles.sidebar}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 0 18px", textDecoration: "none", color: "inherit", borderBottom: "1px solid #eef1f5" }}>
-          <div style={cdStyles.logo}>H</div>
+          <div style={cdStyles.logo}>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h2"/></svg>
+          </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Gestion commerciale</div>
@@ -1262,7 +1264,8 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
 const cdStyles = {
   frame: { display: "flex", minHeight: "100vh", background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a" },
   sidebar: { width: 220, padding: "20px 16px", background: "#fff", borderRight: "1px solid #eef1f5", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 },
-  logo: { width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, #3730a3, #6366f1)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 },
+  // Couleur exacte de la tuile Accueil "Devis & Factures" : bg orange clair + icône orange foncé
+  logo: { width: 36, height: 36, borderRadius: 9, background: "#fef0e6", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" },
   newBtn: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", background: "#3730a3", color: "#fff", border: 0, borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", margin: "14px 0 8px" },
   navLabel: { fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 12, marginBottom: 4, padding: "0 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 7, fontSize: 12.5, color: "#475569", cursor: "pointer" },

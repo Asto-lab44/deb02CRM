@@ -714,11 +714,12 @@ var taStyles = {
     gap: 4,
     flexShrink: 0
   },
+  // Couleur module Temps & Activités (#14b8a6 teal)
   logo: {
     width: 30,
     height: 30,
     borderRadius: 8,
-    background: "linear-gradient(135deg, #3730a3, #6366f1)",
+    background: "linear-gradient(135deg, #0d9488, #14b8a6)",
     color: "#fff",
     display: "flex",
     alignItems: "center",

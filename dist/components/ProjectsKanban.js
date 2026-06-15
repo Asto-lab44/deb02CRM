@@ -638,11 +638,12 @@ var S = {
     padding: "6px 8px 12px",
     borderBottom: "1px solid #f1f5f9"
   },
+  // Couleur module Projets & Livrables (#a855f7 violet)
   logo: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    background: "linear-gradient(135deg, #4f46e5, #a855f7)",
+    background: "linear-gradient(135deg, #7e22ce, #a855f7)",
     color: "#fff",
     display: "inline-flex",
     alignItems: "center",

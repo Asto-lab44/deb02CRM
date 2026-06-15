@@ -320,7 +320,8 @@ const EventRow = ({ event, fmtDateTime }) => {
 const taStyles = {
   frame: { display: "flex", minHeight: "100vh", background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a" },
   sidebar: { width: 230, padding: "20px 16px", background: "#fff", borderRight: "1px solid #eef1f5", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 },
-  logo: { width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, #3730a3, #6366f1)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 },
+  // Couleur module Temps & Activités (#14b8a6 teal)
+  logo: { width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, #0d9488, #14b8a6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 },
   navLabel: { fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 12, marginBottom: 4, padding: "0 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 7, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },

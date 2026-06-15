@@ -363,7 +363,8 @@ const S = {
   frame: { display: "flex", minHeight: "100vh", background: "#f3f5f8", fontFamily: "'Inter', system-ui, sans-serif" },
   sidebar: { width: 240, background: "#fff", borderRight: "1px solid #eef1f5", display: "flex", flexDirection: "column", padding: "16px 12px", gap: 14, flexShrink: 0 },
   brand: { display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 12px", borderBottom: "1px solid #f1f5f9" },
-  logo: { width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #4f46e5, #a855f7)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 },
+  // Couleur module Projets & Livrables (#a855f7 violet)
+  logo: { width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #7e22ce, #a855f7)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 },
   newBtn: { display: "flex", alignItems: "center", justifyContent: "center", padding: "9px 12px", background: "#0f172a", color: "#fff", border: 0, borderRadius: 8, fontWeight: 600, fontSize: 12.5, cursor: "pointer" },
   navSection: { display: "flex", flexDirection: "column", gap: 2 },
   navLabel: { fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, padding: "8px 8px 4px" },

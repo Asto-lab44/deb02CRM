@@ -252,7 +252,20 @@ var CommercialDocs = () => {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: cdStyles.logo
-  }, "H"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    width: "18",
+    height: "18",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M14 2v6h6M9 13h6M9 17h6M9 9h2"
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       fontWeight: 600
@@ -2292,17 +2305,16 @@ var cdStyles = {
     gap: 4,
     flexShrink: 0
   },
+  // Couleur exacte de la tuile Accueil "Devis & Factures" : bg orange clair + icône orange foncé
   logo: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    background: "linear-gradient(135deg, #3730a3, #6366f1)",
-    color: "#fff",
+    width: 36,
+    height: 36,
+    borderRadius: 9,
+    background: "#fef0e6",
+    color: "#f59e0b",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 700,
-    fontSize: 13
+    justifyContent: "center"
   },
   newBtn: {
     display: "flex",

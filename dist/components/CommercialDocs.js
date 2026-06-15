@@ -2125,6 +2125,8 @@ var DocSendModal = ({
   var [subject, setSubject] = React.useState(typeLbl + " " + doc.id + (doc.title ? " — " + doc.title : ""));
   var [body, setBody] = React.useState("Bonjour" + (recipientName ? " " + recipientName.split(" ")[0] : "") + ",\n\n" + "Veuillez trouver ci-joint le " + typeLbl.toLowerCase() + " " + doc.id + ".\n\n" + "N'hésitez pas à revenir vers moi pour toute question.\n\n" + "Cordialement,\n" + (doc.owner || "Romain Daviaud") + "\nAstorya");
   var [sending, setSending] = React.useState(false);
+  var [aiLoading, setAiLoading] = React.useState(false);
+  var [aiInstructions, setAiInstructions] = React.useState("");
   var send = async () => {
     if (!recipientEmail) {
       alert("Email destinataire requis");
@@ -2272,9 +2274,84 @@ var DocSendModal = ({
     style: {
       marginBottom: 12
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 4
+    }
   }, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.lbl
-  }, "Corps du message"), /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...cdStyles.lbl,
+      marginBottom: 0
+    }
+  }, "Corps du message"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!window.HubAI) {
+        alert("Assistant IA non chargé");
+        return;
+      }
+      setAiLoading(true);
+      try {
+        // Récupère tous les docs liés à la même opp pour donner du contexte
+        var relatedDocs = [doc];
+        if (doc.opportunity_id) {
+          try {
+            var all = await window.api.commercialDocs.list({
+              opportunity_id: doc.opportunity_id
+            });
+            relatedDocs = (all || []).filter(d => d.status !== "annule" && d.status !== "refuse");
+            if (relatedDocs.length === 0) relatedDocs = [doc];
+          } catch (e) {}
+        }
+        var newBody = await window.HubAI.generateSalesMail({
+          client_name: doc.client_name,
+          contact_name: recipientName,
+          contact_title: doc.contact_title,
+          docs: relatedDocs.map(d => ({
+            id: d.id,
+            type: d.type,
+            title: d.title,
+            total_ttc: d.total_ttc,
+            status: d.status
+          })),
+          custom_notes: aiInstructions
+        });
+        if (newBody && newBody.trim()) setBody(newBody.trim());
+        if (window.HubToast) window.HubToast.success("✓ Mail rédigé par Claude IA");
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur IA : " + (e.message || e));else alert("Erreur IA : " + (e.message || e));
+      }
+      setAiLoading(false);
+    },
+    disabled: aiLoading,
+    style: {
+      padding: "4px 10px",
+      fontSize: 11,
+      fontWeight: 600,
+      background: "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 5,
+      cursor: aiLoading ? "wait" : "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    },
+    title: "G\xE9n\xE8re un mail commercial structur\xE9 avec Claude IA en analysant tous les devis li\xE9s \xE0 la m\xEAme opportunit\xE9"
+  }, "\uD83E\uDD16 ", aiLoading ? "Rédaction…" : "Rédiger avec IA")), /*#__PURE__*/React.createElement("input", {
+    value: aiInstructions,
+    onChange: e => setAiInstructions(e.target.value),
+    placeholder: "Instructions IA (optionnel) : ex. mettre l'accent sur la s\xE9curit\xE9, ton plus direct, mentionner l'urgence\u2026",
+    style: {
+      ...cdStyles.input,
+      fontSize: 11.5,
+      marginBottom: 6,
+      padding: "6px 10px",
+      background: "#fafbfc"
+    }
+  }), /*#__PURE__*/React.createElement("textarea", {
     value: body,
     onChange: e => setBody(e.target.value),
     rows: 8,

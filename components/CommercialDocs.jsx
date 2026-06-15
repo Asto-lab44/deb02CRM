@@ -1185,6 +1185,8 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
     "Cordialement,\n" + (doc.owner || "Romain Daviaud") + "\nAstorya"
   );
   const [sending, setSending] = React.useState(false);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [aiInstructions, setAiInstructions] = React.useState("");
 
   const send = async () => {
     if (!recipientEmail) { alert("Email destinataire requis"); return; }
@@ -1273,7 +1275,48 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
             <input value={subject} onChange={(e) => setSubject(e.target.value)} style={cdStyles.input} />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <label style={cdStyles.lbl}>Corps du message</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <label style={{ ...cdStyles.lbl, marginBottom: 0 }}>Corps du message</label>
+              <button
+                onClick={async () => {
+                  if (!window.HubAI) { alert("Assistant IA non chargé"); return; }
+                  setAiLoading(true);
+                  try {
+                    // Récupère tous les docs liés à la même opp pour donner du contexte
+                    let relatedDocs = [doc];
+                    if (doc.opportunity_id) {
+                      try {
+                        const all = await window.api.commercialDocs.list({ opportunity_id: doc.opportunity_id });
+                        relatedDocs = (all || []).filter((d) => d.status !== "annule" && d.status !== "refuse");
+                        if (relatedDocs.length === 0) relatedDocs = [doc];
+                      } catch (e) {}
+                    }
+                    const newBody = await window.HubAI.generateSalesMail({
+                      client_name: doc.client_name,
+                      contact_name: recipientName,
+                      contact_title: doc.contact_title,
+                      docs: relatedDocs.map((d) => ({ id: d.id, type: d.type, title: d.title, total_ttc: d.total_ttc, status: d.status })),
+                      custom_notes: aiInstructions,
+                    });
+                    if (newBody && newBody.trim()) setBody(newBody.trim());
+                    if (window.HubToast) window.HubToast.success("✓ Mail rédigé par Claude IA");
+                  } catch (e) {
+                    if (window.HubToast) window.HubToast.error("Erreur IA : " + (e.message || e));
+                    else alert("Erreur IA : " + (e.message || e));
+                  }
+                  setAiLoading(false);
+                }}
+                disabled={aiLoading}
+                style={{ padding: "4px 10px", fontSize: 11, fontWeight: 600, background: "#0f172a", color: "#fff", border: 0, borderRadius: 5, cursor: aiLoading ? "wait" : "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
+                title="Génère un mail commercial structuré avec Claude IA en analysant tous les devis liés à la même opportunité"
+              >🤖 {aiLoading ? "Rédaction…" : "Rédiger avec IA"}</button>
+            </div>
+            <input
+              value={aiInstructions}
+              onChange={(e) => setAiInstructions(e.target.value)}
+              placeholder="Instructions IA (optionnel) : ex. mettre l'accent sur la sécurité, ton plus direct, mentionner l'urgence…"
+              style={{ ...cdStyles.input, fontSize: 11.5, marginBottom: 6, padding: "6px 10px", background: "#fafbfc" }}
+            />
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} style={{ ...cdStyles.input, resize: "vertical", fontFamily: "inherit" }} />
           </div>
           <div style={{ padding: 10, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 7, fontSize: 11.5, color: "#92400e", marginBottom: 14 }}>

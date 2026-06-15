@@ -84,7 +84,19 @@ var ProjectsKanban = () => {
     setLoading(false);
   }, []);
   React.useEffect(() => {
-    reload();
+    // Backfill : rattrape les opps déjà gagnées sans projet associé (avant
+    // que l'auto-création soit en place). One-shot par session.
+    (async () => {
+      try {
+        if (window.api && window.api.projects && window.api.projects.backfillFromWonOpps) {
+          var res = await window.api.projects.backfillFromWonOpps();
+          if (res && res.created > 0 && window.HubToast) {
+            window.HubToast.success("✓ " + res.created + " projet(s) auto-créé(s) depuis opportunités gagnées");
+          }
+        }
+      } catch (e) {}
+      reload();
+    })();
     if (window.HubData && window.HubData.subscribeChanges) return window.HubData.subscribeChanges(reload);
   }, [reload]);
 

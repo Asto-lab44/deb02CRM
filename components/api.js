@@ -868,6 +868,60 @@
       return arr;
     },
 
+    /** Backfill : crée un projet pour chaque opportunité déjà gagnée (stage="won")
+     *  qui n'a pas encore de projet associé. Idempotent : peut être rappelé sans risque.
+     *  Retourne { created, skipped, errors } pour visibilité. */
+    async backfillFromWonOpps() {
+      const s = supa();
+      if (!s) return { created: 0, skipped: 0, errors: 0 };
+      let created = 0, skipped = 0, errors = 0;
+      try {
+        const { data: wonOpps } = await s.from("opportunities").select("*").eq("stage", "won");
+        if (!wonOpps || wonOpps.length === 0) return { created: 0, skipped: 0, errors: 0 };
+        // Tous les projets existants (avec opportunity_id ou data.opportunity_id)
+        const { data: allProjects } = await s.from("projects").select("id, opportunity_id, data").is("deleted_at", null);
+        const linkedOppIds = new Set();
+        (allProjects || []).forEach((p) => {
+          if (p.opportunity_id) linkedOppIds.add(p.opportunity_id);
+          if (p.data && p.data.opportunity_id) linkedOppIds.add(p.data.opportunity_id);
+        });
+        const created_by = await getCurrentUserId();
+        const cuName = getCurrentUserName();
+        for (const opp of wonOpps) {
+          if (linkedOppIds.has(opp.id)) { skipped++; continue; }
+          const projId = genId("PRJ");
+          const projRow = {
+            id: projId,
+            name: opp.name || "Projet — " + opp.id,
+            stage: "recu",
+            client_id: opp.client_id || null,
+            amount_ht: opp.amount_eur || null,
+            opportunity_id: opp.id,
+            description: opp.notes || (opp.data && opp.data.besoin) || null,
+            data: { opportunity_id: opp.id, opportunity_name: opp.name, created_from: "backfill_won" },
+          };
+          if (created_by) projRow.created_by = created_by;
+          let { error: pErr } = await s.from("projects").insert(projRow);
+          if (pErr && /opportunity_id|column/i.test(pErr.message)) {
+            delete projRow.opportunity_id;
+            const r = await s.from("projects").insert(projRow);
+            pErr = r.error;
+          }
+          if (pErr) { errors++; console.warn("[backfill]", pErr.message); continue; }
+          await s.from("project_events").insert({
+            project_id: projId, type: "created",
+            payload: { from_opportunity: opp.id, stage: "recu", mode: "backfill" },
+            author_id: created_by || null,
+            author_name: cuName,
+          }).catch(() => {});
+          created++;
+        }
+      } catch (e) {
+        console.warn("[backfillFromWonOpps]", e.message || e);
+      }
+      return { created, skipped, errors };
+    },
+
     async getById(id) {
       const s = supa();
       if (s) {

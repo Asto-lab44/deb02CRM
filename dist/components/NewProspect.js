@@ -108,6 +108,19 @@ var NewProspect = () => {
   var [companyCP, setCompanyCP] = React.useState("");
   var [companySector, setCompanySector] = React.useState("");
   var [companySubSect, setCompanySubSect] = React.useState("");
+  // Établissements secondaires : chaque entrée = { nom, adresse, cp, ville }
+  var [secondaryEstabs, setSecondaryEstabs] = React.useState([]);
+  var addSecondaryEstab = () => setSecondaryEstabs(l => [...l, {
+    nom: "",
+    adresse: "",
+    cp: "",
+    ville: ""
+  }]);
+  var removeSecondaryEstab = i => setSecondaryEstabs(l => l.filter((_, idx) => idx !== i));
+  var updateSecondaryEstab = (i, field, value) => setSecondaryEstabs(l => l.map((e, idx) => idx === i ? {
+    ...e,
+    [field]: value
+  } : e));
   var [companyWeb, setCompanyWeb] = React.useState("");
   var [companyLi, setCompanyLi] = React.useState("");
   var [siretResults, setSiretResults] = React.useState([]);
@@ -220,6 +233,7 @@ var NewProspect = () => {
     setProcedureCheck(null);
     setSiretResults([]);
     setSiretOpen(false);
+    setSecondaryEstabs([]);
   };
   var pickCompany = e => {
     var siege = e.siege || {};
@@ -291,6 +305,7 @@ var NewProspect = () => {
     adresse: companyAddress,
     code_postal: companyCP,
     ville: companyCity,
+    etablissements_secondaires: secondaryEstabs.filter(e => e.adresse || e.ville || e.nom),
     secteur: companySector,
     sous_secteur: companySubSect,
     site_web: companyWeb,
@@ -948,7 +963,90 @@ var NewProspect = () => {
     value: companyCity,
     onChange: e => setCompanyCity(e.target.value),
     placeholder: "Ville"
-  }))))), /*#__PURE__*/React.createElement("section", {
+  })))), /*#__PURE__*/React.createElement(FormRow, {
+    label: "Établissements secondaires" + (secondaryEstabs.length ? " (" + secondaryEstabs.length + ")" : ""),
+    subtitle: "Agences, sites annexes, d\xE9p\xF4ts\u2026"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, secondaryEstabs.map((es, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1.2fr 2fr 100px 1fr 30px",
+      gap: 6,
+      alignItems: "center",
+      padding: 6,
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 7
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...npStyles.input,
+      fontSize: 12
+    },
+    value: es.nom,
+    onChange: e => updateSecondaryEstab(i, "nom", e.target.value),
+    placeholder: "Nom site (ex: Agence Bordeaux)"
+  }), /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...npStyles.input,
+      fontSize: 12
+    },
+    value: es.adresse,
+    onChange: e => updateSecondaryEstab(i, "adresse", e.target.value),
+    placeholder: "Adresse"
+  }), /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...npStyles.input,
+      fontSize: 12
+    },
+    value: es.cp,
+    onChange: e => updateSecondaryEstab(i, "cp", e.target.value),
+    placeholder: "CP"
+  }), /*#__PURE__*/React.createElement("input", {
+    style: {
+      ...npStyles.input,
+      fontSize: 12
+    },
+    value: es.ville,
+    onChange: e => updateSecondaryEstab(i, "ville", e.target.value),
+    placeholder: "Ville"
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => removeSecondaryEstab(i),
+    title: "Retirer",
+    style: {
+      width: 26,
+      height: 26,
+      padding: 0,
+      border: "1px solid #fecaca",
+      background: "#fee2e2",
+      color: "#dc2626",
+      borderRadius: 5,
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: 700
+    }
+  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: addSecondaryEstab,
+    style: {
+      alignSelf: "flex-start",
+      padding: "6px 12px",
+      border: "1px dashed #c7d2fe",
+      background: "#eef2ff",
+      color: "#3730a3",
+      borderRadius: 7,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "+ Ajouter un \xE9tablissement secondaire")))), /*#__PURE__*/React.createElement("section", {
     style: npStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {
     num: "02",

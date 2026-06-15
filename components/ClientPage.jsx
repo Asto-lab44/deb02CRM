@@ -541,6 +541,9 @@ const ClientPage = () => {
       adresse: editDraft.address || null,
       code_postal: editDraft.cp || null,
       ville: editDraft.addressCity || null,
+      etablissements_secondaires: Array.isArray(editDraft.etablissements_secondaires)
+        ? editDraft.etablissements_secondaires.filter((e) => e.adresse || e.ville || e.nom)
+        : [],
       site_web: editDraft.web || null,
       linkedin_entreprise: editDraft.linkedin || null,
       siren: editDraft.siren || null,
@@ -1594,7 +1597,25 @@ const ClientPage = () => {
                   {display.ca && <DetailRow label="CA annuel" value={<span style={{ fontSize: 12.5, fontWeight: 600 }}>{display.ca} M€</span>} />}
                   {display.tier && <DetailRow label="Tier" value={<span style={cliStyles.fieldChip}>Tier {display.tier}</span>} />}
                   {display.linkedin && <DetailRow label="LinkedIn" value={<a href={display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin} target="_blank" rel="noopener" style={{ fontSize: 12, color: "#3730a3" }}>{display.linkedin.replace(/^https?:\/\//, "")} ↗</a>} />}
-                  <DetailRow label="Adresse" value={<span style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{display.address}{display.cp || display.addressCity ? <><br/>{display.cp} {display.addressCity}</> : null}</span>} />
+                  <DetailRow label="Adresse siège" value={<span style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{display.address}{display.cp || display.addressCity ? <><br/>{display.cp} {display.addressCity}</> : null}</span>} />
+                  {Array.isArray(display.etablissements_secondaires) && display.etablissements_secondaires.length > 0 && (
+                    <DetailRow
+                      label={"Établissements secondaires (" + display.etablissements_secondaires.length + ")"}
+                      value={
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {display.etablissements_secondaires.map((es, i) => (
+                            <div key={i} style={{ fontSize: 12, padding: "6px 8px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 6 }}>
+                              {es.nom && <div style={{ fontWeight: 600, color: "#0f172a" }}>{es.nom}</div>}
+                              <div style={{ color: "#475569", lineHeight: 1.4 }}>
+                                {es.adresse}
+                                {(es.cp || es.ville) && <><br/>{es.cp} {es.ville}</>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      }
+                    />
+                  )}
                 </div>
               </div>
             </div>

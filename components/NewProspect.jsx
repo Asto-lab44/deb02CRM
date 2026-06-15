@@ -90,6 +90,11 @@ const NewProspect = () => {
   const [companyCP,      setCompanyCP]      = React.useState("");
   const [companySector,  setCompanySector]  = React.useState("");
   const [companySubSect, setCompanySubSect] = React.useState("");
+  // Établissements secondaires : chaque entrée = { nom, adresse, cp, ville }
+  const [secondaryEstabs, setSecondaryEstabs] = React.useState([]);
+  const addSecondaryEstab = () => setSecondaryEstabs((l) => [...l, { nom: "", adresse: "", cp: "", ville: "" }]);
+  const removeSecondaryEstab = (i) => setSecondaryEstabs((l) => l.filter((_, idx) => idx !== i));
+  const updateSecondaryEstab = (i, field, value) => setSecondaryEstabs((l) => l.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
   const [companyWeb,     setCompanyWeb]     = React.useState("");
   const [companyLi,      setCompanyLi]      = React.useState("");
   const [siretResults,   setSiretResults]   = React.useState([]);
@@ -199,6 +204,7 @@ const NewProspect = () => {
     setProcedureCheck(null);
     setSiretResults([]);
     setSiretOpen(false);
+    setSecondaryEstabs([]);
   };
 
   const pickCompany = (e) => {
@@ -276,6 +282,7 @@ const NewProspect = () => {
     adresse: companyAddress,
     code_postal: companyCP,
     ville: companyCity,
+    etablissements_secondaires: secondaryEstabs.filter((e) => e.adresse || e.ville || e.nom),
     secteur: companySector,
     sous_secteur: companySubSect,
     site_web: companyWeb,
@@ -643,6 +650,24 @@ const NewProspect = () => {
                   <input style={npStyles.input} value={companyCP} onChange={(e) => setCompanyCP(e.target.value)} placeholder="CP" />
                   <input style={npStyles.input} value={companyCity} onChange={(e) => setCompanyCity(e.target.value)} placeholder="Ville" />
                 </div>
+              </div>
+            </FormRow>
+
+            {/* Établissements secondaires : N adresses additionnelles */}
+            <FormRow label={"Établissements secondaires" + (secondaryEstabs.length ? " (" + secondaryEstabs.length + ")" : "")} subtitle="Agences, sites annexes, dépôts…">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {secondaryEstabs.map((es, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1.2fr 2fr 100px 1fr 30px", gap: 6, alignItems: "center", padding: 6, background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 7 }}>
+                    <input style={{ ...npStyles.input, fontSize: 12 }} value={es.nom} onChange={(e) => updateSecondaryEstab(i, "nom", e.target.value)} placeholder="Nom site (ex: Agence Bordeaux)" />
+                    <input style={{ ...npStyles.input, fontSize: 12 }} value={es.adresse} onChange={(e) => updateSecondaryEstab(i, "adresse", e.target.value)} placeholder="Adresse" />
+                    <input style={{ ...npStyles.input, fontSize: 12 }} value={es.cp} onChange={(e) => updateSecondaryEstab(i, "cp", e.target.value)} placeholder="CP" />
+                    <input style={{ ...npStyles.input, fontSize: 12 }} value={es.ville} onChange={(e) => updateSecondaryEstab(i, "ville", e.target.value)} placeholder="Ville" />
+                    <button type="button" onClick={() => removeSecondaryEstab(i)} title="Retirer" style={{ width: 26, height: 26, padding: 0, border: "1px solid #fecaca", background: "#fee2e2", color: "#dc2626", borderRadius: 5, cursor: "pointer", fontSize: 14, fontWeight: 700 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={addSecondaryEstab} style={{ alignSelf: "flex-start", padding: "6px 12px", border: "1px dashed #c7d2fe", background: "#eef2ff", color: "#3730a3", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  + Ajouter un établissement secondaire
+                </button>
               </div>
             </FormRow>
           </section>

@@ -265,7 +265,9 @@ const AdvanceOpportunity = () => {
                 }] : [],
               });
               if (window.HubToast) window.HubToast.success("✓ Devis " + devis.id + " créé — ouverture de la gestion commerciale");
-              setTimeout(() => { window.location.href = "/gestion-commerciale?open=" + encodeURIComponent(devis.id); }, 600);
+              // On stocke l'URL actuelle pour pouvoir y revenir après save du devis
+              const returnTo = window.location.pathname + window.location.search;
+              setTimeout(() => { window.location.href = "/gestion-commerciale?open=" + encodeURIComponent(devis.id) + "&returnTo=" + encodeURIComponent(returnTo); }, 600);
             } catch (e) {
               if (window.HubToast) window.HubToast.error("Erreur création devis : " + (e.message || e));
             }

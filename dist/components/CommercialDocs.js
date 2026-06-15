@@ -1363,7 +1363,19 @@ var CommercialDocEditor = ({
       }));
       if (window.HubToast) window.HubToast.success("✓ Document enregistré");
       onSaved && onSaved();
-      if (!options.keepOpen) onClose && onClose();
+      if (!options.keepOpen) {
+        // Si ?returnTo=URL dans la query, on y retourne plutôt que de fermer
+        // le modal (ex: depuis AdvanceOpportunity → édition devis → save → retour pipeline)
+        var params = new URLSearchParams(window.location.search);
+        var returnTo = params.get("returnTo");
+        if (returnTo) {
+          setTimeout(() => {
+            window.location.href = returnTo;
+          }, 400);
+        } else {
+          onClose && onClose();
+        }
+      }
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
       throw e;

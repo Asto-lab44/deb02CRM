@@ -262,10 +262,54 @@ var AdvanceOpportunity = () => {
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
       return;
     }
-    if (window.HubToast) window.HubToast.success(asLost ? "✓ Opportunité marquée comme perdue" : "✓ Avancée en " + target.spanco);
+
+    // ⚡ CASCADE EXPLICITE COTÉ CLIENT pour passage en Ordre (won)
+    // Filet de sécurité au cas où le hook backend silencieusement échoue.
+    // Visible étape par étape via toast pour debug.
+    var cascadeReport = "";
+    if (!asLost && newStage === "won") {
+      try {
+        var docs = await window.api.commercialDocs.list({
+          opportunity_id: opp.ref
+        });
+        var devisToCascade = (docs || []).filter(d => d.type === "devis" && d.status !== "transforme" && d.status !== "annule" && d.status !== "refuse");
+        var nbCmd = 0,
+          nbBL = 0;
+        for (var devis of devisToCascade) {
+          try {
+            await window.api.commercialDocs.update(devis.id, {
+              status: "accepte"
+            });
+            var cmd = await window.api.commercialDocs.transform(devis.id, "commande");
+            if (cmd) {
+              nbCmd++;
+              try {
+                await window.api.commercialDocs.update(cmd.id, {
+                  status: "accepte"
+                });
+                var bl = await window.api.commercialDocs.transform(cmd.id, "bl");
+                if (bl) nbBL++;
+              } catch (eBL) {
+                console.warn("[client cascade BL]", devis.id, eBL);
+              }
+            }
+          } catch (eC) {
+            console.warn("[client cascade CMD]", devis.id, eC);
+          }
+        }
+        if (nbCmd > 0 || nbBL > 0) {
+          cascadeReport = " · " + nbCmd + " commande(s) + " + nbBL + " BL générés";
+        } else if (devisToCascade.length > 0) {
+          cascadeReport = " · cascade partielle (voir console)";
+        }
+      } catch (e) {
+        console.warn("[client cascade]", e);
+      }
+    }
+    if (window.HubToast) window.HubToast.success(asLost ? "✓ Opportunité marquée comme perdue" : "✓ Avancée en " + target.spanco + cascadeReport);
     setTimeout(() => {
       window.location.href = clientId ? "/fiche-client?id=" + encodeURIComponent(clientId) : "/crm";
-    }, 500);
+    }, 1200);
   };
   return /*#__PURE__*/React.createElement("div", {
     style: S.frame

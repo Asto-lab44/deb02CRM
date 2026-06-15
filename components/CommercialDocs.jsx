@@ -149,6 +149,26 @@ const CommercialDocs = () => {
     setEditing(full);
   };
 
+  // Si URL ?open=DEV-XXXX → ouvre le doc en éditeur au chargement
+  // (ex : depuis AdvanceOpportunity > "Créer un devis")
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get("open");
+    if (openId && !editing) {
+      // Bascule au bon type selon préfixe pour que la liste soit cohérente
+      const prefix = openId.split("-")[0];
+      const typeByPrefix = { DEV: "devis", BC: "commande", BL: "bl", FAC: "facture" };
+      const matched = typeByPrefix[prefix];
+      if (matched && matched !== activeType) setActiveType(matched);
+      (async () => {
+        try {
+          const full = await window.api.commercialDocs.getById(openId);
+          if (full) setEditing(full);
+        } catch (e) {}
+      })();
+    }
+  }, []);
+
   const closeEditor = () => { setEditing(null); reload(); };
 
   // Format euro fr-FR : la virgule est le séparateur décimal légal, ne PAS la remplacer.

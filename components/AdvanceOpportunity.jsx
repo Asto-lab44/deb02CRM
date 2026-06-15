@@ -199,6 +199,38 @@ const AdvanceOpportunity = () => {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           <a href={clientId ? "/fiche-client?id=" + clientId : "/crm"} style={S.btnGhost}>{curIdx >= stages.length - 1 ? "← Retour" : "Annuler"}</a>
+          <button onClick={async () => {
+            try {
+              const amtN = parseFloat(String(editAmount || "0").replace(/[^\d.]/g, "")) || 0;
+              // Crée un devis pré-rempli avec les données de l'opp
+              const devis = await window.api.commercialDocs.create({
+                type: "devis",
+                status: "brouillon",
+                client_id: opp.client_id || null,
+                client_name: opp.client_name || null,
+                opportunity_id: opp.ref || null,
+                title: editName || opp.name || "Devis " + (opp.client_name || ""),
+                notes: editBesoin || null,
+                internal_notes: editNotes || null,
+                owner: opp.owner || null,
+                lines: amtN > 0 ? [{
+                  designation: editName || opp.name || "Prestation",
+                  quantity: 1,
+                  unit: "forfait",
+                  unit_price_ht: amtN,
+                  total_ht: amtN,
+                  tva_rate: 20,
+                  total_tva: amtN * 0.2,
+                  total_ttc: amtN * 1.2,
+                  discount_pct: 0,
+                }] : [],
+              });
+              if (window.HubToast) window.HubToast.success("✓ Devis " + devis.id + " créé — ouverture de la gestion commerciale");
+              setTimeout(() => { window.location.href = "/gestion-commerciale?open=" + encodeURIComponent(devis.id); }, 600);
+            } catch (e) {
+              if (window.HubToast) window.HubToast.error("Erreur création devis : " + (e.message || e));
+            }
+          }} style={{ ...S.btnGhost, borderColor: "#f59e0b", color: "#b45309", background: "#fef0e6" }}>📄 Créer un devis</button>
           {curIdx < stages.length - 1 && targetIdx > curIdx && (
             <button onClick={() => confirmAdvance(false)} style={S.btnPrimary}>✓ Avancer en {target.spanco} →</button>
           )}
@@ -402,6 +434,9 @@ const AdvanceOpportunity = () => {
               </div>
             </>
           )}
+
+          {/* DOCUMENTS COMMERCIAUX LIÉS — devis/commandes/BL/factures sur cette opp */}
+          <LinkedDocsCard oppRef={opp.ref} />
         </aside>
       </div>
 
@@ -437,6 +472,80 @@ const AdvanceOpportunity = () => {
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// LinkedDocsCard — Carte latérale "Documents commerciaux liés"
+// Affiche tous les devis/commandes/BL/factures liés à cette opportunité
+// avec lien rapide d'ouverture dans /gestion-commerciale?open=
+// ─────────────────────────────────────────────────────────────────
+const LinkedDocsCard = ({ oppRef }) => {
+  const [docs, setDocs] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!oppRef || !window.api || !window.api.commercialDocs) { setLoading(false); return; }
+    (async () => {
+      try {
+        const list = await window.api.commercialDocs.list({ opportunity_id: oppRef });
+        setDocs(list || []);
+      } catch (e) { setDocs([]); }
+      setLoading(false);
+    })();
+  }, [oppRef]);
+
+  const TYPE_META = {
+    devis:    { icon: "📄", label: "Devis",    color: "#3b82f6" },
+    commande: { icon: "📋", label: "Commande", color: "#a855f7" },
+    bl:       { icon: "🚚", label: "BL",       color: "#ea580c" },
+    facture:  { icon: "💶", label: "Facture",  color: "#10b981" },
+  };
+  const STATUS_LABEL = { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", refuse: "Refusé", transforme: "Transformé", livre: "Livré", paye: "Payé", annule: "Annulé" };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 16, marginTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>📁 Documents liés</span>
+        <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 999, background: "#eef2ff", color: "#3730a3", fontWeight: 600 }}>{docs.length}</span>
+      </div>
+      {loading ? (
+        <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 8 }}>Chargement…</div>
+      ) : docs.length === 0 ? (
+        <div style={{ fontSize: 11.5, color: "#94a3b8", textAlign: "center", padding: 12, fontStyle: "italic" }}>
+          Aucun document commercial pour cette opportunité.<br/>
+          Clique sur <strong style={{ color: "#b45309" }}>📄 Créer un devis</strong> en haut pour en générer un.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {docs.map((d) => {
+            const m = TYPE_META[d.type] || { icon: "📎", label: d.type, color: "#64748b" };
+            const amt = d.total_ttc ? (Number(d.total_ttc) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €" : "—";
+            return (
+              <a
+                key={d.id}
+                href={"/gestion-commerciale?open=" + encodeURIComponent(d.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 9,
+                  padding: "8px 10px", borderRadius: 7,
+                  background: m.color + "10", border: "1px solid " + m.color + "40",
+                  textDecoration: "none", color: "inherit", cursor: "pointer",
+                }}
+                title={"Ouvrir " + d.id + " dans la Gestion Commerciale"}
+              >
+                <span style={{ fontSize: 14 }}>{m.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{d.id}</div>
+                  <div style={{ fontSize: 10.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {m.label} · {STATUS_LABEL[d.status] || d.status} · {amt}
+                  </div>
+                </div>
+                <span style={{ fontSize: 12, color: m.color, fontWeight: 700 }}>→</span>
+              </a>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

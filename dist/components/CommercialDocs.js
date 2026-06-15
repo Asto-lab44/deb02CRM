@@ -225,6 +225,31 @@ var CommercialDocs = () => {
     var full = await window.api.commercialDocs.getById(id);
     setEditing(full);
   };
+
+  // Si URL ?open=DEV-XXXX → ouvre le doc en éditeur au chargement
+  // (ex : depuis AdvanceOpportunity > "Créer un devis")
+  React.useEffect(() => {
+    var params = new URLSearchParams(window.location.search);
+    var openId = params.get("open");
+    if (openId && !editing) {
+      // Bascule au bon type selon préfixe pour que la liste soit cohérente
+      var prefix = openId.split("-")[0];
+      var typeByPrefix = {
+        DEV: "devis",
+        BC: "commande",
+        BL: "bl",
+        FAC: "facture"
+      };
+      var matched = typeByPrefix[prefix];
+      if (matched && matched !== activeType) setActiveType(matched);
+      (async () => {
+        try {
+          var full = await window.api.commercialDocs.getById(openId);
+          if (full) setEditing(full);
+        } catch (e) {}
+      })();
+    }
+  }, []);
   var closeEditor = () => {
     setEditing(null);
     reload();

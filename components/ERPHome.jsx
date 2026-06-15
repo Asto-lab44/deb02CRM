@@ -359,6 +359,8 @@ const ERPHome = () => {
     new: { bg: "#4f46e5", color: "#fff" },
     danger: { bg: "#fdecec", color: "#dc2626", border: "#fecaca" },
     warn: { bg: "#fff6e6", color: "#a65f00", border: "#fde68a" },
+    info: { bg: "#e0f2fe", color: "#0369a1", border: "#bae6fd" },
+    success: { bg: "#dcfce7", color: "#065f46", border: "#86efac" },
   };
 
   return (
@@ -561,14 +563,15 @@ const ERPHome = () => {
                     {/* Top row */}
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative", zIndex: 1 }}>
                       <div style={{ ...erpStyles.tileIcon, background: m.bg, color: m.color }}>{m.icon}</div>
-                      {m.badge && (
-                        <span style={{
+                      {m.badge && (() => {
+                        const tone = badgeTones[m.badge.tone] || badgeTones.new;
+                        return <span style={{
                           ...erpStyles.tileBadge,
-                          background: badgeTones[m.badge.tone].bg,
-                          color: badgeTones[m.badge.tone].color,
-                          border: badgeTones[m.badge.tone].border ? `1px solid ${badgeTones[m.badge.tone].border}` : "none",
-                        }}>{m.badge.label}</span>
-                      )}
+                          background: tone.bg,
+                          color: tone.color,
+                          border: tone.border ? `1px solid ${tone.border}` : "none",
+                        }}>{m.badge.label}</span>;
+                      })()}
                     </div>
 
                     {/* Title */}

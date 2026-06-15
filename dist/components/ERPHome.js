@@ -664,6 +664,16 @@ var ERPHome = () => {
       bg: "#fff6e6",
       color: "#a65f00",
       border: "#fde68a"
+    },
+    info: {
+      bg: "#e0f2fe",
+      color: "#0369a1",
+      border: "#bae6fd"
+    },
+    success: {
+      bg: "#dcfce7",
+      color: "#065f46",
+      border: "#86efac"
     }
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -1137,14 +1147,17 @@ var ERPHome = () => {
       background: m.bg,
       color: m.color
     }
-  }, m.icon), m.badge && /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...erpStyles.tileBadge,
-      background: badgeTones[m.badge.tone].bg,
-      color: badgeTones[m.badge.tone].color,
-      border: badgeTones[m.badge.tone].border ? `1px solid ${badgeTones[m.badge.tone].border}` : "none"
-    }
-  }, m.badge.label)), /*#__PURE__*/React.createElement("div", {
+  }, m.icon), m.badge && (() => {
+    var tone = badgeTones[m.badge.tone] || badgeTones.new;
+    return /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...erpStyles.tileBadge,
+        background: tone.bg,
+        color: tone.color,
+        border: tone.border ? `1px solid ${tone.border}` : "none"
+      }
+    }, m.badge.label);
+  })()), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       zIndex: 1,

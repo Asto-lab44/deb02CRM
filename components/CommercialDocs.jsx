@@ -885,22 +885,32 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id); } catch (e) {} }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); try { await window.api.commercialSends.log({ doc_id: d.id, doc_type: d.type, channel: "download", status: "sent", provider: "browser" }); } catch (e) {} } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); setSendOpen(true); } catch (e) {} }} style={cdStyles.ghostBtn}>✉ Envoyer</button>
-            {d.type !== "facture" && d.status !== "transforme" && (
-              <button
-                onClick={transformTo}
-                disabled={!canTransform.ok}
-                title={canTransform.ok ? "Transformer ce document à l'étape suivante" : "Blocage : " + canTransform.reason}
-                style={{
-                  ...cdStyles.ghostBtn,
-                  opacity: canTransform.ok ? 1 : 0.5,
-                  cursor: canTransform.ok ? "pointer" : "not-allowed",
-                  borderColor: canTransform.ok ? "#10b981" : "#e2e8f0",
-                  color: canTransform.ok ? "#065f46" : "#94a3b8",
-                  background: canTransform.ok ? "#ecfdf5" : "#fff",
-                }}
-              >
-                {canTransform.ok ? "✓ " : "🔒 "}Transformer en {{ devis: "commande", commande: "BL", bl: "facture" }[d.type]}
-              </button>
+            {d.type !== "facture" && d.status !== "transforme" && (() => {
+              // 3 états : OK (vert, cliquable) · Soft-block (orange, cliquable
+              // → propose d'updater le statut auto) · Hard-block (gris, désactivé)
+              const isOk = canTransform.ok;
+              const isSoft = !isOk && !canTransform.hard; // statut pas conforme mais récupérable
+              const isHard = !isOk && canTransform.hard;  // figé/annulé/refusé
+              return (
+                <button
+                  onClick={transformTo}
+                  disabled={isHard}
+                  title={isOk ? "Transformer ce document à l'étape suivante"
+                    : isSoft ? "Cliquer pour basculer le statut sur « " + canTransform.needStatusLbl + " » et transformer"
+                    : "Bloqué : " + canTransform.reason}
+                  style={{
+                    ...cdStyles.ghostBtn,
+                    opacity: isHard ? 0.45 : 1,
+                    cursor: isHard ? "not-allowed" : "pointer",
+                    borderColor: isOk ? "#10b981" : isSoft ? "#f59e0b" : "#e2e8f0",
+                    color: isOk ? "#065f46" : isSoft ? "#b45309" : "#94a3b8",
+                    background: isOk ? "#ecfdf5" : isSoft ? "#fef0e6" : "#fff",
+                  }}
+                >
+                  {isOk ? "✓ " : isSoft ? "⚡ " : "🔒 "}Transformer en {{ devis: "commande", commande: "BL", bl: "facture" }[d.type]}
+                </button>
+              );
+            })()}
             )}
             <button onClick={save} disabled={saving} style={cdStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
             <button onClick={onClose} style={cdStyles.closeBtn}>×</button>

@@ -392,8 +392,8 @@ var ERPHome = () => {
   }, {
     cat: "Finance",
     key: "commercial",
-    title: "Gestion commerciale",
-    subtitle: "Devis · Commandes · BL · Factures",
+    title: "Devis & Factures",
+    subtitle: "Gestion commerciale · Devis · Commandes · BL · Factures",
     icon: /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",
       width: "22",
@@ -421,7 +421,7 @@ var ERPHome = () => {
       v: "—"
     }],
     badge: {
-      label: "Sage 50c-like",
+      label: "Sage-like",
       tone: "info"
     }
   }, {

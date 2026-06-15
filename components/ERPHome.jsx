@@ -225,8 +225,8 @@ const ERPHome = () => {
     {
       cat: "Finance",
       key: "commercial",
-      title: "Gestion commerciale",
-      subtitle: "Devis · Commandes · BL · Factures",
+      title: "Devis & Factures",
+      subtitle: "Gestion commerciale · Devis · Commandes · BL · Factures",
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h2"/></svg>,
       color: "#f59e0b",
       bg: "#fef0e6",
@@ -235,7 +235,7 @@ const ERPHome = () => {
         { k: "Factures", v: "—" },
         { k: "Encours", v: "—" },
       ],
-      badge: { label: "Sage 50c-like", tone: "info" },
+      badge: { label: "Sage-like", tone: "info" },
     },
     {
       cat: "Finance",

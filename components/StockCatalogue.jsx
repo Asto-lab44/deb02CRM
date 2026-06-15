@@ -292,15 +292,26 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit }) => {
   // l'info client × N lignes
   const groups = React.useMemo(() => {
     const m = {};
-    rows.forEach((r) => {
-      const key = r.doc_ref;
+    (rows || []).forEach((r) => {
+      const key = r.doc_ref || "?";
+      const qty = Number(r.quantity) || 0;
+      const purchase = Number(r.purchase_price_ht) || 0;
+      const sell = Number(r.sell_price_ht) || 0;
       if (!m[key]) m[key] = { doc_ref: key, doc_type: r.doc_type, doc_status: r.doc_status, doc_title: r.doc_title, client_name: r.client_name, doc_date: r.doc_date, items: [], totalPurchase: 0, totalSell: 0 };
       m[key].items.push(r);
-      m[key].totalPurchase += (Number(r.purchase_price_ht) || 0) * r.quantity;
-      m[key].totalSell += r.sell_price_ht * r.quantity;
+      m[key].totalPurchase += purchase * qty;
+      m[key].totalSell += sell * qty;
     });
     return Object.values(m).sort((a, b) => (b.doc_date || "").localeCompare(a.doc_date || ""));
   }, [rows]);
+
+  if (!groups.length) {
+    return (
+      <div style={{ padding: 50, background: "#fff", border: "1px dashed #cbd5e1", borderRadius: 12, textAlign: "center", color: "#94a3b8" }}>
+        Aucun article à afficher avec les filtres actuels.
+      </div>
+    );
+  }
 
   const TYPE_META = {
     devis:    { icon: "📄", label: "Devis",    color: "#3b82f6", bg: "#dbeafe" },

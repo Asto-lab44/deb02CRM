@@ -556,8 +556,11 @@ var ListView = ({
   // l'info client × N lignes
   var groups = React.useMemo(() => {
     var m = {};
-    rows.forEach(r => {
-      var key = r.doc_ref;
+    (rows || []).forEach(r => {
+      var key = r.doc_ref || "?";
+      var qty = Number(r.quantity) || 0;
+      var purchase = Number(r.purchase_price_ht) || 0;
+      var sell = Number(r.sell_price_ht) || 0;
       if (!m[key]) m[key] = {
         doc_ref: key,
         doc_type: r.doc_type,
@@ -570,11 +573,23 @@ var ListView = ({
         totalSell: 0
       };
       m[key].items.push(r);
-      m[key].totalPurchase += (Number(r.purchase_price_ht) || 0) * r.quantity;
-      m[key].totalSell += r.sell_price_ht * r.quantity;
+      m[key].totalPurchase += purchase * qty;
+      m[key].totalSell += sell * qty;
     });
     return Object.values(m).sort((a, b) => (b.doc_date || "").localeCompare(a.doc_date || ""));
   }, [rows]);
+  if (!groups.length) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 50,
+        background: "#fff",
+        border: "1px dashed #cbd5e1",
+        borderRadius: 12,
+        textAlign: "center",
+        color: "#94a3b8"
+      }
+    }, "Aucun article \xE0 afficher avec les filtres actuels.");
+  }
   var TYPE_META = {
     devis: {
       icon: "📄",

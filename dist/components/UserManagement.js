@@ -683,18 +683,34 @@ var UserManagement = () => {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
-      if (!confirm("⚠ DANGER : Supprimer DÉFINITIVEMENT toutes les données métier ?\n\n• Tous les clients/prospects\n• Toutes les opportunités\n• Tous les contacts\n• Toutes les actions\n• Tous les contrats\n• localStorage entier\n\n(Les comptes Romain + Augustin restent dans Auth)")) return;
+      if (!confirm("⚠ DANGER : Supprimer DÉFINITIVEMENT toutes les données métier ?\n\n• Tous les clients/prospects\n• Toutes les opportunités\n• Tous les contacts\n• Toutes les actions\n• Tous les contrats\n• Tous les devis / commandes / BL / factures + audit envois\n• Tous les projets + livrables + timeline\n• Lignes d'achat (Stock & Catalogue)\n• Compteurs de numérotation\n• localStorage entier\n\n(Les comptes Romain + Augustin restent dans Auth)")) return;
       if (!confirm("Vraiment sûr ? Cette action est irréversible.")) return;
       var report = [];
-      // Supabase
+      // Supabase — ordre IMPORTANT : enfants FK avant parents
       if (window.HubSupabase && window.HubSupabase.enabled && window.HubSupabase.client) {
         var s = window.HubSupabase.client;
-        for (var t of ["actions", "contacts", "contracts", "opportunities", "clients"]) {
+        var tables = [
+        // Commercial : lignes/audit avant docs
+        "commercial_doc_lines", "commercial_doc_sends", "commercial_doc_counters", "commercial_docs",
+        // Projets : items/events/team avant projets
+        "project_items", "project_events", "project_team", "projects",
+        // CRM core
+        "actions", "contacts", "contracts", "opportunities", "clients"];
+        for (var t of tables) {
           try {
             var {
               error
             } = await s.from(t).delete().not("id", "is", null);
-            report.push((error ? "✗ " : "✓ ") + t + (error ? " — " + error.message : ""));
+            if (error) {
+              // Table inexistante = on skip silencieusement (cas tables core jamais créées)
+              if (/relation .* does not exist|42P01/i.test(error.message)) {
+                report.push("⊘ " + t + " (table absente, skip)");
+              } else {
+                report.push("✗ " + t + " — " + error.message);
+              }
+            } else {
+              report.push("✓ " + t);
+            }
           } catch (e) {
             report.push("✗ " + t + " — " + e.message);
           }
@@ -722,7 +738,7 @@ var UserManagement = () => {
       color: "#dc2626",
       cursor: "pointer"
     },
-    title: "Supprimer toutes les donn\xE9es m\xE9tier (clients, opps, contacts, actions, contrats)"
+    title: "Supprimer toutes les donn\xE9es m\xE9tier \u2014 CRM, Gestion Commerciale, Projets, Stock & Catalogue"
   }, "\uD83D\uDDD1 Reset donn\xE9es"), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
       var ok = window.HubModal ? await window.HubModal.confirm({

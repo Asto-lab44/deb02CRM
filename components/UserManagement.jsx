@@ -277,16 +277,33 @@ const UserManagement = () => {
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={async () => {
-                  if (!confirm("⚠ DANGER : Supprimer DÉFINITIVEMENT toutes les données métier ?\n\n• Tous les clients/prospects\n• Toutes les opportunités\n• Tous les contacts\n• Toutes les actions\n• Tous les contrats\n• localStorage entier\n\n(Les comptes Romain + Augustin restent dans Auth)")) return;
+                  if (!confirm("⚠ DANGER : Supprimer DÉFINITIVEMENT toutes les données métier ?\n\n• Tous les clients/prospects\n• Toutes les opportunités\n• Tous les contacts\n• Toutes les actions\n• Tous les contrats\n• Tous les devis / commandes / BL / factures + audit envois\n• Tous les projets + livrables + timeline\n• Lignes d'achat (Stock & Catalogue)\n• Compteurs de numérotation\n• localStorage entier\n\n(Les comptes Romain + Augustin restent dans Auth)")) return;
                   if (!confirm("Vraiment sûr ? Cette action est irréversible.")) return;
                   let report = [];
-                  // Supabase
+                  // Supabase — ordre IMPORTANT : enfants FK avant parents
                   if (window.HubSupabase && window.HubSupabase.enabled && window.HubSupabase.client) {
                     const s = window.HubSupabase.client;
-                    for (const t of ["actions", "contacts", "contracts", "opportunities", "clients"]) {
+                    const tables = [
+                      // Commercial : lignes/audit avant docs
+                      "commercial_doc_lines", "commercial_doc_sends", "commercial_doc_counters", "commercial_docs",
+                      // Projets : items/events/team avant projets
+                      "project_items", "project_events", "project_team", "projects",
+                      // CRM core
+                      "actions", "contacts", "contracts", "opportunities", "clients",
+                    ];
+                    for (const t of tables) {
                       try {
                         const { error } = await s.from(t).delete().not("id", "is", null);
-                        report.push((error ? "✗ " : "✓ ") + t + (error ? " — " + error.message : ""));
+                        if (error) {
+                          // Table inexistante = on skip silencieusement (cas tables core jamais créées)
+                          if (/relation .* does not exist|42P01/i.test(error.message)) {
+                            report.push("⊘ " + t + " (table absente, skip)");
+                          } else {
+                            report.push("✗ " + t + " — " + error.message);
+                          }
+                        } else {
+                          report.push("✓ " + t);
+                        }
                       } catch (e) { report.push("✗ " + t + " — " + e.message); }
                     }
                   } else {
@@ -303,7 +320,7 @@ const UserManagement = () => {
                   setTimeout(() => { window.location.reload(); }, 500);
                 }}
                 style={{ ...S.btnGhost, borderColor: "#fecaca", color: "#dc2626", cursor: "pointer" }}
-                title="Supprimer toutes les données métier (clients, opps, contacts, actions, contrats)"
+                title="Supprimer toutes les données métier — CRM, Gestion Commerciale, Projets, Stock & Catalogue"
               >🗑 Reset données</button>
               <button onClick={async () => {
                 const ok = window.HubModal

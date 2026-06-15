@@ -82,6 +82,7 @@ var CommercialDocs = () => {
     }
   };
   var [activeType, setActiveType] = React.useState("devis");
+  var [statusFilter, setStatusFilter] = React.useState("all");
   var [docs, setDocs] = React.useState([]);
   var [loading, setLoading] = React.useState(true);
   var [search, setSearch] = React.useState("");
@@ -116,9 +117,26 @@ var CommercialDocs = () => {
   }, []);
   var filtered = React.useMemo(() => {
     var q = search.trim().toLowerCase();
-    if (!q) return docs;
-    return docs.filter(d => [d.id, d.client_name, d.title, d.owner].some(v => String(v || "").toLowerCase().includes(q)));
-  }, [docs, search]);
+    return docs.filter(d => {
+      if (statusFilter !== "all" && d.status !== statusFilter) return false;
+      if (q && ![d.id, d.client_name, d.title, d.owner].some(v => String(v || "").toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [docs, search, statusFilter]);
+  React.useEffect(() => {
+    setStatusFilter("all");
+  }, [activeType]);
+
+  // Compteurs par statut (pour les pills de filtre)
+  var statusCounts = React.useMemo(() => {
+    var c = {
+      all: docs.length
+    };
+    docs.forEach(d => {
+      c[d.status] = (c[d.status] || 0) + 1;
+    });
+    return c;
+  }, [docs]);
   var totals = React.useMemo(() => {
     var t = {
       count: filtered.length,
@@ -271,6 +289,75 @@ var CommercialDocs = () => {
     label: "Documents",
     value: totals.count,
     color: "#0ea5e9"
+  })), docs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 12,
+      flexWrap: "wrap"
+    }
+  }, [{
+    k: "all",
+    label: "Tous"
+  }, {
+    k: "brouillon",
+    label: "Brouillons",
+    c: "#94a3b8"
+  }, {
+    k: "envoye",
+    label: "Envoyés",
+    c: "#3b82f6"
+  }, activeType === "devis" && {
+    k: "accepte",
+    label: "Acceptés",
+    c: "#10b981"
+  }, activeType === "devis" && {
+    k: "refuse",
+    label: "Refusés",
+    c: "#dc2626"
+  }, {
+    k: "transforme",
+    label: "Transformés",
+    c: "#7e22ce"
+  }, activeType === "bl" && {
+    k: "livre",
+    label: "Livrés",
+    c: "#f59e0b"
+  }, activeType === "facture" && {
+    k: "paye",
+    label: "Payés",
+    c: "#065f46"
+  }, {
+    k: "annule",
+    label: "Annulés",
+    c: "#475569"
+  }].filter(Boolean).map(s => {
+    var count = s.k === "all" ? statusCounts.all : statusCounts[s.k] || 0;
+    var active = statusFilter === s.k;
+    if (s.k !== "all" && count === 0) return null;
+    return /*#__PURE__*/React.createElement("button", {
+      key: s.k,
+      onClick: () => setStatusFilter(s.k),
+      style: {
+        padding: "5px 11px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
+        border: "1px solid " + (active ? s.c || "#0f172a" : "#e2e8f0"),
+        background: active ? s.c || "#0f172a" : "#fff",
+        color: active ? "#fff" : "#475569",
+        cursor: "pointer",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, s.label, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontFamily: "'JetBrains Mono', monospace",
+        opacity: 0.85
+      }
+    }, count));
   })), loading ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 60,
@@ -331,90 +418,14 @@ var CommercialDocs = () => {
     style: {
       flex: "0 0 60px"
     }
-  })), filtered.map(d => {
-    var sm = STATUS_META[d.status] || STATUS_META.brouillon;
-    return /*#__PURE__*/React.createElement("div", {
-      key: d.id,
-      onClick: () => openDoc(d.id),
-      style: cdStyles.tableRow
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: "0 0 130px",
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 12,
-        color: "#3730a3",
-        fontWeight: 600
-      }
-    }, d.id), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 600,
-        color: "#0f172a",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      }
-    }, d.client_name || "— Client non renseigné —"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        color: "#64748b",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      }
-    }, d.title || "(sans titre)")), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: "0 0 100px",
-        fontSize: 12,
-        color: "#475569",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, d.doc_date), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: "0 0 120px",
-        textAlign: "right",
-        fontSize: 13,
-        fontWeight: 600,
-        color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, fmtEUR(d.total_ht)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: "0 0 120px",
-        textAlign: "right",
-        fontSize: 13,
-        fontWeight: 700,
-        color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, fmtEUR(d.total_ttc)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: "0 0 110px"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "inline-block",
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: sm.bg,
-        color: sm.color,
-        fontSize: 11,
-        fontWeight: 600
-      }
-    }, sm.label)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: "0 0 60px",
-        textAlign: "right",
-        color: "#cbd5e1",
-        fontSize: 16
-      }
-    }, "\u203A"));
-  }))), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
+  })), filtered.map(d => /*#__PURE__*/React.createElement(DocRow, {
+    key: d.id,
+    doc: d,
+    statusMeta: STATUS_META,
+    fmtEUR: fmtEUR,
+    onOpen: openDoc,
+    onReload: reload
+  })))), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
     doc: editing,
     clients: clients,
     projects: projects,
@@ -422,6 +433,312 @@ var CommercialDocs = () => {
     onSaved: reload
   }));
 };
+
+// ─────────────────────────────────────────────────────────────────
+// DocRow — Ligne de la liste avec menu d'actions rapides
+// ─────────────────────────────────────────────────────────────────
+var DocRow = ({
+  doc,
+  statusMeta,
+  fmtEUR,
+  onOpen,
+  onReload
+}) => {
+  var [menuOpen, setMenuOpen] = React.useState(false);
+  var sm = statusMeta[doc.status] || statusMeta.brouillon;
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    var close = () => setMenuOpen(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [menuOpen]);
+  var stop = e => e.stopPropagation();
+  var duplicate = async () => {
+    try {
+      var full = await window.api.commercialDocs.getById(doc.id);
+      if (!full) throw new Error("Doc introuvable");
+      var lines = (full.lines || []).map(l => ({
+        article_id: l.article_id,
+        ref: l.ref,
+        designation: l.designation,
+        description: l.description,
+        quantity: l.quantity,
+        unit: l.unit,
+        unit_price_ht: l.unit_price_ht,
+        discount_pct: l.discount_pct,
+        tva_rate: l.tva_rate,
+        total_ht: l.total_ht,
+        total_tva: l.total_tva,
+        total_ttc: l.total_ttc,
+        is_text_only: l.is_text_only
+      }));
+      var copy = await window.api.commercialDocs.create({
+        type: doc.type,
+        status: "brouillon",
+        client_id: full.client_id,
+        client_name: full.client_name,
+        client_address: full.client_address,
+        client_cp: full.client_cp,
+        client_city: full.client_city,
+        client_siren: full.client_siren,
+        client_tva: full.client_tva,
+        contact_name: full.contact_name,
+        contact_email: full.contact_email,
+        project_id: full.project_id,
+        opportunity_id: full.opportunity_id,
+        title: "Copie de " + (full.title || full.id),
+        notes: full.notes,
+        payment_terms_id: full.payment_terms_id,
+        owner: full.owner,
+        lines
+      });
+      if (window.HubToast) window.HubToast.success("✓ " + copy.id + " créé (copie)");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var quickStatus = async (status, label) => {
+    try {
+      var patch = {
+        status
+      };
+      if (status === "paye") patch.paid_at = new Date().toISOString();
+      if (status === "livre") patch.delivered_at = new Date().toISOString();
+      await window.api.commercialDocs.update(doc.id, patch);
+      if (window.HubToast) window.HubToast.success("✓ Statut → " + label);
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var downloadPdf = async () => {
+    try {
+      if (window.HubCommercialPdf) await window.HubCommercialPdf.download(doc.id);
+      // Log téléchargement
+      await window.api.commercialSends.log({
+        doc_id: doc.id,
+        doc_type: doc.type,
+        channel: "download",
+        status: "sent",
+        provider: "browser"
+      });
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var remove = async () => {
+    if (!confirm("Supprimer " + doc.id + " ? (soft-delete)")) return;
+    try {
+      await window.api.commercialDocs.remove(doc.id);
+      if (window.HubToast) window.HubToast.success("✓ " + doc.id + " supprimé");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: () => onOpen(doc.id),
+    style: cdStyles.tableRow
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 130px",
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 12,
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, doc.id), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, doc.client_name || "— Client non renseigné —"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, doc.title || "(sans titre)")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 100px",
+      fontSize: 12,
+      color: "#475569",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, doc.doc_date), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 120px",
+      textAlign: "right",
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, fmtEUR(doc.total_ht)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 120px",
+      textAlign: "right",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, fmtEUR(doc.total_ttc)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 110px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 999,
+      background: sm.bg,
+      color: sm.color,
+      fontSize: 11,
+      fontWeight: 600
+    }
+  }, sm.label)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 60px",
+      textAlign: "right",
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      stop(e);
+      setMenuOpen(v => !v);
+    },
+    style: {
+      background: "transparent",
+      border: 0,
+      color: "#94a3b8",
+      fontSize: 18,
+      cursor: "pointer",
+      padding: "2px 8px",
+      borderRadius: 4
+    },
+    title: "Actions"
+  }, "\u22EF"), menuOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: stop,
+    style: {
+      position: "absolute",
+      right: 0,
+      top: 28,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+      zIndex: 10,
+      minWidth: 200,
+      padding: 4
+    }
+  }, /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDC41",
+    label: "Aper\xE7u PDF",
+    onClick: () => {
+      setMenuOpen(false);
+      window.HubCommercialPdf && window.HubCommercialPdf.preview(doc.id);
+    }
+  }), /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\u21E9",
+    label: "T\xE9l\xE9charger PDF",
+    onClick: () => {
+      setMenuOpen(false);
+      downloadPdf();
+    }
+  }), /*#__PURE__*/React.createElement(MenuDivider, null), /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDCCB",
+    label: "Dupliquer",
+    onClick: () => {
+      setMenuOpen(false);
+      duplicate();
+    }
+  }), doc.type === "devis" && doc.status !== "accepte" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\u2713",
+    label: "Marquer accept\xE9",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("accepte", "Accepté");
+    }
+  }), doc.type === "devis" && doc.status !== "refuse" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\u2715",
+    label: "Marquer refus\xE9",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("refuse", "Refusé");
+    }
+  }), doc.type === "facture" && doc.status !== "paye" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDCB6",
+    label: "Marquer pay\xE9e",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("paye", "Payée");
+    }
+  }), doc.type === "bl" && doc.status !== "livre" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDE9A",
+    label: "Marquer livr\xE9",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("livre", "Livré");
+    }
+  }), /*#__PURE__*/React.createElement(MenuDivider, null), /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDDD1",
+    label: "Supprimer",
+    danger: true,
+    onClick: () => {
+      setMenuOpen(false);
+      remove();
+    }
+  }))));
+};
+var MenuItem = ({
+  icon,
+  label,
+  onClick,
+  danger
+}) => /*#__PURE__*/React.createElement("button", {
+  onClick: onClick,
+  style: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    padding: "7px 10px",
+    border: 0,
+    background: "transparent",
+    fontSize: 12.5,
+    color: danger ? "#dc2626" : "#0f172a",
+    textAlign: "left",
+    cursor: "pointer",
+    borderRadius: 5
+  },
+  onMouseEnter: e => e.currentTarget.style.background = danger ? "#fee2e2" : "#f1f5f9",
+  onMouseLeave: e => e.currentTarget.style.background = "transparent"
+}, /*#__PURE__*/React.createElement("span", {
+  style: {
+    width: 16
+  }
+}, icon), label);
+var MenuDivider = () => /*#__PURE__*/React.createElement("div", {
+  style: {
+    height: 1,
+    background: "#eef1f5",
+    margin: "2px 6px"
+  }
+});
 var KPI = ({
   label,
   value,
@@ -1179,6 +1496,25 @@ var DocSendModal = ({
     if (!recipientEmail) {
       alert("Email destinataire requis");
       return;
+    }
+    var emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRx.test(recipientEmail)) {
+      alert("Format email invalide : " + recipientEmail);
+      return;
+    }
+    if (cc) {
+      var ccList = cc.split(",").map(s => s.trim()).filter(Boolean);
+      var bad = ccList.find(e => !emailRx.test(e));
+      if (bad) {
+        alert("Email CC invalide : " + bad);
+        return;
+      }
+    }
+    if (!doc.client_name) {
+      if (!confirm("Le document n'a pas de client. Envoyer quand même ?")) return;
+    }
+    if ((doc.lines || []).length === 0) {
+      if (!confirm("Le document n'a aucune ligne. Envoyer quand même ?")) return;
     }
     setSending(true);
     try {

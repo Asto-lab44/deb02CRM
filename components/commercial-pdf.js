@@ -388,6 +388,14 @@
       if (!resolved) throw new Error("Document introuvable");
     }
     const company = await window.api.commercialCompany.get();
+    // Résolution du libellé conditions de paiement (depuis payment_terms_id)
+    if (resolved.payment_terms_id && !resolved.payment_terms_label) {
+      try {
+        const terms = await window.api.commercialRefs.paymentTerms();
+        const found = (terms || []).find((t) => t.id === resolved.payment_terms_id);
+        if (found) resolved = { ...resolved, payment_terms_label: found.label };
+      } catch (e) {}
+    }
     return { doc: resolved, company };
   }
 

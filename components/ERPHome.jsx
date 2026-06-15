@@ -119,6 +119,33 @@ const ERPHome = () => {
     }
   }, []);
 
+  // Stats live pour la tuile Devis & Factures
+  const [commercialStats, setCommercialStats] = React.useState({ devis: 0, factures: 0, encours: 0 });
+  React.useEffect(() => {
+    if (!window.api || !window.api.commercialDocs) return;
+    (async () => {
+      try {
+        const [devis, factures] = await Promise.all([
+          window.api.commercialDocs.list({ type: "devis" }),
+          window.api.commercialDocs.list({ type: "facture" }),
+        ]);
+        const encours = (factures || [])
+          .filter((f) => f.status !== "paye" && f.status !== "annule")
+          .reduce((s, f) => s + (Number(f.total_ttc) || 0), 0);
+        setCommercialStats({
+          devis: (devis || []).length,
+          factures: (factures || []).length,
+          encours: encours,
+        });
+      } catch (e) {}
+    })();
+  }, []);
+  const fmtKE = (n) => {
+    if (!n) return "0 €";
+    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + " k€";
+    return Math.round(n) + " €";
+  };
+
   const modules = [
     // COMMERCIAL
     {
@@ -231,9 +258,9 @@ const ERPHome = () => {
       color: "#f59e0b",
       bg: "#fef0e6",
       stats: [
-        { k: "Devis", v: "—" },
-        { k: "Factures", v: "—" },
-        { k: "Encours", v: "—" },
+        { k: "Devis", v: String(commercialStats.devis) },
+        { k: "Factures", v: String(commercialStats.factures) },
+        { k: "Encours", v: fmtKE(commercialStats.encours) },
       ],
       badge: { label: "Sage-like", tone: "info" },
     },

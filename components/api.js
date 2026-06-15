@@ -1281,7 +1281,7 @@
         title: payload.title || null,
         notes: payload.notes || null,
         internal_notes: payload.internal_notes || null,
-        payment_terms_id: payload.payment_terms_id || null,
+        payment_terms_id: payload.payment_terms_id || "rcpt",
         owner: payload.owner || getCurrentUserName(),
         data: payload.data || {},
         created_at: new Date().toISOString(),

@@ -404,61 +404,85 @@
               }).catch(() => {});
             }
 
-            // Auto-création d'une COMMANDE dans la Gestion Commerciale
-            // 1. Si un devis lié existe → on le transforme en commande
-            // 2. Sinon → on crée une commande directement depuis l'opp
+            // Auto-cascade complète : TOUS les devis liés (statut non figé)
+            // sont transformés en Commande → BL. Multi-devis supporté.
             try {
               const { data: existingDocs } = await s.from("commercial_docs")
                 .select("id, type, status, parent_doc_id")
                 .eq("opportunity_id", id)
                 .is("deleted_at", null);
               const docs = existingDocs || [];
-              const hasCommande = docs.some((d) => d.type === "commande");
-              const hasBL = docs.some((d) => d.type === "bl");
+              const cdocs = (window.api && window.api.commercialDocs) || null;
 
-              // 1. Crée la COMMANDE si absente
-              let commandeCreated = null;
-              if (!hasCommande) {
-                const devisToTransform = docs.find((d) => d.type === "devis" && d.status !== "transforme" && d.status !== "annule" && d.status !== "refuse");
-                if (devisToTransform && window.api && window.api.commercialDocs && window.api.commercialDocs.transform) {
-                  await s.from("commercial_docs").update({ status: "accepte" }).eq("id", devisToTransform.id);
-                  commandeCreated = await window.api.commercialDocs.transform(devisToTransform.id, "commande");
-                } else if (window.api && window.api.commercialDocs && window.api.commercialDocs.create) {
-                  const amt = Number(data.amount_eur) || 0;
-                  commandeCreated = await window.api.commercialDocs.create({
-                    type: "commande",
-                    status: "brouillon",
-                    client_id: data.client_id || null,
-                    client_name: data.client_name || (data.data && data.data.client_name) || null,
-                    opportunity_id: id,
-                    title: data.name || "Commande — " + id,
-                    notes: data.notes || null,
-                    owner: data.owner || null,
-                    lines: amt > 0 ? [{
-                      designation: data.name || "Prestation",
-                      quantity: 1, unit: "forfait",
-                      unit_price_ht: amt, discount_pct: 0,
-                      tva_rate: 20,
-                      total_ht: amt, total_tva: amt * 0.2, total_ttc: amt * 1.2,
-                    }] : [],
-                  });
-                }
+              // 1. Pour CHAQUE devis non transformé/annulé/refusé : transform → commande
+              const devisToCascade = docs.filter((d) =>
+                d.type === "devis" &&
+                d.status !== "transforme" &&
+                d.status !== "annule" &&
+                d.status !== "refuse"
+              );
+
+              const newCommandes = [];
+              for (const devis of devisToCascade) {
+                if (!cdocs || !cdocs.transform) break;
+                try {
+                  await s.from("commercial_docs").update({ status: "accepte" }).eq("id", devis.id);
+                  const cmd = await cdocs.transform(devis.id, "commande");
+                  if (cmd) newCommandes.push(cmd);
+                } catch (eC) { console.warn("[opp→cmd auto " + devis.id + "]", eC.message || eC); }
               }
 
-              // 2. Cascade COMMANDE → BL automatiquement (cible des opp gagnées
-              //    où le matériel est livrable de suite, à la place du workflow manuel)
-              if (!hasBL) {
-                const commandeToBL = commandeCreated
-                  || docs.find((d) => d.type === "commande" && d.status !== "transforme" && d.status !== "annule" && d.status !== "refuse");
-                if (commandeToBL && window.api && window.api.commercialDocs && window.api.commercialDocs.transform) {
-                  try {
-                    await s.from("commercial_docs").update({ status: "accepte" }).eq("id", commandeToBL.id);
-                    await window.api.commercialDocs.transform(commandeToBL.id, "bl");
-                  } catch (eBL) { console.warn("[opp→BL auto]", eBL.message || eBL); }
-                }
+              // 2. Si aucun devis trouvé MAIS aucune commande non plus → crée une commande "from scratch"
+              const hasCommande = docs.some((d) => d.type === "commande") || newCommandes.length > 0;
+              if (!hasCommande && cdocs && cdocs.create) {
+                const amt = Number(data.amount_eur) || 0;
+                const c = await cdocs.create({
+                  type: "commande",
+                  status: "brouillon",
+                  client_id: data.client_id || null,
+                  client_name: data.client_name || (data.data && data.data.client_name) || null,
+                  opportunity_id: id,
+                  title: data.name || "Commande — " + id,
+                  notes: data.notes || null,
+                  owner: data.owner || null,
+                  lines: amt > 0 ? [{
+                    designation: data.name || "Prestation",
+                    quantity: 1, unit: "forfait",
+                    unit_price_ht: amt, discount_pct: 0,
+                    tva_rate: 20,
+                    total_ht: amt, total_tva: amt * 0.2, total_ttc: amt * 1.2,
+                  }] : [],
+                });
+                if (c) newCommandes.push(c);
+              }
+
+              // 3. Pour CHAQUE commande (nouvelle ou existante non transformée) :
+              //    transform → BL
+              const allCommandes = [
+                ...newCommandes,
+                ...docs.filter((d) =>
+                  d.type === "commande" &&
+                  d.status !== "transforme" &&
+                  d.status !== "annule" &&
+                  d.status !== "refuse"
+                ),
+              ];
+              // Dédoublonnage par id
+              const seenIds = new Set();
+              for (const cmd of allCommandes) {
+                if (seenIds.has(cmd.id)) continue;
+                seenIds.add(cmd.id);
+                if (!cdocs || !cdocs.transform) break;
+                // Vérifie qu'aucun BL n'a déjà cette commande comme parent
+                const blExists = docs.some((d) => d.type === "bl" && d.parent_doc_id === cmd.id);
+                if (blExists) continue;
+                try {
+                  await s.from("commercial_docs").update({ status: "accepte" }).eq("id", cmd.id);
+                  await cdocs.transform(cmd.id, "bl");
+                } catch (eBL) { console.warn("[opp→BL auto " + cmd.id + "]", eBL.message || eBL); }
               }
             } catch (e) {
-              console.warn("[opp→commande auto]", e.message || e);
+              console.warn("[opp→cascade auto]", e.message || e);
             }
           } catch (e) {
             console.warn("[opp→project auto]", e.message || e);

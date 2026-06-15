@@ -396,8 +396,13 @@ var AdvanceOpportunity = () => {
     }
   }, "\uD83D\uDCC4 Cr\xE9er un devis"), curIdx < stages.length - 1 && targetIdx > curIdx && /*#__PURE__*/React.createElement("button", {
     onClick: () => confirmAdvance(false),
-    style: S.btnPrimary
-  }, "\u2713 Avancer en ", target.spanco, " \u2192"))), /*#__PURE__*/React.createElement("div", {
+    style: target.k === "won" ? {
+      ...S.btnPrimary,
+      background: "#10b981",
+      boxShadow: "0 2px 8px rgba(16,185,129,0.4)"
+    } : S.btnPrimary,
+    title: target.k === "won" ? "Passage en Ordre : cascade automatique de tous les devis → Commande → BL + génération commande d'achat" : ""
+  }, target.k === "won" ? "⚡ Avancer en Ordre + cascade →" : "✓ Avancer en " + target.spanco + " →"))), /*#__PURE__*/React.createElement("div", {
     style: S.spancoStepper
   }, stages.map((s, i) => {
     var isCurrent = i === curIdx;

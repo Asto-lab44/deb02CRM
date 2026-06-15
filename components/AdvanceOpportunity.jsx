@@ -232,7 +232,15 @@ const AdvanceOpportunity = () => {
             }
           }} style={{ ...S.btnGhost, borderColor: "#f59e0b", color: "#b45309", background: "#fef0e6" }}>📄 Créer un devis</button>
           {curIdx < stages.length - 1 && targetIdx > curIdx && (
-            <button onClick={() => confirmAdvance(false)} style={S.btnPrimary}>✓ Avancer en {target.spanco} →</button>
+            <button
+              onClick={() => confirmAdvance(false)}
+              style={target.k === "won"
+                ? { ...S.btnPrimary, background: "#10b981", boxShadow: "0 2px 8px rgba(16,185,129,0.4)" }
+                : S.btnPrimary}
+              title={target.k === "won" ? "Passage en Ordre : cascade automatique de tous les devis → Commande → BL + génération commande d'achat" : ""}
+            >
+              {target.k === "won" ? "⚡ Avancer en Ordre + cascade →" : "✓ Avancer en " + target.spanco + " →"}
+            </button>
           )}
         </div>
       </div>

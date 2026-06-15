@@ -123,8 +123,6 @@ const StockCatalogue = () => {
         {[
           { k: "all",       label: "Tous" },
           { k: "panier",    label: "🛒 Panier" },
-          { k: "demande",   label: "📤 Demande envoyée" },
-          { k: "transmis",  label: "📨 Panier transmis" },
           { k: "commande",  label: "✅ Commandé" },
           { k: "partielle", label: "◐ Réception partielle" },
           { k: "recu",      label: "✓ Reçu" },
@@ -263,8 +261,6 @@ const MatrixView = ({ matrix, fmtEUR, onCellClick }) => {
 //                (partielle | recu | en_stock) | bloque | differe | na
 const ARTICLE_STATUS = {
   panier:    { label: "🛒 Panier",              color: "#0c4a6e", bg: "#e0f2fe", order: 1 },
-  demande:   { label: "📤 Demande envoyée",      color: "#9f1239", bg: "#ffe4e6", order: 2 },
-  transmis:  { label: "📨 Panier transmis",      color: "#075985", bg: "#dbeafe", order: 3 },
   commande:  { label: "✅ Commandé",              color: "#854d0e", bg: "#fef3c7", order: 4 },
   partielle: { label: "◐ Réception partielle",   color: "#6b21a8", bg: "#f3e8ff", order: 5 },
   recu:      { label: "✓ Reçu",                  color: "#0d9488", bg: "#ccfbf1", order: 6 },
@@ -275,6 +271,7 @@ const ARTICLE_STATUS = {
 };
 
 // Dérive le statut unifié depuis les 2 colonnes existantes (rétrocompat).
+// Les anciens statuts "demande" et "transmis" sont remappés vers "panier".
 const deriveArticleStatus = (purchase, reception) => {
   if (reception === "bloque") return "bloque";
   if (reception === "differe") return "differe";
@@ -282,6 +279,7 @@ const deriveArticleStatus = (purchase, reception) => {
   if (reception === "en_stock") return "en_stock";
   if (reception === "ok") return "recu";
   if (reception === "partielle") return "partielle";
+  if (purchase === "demande" || purchase === "transmis") return "panier";
   return purchase || "panier";
 };
 
@@ -289,8 +287,6 @@ const deriveArticleStatus = (purchase, reception) => {
 const applyArticleStatus = (status) => {
   switch (status) {
     case "panier":    return { purchase_status: "panier",    reception_status: "en_cours" };
-    case "demande":   return { purchase_status: "demande",   reception_status: "en_cours" };
-    case "transmis":  return { purchase_status: "transmis",  reception_status: "en_cours" };
     case "commande":  return { purchase_status: "commande",  reception_status: "en_cours" };
     case "partielle": return { purchase_status: "commande",  reception_status: "partielle" };
     case "recu":      return { purchase_status: "commande",  reception_status: "ok" };
@@ -403,8 +399,6 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
                 }}
                 style={{ ...cellInput, background: as.bg, color: as.color, fontWeight: 600, borderColor: as.bg }}>
           <option value="panier">🛒 Panier</option>
-          <option value="demande">📤 Demande envoyée</option>
-          <option value="transmis">📨 Panier transmis</option>
           <option value="commande">✅ Commandé</option>
           <option value="partielle">◐ Réception partielle</option>
           <option value="recu">✓ Reçu</option>
@@ -747,8 +741,6 @@ const EditLineModal = ({ row, suppliers, onClose, onSaved }) => {
                       }}
                       style={scStyles.input}>
                 <option value="panier">🛒 Panier</option>
-                <option value="demande">📤 Demande envoyée</option>
-                <option value="transmis">📨 Panier transmis</option>
                 <option value="commande">✅ Commandé</option>
                 <option value="partielle">◐ Réception partielle</option>
                 <option value="recu">✓ Reçu</option>

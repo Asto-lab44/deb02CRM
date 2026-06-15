@@ -171,12 +171,6 @@ var StockCatalogue = () => {
     k: "panier",
     label: "🛒 Panier"
   }, {
-    k: "demande",
-    label: "📤 Demande envoyée"
-  }, {
-    k: "transmis",
-    label: "📨 Panier transmis"
-  }, {
     k: "commande",
     label: "✅ Commandé"
   }, {
@@ -469,18 +463,6 @@ var ARTICLE_STATUS = {
     bg: "#e0f2fe",
     order: 1
   },
-  demande: {
-    label: "📤 Demande envoyée",
-    color: "#9f1239",
-    bg: "#ffe4e6",
-    order: 2
-  },
-  transmis: {
-    label: "📨 Panier transmis",
-    color: "#075985",
-    bg: "#dbeafe",
-    order: 3
-  },
   commande: {
     label: "✅ Commandé",
     color: "#854d0e",
@@ -526,6 +508,7 @@ var ARTICLE_STATUS = {
 };
 
 // Dérive le statut unifié depuis les 2 colonnes existantes (rétrocompat).
+// Les anciens statuts "demande" et "transmis" sont remappés vers "panier".
 var deriveArticleStatus = (purchase, reception) => {
   if (reception === "bloque") return "bloque";
   if (reception === "differe") return "differe";
@@ -533,6 +516,7 @@ var deriveArticleStatus = (purchase, reception) => {
   if (reception === "en_stock") return "en_stock";
   if (reception === "ok") return "recu";
   if (reception === "partielle") return "partielle";
+  if (purchase === "demande" || purchase === "transmis") return "panier";
   return purchase || "panier";
 };
 
@@ -542,16 +526,6 @@ var applyArticleStatus = status => {
     case "panier":
       return {
         purchase_status: "panier",
-        reception_status: "en_cours"
-      };
-    case "demande":
-      return {
-        purchase_status: "demande",
-        reception_status: "en_cours"
-      };
-    case "transmis":
-      return {
-        purchase_status: "transmis",
         reception_status: "en_cours"
       };
     case "commande":
@@ -821,10 +795,6 @@ var EditableRow = ({
   }, /*#__PURE__*/React.createElement("option", {
     value: "panier"
   }, "\uD83D\uDED2 Panier"), /*#__PURE__*/React.createElement("option", {
-    value: "demande"
-  }, "\uD83D\uDCE4 Demande envoy\xE9e"), /*#__PURE__*/React.createElement("option", {
-    value: "transmis"
-  }, "\uD83D\uDCE8 Panier transmis"), /*#__PURE__*/React.createElement("option", {
     value: "commande"
   }, "\u2705 Command\xE9"), /*#__PURE__*/React.createElement("option", {
     value: "partielle"
@@ -1480,10 +1450,6 @@ var EditLineModal = ({
   }, /*#__PURE__*/React.createElement("option", {
     value: "panier"
   }, "\uD83D\uDED2 Panier"), /*#__PURE__*/React.createElement("option", {
-    value: "demande"
-  }, "\uD83D\uDCE4 Demande envoy\xE9e"), /*#__PURE__*/React.createElement("option", {
-    value: "transmis"
-  }, "\uD83D\uDCE8 Panier transmis"), /*#__PURE__*/React.createElement("option", {
     value: "commande"
   }, "\u2705 Command\xE9"), /*#__PURE__*/React.createElement("option", {
     value: "partielle"

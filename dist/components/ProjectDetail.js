@@ -47,6 +47,27 @@ var ProjectDetail = () => {
     }
     if (window.HubData && window.HubData.subscribeChanges) return window.HubData.subscribeChanges(reload);
   }, [reload]);
+
+  // ⚠️ Hooks AVANT les early returns (règles React)
+  // Filtre des profils par groupe technique (Support, Ops, Techniciens)
+  var technicianProfiles = React.useMemo(() => {
+    try {
+      var groups = window.HubAccess && window.HubAccess.loadGroups ? window.HubAccess.loadGroups() : [];
+      var memberIds = new Set();
+      (groups || []).forEach(g => {
+        var isTechGroup = (g.access || []).includes("tech") || /technicien|support|operation|ops/i.test(g.id || "") || /technicien|support|opérations?/i.test(g.name || "");
+        if (isTechGroup) {
+          (g.members || []).forEach(m => memberIds.add(typeof m === "string" ? m : m.id));
+        }
+      });
+      if (memberIds.size === 0) {
+        return (profiles || []).filter(p => /tech|support|ops|opérations?/i.test((p.team || "") + " " + (p.role || "")));
+      }
+      return (profiles || []).filter(p => memberIds.has(p.id));
+    } catch (e) {
+      return profiles || [];
+    }
+  }, [profiles]);
   if (!urlId) {
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -199,32 +220,6 @@ var ProjectDetail = () => {
     reload();
     if (window.HubToast) window.HubToast.success("✓ Date de livraison enregistrée");
   };
-
-  // Filtre des profils par groupe technique (Support, Ops, Techniciens) —
-  // un projet doit être affecté à un technicien, pas à n'importe qui.
-  var technicianProfiles = React.useMemo(() => {
-    try {
-      var groups = window.HubAccess && window.HubAccess.loadGroups ? window.HubAccess.loadGroups() : [];
-      // Groupes considérés comme "techniques" : ceux qui contiennent "tech" dans access,
-      // OU dont le nom/id matche technicien/support/ops.
-      var techGroupIds = new Set();
-      var memberIds = new Set();
-      (groups || []).forEach(g => {
-        var isTechGroup = (g.access || []).includes("tech") || /technicien|support|operation|ops/i.test(g.id || "") || /technicien|support|opérations?/i.test(g.name || "");
-        if (isTechGroup) {
-          techGroupIds.add(g.id);
-          (g.members || []).forEach(m => memberIds.add(typeof m === "string" ? m : m.id));
-        }
-      });
-      // Si aucun membre dans les groupes tech → fallback : tous les profils marqués 'tech'/'support' par team
-      if (memberIds.size === 0) {
-        return (profiles || []).filter(p => /tech|support|ops|opérations?/i.test((p.team || "") + " " + (p.role || "")));
-      }
-      return (profiles || []).filter(p => memberIds.has(p.id));
-    } catch (e) {
-      return profiles || [];
-    }
-  }, [profiles]);
   var assignPM = async () => {
     var techs = technicianProfiles;
     if (!techs.length) {

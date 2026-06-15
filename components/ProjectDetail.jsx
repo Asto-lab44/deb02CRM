@@ -47,6 +47,29 @@ const ProjectDetail = () => {
     if (window.HubData && window.HubData.subscribeChanges) return window.HubData.subscribeChanges(reload);
   }, [reload]);
 
+  // ⚠️ Hooks AVANT les early returns (règles React)
+  // Filtre des profils par groupe technique (Support, Ops, Techniciens)
+  const technicianProfiles = React.useMemo(() => {
+    try {
+      const groups = window.HubAccess && window.HubAccess.loadGroups ? window.HubAccess.loadGroups() : [];
+      const memberIds = new Set();
+      (groups || []).forEach((g) => {
+        const isTechGroup = (g.access || []).includes("tech")
+          || /technicien|support|operation|ops/i.test(g.id || "")
+          || /technicien|support|opérations?/i.test(g.name || "");
+        if (isTechGroup) {
+          (g.members || []).forEach((m) => memberIds.add(typeof m === "string" ? m : m.id));
+        }
+      });
+      if (memberIds.size === 0) {
+        return (profiles || []).filter((p) => /tech|support|ops|opérations?/i.test((p.team || "") + " " + (p.role || "")));
+      }
+      return (profiles || []).filter((p) => memberIds.has(p.id));
+    } catch (e) {
+      return profiles || [];
+    }
+  }, [profiles]);
+
   if (!urlId) {
     return (
       <div style={{ padding: 60, textAlign: "center", fontFamily: "'Inter', system-ui, sans-serif", color: "#64748b" }}>
@@ -136,34 +159,6 @@ const ProjectDetail = () => {
     reload();
     if (window.HubToast) window.HubToast.success("✓ Date de livraison enregistrée");
   };
-
-  // Filtre des profils par groupe technique (Support, Ops, Techniciens) —
-  // un projet doit être affecté à un technicien, pas à n'importe qui.
-  const technicianProfiles = React.useMemo(() => {
-    try {
-      const groups = window.HubAccess && window.HubAccess.loadGroups ? window.HubAccess.loadGroups() : [];
-      // Groupes considérés comme "techniques" : ceux qui contiennent "tech" dans access,
-      // OU dont le nom/id matche technicien/support/ops.
-      const techGroupIds = new Set();
-      const memberIds = new Set();
-      (groups || []).forEach((g) => {
-        const isTechGroup = (g.access || []).includes("tech")
-          || /technicien|support|operation|ops/i.test(g.id || "")
-          || /technicien|support|opérations?/i.test(g.name || "");
-        if (isTechGroup) {
-          techGroupIds.add(g.id);
-          (g.members || []).forEach((m) => memberIds.add(typeof m === "string" ? m : m.id));
-        }
-      });
-      // Si aucun membre dans les groupes tech → fallback : tous les profils marqués 'tech'/'support' par team
-      if (memberIds.size === 0) {
-        return (profiles || []).filter((p) => /tech|support|ops|opérations?/i.test((p.team || "") + " " + (p.role || "")));
-      }
-      return (profiles || []).filter((p) => memberIds.has(p.id));
-    } catch (e) {
-      return profiles || [];
-    }
-  }, [profiles]);
 
   const assignPM = async () => {
     const techs = technicianProfiles;

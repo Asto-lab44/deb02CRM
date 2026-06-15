@@ -248,10 +248,30 @@ var StockCatalogue = () => {
     style: scStyles.h1
   }, "Stock & Catalogue"), /*#__PURE__*/React.createElement("p", {
     style: scStyles.sub
-  }, "Achats hebdomadaires \u2014 lignes des devis accept\xE9s / commandes en cours")), /*#__PURE__*/React.createElement("button", {
+  }, "Achats hebdomadaires \u2014 lignes des devis accept\xE9s / commandes en cours")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (!confirm("Purger les données locales de test ?\n\nVa effacer :\n• Compteurs de numérotation locaux\n• Cache des docs commerciaux\n• Cache des projets\n• Cache des envois\n\n⚠ Ne touche PAS à la BDD Supabase — il faut exécuter sql/PURGE_test_data.sql en plus.")) return;
+      try {
+        ["hubAstorya.commercial_docs.v1", "hubAstorya.cdoc_counters.v1", "hubAstorya.commercial_doc_sends.v1", "hubAstorya.projects.v1", "hubAstorya.commercial_articles.v1"].forEach(k => localStorage.removeItem(k));
+        if (window.HubToast) window.HubToast.success("✓ Cache local purgé — recharge la page");
+        setTimeout(() => location.reload(), 600);
+      } catch (e) {}
+    },
+    style: {
+      ...scStyles.ghostBtn,
+      color: "#dc2626",
+      borderColor: "#fecaca"
+    },
+    title: "Purge le cache localStorage du navigateur (ne touche pas la BDD)"
+  }, "\uD83D\uDDD1 Purger cache local"), /*#__PURE__*/React.createElement("button", {
     onClick: reload,
     style: scStyles.primaryBtn
-  }, "\u21BB Rafra\xEEchir")), /*#__PURE__*/React.createElement("div", {
+  }, "\u21BB Rafra\xEEchir"))), /*#__PURE__*/React.createElement("div", {
     style: scStyles.kpiRow
   }, /*#__PURE__*/React.createElement(KPI, {
     label: "\uD83D\uDED2 Articles \xE0 acheter",

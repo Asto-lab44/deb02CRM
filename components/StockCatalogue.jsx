@@ -162,7 +162,21 @@ const StockCatalogue = () => {
             <h1 style={scStyles.h1}>Stock & Catalogue</h1>
             <p style={scStyles.sub}>Achats hebdomadaires — lignes des devis acceptés / commandes en cours</p>
           </div>
-          <button onClick={reload} style={scStyles.primaryBtn}>↻ Rafraîchir</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => {
+                if (!confirm("Purger les données locales de test ?\n\nVa effacer :\n• Compteurs de numérotation locaux\n• Cache des docs commerciaux\n• Cache des projets\n• Cache des envois\n\n⚠ Ne touche PAS à la BDD Supabase — il faut exécuter sql/PURGE_test_data.sql en plus.")) return;
+                try {
+                  ["hubAstorya.commercial_docs.v1", "hubAstorya.cdoc_counters.v1", "hubAstorya.commercial_doc_sends.v1", "hubAstorya.projects.v1", "hubAstorya.commercial_articles.v1"].forEach((k) => localStorage.removeItem(k));
+                  if (window.HubToast) window.HubToast.success("✓ Cache local purgé — recharge la page");
+                  setTimeout(() => location.reload(), 600);
+                } catch (e) {}
+              }}
+              style={{ ...scStyles.ghostBtn, color: "#dc2626", borderColor: "#fecaca" }}
+              title="Purge le cache localStorage du navigateur (ne touche pas la BDD)"
+            >🗑 Purger cache local</button>
+            <button onClick={reload} style={scStyles.primaryBtn}>↻ Rafraîchir</button>
+          </div>
         </header>
 
         {/* KPIs */}

@@ -182,6 +182,25 @@ const NewProspect = () => {
     return () => { if (siretTimer.current) clearTimeout(siretTimer.current); };
   }, [companyName]);
 
+  // Réinitialise tous les champs auto-complétés (utilisé par la croix rouge
+  // quand l'utilisateur s'est trompé de prospect sélectionné).
+  const clearSelection = () => {
+    setCompanyName("");
+    setCompanySiren("");
+    setCompanyNaf("");
+    setCompanyTva("");
+    setCompanyAddress("");
+    setCompanyCity("");
+    setCompanyCP("");
+    setCompanySector("");
+    setCompanySubSect("");
+    setCompanyWeb("");
+    setCompanyLi("");
+    setProcedureCheck(null);
+    setSiretResults([]);
+    setSiretOpen(false);
+  };
+
   const pickCompany = (e) => {
     const siege = e.siege || {};
     const siren = e.siren || "";
@@ -442,7 +461,7 @@ const NewProspect = () => {
             <FormRow label="Raison sociale" required>
               <div style={{ ...npStyles.searchInputWrap, position: "relative" }}>
                 <input
-                  style={npStyles.input}
+                  style={{ ...npStyles.input, paddingRight: companyName ? 240 : 200 }}
                   value={companyName}
                   onChange={(e) => { setCompanyName(e.target.value); setSiretOpen(true); }}
                   onFocus={() => setSiretOpen(true)}
@@ -450,6 +469,29 @@ const NewProspect = () => {
                   placeholder="Tapez le nom de l'entreprise ou un SIREN…"
                 />
                 <span style={npStyles.searchTag}>{siretLoading ? "⏳ Recherche…" : "🔍 Auto-complété via base SIRENE"}</span>
+                {(companyName || companySiren) && (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    title="Effacer la sélection — recommencer la saisie"
+                    style={{
+                      position: "absolute",
+                      right: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 26, height: 26,
+                      borderRadius: 999,
+                      border: "1.5px solid #fecaca",
+                      background: "#fee2e2",
+                      color: "#dc2626",
+                      fontSize: 14, fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      lineHeight: 1,
+                      padding: 0,
+                    }}
+                  >✕</button>
+                )}
                 {siretOpen && siretResults.length > 0 && (
                   <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 8px 20px rgba(0,0,0,.08)", zIndex: 20, maxHeight: 320, overflowY: "auto" }}>
                     {siretResults.map((e) => {
@@ -739,7 +781,14 @@ const NewProspect = () => {
               <FormRow label="Téléphone">
                 <div style={{ ...npStyles.inputWithIcon, ...(phoneErr ? V.errorStyle(phoneErr) : {}) }}>
                   <span style={{ color: "#94a3b8" }}>☎</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+                  <input
+                    type="tel"
+                    placeholder="06 12 34 56 78"
+                    style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }}
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                  />
+                  {!phoneErr && contactPhone && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Format ok</span>}
                 </div>
                 {phoneErr && <div style={V.errorMsgStyle(phoneErr)}>{phoneErr.message}</div>}
               </FormRow>

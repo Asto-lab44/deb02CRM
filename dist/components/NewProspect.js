@@ -202,6 +202,25 @@ var NewProspect = () => {
       if (siretTimer.current) clearTimeout(siretTimer.current);
     };
   }, [companyName]);
+
+  // Réinitialise tous les champs auto-complétés (utilisé par la croix rouge
+  // quand l'utilisateur s'est trompé de prospect sélectionné).
+  var clearSelection = () => {
+    setCompanyName("");
+    setCompanySiren("");
+    setCompanyNaf("");
+    setCompanyTva("");
+    setCompanyAddress("");
+    setCompanyCity("");
+    setCompanyCP("");
+    setCompanySector("");
+    setCompanySubSect("");
+    setCompanyWeb("");
+    setCompanyLi("");
+    setProcedureCheck(null);
+    setSiretResults([]);
+    setSiretOpen(false);
+  };
   var pickCompany = e => {
     var siege = e.siege || {};
     var siren = e.siren || "";
@@ -623,7 +642,10 @@ var NewProspect = () => {
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement("input", {
-    style: npStyles.input,
+    style: {
+      ...npStyles.input,
+      paddingRight: companyName ? 240 : 200
+    },
     value: companyName,
     onChange: e => {
       setCompanyName(e.target.value);
@@ -634,7 +656,31 @@ var NewProspect = () => {
     placeholder: "Tapez le nom de l'entreprise ou un SIREN\u2026"
   }), /*#__PURE__*/React.createElement("span", {
     style: npStyles.searchTag
-  }, siretLoading ? "⏳ Recherche…" : "🔍 Auto-complété via base SIRENE"), siretOpen && siretResults.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, siretLoading ? "⏳ Recherche…" : "🔍 Auto-complété via base SIRENE"), (companyName || companySiren) && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: clearSelection,
+    title: "Effacer la s\xE9lection \u2014 recommencer la saisie",
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      width: 26,
+      height: 26,
+      borderRadius: 999,
+      border: "1.5px solid #fecaca",
+      background: "#fee2e2",
+      color: "#dc2626",
+      fontSize: 14,
+      fontWeight: 700,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      lineHeight: 1,
+      padding: 0
+    }
+  }, "\u2715"), siretOpen && siretResults.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       top: "100%",
@@ -1014,6 +1060,8 @@ var NewProspect = () => {
         color: "#94a3b8"
       }
     }, "\u260E"), /*#__PURE__*/React.createElement("input", {
+      type: "tel",
+      placeholder: "06 12 34 56 78",
       style: {
         ...npStyles.input,
         border: "none",
@@ -1023,7 +1071,12 @@ var NewProspect = () => {
       },
       value: contactPhone,
       onChange: e => setContactPhone(e.target.value)
-    })), phoneErr && /*#__PURE__*/React.createElement("div", {
+    }), !phoneErr && contactPhone && /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...npStyles.linkTag,
+        color: "#10b981"
+      }
+    }, "\u2713 Format ok")), phoneErr && /*#__PURE__*/React.createElement("div", {
       style: V.errorMsgStyle(phoneErr)
     }, phoneErr.message)));
   })(), /*#__PURE__*/React.createElement(FormRow, {

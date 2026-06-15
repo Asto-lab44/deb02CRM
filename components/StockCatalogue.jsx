@@ -337,6 +337,19 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
         <div style={{ fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{r.doc_ref}</div>
       </td>
       <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{r.quantity}</td>
+      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 130 }}>
+        <input type="date"
+               value={local.purchase_date ? String(local.purchase_date).slice(0, 10) : (r.doc_date ? String(r.doc_date).slice(0, 10) : "")}
+               onChange={(e) => updateField("purchase_date", e.target.value || null, true)}
+               title={local.purchase_date ? "Date d'achat personnalisée" : "Par défaut = date du document (" + (r.doc_date || "—") + "). Modifie pour décaler l'achat."}
+               style={{ ...cellInput, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5,
+                        borderColor: local.purchase_date ? "#a855f7" : "#e2e8f0",
+                        background: local.purchase_date ? "#faf5ff" : "#fff",
+                        color: local.purchase_date ? "#7e22ce" : "#0f172a", fontWeight: local.purchase_date ? 600 : 400 }} />
+        {!local.purchase_date && (
+          <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, textAlign: "center" }}>📌 défaut signature</div>
+        )}
+      </td>
       <td style={{ ...scStyles.td, padding: "6px 8px" }}>
         <input type="number" step="0.01" value={local.purchase_price_ht || ""} placeholder="—"
                onChange={(e) => updateField("purchase_price_ht", e.target.value ? Number(e.target.value) : null)}
@@ -410,6 +423,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
             <th style={scStyles.thHead}>Article</th>
             <th style={scStyles.thHead}>Client / Doc</th>
             <th style={{ ...scStyles.thHead, textAlign: "center" }}>Qté</th>
+            <th style={{ ...scStyles.thHead, textAlign: "center", minWidth: 130 }}>📅 Date achat</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Acheté</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Vendu</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>

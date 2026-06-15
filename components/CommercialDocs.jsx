@@ -911,7 +911,6 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                 </button>
               );
             })()}
-            )}
             <button onClick={save} disabled={saving} style={cdStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
             <button onClick={onClose} style={cdStyles.closeBtn}>×</button>
           </div>

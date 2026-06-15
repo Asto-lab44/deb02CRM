@@ -1535,7 +1535,7 @@ var CommercialDocEditor = ({
       commande: "BL",
       bl: "facture"
     }[d.type]);
-  })(), ")}", /*#__PURE__*/React.createElement("button", {
+  })(), /*#__PURE__*/React.createElement("button", {
     onClick: save,
     disabled: saving,
     style: cdStyles.primaryBtn

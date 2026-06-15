@@ -338,20 +338,69 @@
             extraData[k] = patch[k];
           }
         }
-        // Merge extras dans le data jsonb existant (sans écraser)
-        if (Object.keys(extraData).length > 0) {
-          try {
-            const { data: cur } = await s.from("opportunities").select("data").eq("id", id).maybeSingle();
-            const existingData = (cur && cur.data && typeof cur.data === "object") ? cur.data : {};
-            row.data = { ...existingData, ...extraData };
-          } catch (e) {
+        // Lit le stage actuel pour détecter la transition vers "won"
+        let previousStage = null;
+        try {
+          const { data: cur } = await s.from("opportunities").select("stage, data").eq("id", id).maybeSingle();
+          if (cur) {
+            previousStage = cur.stage;
+            // Merge extras dans le data jsonb existant (sans écraser)
+            if (Object.keys(extraData).length > 0) {
+              const existingData = (cur.data && typeof cur.data === "object") ? cur.data : {};
+              row.data = { ...existingData, ...extraData };
+            }
+          } else if (Object.keys(extraData).length > 0) {
             row.data = extraData;
           }
+        } catch (e) {
+          if (Object.keys(extraData).length > 0) row.data = extraData;
         }
         const { data, error } = await s.from("opportunities").update(row).eq("id", id).select().maybeSingle();
         if (error) {
           console.warn("[api.opportunities.update]", error.message);
           throw new Error(error.message);
+        }
+        // Transition vers "won" → auto-création d'un projet dans Projets & Livrables
+        // (idempotent : ne crée pas si un projet est déjà lié à cette opp)
+        if (data && row.stage === "won" && previousStage !== "won") {
+          try {
+            const { data: existingProj } = await s.from("projects").select("id").eq("opportunity_id", id).maybeSingle();
+            if (!existingProj) {
+              const created_by = await getCurrentUserId();
+              const cuName = getCurrentUserName();
+              const projId = genId("PRJ");
+              const projRow = {
+                id: projId,
+                name: data.name || "Projet — " + id,
+                stage: "recu",
+                client_id: data.client_id || null,
+                amount_ht: data.amount_eur || null,
+                opportunity_id: id,
+                description: data.notes || (data.data && data.data.besoin) || null,
+                data: { opportunity_id: id, opportunity_name: data.name, created_from: "auto_won" },
+              };
+              if (created_by) projRow.created_by = created_by;
+              const { error: pErr } = await s.from("projects").insert(projRow);
+              if (pErr) {
+                // Fallback si la colonne opportunity_id n'existe pas → on stocke en data jsonb
+                if (/opportunity_id|column/i.test(pErr.message)) {
+                  delete projRow.opportunity_id;
+                  await s.from("projects").insert(projRow);
+                } else {
+                  console.warn("[api.opportunities.update] auto-project:", pErr.message);
+                }
+              }
+              // Event projet
+              await s.from("project_events").insert({
+                project_id: projId, type: "created",
+                payload: { from_opportunity: id, stage: "recu" },
+                author_id: created_by || null,
+                author_name: cuName,
+              }).catch(() => {});
+            }
+          } catch (e) {
+            console.warn("[opp→project auto]", e.message || e);
+          }
         }
         if (data) return data;
       }

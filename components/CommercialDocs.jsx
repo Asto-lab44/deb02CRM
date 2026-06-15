@@ -109,10 +109,8 @@ const CommercialDocs = () => {
 
   const closeEditor = () => { setEditing(null); reload(); };
 
-  const fmtEUR = (n) => {
-    const v = Number(n) || 0;
-    return v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, " ") + " €";
-  };
+  // Format euro fr-FR : la virgule est le séparateur décimal légal, ne PAS la remplacer.
+  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 
   return (
     <div style={cdStyles.frame}>
@@ -582,7 +580,7 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
     }
   };
 
-  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, " ") + " €";
+  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 
   return (
     <div style={cdStyles.modalOverlay} onClick={onClose}>

@@ -174,13 +174,12 @@ var CommercialDocs = () => {
     setEditing(null);
     reload();
   };
-  var fmtEUR = n => {
-    var v = Number(n) || 0;
-    return v.toLocaleString("fr-FR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).replace(/,/g, " ") + " €";
-  };
+
+  // Format euro fr-FR : la virgule est le séparateur décimal légal, ne PAS la remplacer.
+  var fmtEUR = n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) + " €";
   return /*#__PURE__*/React.createElement("div", {
     style: cdStyles.frame
   }, /*#__PURE__*/React.createElement("aside", {
@@ -1004,7 +1003,7 @@ var CommercialDocEditor = ({
   var fmtEUR = n => (Number(n) || 0).toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).replace(/,/g, " ") + " €";
+  }) + " €";
   return /*#__PURE__*/React.createElement("div", {
     style: cdStyles.modalOverlay,
     onClick: onClose

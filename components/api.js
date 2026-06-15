@@ -1139,7 +1139,11 @@
      *  fallback compteur côté JS (race possible mais OK pour usage solo). */
     async nextNumber(type) {
       const s = supa();
+      const cur_year = new Date().getFullYear();
+      const prefix = TYPE_PREFIX[type] || type.toUpperCase();
+
       if (s) {
+        // 1. Tentative via RPC SQL (atomique, idéal en concurrence)
         try {
           const { data, error } = await s.rpc("commercial_next_doc_number", { p_type: type });
           if (!error && data && data.length > 0) {
@@ -1147,22 +1151,43 @@
             return { year: row.out_year, seq: row.out_seq };
           }
         } catch (e) {}
-        // Fallback : lecture+update direct sur commercial_doc_counters
-        const cur_year = new Date().getFullYear();
+
+        // 2. Fallback : compteur direct
         try {
           const { data: cur } = await s.from("commercial_doc_counters").select("next_seq").eq("type", type).eq("year", cur_year).maybeSingle();
-          const next_seq = cur ? cur.next_seq : 1;
-          await s.from("commercial_doc_counters").upsert({ type, year: cur_year, next_seq: next_seq + 1 });
+          if (cur) {
+            const next_seq = cur.next_seq;
+            await s.from("commercial_doc_counters").upsert({ type, year: cur_year, next_seq: next_seq + 1 });
+            return { year: cur_year, seq: next_seq };
+          }
+        } catch (e) {}
+
+        // 3. Fallback robuste : lit le MAX existant dans commercial_docs et incrémente
+        // Garantit pas de doublon même si la table compteur n'existe pas
+        try {
+          const { data: maxRow } = await s.from("commercial_docs")
+            .select("number_seq")
+            .eq("type", type)
+            .eq("number_year", cur_year)
+            .order("number_seq", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const next_seq = (maxRow && maxRow.number_seq ? maxRow.number_seq : 0) + 1;
+          // Initialise le compteur si la table existe
+          try { await s.from("commercial_doc_counters").upsert({ type, year: cur_year, next_seq: next_seq + 1 }); } catch (e) {}
           return { year: cur_year, seq: next_seq };
-        } catch (e) {
-          return { year: cur_year, seq: Math.floor(Math.random() * 9999) + 1 };
-        }
+        } catch (e) {}
       }
-      // Pas de Supabase → localStorage
-      const cur_year = new Date().getFullYear();
+
+      // 4. Pas de Supabase OU tout a fail → localStorage en cherchant aussi les docs existants
       const counters = JSON.parse(localStorage.getItem("hubAstorya.cdoc_counters.v1") || "{}");
+      const localDocs = JSON.parse(localStorage.getItem("hubAstorya.commercial_docs.v1") || "[]");
+      const maxLocal = localDocs
+        .filter((d) => d.type === type && d.number_year === cur_year)
+        .reduce((m, d) => Math.max(m, Number(d.number_seq) || 0), 0);
       const key = type + "_" + cur_year;
-      const next_seq = (counters[key] || 0) + 1;
+      const counterVal = counters[key] || 0;
+      const next_seq = Math.max(counterVal, maxLocal) + 1;
       counters[key] = next_seq;
       localStorage.setItem("hubAstorya.cdoc_counters.v1", JSON.stringify(counters));
       return { year: cur_year, seq: next_seq };

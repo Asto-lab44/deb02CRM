@@ -20,10 +20,6 @@ var ProjectsKanban = () => {
     label: "Reçu",
     color: "#94a3b8"
   }, {
-    k: "devis_valide",
-    label: "Devis validé",
-    color: "#3b82f6"
-  }, {
     k: "preparation",
     label: "En préparation",
     color: "#a855f7"

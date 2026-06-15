@@ -825,7 +825,7 @@
   // ───────────────────────────────────────────────────────────────────
   //
   // Tables : projects + project_items + project_team + project_events
-  // Cycle 7 stages : recu → devis_valide → preparation → pret_livrer
+  // Cycle 6 stages : recu → preparation → pret_livrer
   //                → livre → installe → clos
   // Méthodes :
   //   list({stage?,client_id?,pm_id?})  → projets actifs
@@ -843,7 +843,6 @@
     /** Stages du workflow, dans l'ordre du kanban. */
     STAGES: [
       { k: "recu",          label: "Reçu",            color: "#94a3b8" },
-      { k: "devis_valide",  label: "Devis validé",    color: "#3b82f6" },
       { k: "preparation",   label: "En préparation",  color: "#a855f7" },
       { k: "pret_livrer",   label: "Prêt à livrer",   color: "#ea580c" },
       { k: "livre",         label: "Livré",           color: "#f59e0b" },
@@ -1005,7 +1004,7 @@
         author_id: cuId, author_name: cuName,
       });
       // Notification au chef de projet (si défini et différent de l'auteur)
-      const stageLabels = { recu: "Reçu", devis_valide: "Devis validé", preparation: "En préparation", pret_livrer: "Prêt à livrer", livre: "Livré", installe: "Installé", clos: "Clos", annule: "Annulé" };
+      const stageLabels = { recu: "Reçu", preparation: "En préparation", pret_livrer: "Prêt à livrer", livre: "Livré", installe: "Installé", clos: "Clos", annule: "Annulé" };
       const severity = newStage === "clos" ? "success" : newStage === "annule" ? "error" : (newStage === "livre" || newStage === "installe" ? "success" : "info");
       const targetId = (data && data.pm_id && data.pm_id !== cuId) ? data.pm_id : null;
       // Si pas de chef projet → broadcast (recipient_id null)

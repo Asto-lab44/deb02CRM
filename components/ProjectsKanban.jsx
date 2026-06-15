@@ -17,7 +17,6 @@
 const ProjectsKanban = () => {
   const STAGES = (window.api && window.api.projects && window.api.projects.STAGES) || [
     { k: "recu",         label: "Reçu",            color: "#94a3b8" },
-    { k: "devis_valide", label: "Devis validé",    color: "#3b82f6" },
     { k: "preparation",  label: "En préparation",  color: "#a855f7" },
     { k: "pret_livrer",  label: "Prêt à livrer",   color: "#ea580c" },
     { k: "livre",        label: "Livré",           color: "#f59e0b" },

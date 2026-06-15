@@ -29,7 +29,7 @@ var ERPHome = () => {
     id: "admin",
     name: "Administrateurs",
     color: "#dc2626",
-    access: ["crm", "intel", "marketing", "tech", "projects", "inventory", "accounting", "billing", "treasury", "hr", "time", "reports", "settings"]
+    access: ["crm", "intel", "marketing", "tech", "projects", "commercial", "inventory", "accounting", "billing", "treasury", "hr", "time", "reports", "settings"]
   };
   var [activeGroup, setActiveGroup] = React.useState(() => HA && HA.getActiveGroup && HA.getActiveGroup() || defaultGroup);
   var [allGroups, setAllGroups] = React.useState(() => HA && HA.loadGroups && HA.loadGroups() || []);
@@ -391,9 +391,9 @@ var ERPHome = () => {
     trendUp: true
   }, {
     cat: "Finance",
-    key: "billing",
-    title: "Facturation & Devis",
-    subtitle: "Factures, devis, relances",
+    key: "commercial",
+    title: "Gestion commerciale",
+    subtitle: "Devis · Commandes · BL · Factures",
     icon: /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",
       width: "22",
@@ -411,18 +411,18 @@ var ERPHome = () => {
     color: "#f59e0b",
     bg: "#fef0e6",
     stats: [{
-      k: "Factures mois",
-      v: "127"
+      k: "Devis",
+      v: "—"
     }, {
-      k: "Devis envoyés",
-      v: "42"
+      k: "Factures",
+      v: "—"
     }, {
-      k: "Impayés",
-      v: "18,4 k€"
+      k: "Encours",
+      v: "—"
     }],
     badge: {
-      label: "3 relances",
-      tone: "warn"
+      label: "Sage 50c-like",
+      tone: "info"
     }
   }, {
     cat: "Finance",

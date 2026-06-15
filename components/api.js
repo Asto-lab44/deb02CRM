@@ -1117,6 +1117,404 @@
   };
 
   // ───────────────────────────────────────────────────────────────────
+  // §6.67 COMMERCIAL DOCS — Gestion Commerciale (style Sage 50c)
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Tables : commercial_docs + commercial_doc_lines + commercial_articles
+  //          + commercial_doc_counters + commercial_tva_rates
+  //          + commercial_payment_terms
+  // Types  : devis | commande | bl | facture | avoir
+  // Workflow : Devis → Commande → BL → Facture (chaînage via parent_doc_id)
+  // Méthodes : list, getById, create, update, addLine, updateLine, removeLine
+  //            transform (Devis→Commande, Commande→BL, BL→Facture),
+  //            nextNumber, recompute, remove (soft)
+  const TYPE_PREFIX = { devis: "DEV", commande: "BC", bl: "BL", facture: "FAC", avoir: "AVO" };
+  const TYPE_LABEL  = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir" };
+
+  const commercialDocs = {
+    TYPE_PREFIX, TYPE_LABEL,
+
+    /** Récupère le prochain numéro (year, seq) pour un type donné.
+     *  Utilise la RPC SQL commercial_next_doc_number en priorité,
+     *  fallback compteur côté JS (race possible mais OK pour usage solo). */
+    async nextNumber(type) {
+      const s = supa();
+      if (s) {
+        try {
+          const { data, error } = await s.rpc("commercial_next_doc_number", { p_type: type });
+          if (!error && data && data.length > 0) {
+            const row = data[0];
+            return { year: row.out_year, seq: row.out_seq };
+          }
+        } catch (e) {}
+        // Fallback : lecture+update direct sur commercial_doc_counters
+        const cur_year = new Date().getFullYear();
+        try {
+          const { data: cur } = await s.from("commercial_doc_counters").select("next_seq").eq("type", type).eq("year", cur_year).maybeSingle();
+          const next_seq = cur ? cur.next_seq : 1;
+          await s.from("commercial_doc_counters").upsert({ type, year: cur_year, next_seq: next_seq + 1 });
+          return { year: cur_year, seq: next_seq };
+        } catch (e) {
+          return { year: cur_year, seq: Math.floor(Math.random() * 9999) + 1 };
+        }
+      }
+      // Pas de Supabase → localStorage
+      const cur_year = new Date().getFullYear();
+      const counters = JSON.parse(localStorage.getItem("hubAstorya.cdoc_counters.v1") || "{}");
+      const key = type + "_" + cur_year;
+      const next_seq = (counters[key] || 0) + 1;
+      counters[key] = next_seq;
+      localStorage.setItem("hubAstorya.cdoc_counters.v1", JSON.stringify(counters));
+      return { year: cur_year, seq: next_seq };
+    },
+
+    /** Formate l'id complet d'un doc : "DEV-2026-0001". */
+    formatNumber(type, year, seq) {
+      const prefix = TYPE_PREFIX[type] || type.toUpperCase();
+      return prefix + "-" + year + "-" + String(seq).padStart(4, "0");
+    },
+
+    async list(filter = {}) {
+      const s = supa();
+      if (s) {
+        let q = s.from("commercial_docs").select("*").is("deleted_at", null);
+        if (filter.type) q = q.eq("type", filter.type);
+        if (filter.status) q = q.eq("status", filter.status);
+        if (filter.client_id) q = q.eq("client_id", filter.client_id);
+        if (filter.project_id) q = q.eq("project_id", filter.project_id);
+        if (filter.opportunity_id) q = q.eq("opportunity_id", filter.opportunity_id);
+        const { data, error } = await q.order("doc_date", { ascending: false }).limit(500);
+        if (error) {
+          console.warn("[api.commercialDocs.list]", error.message);
+          return lsGet("commercial_docs");
+        }
+        return data || [];
+      }
+      let arr = lsGet("commercial_docs");
+      if (filter.type) arr = arr.filter((d) => d.type === filter.type);
+      if (filter.status) arr = arr.filter((d) => d.status === filter.status);
+      if (filter.client_id) arr = arr.filter((d) => d.client_id === filter.client_id);
+      return arr;
+    },
+
+    async getById(id) {
+      const s = supa();
+      if (s) {
+        const [{ data: doc }, { data: lines }] = await Promise.all([
+          s.from("commercial_docs").select("*").eq("id", id).maybeSingle(),
+          s.from("commercial_doc_lines").select("*").eq("doc_id", id).order("position"),
+        ]);
+        if (!doc) return null;
+        return { ...doc, lines: lines || [] };
+      }
+      const arr = lsGet("commercial_docs");
+      const doc = arr.find((d) => d.id === id);
+      return doc ? { ...doc, lines: doc.lines || [] } : null;
+    },
+
+    async create(payload) {
+      const type = payload.type || "devis";
+      const num = await this.nextNumber(type);
+      const id = this.formatNumber(type, num.year, num.seq);
+      const lines = payload.lines || [];
+      const totals = this._sumLines(lines);
+      const full = {
+        id, type,
+        status: payload.status || "brouillon",
+        number_year: num.year,
+        number_seq: num.seq,
+        client_id: payload.client_id || null,
+        client_name: payload.client_name || null,
+        client_address: payload.client_address || null,
+        client_cp: payload.client_cp || null,
+        client_city: payload.client_city || null,
+        client_siren: payload.client_siren || null,
+        client_tva: payload.client_tva || null,
+        contact_name: payload.contact_name || null,
+        contact_email: payload.contact_email || null,
+        project_id: payload.project_id || null,
+        opportunity_id: payload.opportunity_id || null,
+        parent_doc_id: payload.parent_doc_id || null,
+        doc_date: payload.doc_date || new Date().toISOString().slice(0, 10),
+        valid_until: payload.valid_until || null,
+        payment_due: payload.payment_due || null,
+        total_ht: totals.ht,
+        total_tva: totals.tva,
+        total_ttc: totals.ttc,
+        discount_pct: payload.discount_pct || 0,
+        title: payload.title || null,
+        notes: payload.notes || null,
+        internal_notes: payload.internal_notes || null,
+        payment_terms_id: payload.payment_terms_id || null,
+        owner: payload.owner || getCurrentUserName(),
+        data: payload.data || {},
+        created_at: new Date().toISOString(),
+      };
+      const s = supa();
+      if (s) {
+        const created_by = await getCurrentUserId();
+        if (created_by) full.created_by = created_by;
+        const { data, error } = await s.from("commercial_docs").insert(full).select().maybeSingle();
+        if (error) {
+          console.warn("[api.commercialDocs.create]", error.message);
+          // Fallback local
+          const arr = lsGet("commercial_docs"); arr.unshift({ ...full, lines }); lsSet("commercial_docs", arr);
+          return { ...full, lines };
+        }
+        // Insertion des lignes
+        if (lines.length > 0) {
+          const rows = lines.map((l, i) => ({
+            id: l.id || genId("CDL"),
+            doc_id: id,
+            position: i,
+            article_id: l.article_id || null,
+            ref: l.ref || null,
+            designation: l.designation || "",
+            description: l.description || null,
+            quantity: l.quantity || 1,
+            unit: l.unit || "u",
+            unit_price_ht: l.unit_price_ht || 0,
+            discount_pct: l.discount_pct || 0,
+            tva_rate: l.tva_rate != null ? l.tva_rate : 20.00,
+            total_ht: l.total_ht || 0,
+            total_tva: l.total_tva || 0,
+            total_ttc: l.total_ttc || 0,
+            is_text_only: !!l.is_text_only,
+          }));
+          await s.from("commercial_doc_lines").insert(rows);
+        }
+        return { ...data, lines };
+      }
+      const arr = lsGet("commercial_docs"); arr.unshift({ ...full, lines }); lsSet("commercial_docs", arr);
+      return { ...full, lines };
+    },
+
+    async update(id, patch) {
+      const s = supa();
+      const row = { ...patch, updated_at: new Date().toISOString() };
+      delete row.lines;
+      if (s) {
+        const { data, error } = await s.from("commercial_docs").update(row).eq("id", id).select().maybeSingle();
+        if (error) console.warn("[api.commercialDocs.update]", error.message);
+        if (data) return data;
+      }
+      const arr = lsGet("commercial_docs");
+      const idx = arr.findIndex((d) => d.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], ...row }; lsSet("commercial_docs", arr); return arr[idx]; }
+      return null;
+    },
+
+    /** Recalcule les totaux d'un doc à partir de ses lignes. */
+    _sumLines(lines) {
+      let ht = 0, tva = 0;
+      (lines || []).forEach((l) => {
+        if (l.is_text_only) return;
+        const qty = Number(l.quantity) || 0;
+        const pu = Number(l.unit_price_ht) || 0;
+        const disc = Number(l.discount_pct) || 0;
+        const lineHT = qty * pu * (1 - disc / 100);
+        const lineTVA = lineHT * (Number(l.tva_rate) || 20) / 100;
+        ht += lineHT;
+        tva += lineTVA;
+      });
+      return { ht: Math.round(ht * 100) / 100, tva: Math.round(tva * 100) / 100, ttc: Math.round((ht + tva) * 100) / 100 };
+    },
+
+    async recompute(id) {
+      const s = supa();
+      if (!s) return null;
+      const { data: lines } = await s.from("commercial_doc_lines").select("*").eq("doc_id", id);
+      const totals = this._sumLines(lines || []);
+      const { data } = await s.from("commercial_docs").update({
+        total_ht: totals.ht, total_tva: totals.tva, total_ttc: totals.ttc,
+        updated_at: new Date().toISOString(),
+      }).eq("id", id).select().maybeSingle();
+      return data;
+    },
+
+    async addLine(doc_id, line) {
+      const s = supa();
+      const qty = Number(line.quantity) || 1;
+      const pu = Number(line.unit_price_ht) || 0;
+      const disc = Number(line.discount_pct) || 0;
+      const tvaR = Number(line.tva_rate) != null ? Number(line.tva_rate) : 20;
+      const total_ht = qty * pu * (1 - disc / 100);
+      const total_tva = total_ht * tvaR / 100;
+      const row = {
+        id: line.id || genId("CDL"),
+        doc_id,
+        position: line.position || 0,
+        article_id: line.article_id || null,
+        ref: line.ref || null,
+        designation: line.designation || "",
+        description: line.description || null,
+        quantity: qty, unit: line.unit || "u",
+        unit_price_ht: pu, discount_pct: disc, tva_rate: tvaR,
+        total_ht: Math.round(total_ht * 100) / 100,
+        total_tva: Math.round(total_tva * 100) / 100,
+        total_ttc: Math.round((total_ht + total_tva) * 100) / 100,
+        is_text_only: !!line.is_text_only,
+      };
+      if (s) {
+        const { data, error } = await s.from("commercial_doc_lines").insert(row).select().maybeSingle();
+        if (error) console.warn("[addLine]", error.message);
+        if (data) { await this.recompute(doc_id); return data; }
+      }
+      return row;
+    },
+
+    async updateLine(line_id, patch) {
+      const s = supa();
+      // Recalcul des totaux ligne si quantity / prix / remise / tva touchés
+      const row = { ...patch };
+      if (row.quantity != null || row.unit_price_ht != null || row.discount_pct != null || row.tva_rate != null) {
+        // Lecture courante pour merger
+        if (s) {
+          const { data: cur } = await s.from("commercial_doc_lines").select("*").eq("id", line_id).maybeSingle();
+          if (cur) {
+            const merged = { ...cur, ...row };
+            const qty = Number(merged.quantity) || 0;
+            const pu = Number(merged.unit_price_ht) || 0;
+            const disc = Number(merged.discount_pct) || 0;
+            const tvaR = Number(merged.tva_rate) != null ? Number(merged.tva_rate) : 20;
+            row.total_ht = Math.round(qty * pu * (1 - disc / 100) * 100) / 100;
+            row.total_tva = Math.round(row.total_ht * tvaR / 100 * 100) / 100;
+            row.total_ttc = Math.round((row.total_ht + row.total_tva) * 100) / 100;
+          }
+        }
+      }
+      if (s) {
+        const { data, error } = await s.from("commercial_doc_lines").update(row).eq("id", line_id).select().maybeSingle();
+        if (error) console.warn("[updateLine]", error.message);
+        if (data) { await this.recompute(data.doc_id); return data; }
+      }
+      return null;
+    },
+
+    async removeLine(line_id) {
+      const s = supa();
+      if (s) {
+        const { data: cur } = await s.from("commercial_doc_lines").select("doc_id").eq("id", line_id).maybeSingle();
+        await s.from("commercial_doc_lines").delete().eq("id", line_id);
+        if (cur) await this.recompute(cur.doc_id);
+      }
+    },
+
+    /** Transforme un doc en doc de type suivant (Devis→Commande, Commande→BL, BL→Facture).
+     *  Crée un nouveau doc qui pointe vers l'original via parent_doc_id, recopie les
+     *  lignes et bascule le statut du parent en "transforme". */
+    async transform(parent_id, new_type) {
+      const parent = await this.getById(parent_id);
+      if (!parent) throw new Error("Document parent introuvable");
+      const lines = (parent.lines || []).map((l) => ({
+        article_id: l.article_id, ref: l.ref, designation: l.designation, description: l.description,
+        quantity: l.quantity, unit: l.unit, unit_price_ht: l.unit_price_ht,
+        discount_pct: l.discount_pct, tva_rate: l.tva_rate,
+        total_ht: l.total_ht, total_tva: l.total_tva, total_ttc: l.total_ttc,
+        is_text_only: l.is_text_only,
+      }));
+      const childPayload = {
+        type: new_type,
+        status: "brouillon",
+        client_id: parent.client_id, client_name: parent.client_name,
+        client_address: parent.client_address, client_cp: parent.client_cp, client_city: parent.client_city,
+        client_siren: parent.client_siren, client_tva: parent.client_tva,
+        contact_name: parent.contact_name, contact_email: parent.contact_email,
+        project_id: parent.project_id, opportunity_id: parent.opportunity_id,
+        parent_doc_id: parent_id,
+        title: parent.title, notes: parent.notes,
+        payment_terms_id: parent.payment_terms_id,
+        owner: parent.owner,
+        lines,
+      };
+      const child = await this.create(childPayload);
+      // Marque le parent comme transformé
+      await this.update(parent_id, { status: "transforme" });
+      return child;
+    },
+
+    async remove(id) {
+      const s = supa();
+      if (s) {
+        const { error } = await s.from("commercial_docs").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw new Error(error.message);
+      }
+      const arr = lsGet("commercial_docs").filter((d) => d.id !== id);
+      lsSet("commercial_docs", arr);
+    },
+  };
+
+  // ───────────────────────────────────────────────────────────────────
+  // §6.68 COMMERCIAL ARTICLES — Catalogue (admin)
+  // ───────────────────────────────────────────────────────────────────
+  const commercialArticles = {
+    async list({ active = true } = {}) {
+      const s = supa();
+      if (s) {
+        let q = s.from("commercial_articles").select("*");
+        if (active) q = q.eq("active", true);
+        const { data, error } = await q.order("category").order("ref");
+        if (error) { console.warn("[articles.list]", error.message); return lsGet("commercial_articles"); }
+        return data || [];
+      }
+      return lsGet("commercial_articles");
+    },
+
+    async create(payload) {
+      const id = payload.id || genId("ART");
+      const row = { id, active: true, created_at: new Date().toISOString(), ...payload };
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("commercial_articles").insert(row).select().maybeSingle();
+        if (error) { console.warn("[articles.create]", error.message); throw new Error(error.message); }
+        return data;
+      }
+      const arr = lsGet("commercial_articles"); arr.unshift(row); lsSet("commercial_articles", arr);
+      return row;
+    },
+
+    async update(id, patch) {
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("commercial_articles").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+        if (error) console.warn("[articles.update]", error.message);
+        if (data) return data;
+      }
+      const arr = lsGet("commercial_articles");
+      const idx = arr.findIndex((a) => a.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], ...patch }; lsSet("commercial_articles", arr); return arr[idx]; }
+      return null;
+    },
+
+    async remove(id) {
+      const s = supa();
+      if (s) await s.from("commercial_articles").update({ active: false }).eq("id", id);
+      const arr = lsGet("commercial_articles").filter((a) => a.id !== id);
+      lsSet("commercial_articles", arr);
+    },
+  };
+
+  /** Référentiel TVA + conditions de paiement (lecture seule pour les users). */
+  const commercialRefs = {
+    async tvaRates() {
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("commercial_tva_rates").select("*").eq("active", true).order("rate", { ascending: false });
+        if (data) return data;
+      }
+      return [{ rate: 20, label: "Taux normal" }, { rate: 10, label: "Taux intermédiaire" }, { rate: 5.5, label: "Taux réduit" }, { rate: 0, label: "Exonéré" }];
+    },
+    async paymentTerms() {
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("commercial_payment_terms").select("*").eq("active", true);
+        if (data) return data;
+      }
+      return [{ id: "rcpt", label: "À réception", days: 0 }, { id: "net30", label: "30 jours net", days: 30 }, { id: "net45", label: "45 jours net", days: 45 }];
+    },
+  };
+
+  // ───────────────────────────────────────────────────────────────────
   // §6.65 DELIVERY NOTES — Bons de livraison
   // ───────────────────────────────────────────────────────────────────
   //
@@ -1384,5 +1782,5 @@
   // ───────────────────────────────────────────────────────────────────
   // §8. EXPORT global
   // ───────────────────────────────────────────────────────────────────
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth };
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs };
 })();

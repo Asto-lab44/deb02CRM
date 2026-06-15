@@ -11,6 +11,8 @@
     marketing:  "/marketing",
     tech:       "/ticketing",
     projects:   "/projets",
+    commercial: "/gestion-commerciale",
+    commercial_admin: "/gestion-commerciale-admin",
     inventory:  "/stock",
     accounting: "/comptabilite",
     billing:    "/facturation",

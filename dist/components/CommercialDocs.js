@@ -88,6 +88,7 @@ var CommercialDocs = () => {
   var [activeType, setActiveType] = React.useState("devis");
   var [statusFilter, setStatusFilter] = React.useState("all");
   var [docs, setDocs] = React.useState([]);
+  var [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
   var [loading, setLoading] = React.useState(true);
   var [search, setSearch] = React.useState("");
   var [clients, setClients] = React.useState([]);
@@ -97,15 +98,63 @@ var CommercialDocs = () => {
   var reload = React.useCallback(async () => {
     setLoading(true);
     try {
-      var list = await window.api.commercialDocs.list({
+      var [typed, all] = await Promise.all([window.api.commercialDocs.list({
         type: activeType
-      });
-      setDocs(list || []);
+      }), window.api.commercialDocs.list({}) // pour les chaînes Devis→Commande→BL→Facture
+      ]);
+      setDocs(typed || []);
+      setAllDocs(all || []);
     } catch (e) {
       setDocs([]);
+      setAllDocs([]);
     }
     setLoading(false);
   }, [activeType]);
+
+  // Map parent_doc_id → enfant unique (chaque doc n'a qu'un enfant max)
+  var childrenMap = React.useMemo(() => {
+    var map = {};
+    (allDocs || []).forEach(d => {
+      if (d.parent_doc_id) map[d.parent_doc_id] = d;
+    });
+    return map;
+  }, [allDocs]);
+
+  // Pour un doc devis, retourne la chaîne complète : { devis, commande, bl, facture }
+  var buildChain = React.useCallback(rootDoc => {
+    var chain = {
+      devis: null,
+      commande: null,
+      bl: null,
+      facture: null
+    };
+    var current = rootDoc;
+    while (current) {
+      chain[current.type] = current;
+      current = childrenMap[current.id] || null;
+    }
+    return chain;
+  }, [childrenMap]);
+
+  // Pour un doc enfant (ex commande), remonte la chaîne et retourne les 4 docs
+  var buildChainFromAny = React.useCallback(doc => {
+    if (!doc) return {
+      devis: null,
+      commande: null,
+      bl: null,
+      facture: null
+    };
+    // Remonte au devis racine
+    var root = doc;
+    var seen = new Set();
+    while (root.parent_doc_id && !seen.has(root.id)) {
+      seen.add(root.id);
+      var parent = (allDocs || []).find(d => d.id === root.parent_doc_id);
+      if (!parent) break;
+      root = parent;
+    }
+    return buildChain(root);
+  }, [allDocs, buildChain]);
   React.useEffect(() => {
     reload();
   }, [reload]);
@@ -417,15 +466,20 @@ var CommercialDocs = () => {
     }
   }, "Montant TTC"), /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: "0 0 110px"
+      flex: "0 0 100px"
     }
   }, "Statut"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 170px"
+    }
+  }, "Workflow"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px"
     }
   })), filtered.map(d => /*#__PURE__*/React.createElement(DocRow, {
     key: d.id,
     doc: d,
+    chain: buildChainFromAny(d),
     statusMeta: STATUS_META,
     fmtEUR: fmtEUR,
     onOpen: openDoc,
@@ -561,6 +615,7 @@ var WorkflowBar = ({
 // ─────────────────────────────────────────────────────────────────
 var DocRow = ({
   doc,
+  chain,
   statusMeta,
   fmtEUR,
   onOpen,
@@ -732,7 +787,7 @@ var DocRow = ({
     }
   }, fmtEUR(doc.total_ttc)), /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: "0 0 110px"
+      flex: "0 0 100px"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -745,6 +800,13 @@ var DocRow = ({
       fontWeight: 600
     }
   }, sm.label)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 170px"
+    }
+  }, /*#__PURE__*/React.createElement(WorkflowChain, {
+    chain: chain,
+    currentType: doc.type
+  })), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px",
       textAlign: "right",
@@ -837,6 +899,81 @@ var DocRow = ({
       remove();
     }
   }))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// WorkflowChain — Affiche l'état Devis→Commande→BL→Facture en mini-pills
+// ─────────────────────────────────────────────────────────────────
+var WorkflowChain = ({
+  chain,
+  currentType
+}) => {
+  var STEPS = [{
+    k: "devis",
+    label: "D",
+    title: "Devis",
+    color: "#3b82f6"
+  }, {
+    k: "commande",
+    label: "C",
+    title: "Commande",
+    color: "#a855f7"
+  }, {
+    k: "bl",
+    label: "B",
+    title: "BL",
+    color: "#ea580c"
+  }, {
+    k: "facture",
+    label: "F",
+    title: "Facture",
+    color: "#10b981"
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 2
+    }
+  }, STEPS.map((s, i) => {
+    var doc = chain && chain[s.k];
+    var isCurrent = s.k === currentType;
+    var exists = !!doc;
+    var isPaid = exists && doc.status === "paye";
+    var isLivre = exists && doc.status === "livre";
+    var isAccepted = exists && doc.status === "accepte";
+    var isTransforme = exists && doc.status === "transforme";
+    var isCancelled = exists && (doc.status === "annule" || doc.status === "refuse");
+    // Couleur : vert si validé/terminé, couleur stage si en cours, gris si pas créé
+    var bg = !exists ? "#f1f5f9" : isCancelled ? "#fee2e2" : isPaid || isLivre || isAccepted || isTransforme ? s.color : s.color + "30";
+    var color = !exists ? "#cbd5e1" : isCancelled ? "#991b1b" : isPaid || isLivre || isAccepted || isTransforme ? "#fff" : s.color;
+    var border = isCurrent ? "2px solid #0f172a" : "1px solid " + (exists ? s.color : "#e2e8f0");
+    var tooltip = exists ? s.title + " " + doc.id + " · " + doc.status : s.title + " — non créé";
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: s.k
+    }, /*#__PURE__*/React.createElement("span", {
+      title: tooltip,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        background: bg,
+        color,
+        border,
+        fontSize: 10,
+        fontWeight: 700,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, s.label), i < STEPS.length - 1 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: chain && chain[STEPS[i + 1].k] ? "#10b981" : "#cbd5e1"
+      }
+    }, "\u203A"));
+  }));
 };
 var MenuItem = ({
   icon,

@@ -35,6 +35,7 @@ const CommercialDocs = () => {
   const [activeType, setActiveType] = React.useState("devis");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [docs, setDocs] = React.useState([]);
+  const [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
   const [clients, setClients] = React.useState([]);
@@ -44,11 +45,48 @@ const CommercialDocs = () => {
   const reload = React.useCallback(async () => {
     setLoading(true);
     try {
-      const list = await window.api.commercialDocs.list({ type: activeType });
-      setDocs(list || []);
-    } catch (e) { setDocs([]); }
+      const [typed, all] = await Promise.all([
+        window.api.commercialDocs.list({ type: activeType }),
+        window.api.commercialDocs.list({}), // pour les chaînes Devis→Commande→BL→Facture
+      ]);
+      setDocs(typed || []);
+      setAllDocs(all || []);
+    } catch (e) { setDocs([]); setAllDocs([]); }
     setLoading(false);
   }, [activeType]);
+
+  // Map parent_doc_id → enfant unique (chaque doc n'a qu'un enfant max)
+  const childrenMap = React.useMemo(() => {
+    const map = {};
+    (allDocs || []).forEach((d) => { if (d.parent_doc_id) map[d.parent_doc_id] = d; });
+    return map;
+  }, [allDocs]);
+
+  // Pour un doc devis, retourne la chaîne complète : { devis, commande, bl, facture }
+  const buildChain = React.useCallback((rootDoc) => {
+    const chain = { devis: null, commande: null, bl: null, facture: null };
+    let current = rootDoc;
+    while (current) {
+      chain[current.type] = current;
+      current = childrenMap[current.id] || null;
+    }
+    return chain;
+  }, [childrenMap]);
+
+  // Pour un doc enfant (ex commande), remonte la chaîne et retourne les 4 docs
+  const buildChainFromAny = React.useCallback((doc) => {
+    if (!doc) return { devis: null, commande: null, bl: null, facture: null };
+    // Remonte au devis racine
+    let root = doc;
+    const seen = new Set();
+    while (root.parent_doc_id && !seen.has(root.id)) {
+      seen.add(root.id);
+      const parent = (allDocs || []).find((d) => d.id === root.parent_doc_id);
+      if (!parent) break;
+      root = parent;
+    }
+    return buildChain(root);
+  }, [allDocs, buildChain]);
 
   React.useEffect(() => { reload(); }, [reload]);
   React.useEffect(() => {
@@ -227,11 +265,12 @@ const CommercialDocs = () => {
               <span style={{ flex: "0 0 100px" }}>Date</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant HT</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant TTC</span>
-              <span style={{ flex: "0 0 110px" }}>Statut</span>
+              <span style={{ flex: "0 0 100px" }}>Statut</span>
+              <span style={{ flex: "0 0 170px" }}>Workflow</span>
               <span style={{ flex: "0 0 60px" }}></span>
             </div>
             {filtered.map((d) => (
-              <DocRow key={d.id} doc={d} statusMeta={STATUS_META} fmtEUR={fmtEUR} onOpen={openDoc} onReload={reload} />
+              <DocRow key={d.id} doc={d} chain={buildChainFromAny(d)} statusMeta={STATUS_META} fmtEUR={fmtEUR} onOpen={openDoc} onReload={reload} />
             ))}
           </div>
         )}
@@ -310,7 +349,7 @@ const WorkflowBar = ({ doc, canTransform }) => {
 // ─────────────────────────────────────────────────────────────────
 // DocRow — Ligne de la liste avec menu d'actions rapides
 // ─────────────────────────────────────────────────────────────────
-const DocRow = ({ doc, statusMeta, fmtEUR, onOpen, onReload }) => {
+const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef(null);
   const sm = statusMeta[doc.status] || statusMeta.brouillon;
@@ -411,8 +450,11 @@ const DocRow = ({ doc, statusMeta, fmtEUR, onOpen, onReload }) => {
       <span style={{ flex: "0 0 100px", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{doc.doc_date}</span>
       <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(doc.total_ht)}</span>
       <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(doc.total_ttc)}</span>
-      <span style={{ flex: "0 0 110px" }}>
+      <span style={{ flex: "0 0 100px" }}>
         <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.color, fontSize: 11, fontWeight: 600 }}>{sm.label}</span>
+      </span>
+      <span style={{ flex: "0 0 170px" }}>
+        <WorkflowChain chain={chain} currentType={doc.type} />
       </span>
       <span style={{ flex: "0 0 60px", textAlign: "right", position: "relative" }}>
         <button onClick={(e) => { stop(e); setMenuOpen((v) => !v); }}
@@ -441,6 +483,62 @@ const DocRow = ({ doc, statusMeta, fmtEUR, onOpen, onReload }) => {
           </div>
         )}
       </span>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// WorkflowChain — Affiche l'état Devis→Commande→BL→Facture en mini-pills
+// ─────────────────────────────────────────────────────────────────
+const WorkflowChain = ({ chain, currentType }) => {
+  const STEPS = [
+    { k: "devis",    label: "D", title: "Devis",    color: "#3b82f6" },
+    { k: "commande", label: "C", title: "Commande", color: "#a855f7" },
+    { k: "bl",       label: "B", title: "BL",       color: "#ea580c" },
+    { k: "facture",  label: "F", title: "Facture",  color: "#10b981" },
+  ];
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+      {STEPS.map((s, i) => {
+        const doc = chain && chain[s.k];
+        const isCurrent = s.k === currentType;
+        const exists = !!doc;
+        const isPaid = exists && doc.status === "paye";
+        const isLivre = exists && doc.status === "livre";
+        const isAccepted = exists && doc.status === "accepte";
+        const isTransforme = exists && doc.status === "transforme";
+        const isCancelled = exists && (doc.status === "annule" || doc.status === "refuse");
+        // Couleur : vert si validé/terminé, couleur stage si en cours, gris si pas créé
+        const bg = !exists ? "#f1f5f9"
+          : isCancelled ? "#fee2e2"
+          : (isPaid || isLivre || isAccepted || isTransforme) ? s.color
+          : s.color + "30";
+        const color = !exists ? "#cbd5e1"
+          : isCancelled ? "#991b1b"
+          : (isPaid || isLivre || isAccepted || isTransforme) ? "#fff"
+          : s.color;
+        const border = isCurrent ? "2px solid #0f172a" : "1px solid " + (exists ? s.color : "#e2e8f0");
+        const tooltip = exists
+          ? s.title + " " + doc.id + " · " + doc.status
+          : s.title + " — non créé";
+        return (
+          <React.Fragment key={s.k}>
+            <span
+              title={tooltip}
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 24, height: 24, borderRadius: 6,
+                background: bg, color, border,
+                fontSize: 10, fontWeight: 700,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >{s.label}</span>
+            {i < STEPS.length - 1 && (
+              <span style={{ fontSize: 10, color: chain && chain[STEPS[i + 1].k] ? "#10b981" : "#cbd5e1" }}>›</span>
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };

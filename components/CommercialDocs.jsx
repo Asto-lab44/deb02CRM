@@ -1216,12 +1216,17 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
         } catch (e) {}
       }
 
-      // Ouvre le client mail par défaut avec subject/body pré-remplis
-      const mailto = "mailto:" + encodeURIComponent(recipientEmail) +
-        (cc ? "?cc=" + encodeURIComponent(cc) + "&" : "?") +
-        "subject=" + encodeURIComponent(subject) +
-        "&body=" + encodeURIComponent(body + "\n\n[Le PDF a été téléchargé localement — glissez-le en pièce jointe.]");
-      window.open(mailto, "_self");
+      // Ouvre Outlook (Web ou Desktop) avec subject/body pré-remplis
+      // Office 365 deeplink — fonctionne aussi via le protocol handler outlook:
+      // sur Windows si Outlook Desktop est installé.
+      const bodyWithNote = body + "\n\n[Le PDF a été téléchargé localement — glissez-le en pièce jointe.]";
+      const outlookUrl = "https://outlook.office.com/mail/deeplink/compose"
+        + "?to=" + encodeURIComponent(recipientEmail)
+        + (cc ? "&cc=" + encodeURIComponent(cc) : "")
+        + "&subject=" + encodeURIComponent(subject)
+        + "&body=" + encodeURIComponent(bodyWithNote);
+      // Ouverture dans un nouvel onglet pour ne pas perdre le contexte Hub
+      window.open(outlookUrl, "_blank", "noopener");
 
       // Log permanent en BDD
       await window.api.commercialSends.log({
@@ -1231,7 +1236,7 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
         cc: cc || null, subject, body,
         attachment_url: pdfBase64 ? doc.id + ".pdf" : null,
         status: "sent",
-        provider: "mailto",
+        provider: "outlook_web",
       });
 
       // Met à jour le statut du doc → "envoye"
@@ -1319,11 +1324,11 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} style={{ ...cdStyles.input, resize: "vertical", fontFamily: "inherit" }} />
           </div>
           <div style={{ padding: 10, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 7, fontSize: 11.5, color: "#92400e", marginBottom: 14 }}>
-            ℹ Le PDF sera téléchargé localement (limitation navigateur sur les mailto). Glissez-le dans votre client mail comme pièce jointe. Chaque envoi est tracé en BDD pour audit permanent.
+            ℹ Outlook s'ouvrira dans un nouvel onglet avec destinataire, objet et corps pré-remplis. Le PDF est téléchargé localement — glissez-le en pièce jointe dans la fenêtre Outlook. Chaque envoi est tracé en BDD pour audit permanent.
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <button onClick={onClose} style={cdStyles.ghostBtn}>Annuler</button>
-            <button onClick={send} disabled={sending} style={cdStyles.primaryBtn}>{sending ? "Envoi…" : "Envoyer + Tracer"}</button>
+            <button onClick={send} disabled={sending} style={cdStyles.primaryBtn}>{sending ? "Envoi…" : "✉ Ouvrir dans Outlook + Tracer"}</button>
           </div>
         </div>
       </div>

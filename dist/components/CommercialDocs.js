@@ -2171,9 +2171,13 @@ var DocSendModal = ({
         } catch (e) {}
       }
 
-      // Ouvre le client mail par défaut avec subject/body pré-remplis
-      var mailto = "mailto:" + encodeURIComponent(recipientEmail) + (cc ? "?cc=" + encodeURIComponent(cc) + "&" : "?") + "subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body + "\n\n[Le PDF a été téléchargé localement — glissez-le en pièce jointe.]");
-      window.open(mailto, "_self");
+      // Ouvre Outlook (Web ou Desktop) avec subject/body pré-remplis
+      // Office 365 deeplink — fonctionne aussi via le protocol handler outlook:
+      // sur Windows si Outlook Desktop est installé.
+      var bodyWithNote = body + "\n\n[Le PDF a été téléchargé localement — glissez-le en pièce jointe.]";
+      var outlookUrl = "https://outlook.office.com/mail/deeplink/compose" + "?to=" + encodeURIComponent(recipientEmail) + (cc ? "&cc=" + encodeURIComponent(cc) : "") + "&subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(bodyWithNote);
+      // Ouverture dans un nouvel onglet pour ne pas perdre le contexte Hub
+      window.open(outlookUrl, "_blank", "noopener");
 
       // Log permanent en BDD
       await window.api.commercialSends.log({
@@ -2187,7 +2191,7 @@ var DocSendModal = ({
         body,
         attachment_url: pdfBase64 ? doc.id + ".pdf" : null,
         status: "sent",
-        provider: "mailto"
+        provider: "outlook_web"
       });
 
       // Met à jour le statut du doc → "envoye"
@@ -2370,7 +2374,7 @@ var DocSendModal = ({
       color: "#92400e",
       marginBottom: 14
     }
-  }, "\u2139 Le PDF sera t\xE9l\xE9charg\xE9 localement (limitation navigateur sur les mailto). Glissez-le dans votre client mail comme pi\xE8ce jointe. Chaque envoi est trac\xE9 en BDD pour audit permanent."), /*#__PURE__*/React.createElement("div", {
+  }, "\u2139 Outlook s'ouvrira dans un nouvel onglet avec destinataire, objet et corps pr\xE9-remplis. Le PDF est t\xE9l\xE9charg\xE9 localement \u2014 glissez-le en pi\xE8ce jointe dans la fen\xEAtre Outlook. Chaque envoi est trac\xE9 en BDD pour audit permanent."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "flex-end",
@@ -2383,7 +2387,7 @@ var DocSendModal = ({
     onClick: send,
     disabled: sending,
     style: cdStyles.primaryBtn
-  }, sending ? "Envoi…" : "Envoyer + Tracer")))));
+  }, sending ? "Envoi…" : "✉ Ouvrir dans Outlook + Tracer")))));
 };
 var cdStyles = {
   frame: {

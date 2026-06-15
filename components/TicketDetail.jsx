@@ -311,7 +311,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
       {/* ───── SIDEBAR (compact) ───── */}
       <aside style={tdStyles.sidebar}>
         <a href="/" title="Retour à l'accueil" style={{...tdStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
-          <div style={tdStyles.logo}><div style={tdStyles.logoMark}>H</div></div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={tdStyles.logo}><div style={tdStyles.logoMark}>H</div></div>}
           <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
         </a>
         <a href="/ticketing?new=1" style={{ ...tdStyles.newBtn, textDecoration: "none", cursor: "pointer" }} title="Créer un nouveau ticket">

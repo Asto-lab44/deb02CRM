@@ -55,7 +55,7 @@ const CRMAccount = () => {
       {/* sidebar (compact) */}
       <aside style={accStyles.sidebar}>
         <a href="/" title="Retour à l'accueil" style={{...accStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
-          <div style={accStyles.logo}><div style={accStyles.logoMark}>H</div></div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={accStyles.logo}><div style={accStyles.logoMark}>H</div></div>}
           <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
         </a>
         <button style={accStyles.newBtn}>+ Nouvelle opportunité <span style={accStyles.kbd}>N</span></button>

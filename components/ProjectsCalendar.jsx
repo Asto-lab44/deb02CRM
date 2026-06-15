@@ -94,7 +94,7 @@ const ProjectsCalendar = () => {
       {/* SIDEBAR */}
       <aside style={S.sidebar}>
         <a href="/" style={{ ...S.brand, textDecoration: "none", color: "inherit" }}>
-          <div style={S.logo}>H</div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={S.logo}>H</div>}
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Calendrier projets</div>

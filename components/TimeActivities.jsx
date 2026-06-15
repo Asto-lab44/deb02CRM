@@ -79,7 +79,7 @@ const TimeActivities = () => {
       {/* SIDEBAR */}
       <aside style={taStyles.sidebar}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 0 18px", textDecoration: "none", color: "inherit", borderBottom: "1px solid #eef1f5" }}>
-          <div style={taStyles.logo}>H</div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={taStyles.logo}>H</div>}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Temps & Activités</div>

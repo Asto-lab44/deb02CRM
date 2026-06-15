@@ -645,7 +645,7 @@ const ClientPage = () => {
       {/* ───── SIDEBAR ───── */}
       <aside style={cliStyles.sidebar}>
         <a href="/" title="Retour à l'accueil" style={{...cliStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
-          <div style={cliStyles.logo}><div style={cliStyles.logoMark}>H</div></div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={cliStyles.logo}><div style={cliStyles.logoMark}>H</div></div>}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>CRM commercial</div>

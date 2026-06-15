@@ -237,9 +237,7 @@ const TicketList = () => {
       {/* ───── SIDEBAR ───── */}
       <aside style={tlStyles.sidebar}>
         <a href="/" title="Retour à l'accueil" style={{...tlStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
-          <div style={tlStyles.logo}>
-            <div style={tlStyles.logoMark}>H</div>
-          </div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : (<div style={tlStyles.logo}><div style={tlStyles.logoMark}>H</div></div>)}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Support IT interne</div>

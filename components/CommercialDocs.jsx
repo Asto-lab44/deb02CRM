@@ -159,9 +159,7 @@ const CommercialDocs = () => {
       {/* SIDEBAR */}
       <aside style={cdStyles.sidebar}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 0 18px", textDecoration: "none", color: "inherit", borderBottom: "1px solid #eef1f5" }}>
-          <div style={cdStyles.logo}>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h2"/></svg>
-          </div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={cdStyles.logo}>H</div>}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>Gestion commerciale</div>

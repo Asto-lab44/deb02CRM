@@ -106,7 +106,9 @@ var TimeActivities = () => {
       color: "inherit",
       borderBottom: "1px solid #eef1f5"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, window.HubModuleLogo ? React.createElement(window.HubModuleLogo, {
+    size: 36
+  }) : /*#__PURE__*/React.createElement("div", {
     style: taStyles.logo
   }, "H"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {

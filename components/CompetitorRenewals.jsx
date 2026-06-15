@@ -278,7 +278,7 @@ const CompetitorRenewals = () => {
       {/* SIDEBAR */}
       <aside style={crStyles.sidebar}>
         <a href="/" title="Retour à l'accueil" style={{...crStyles.brandRow, textDecoration: "none", color: "inherit", cursor: "pointer"}}>
-          <div style={crStyles.logo}><div style={crStyles.logoMark}>H</div></div>
+          {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={crStyles.logo}><div style={crStyles.logoMark}>H</div></div>}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>CRM commercial</div>

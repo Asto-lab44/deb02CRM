@@ -250,22 +250,11 @@ var CommercialDocs = () => {
       color: "inherit",
       borderBottom: "1px solid #eef1f5"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, window.HubModuleLogo ? React.createElement(window.HubModuleLogo, {
+    size: 36
+  }) : /*#__PURE__*/React.createElement("div", {
     style: cdStyles.logo
-  }, /*#__PURE__*/React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    width: "18",
-    height: "18",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M14 2v6h6M9 13h6M9 17h6M9 9h2"
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, "H"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       fontWeight: 600

@@ -160,7 +160,9 @@ var CRMAccount = () => {
       color: "inherit",
       cursor: "pointer"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, window.HubModuleLogo ? React.createElement(window.HubModuleLogo, {
+    size: 36
+  }) : /*#__PURE__*/React.createElement("div", {
     style: accStyles.logo
   }, /*#__PURE__*/React.createElement("div", {
     style: accStyles.logoMark

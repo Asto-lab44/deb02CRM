@@ -1894,5 +1894,85 @@
   // ───────────────────────────────────────────────────────────────────
   // §8. EXPORT global
   // ───────────────────────────────────────────────────────────────────
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends };
+  // ───────────────────────────────────────────────────────────────────
+  // §6.71 USER ACTIVITY — sessions + événements (tracking minimal)
+  // ───────────────────────────────────────────────────────────────────
+  const userActivity = {
+    /** Sessions actives + ended récemment, triées par dernière activité */
+    async sessions({ user_id, since_hours = 24, only_active = false } = {}) {
+      const s = supa();
+      if (!s) return [];
+      let q = s.from("user_sessions").select("*");
+      if (user_id) q = q.eq("user_id", user_id);
+      if (only_active) q = q.is("ended_at", null);
+      const sinceDate = new Date(Date.now() - since_hours * 3600 * 1000).toISOString();
+      q = q.gte("started_at", sinceDate);
+      const { data, error } = await q.order("last_activity", { ascending: false }).limit(200);
+      if (error) { console.warn("[userActivity.sessions]", error.message); return []; }
+      return data || [];
+    },
+
+    /** Événements filtrés par type/sévérité/path/user/date */
+    async events({ types, severity, path, user_id, session_id, limit = 200, since_hours = 24 } = {}) {
+      const s = supa();
+      if (!s) return [];
+      let q = s.from("user_events").select("*");
+      if (types && types.length) q = q.in("type", types);
+      if (severity) q = q.eq("severity", severity);
+      if (path) q = q.eq("path", path);
+      if (user_id) q = q.eq("user_id", user_id);
+      if (session_id) q = q.eq("session_id", session_id);
+      if (since_hours) {
+        const sinceDate = new Date(Date.now() - since_hours * 3600 * 1000).toISOString();
+        q = q.gte("occurred_at", sinceDate);
+      }
+      const { data, error } = await q.order("occurred_at", { ascending: false }).limit(limit);
+      if (error) { console.warn("[userActivity.events]", error.message); return []; }
+      return data || [];
+    },
+
+    /** Stats agrégées du dashboard (RPC SQL ou fallback compteur côté client). */
+    async dashboardStats() {
+      const s = supa();
+      if (!s) return { online_now: 0, locked_now: 0, sessions_today: 0, events_today: 0, errors_today: 0 };
+      try {
+        const { data, error } = await s.rpc("activity_dashboard_stats");
+        if (!error && data) return data;
+      } catch (e) {}
+      // Fallback : 5 requêtes
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const isoToday = todayStart.toISOString();
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const [{ count: online_now }, { count: locked_now }, { count: sessions_today }, { count: events_today }, { count: errors_today }] = await Promise.all([
+        s.from("user_sessions").select("*", { count: "exact", head: true }).is("ended_at", null).gte("last_activity", fiveMinAgo),
+        s.from("user_sessions").select("*", { count: "exact", head: true }).is("ended_at", null).gte("last_activity", fiveMinAgo).eq("is_locked", true),
+        s.from("user_sessions").select("*", { count: "exact", head: true }).gte("started_at", isoToday),
+        s.from("user_events").select("*", { count: "exact", head: true }).gte("occurred_at", isoToday),
+        s.from("user_events").select("*", { count: "exact", head: true }).gte("occurred_at", isoToday).eq("severity", "error"),
+      ]);
+      return { online_now: online_now || 0, locked_now: locked_now || 0, sessions_today: sessions_today || 0, events_today: events_today || 0, errors_today: errors_today || 0 };
+    },
+
+    /** Projets bloqués : pas d'événement project_event depuis N jours */
+    async stalledProjects({ days = 7 } = {}) {
+      const s = supa();
+      if (!s) return [];
+      const sinceDate = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+      // Récupère tous les projets actifs
+      const { data: projects } = await s.from("projects").select("id, name, client_id, client_name, stage, pm_name, updated_at, created_at").is("deleted_at", null).neq("stage", "clos");
+      if (!projects) return [];
+      // Pour chaque projet, dernier event
+      const stalled = [];
+      for (const p of projects) {
+        const { data: lastEvt } = await s.from("project_events").select("created_at").eq("project_id", p.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const lastActivity = lastEvt ? lastEvt.created_at : (p.updated_at || p.created_at);
+        if (lastActivity < sinceDate) {
+          stalled.push({ ...p, last_activity: lastActivity, days_stalled: Math.floor((Date.now() - new Date(lastActivity)) / (24 * 3600 * 1000)) });
+        }
+      }
+      return stalled.sort((a, b) => b.days_stalled - a.days_stalled);
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity };
 })();

@@ -146,6 +146,18 @@ const ERPHome = () => {
     return Math.round(n) + " €";
   };
 
+  // Stats live pour la tuile Temps & Activités
+  const [activityStats, setActivityStats] = React.useState({ online_now: 0, sessions_today: 0, errors_today: 0 });
+  React.useEffect(() => {
+    if (!window.api || !window.api.userActivity) return;
+    (async () => {
+      try {
+        const s = await window.api.userActivity.dashboardStats();
+        setActivityStats({ online_now: s.online_now || 0, sessions_today: s.sessions_today || 0, errors_today: s.errors_today || 0 });
+      } catch (e) {}
+    })();
+  }, []);
+
   const modules = [
     // COMMERCIAL
     {
@@ -298,14 +310,14 @@ const ERPHome = () => {
       cat: "Ressources humaines",
       key: "time",
       title: "Temps & Activités",
-      subtitle: "Pointage, CRA, congés",
+      subtitle: "Sessions, verrouillages, erreurs, projets bloqués",
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
       color: "#14b8a6",
       bg: "#ccfbf1",
       stats: [
-        { k: "CRA à valider", v: "23" },
-        { k: "Heures sem.", v: "4 412 h" },
-        { k: "Demandes", v: "11" },
+        { k: "En ligne", v: String(activityStats.online_now) },
+        { k: "Sessions/j", v: String(activityStats.sessions_today) },
+        { k: "Erreurs", v: String(activityStats.errors_today) },
       ],
       badge: { label: "À valider", tone: "warn" },
     },

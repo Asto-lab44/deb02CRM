@@ -795,6 +795,85 @@ var EditableRow = ({
     value: "na"
   }, "N/A"))));
 };
+
+// Cellule date d'achat sur la ligne parent du groupe : édite la date
+// d'achat de TOUTES les lignes du devis simultanément.
+var GroupDateCell = ({
+  g,
+  defaultDate,
+  onReload
+}) => {
+  // Date actuelle : si toutes les lignes ont la même purchase_date explicite, on l'affiche ;
+  // sinon on prend la première date explicite trouvée ; sinon le défaut (jeudi suivant).
+  var explicit = g.lines.map(l => l.purchase_date ? String(l.purchase_date).slice(0, 10) : null).filter(Boolean);
+  var uniq = Array.from(new Set(explicit));
+  var isMixed = uniq.length > 1;
+  var value = uniq[0] || defaultDate || "";
+  var isCustom = !!uniq[0];
+  var [local, setLocal] = React.useState(value);
+  var [saving, setSaving] = React.useState(false);
+  React.useEffect(() => {
+    setLocal(value);
+  }, [value]);
+  var onChange = async newDate => {
+    setLocal(newDate);
+    setSaving(true);
+    try {
+      await Promise.all(g.lines.map(l => window.api.purchaseMatrix.updateLine(l.line_id, {
+        purchase_date: newDate || null
+      })));
+      if (window.HubToast) window.HubToast.success("✓ Date achat appliquée à " + g.lines.length + " article(s)");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+    setSaving(false);
+  };
+  var cellInput = {
+    padding: "5px 8px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 6,
+    fontSize: 12,
+    fontFamily: "'JetBrains Mono', monospace",
+    color: "#0f172a",
+    background: "#fff",
+    boxSizing: "border-box",
+    width: "100%"
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: local || "",
+    onChange: e => onChange(e.target.value || null),
+    title: isMixed ? "⚠ Les articles ont des dates différentes — modifier applique à tous" : isCustom ? "Date personnalisée" : "Défaut = jeudi suivant la validation du devis (" + (defaultDate || "—") + ")",
+    style: {
+      ...cellInput,
+      borderColor: isMixed ? "#f59e0b" : isCustom ? "#a855f7" : "#e2e8f0",
+      background: isMixed ? "#fffbeb" : isCustom ? "#faf5ff" : "#fff",
+      color: isMixed ? "#92400e" : isCustom ? "#7e22ce" : "#0f172a",
+      fontWeight: isCustom || isMixed ? 600 : 400
+    }
+  }), !isCustom && !isMixed && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: "#94a3b8",
+      marginTop: 2,
+      textAlign: "center"
+    }
+  }, "\uD83D\uDCCC jeudi par d\xE9faut"), isMixed && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: "#b45309",
+      marginTop: 2,
+      textAlign: "center"
+    }
+  }, "\u26A0 dates mixtes"), saving && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: "#94a3b8",
+      textAlign: "center"
+    }
+  }, "\uD83D\uDCBE"));
+};
 var ListView = ({
   rows,
   suppliers,
@@ -908,6 +987,17 @@ var ListView = ({
       bg: "#fef3c7"
     };
   };
+  // Calcule le jeudi suivant la date de validation du devis (date du doc).
+  // Si le doc est validé un jeudi, on garde le même jour.
+  var nextThursday = isoDate => {
+    if (!isoDate) return null;
+    var d = new Date(String(isoDate).slice(0, 10));
+    if (isNaN(d)) return null;
+    var day = d.getDay(); // 0=Dim, 4=Jeu
+    var add = (4 - day + 7) % 7;
+    d.setDate(d.getDate() + add);
+    return d.toISOString().slice(0, 10);
+  };
   var purchaseSummary = lines => {
     var total = lines.length;
     var cmd = lines.filter(l => l.purchase_status === "commande").length;
@@ -971,6 +1061,12 @@ var ListView = ({
       textAlign: "center"
     }
   }, "Articles"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      textAlign: "center",
+      minWidth: 140
+    }
+  }, "\uD83D\uDCC5 Date achat"), /*#__PURE__*/React.createElement("th", {
     style: {
       ...scStyles.thHead,
       textAlign: "right"
@@ -1075,6 +1171,17 @@ var ListView = ({
     }, g.lines.length), /*#__PURE__*/React.createElement("td", {
       style: {
         ...scStyles.td,
+        padding: "6px 8px",
+        minWidth: 140
+      },
+      onClick: e => e.stopPropagation()
+    }, /*#__PURE__*/React.createElement(GroupDateCell, {
+      g: g,
+      defaultDate: nextThursday(g.doc_date),
+      onReload: onReload
+    })), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...scStyles.td,
         textAlign: "right",
         fontFamily: "'JetBrains Mono', monospace",
         fontWeight: 600,
@@ -1130,7 +1237,7 @@ var ListView = ({
         whiteSpace: "nowrap"
       }
     }, rs.label))), isOpen && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-      colSpan: 9,
+      colSpan: 10,
       style: {
         padding: 0,
         background: "#fafbfc",

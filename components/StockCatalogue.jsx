@@ -401,6 +401,58 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
   );
 };
 
+// Cellule date d'achat sur la ligne parent du groupe : édite la date
+// d'achat de TOUTES les lignes du devis simultanément.
+const GroupDateCell = ({ g, defaultDate, onReload }) => {
+  // Date actuelle : si toutes les lignes ont la même purchase_date explicite, on l'affiche ;
+  // sinon on prend la première date explicite trouvée ; sinon le défaut (jeudi suivant).
+  const explicit = g.lines.map((l) => l.purchase_date ? String(l.purchase_date).slice(0, 10) : null).filter(Boolean);
+  const uniq = Array.from(new Set(explicit));
+  const isMixed = uniq.length > 1;
+  const value = uniq[0] || defaultDate || "";
+  const isCustom = !!uniq[0];
+  const [local, setLocal] = React.useState(value);
+  const [saving, setSaving] = React.useState(false);
+  React.useEffect(() => { setLocal(value); }, [value]);
+
+  const onChange = async (newDate) => {
+    setLocal(newDate);
+    setSaving(true);
+    try {
+      await Promise.all(g.lines.map((l) =>
+        window.api.purchaseMatrix.updateLine(l.line_id, { purchase_date: newDate || null })
+      ));
+      if (window.HubToast) window.HubToast.success("✓ Date achat appliquée à " + g.lines.length + " article(s)");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+    setSaving(false);
+  };
+
+  const cellInput = { padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fff", boxSizing: "border-box", width: "100%" };
+  return (
+    <div>
+      <input type="date"
+             value={local || ""}
+             onChange={(e) => onChange(e.target.value || null)}
+             title={isMixed ? "⚠ Les articles ont des dates différentes — modifier applique à tous" : (isCustom ? "Date personnalisée" : "Défaut = jeudi suivant la validation du devis (" + (defaultDate || "—") + ")")}
+             style={{ ...cellInput,
+                      borderColor: isMixed ? "#f59e0b" : (isCustom ? "#a855f7" : "#e2e8f0"),
+                      background: isMixed ? "#fffbeb" : (isCustom ? "#faf5ff" : "#fff"),
+                      color: isMixed ? "#92400e" : (isCustom ? "#7e22ce" : "#0f172a"),
+                      fontWeight: (isCustom || isMixed) ? 600 : 400 }} />
+      {!isCustom && !isMixed && (
+        <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, textAlign: "center" }}>📌 jeudi par défaut</div>
+      )}
+      {isMixed && (
+        <div style={{ fontSize: 9, color: "#b45309", marginTop: 2, textAlign: "center" }}>⚠ dates mixtes</div>
+      )}
+      {saving && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "center" }}>💾</div>}
+    </div>
+  );
+};
+
 const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
   const [expanded, setExpanded] = React.useState({});
   const toggle = (k) => setExpanded((cur) => ({ ...cur, [k]: !cur[k] }));
@@ -465,6 +517,17 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
     if (ok > 0) return { label: "◐ " + ok + "/" + total + " reçus", color: "#6b21a8", bg: "#f3e8ff" };
     return { label: "⏳ En attente", color: "#92400e", bg: "#fef3c7" };
   };
+  // Calcule le jeudi suivant la date de validation du devis (date du doc).
+  // Si le doc est validé un jeudi, on garde le même jour.
+  const nextThursday = (isoDate) => {
+    if (!isoDate) return null;
+    const d = new Date(String(isoDate).slice(0, 10));
+    if (isNaN(d)) return null;
+    const day = d.getDay(); // 0=Dim, 4=Jeu
+    const add = (4 - day + 7) % 7;
+    d.setDate(d.getDate() + add);
+    return d.toISOString().slice(0, 10);
+  };
   const purchaseSummary = (lines) => {
     const total = lines.length;
     const cmd = lines.filter((l) => l.purchase_status === "commande").length;
@@ -486,6 +549,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
             <th style={scStyles.thHead}>Document</th>
             <th style={scStyles.thHead}>Client</th>
             <th style={{ ...scStyles.thHead, textAlign: "center" }}>Articles</th>
+            <th style={{ ...scStyles.thHead, textAlign: "center", minWidth: 140 }}>📅 Date achat</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Achat HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Vente HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>
@@ -528,6 +592,9 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
                   <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#0f172a" }}>
                     {g.lines.length}
                   </td>
+                  <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }} onClick={(e) => e.stopPropagation()}>
+                    <GroupDateCell g={g} defaultDate={nextThursday(g.doc_date)} onReload={onReload} />
+                  </td>
                   <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#dc2626" }}>
                     {fmtEURP ? fmtEURP(totalAchat) : totalAchat.toFixed(2)}
                   </td>
@@ -557,7 +624,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
                 </tr>
                 {isOpen && (
                   <tr>
-                    <td colSpan={9} style={{ padding: 0, background: "#fafbfc", borderBottom: "1px solid #e2e8f0" }}>
+                    <td colSpan={10} style={{ padding: 0, background: "#fafbfc", borderBottom: "1px solid #e2e8f0" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ background: "#eef2f7" }}>

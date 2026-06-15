@@ -16,21 +16,25 @@ var CommercialDocs = () => {
   var TYPES = [{
     k: "devis",
     label: "Devis",
+    newLabel: "Nouveau devis",
     color: "#3b82f6",
     icon: "📄"
   }, {
     k: "commande",
     label: "Commandes",
+    newLabel: "Nouvelle commande",
     color: "#a855f7",
     icon: "📋"
   }, {
     k: "bl",
     label: "Bons livraison",
+    newLabel: "Nouveau bon de livraison",
     color: "#ea580c",
     icon: "🚚"
   }, {
     k: "facture",
     label: "Factures",
+    newLabel: "Nouvelle facture",
     color: "#10b981",
     icon: "💶"
   }];
@@ -214,7 +218,7 @@ var CommercialDocs = () => {
     style: {
       fontSize: 14
     }
-  }, "+"), /*#__PURE__*/React.createElement("span", null, "Nouveau ", TYPES.find(t => t.k === activeType).label.toLowerCase().replace(/s$/, ""))), /*#__PURE__*/React.createElement("div", {
+  }, "+"), /*#__PURE__*/React.createElement("span", null, TYPES.find(t => t.k === activeType).newLabel)), /*#__PURE__*/React.createElement("div", {
     style: cdStyles.navLabel
   }, "Documents"), TYPES.map(t => /*#__PURE__*/React.createElement("div", {
     key: t.k,

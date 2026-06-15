@@ -14,10 +14,10 @@
 
 const CommercialDocs = () => {
   const TYPES = [
-    { k: "devis",    label: "Devis",          color: "#3b82f6", icon: "📄" },
-    { k: "commande", label: "Commandes",      color: "#a855f7", icon: "📋" },
-    { k: "bl",       label: "Bons livraison", color: "#ea580c", icon: "🚚" },
-    { k: "facture",  label: "Factures",       color: "#10b981", icon: "💶" },
+    { k: "devis",    label: "Devis",          newLabel: "Nouveau devis",            color: "#3b82f6", icon: "📄" },
+    { k: "commande", label: "Commandes",      newLabel: "Nouvelle commande",        color: "#a855f7", icon: "📋" },
+    { k: "bl",       label: "Bons livraison", newLabel: "Nouveau bon de livraison", color: "#ea580c", icon: "🚚" },
+    { k: "facture",  label: "Factures",       newLabel: "Nouvelle facture",         color: "#10b981", icon: "💶" },
   ];
 
   const STATUS_META = {
@@ -126,7 +126,7 @@ const CommercialDocs = () => {
 
         <button onClick={newDoc} style={cdStyles.newBtn}>
           <span style={{ fontSize: 14 }}>+</span>
-          <span>Nouveau {TYPES.find((t) => t.k === activeType).label.toLowerCase().replace(/s$/, "")}</span>
+          <span>{TYPES.find((t) => t.k === activeType).newLabel}</span>
         </button>
 
         <div style={cdStyles.navLabel}>Documents</div>

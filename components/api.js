@@ -2155,5 +2155,164 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity };
+  // ───────────────────────────────────────────────────────────────────
+  // §6.72 INTEL TASKS — Leasing (Locam/Grenke) + Garanties + Concurrents
+  // ───────────────────────────────────────────────────────────────────
+  const intelTasks = {
+    /** Tâches commerciales à anticiper, agrégées depuis 3 sources :
+     *  1. leasing_contracts dont date_fin < horizonDays
+     *  2. warranties dont date_fin < horizonDays
+     *  3. opportunities OUVERTES (stage != won/lost) avec contract_end < horizonDays */
+    async list({ horizon_days = 365, only_imminent = false } = {}) {
+      const s = supa();
+      const horizonDate = new Date(Date.now() + horizon_days * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      const tasks = [];
+      if (!s) return tasks;
+
+      // 1. Leasing
+      try {
+        const { data: leases } = await s.from("leasing_contracts")
+          .select("*").is("deleted_at", null).eq("status", "actif")
+          .lte("date_fin", horizonDate).order("date_fin");
+        (leases || []).forEach((l) => {
+          const daysLeft = Math.floor((new Date(l.date_fin) - Date.now()) / (24 * 3600 * 1000));
+          tasks.push({
+            id: "lease_" + l.id, source: "leasing",
+            title: l.designation || ("Leasing " + l.bailleur),
+            subtitle: l.bailleur + " · " + (l.ref_contrat || "—"),
+            client_id: l.client_id, client_name: l.client_name,
+            date_echeance: l.date_fin,
+            days_left: daysLeft,
+            amount: l.montant_ht,
+            commercial: l.commercial,
+            notes: l.notes,
+            raw: l,
+          });
+        });
+      } catch (e) {}
+
+      // 2. Warranties
+      try {
+        const { data: wars } = await s.from("warranties")
+          .select("*").is("deleted_at", null).eq("status", "actif")
+          .lte("date_fin", horizonDate).order("date_fin");
+        (wars || []).forEach((w) => {
+          const daysLeft = Math.floor((new Date(w.date_fin) - Date.now()) / (24 * 3600 * 1000));
+          tasks.push({
+            id: "war_" + w.id, source: "warranty",
+            title: (w.manufacturer || "") + " " + (w.model || ""),
+            subtitle: (w.type || "serveur") + " · " + (w.garantie_type || "standard") + (w.serial_number ? " · SN " + w.serial_number : ""),
+            client_id: w.client_id, client_name: w.client_name,
+            date_echeance: w.date_fin,
+            days_left: daysLeft,
+            commercial: w.commercial,
+            notes: w.notes,
+            raw: w,
+          });
+        });
+      } catch (e) {}
+
+      // 3. Concurrents depuis opportunités ouvertes (contract_end dans data jsonb)
+      try {
+        const { data: opps } = await s.from("opportunities")
+          .select("*").not("stage", "in", "(won,lost)");
+        (opps || []).forEach((o) => {
+          // contract_end peut être en colonne directe ou dans data jsonb
+          const ce = o.contract_end || (o.data && o.data.contract_end);
+          const concurrent = o.concurrent || (o.data && o.data.concurrent);
+          if (!ce || !concurrent) return;
+          if (ce > horizonDate || ce < today) return;
+          const daysLeft = Math.floor((new Date(ce) - Date.now()) / (24 * 3600 * 1000));
+          tasks.push({
+            id: "opp_" + o.id, source: "concurrent",
+            title: "Fin contrat " + concurrent,
+            subtitle: o.name || "Opportunité",
+            client_id: o.client_id, client_name: o.client_name || (o.data && o.data.client_name),
+            date_echeance: ce,
+            days_left: daysLeft,
+            amount: o.concurrent_amount || (o.data && o.data.concurrent_amount),
+            commercial: o.owner,
+            opp_id: o.id,
+            raw: o,
+          });
+        });
+      } catch (e) {}
+
+      // Tri par date d'échéance croissante
+      tasks.sort((a, b) => (a.days_left || 0) - (b.days_left || 0));
+      if (only_imminent) return tasks.filter((t) => t.days_left <= 90);
+      return tasks;
+    },
+  };
+
+  const leasingContracts = {
+    async list() {
+      const s = supa();
+      if (!s) return [];
+      const { data } = await s.from("leasing_contracts").select("*").is("deleted_at", null).order("date_fin");
+      return data || [];
+    },
+    async create(payload) {
+      const s = supa();
+      const id = payload.id || genId("LEA");
+      const row = { id, ...payload, created_at: new Date().toISOString() };
+      if (s) {
+        const created_by = await getCurrentUserId();
+        if (created_by) row.created_by = created_by;
+        const { data, error } = await s.from("leasing_contracts").insert(row).select().maybeSingle();
+        if (error) throw new Error(error.message);
+        return data;
+      }
+      return row;
+    },
+    async update(id, patch) {
+      const s = supa();
+      if (!s) return null;
+      const { data, error } = await s.from("leasing_contracts").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    async remove(id) {
+      const s = supa();
+      if (!s) return;
+      await s.from("leasing_contracts").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    },
+  };
+
+  const warranties = {
+    async list() {
+      const s = supa();
+      if (!s) return [];
+      const { data } = await s.from("warranties").select("*").is("deleted_at", null).order("date_fin");
+      return data || [];
+    },
+    async create(payload) {
+      const s = supa();
+      const id = payload.id || genId("WAR");
+      const row = { id, ...payload, created_at: new Date().toISOString() };
+      if (s) {
+        const created_by = await getCurrentUserId();
+        if (created_by) row.created_by = created_by;
+        const { data, error } = await s.from("warranties").insert(row).select().maybeSingle();
+        if (error) throw new Error(error.message);
+        return data;
+      }
+      return row;
+    },
+    async update(id, patch) {
+      const s = supa();
+      if (!s) return null;
+      const { data, error } = await s.from("warranties").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    async remove(id) {
+      const s = supa();
+      if (!s) return;
+      await s.from("warranties").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties };
 })();

@@ -1404,8 +1404,8 @@
    *  Appelé automatiquement quand un doc de type=bl est créé. */
   async function syncBLToProject(s, blRow, lines) {
     if (!blRow || blRow.type !== "bl") return;
-    if (!window.HubCommercialPdf || !window.pdfMake) {
-      console.warn("[bl→projet auto] HubCommercialPdf indisponible — PDF non généré");
+    if (!window.HubCommercialPdf) {
+      console.warn("[bl→projet auto] HubCommercialPdf indisponible — PDF non généré (charge components/commercial-pdf.js sur cette page).");
       return;
     }
     // 1. Retrouve le projet lié : via parent_doc_id (commande) ou via opportunity_id
@@ -1829,6 +1829,45 @@
       // Marque le parent comme transformé
       await this.update(parent_id, { status: "transforme" });
       return child;
+    },
+
+    /** (Re)génère le PDF d'un BL existant et l'attache au projet.
+     *  Utile pour les BL créés avant que le hook automatique n'existe. */
+    async regenerateBLPdf(bl_id) {
+      const s = supa();
+      if (!s) throw new Error("Supabase non configuré.");
+      const full = await this.getById(bl_id);
+      if (!full) throw new Error("BL introuvable");
+      if (full.type !== "bl") throw new Error("Le document " + bl_id + " n'est pas un BL (type=" + full.type + ")");
+      return await syncBLToProject(s, full, full.lines || []);
+    },
+
+    /** Retrouve le BL le plus récent lié à un projet via son commande_id
+     *  (data.commande_id) ou son opportunity_id. */
+    async findBLForProject(project) {
+      const s = supa();
+      if (!s || !project) return null;
+      const cmdId = project.data && project.data.commande_id;
+      if (cmdId) {
+        const { data } = await s.from("commercial_docs")
+          .select("id, type, status, parent_doc_id")
+          .eq("type", "bl").eq("parent_doc_id", cmdId)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1).maybeSingle();
+        if (data) return data;
+      }
+      const oppId = project.opportunity_id || (project.data && project.data.opportunity_id);
+      if (oppId) {
+        const { data } = await s.from("commercial_docs")
+          .select("id, type, status, parent_doc_id")
+          .eq("type", "bl").eq("opportunity_id", oppId)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1).maybeSingle();
+        return data || null;
+      }
+      return null;
     },
 
     async remove(id) {

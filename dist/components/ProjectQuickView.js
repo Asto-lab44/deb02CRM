@@ -21,6 +21,9 @@ var ProjectQuickView = ({
   var [loading, setLoading] = React.useState(true);
   var [messageDraft, setMessageDraft] = React.useState("");
   var [posting, setPosting] = React.useState(false);
+  var [generatingBL, setGeneratingBL] = React.useState(false);
+  // savingField : nom du champ en cours de sauvegarde (affiche un petit indicateur)
+  var [savingField, setSavingField] = React.useState(null);
   var reload = React.useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
@@ -35,6 +38,72 @@ var ProjectQuickView = ({
   React.useEffect(() => {
     reload();
   }, [reload]);
+
+  // Sauvegarde inline d'un champ projet (top-level column).
+  var saveField = async (key, value) => {
+    if (!proj) return;
+    setSavingField(key);
+    try {
+      await window.api.projects.update(proj.id, {
+        [key]: value
+      });
+      setProj(cur => cur ? {
+        ...cur,
+        [key]: value
+      } : cur);
+      if (onChanged) onChanged();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
+    }
+    setSavingField(null);
+  };
+  // Sauvegarde d'un champ stocké dans data jsonb.
+  var saveDataField = async (key, value) => {
+    if (!proj) return;
+    setSavingField("data." + key);
+    try {
+      var nextData = {
+        ...(proj.data || {}),
+        [key]: value
+      };
+      await window.api.projects.update(proj.id, {
+        data: nextData
+      });
+      setProj(cur => cur ? {
+        ...cur,
+        data: nextData
+      } : cur);
+      if (onChanged) onChanged();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
+    }
+    setSavingField(null);
+  };
+  var regenerateBL = async () => {
+    if (!proj) return;
+    setGeneratingBL(true);
+    try {
+      // 1. Si on a déjà un bl_doc_id en data, regen direct
+      var blId = proj.data && proj.data.bl_doc_id;
+      // 2. Sinon, chercher le BL lié via commande_id / opportunity_id
+      if (!blId) {
+        var found = await window.api.commercialDocs.findBLForProject(proj);
+        if (found) blId = found.id;
+      }
+      if (!blId) {
+        if (window.HubToast) window.HubToast.warn("Aucun BL trouvé pour ce projet. Le cascade workflow doit d'abord créer un BL.");
+        setGeneratingBL(false);
+        return;
+      }
+      await window.api.commercialDocs.regenerateBLPdf(blId);
+      if (window.HubToast) window.HubToast.success("✓ PDF du BL généré et attaché");
+      await reload();
+      if (onChanged) onChanged();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Génération : " + (e.message || e));
+    }
+    setGeneratingBL(false);
+  };
 
   // Esc → fermer
   React.useEffect(() => {
@@ -232,38 +301,53 @@ var ProjectQuickView = ({
     style: {
       padding: "18px 20px"
     }
-  }, /*#__PURE__*/React.createElement(InfoRow, {
+  }, /*#__PURE__*/React.createElement(EditSelect, {
     label: "Groupe",
-    value: STAGE_LABEL[proj.stage] || proj.stage,
-    colored: STAGE_COLOR[proj.stage]
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+    value: proj.stage || "recu",
+    savingKey: "stage",
+    saving: savingField,
+    onSave: v => saveField("stage", v),
+    options: Object.keys(STAGE_LABEL).map(k => ({
+      k,
+      label: STAGE_LABEL[k],
+      colored: STAGE_COLOR[k]
+    }))
+  }), /*#__PURE__*/React.createElement(EditText, {
     label: "Nom",
-    value: proj.name,
-    bold: true
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+    value: proj.name || "",
+    bold: true,
+    savingKey: "name",
+    saving: savingField,
+    onSave: v => saveField("name", v)
+  }), /*#__PURE__*/React.createElement(EditText, {
     label: "Client",
-    value: proj.client_name || "—"
+    value: proj.client_name || "",
+    savingKey: "client_name",
+    saving: savingField,
+    onSave: v => saveField("client_name", v)
   }), proj.client_id && /*#__PURE__*/React.createElement(InfoRow, {
     label: "ID client",
     value: proj.client_id,
     mono: true
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+  }), /*#__PURE__*/React.createElement(EditDate, {
     label: "Date butoir",
-    value: fmtDate(proj.delivery_due)
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+    value: proj.delivery_due,
+    savingKey: "delivery_due",
+    saving: savingField,
+    onSave: v => saveField("delivery_due", v)
+  }), /*#__PURE__*/React.createElement(EditDate, {
     label: "Date confirm\xE9e",
-    value: fmtDate(proj.delivered_at)
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+    value: proj.delivered_at,
+    savingKey: "delivered_at",
+    saving: savingField,
+    onSave: v => saveField("delivered_at", v)
+  }), /*#__PURE__*/React.createElement(EditText, {
     label: "Cat\xE9gorie",
-    value: proj.data && proj.data.category || "Matériel",
-    colored: {
-      bg: "#dbeafe",
-      c: "#1d4ed8"
-    }
-  }), /*#__PURE__*/React.createElement(InfoRow, {
-    label: "Statut g\xE9n\xE9ral",
-    value: STAGE_LABEL[proj.stage] || proj.stage,
-    colored: STAGE_COLOR[proj.stage]
+    value: proj.data && proj.data.category || "",
+    placeholder: "Mat\xE9riel",
+    savingKey: "data.category",
+    saving: savingField,
+    onSave: v => saveDataField("category", v)
   }), /*#__PURE__*/React.createElement(InfoRow, {
     label: "BL",
     value: proj.data && proj.data.bl_doc_id || "—",
@@ -276,23 +360,37 @@ var ProjectQuickView = ({
     label: "Opportunit\xE9 li\xE9e",
     value: proj.opportunity_id || proj.data && proj.data.opportunity_id || "—",
     mono: true
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+  }), /*#__PURE__*/React.createElement(EditText, {
     label: "Chef de projet",
-    value: proj.pm_name || "—"
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+    value: proj.pm_name || "",
+    savingKey: "pm_name",
+    saving: savingField,
+    onSave: v => saveField("pm_name", v)
+  }), /*#__PURE__*/React.createElement(EditNumber, {
     label: "Montant HT",
-    value: fmtEUR(proj.amount_ht)
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+    value: proj.amount_ht,
+    suffix: " \u20AC",
+    savingKey: "amount_ht",
+    saving: savingField,
+    onSave: v => saveField("amount_ht", v)
+  }), /*#__PURE__*/React.createElement(EditNumber, {
     label: "Montant TTC",
-    value: fmtEUR(proj.amount_ttc)
-  }), /*#__PURE__*/React.createElement(InfoRow, {
+    value: proj.amount_ttc,
+    suffix: " \u20AC",
+    savingKey: "amount_ttc",
+    saving: savingField,
+    onSave: v => saveField("amount_ttc", v)
+  }), /*#__PURE__*/React.createElement(EditText, {
     label: "R\xE9f. Sage",
-    value: proj.sage_ref || "—",
-    mono: true
+    value: proj.sage_ref || "",
+    mono: true,
+    savingKey: "sage_ref",
+    saving: savingField,
+    onSave: v => saveField("sage_ref", v)
   }), /*#__PURE__*/React.createElement(InfoRow, {
     label: "Journal de cr\xE9ation",
     value: fmtDateTime(proj.created_at)
-  }), proj.description && /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18
     }
@@ -305,18 +403,13 @@ var ProjectQuickView = ({
       textTransform: "uppercase",
       marginBottom: 6
     }
-  }, "Description"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "#0f172a",
-      lineHeight: 1.55,
-      background: "#fff",
-      padding: 12,
-      borderRadius: 8,
-      border: "1px solid #eef1f5",
-      whiteSpace: "pre-wrap"
-    }
-  }, proj.description)))), /*#__PURE__*/React.createElement("section", {
+  }, "Description"), /*#__PURE__*/React.createElement(EditTextarea, {
+    value: proj.description || "",
+    savingKey: "description",
+    saving: savingField,
+    onSave: v => saveField("description", v),
+    placeholder: "Ajoute des notes internes sur ce projet\u2026"
+  })))), /*#__PURE__*/React.createElement("section", {
     style: {
       overflow: "hidden",
       display: "flex",
@@ -397,7 +490,21 @@ var ProjectQuickView = ({
       lineHeight: 1.5,
       maxWidth: 360
     }
-  }, "Le BL PDF est g\xE9n\xE9r\xE9 automatiquement quand le cascade workflow transforme la commande en bon de livraison. Si ce projet a \xE9t\xE9 cr\xE9\xE9 avant ce flux, il sera disponible au prochain BL.")))), /*#__PURE__*/React.createElement("aside", {
+  }, "Le BL PDF est g\xE9n\xE9r\xE9 automatiquement quand le cascade workflow transforme la commande en bon de livraison. Pour ce projet, tu peux g\xE9n\xE9rer (ou r\xE9g\xE9n\xE9rer) le PDF manuellement :"), /*#__PURE__*/React.createElement("button", {
+    onClick: regenerateBL,
+    disabled: generatingBL || !proj,
+    style: {
+      marginTop: 16,
+      padding: "10px 18px",
+      borderRadius: 8,
+      background: "#0f172a",
+      color: "#fff",
+      border: "none",
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: generatingBL ? "wait" : "pointer"
+    }
+  }, generatingBL ? "Génération en cours…" : "📄 Générer le BL")))), /*#__PURE__*/React.createElement("aside", {
     style: {
       borderLeft: "1px solid #eef1f5",
       display: "flex",
@@ -660,5 +767,254 @@ var MessageBubble = ({
       opacity: 0.7
     }
   }, created));
+};
+
+// ─── Cellules éditables inline ───
+// Pattern : la valeur n'est sauvegardée que sur blur ou Entrée (pas pendant la saisie).
+var labelStyle = {
+  fontSize: 10.5,
+  color: "#64748b",
+  fontWeight: 600,
+  letterSpacing: 0.3,
+  textTransform: "uppercase"
+};
+var rowStyle = {
+  display: "grid",
+  gridTemplateColumns: "120px 1fr",
+  gap: 10,
+  alignItems: "center",
+  padding: "7px 0",
+  borderBottom: "1px solid #eef1f5"
+};
+var inputStyle = {
+  width: "100%",
+  padding: "5px 8px",
+  border: "1px solid #e2e8f0",
+  borderRadius: 6,
+  fontSize: 12.5,
+  fontFamily: "inherit",
+  color: "#0f172a",
+  background: "#fff",
+  boxSizing: "border-box",
+  outline: "none"
+};
+var SavingDot = ({
+  on
+}) => on ? /*#__PURE__*/React.createElement("span", {
+  style: {
+    fontSize: 9,
+    color: "#94a3b8",
+    marginLeft: 6
+  }
+}, "\uD83D\uDCBE") : null;
+var EditText = ({
+  label,
+  value,
+  onSave,
+  bold,
+  mono,
+  placeholder,
+  savingKey,
+  saving
+}) => {
+  var [local, setLocal] = React.useState(value || "");
+  var [dirty, setDirty] = React.useState(false);
+  React.useEffect(() => {
+    if (!dirty) setLocal(value || "");
+  }, [value]);
+  var commit = () => {
+    if (dirty && local !== (value || "")) {
+      setDirty(false);
+      onSave(local);
+    } else setDirty(false);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: rowStyle
+  }, /*#__PURE__*/React.createElement("div", {
+    style: labelStyle
+  }, label, /*#__PURE__*/React.createElement(SavingDot, {
+    on: saving === savingKey
+  })), /*#__PURE__*/React.createElement("input", {
+    value: local,
+    onChange: e => {
+      setLocal(e.target.value);
+      setDirty(true);
+    },
+    onBlur: commit,
+    onKeyDown: e => {
+      if (e.key === "Enter") e.currentTarget.blur();
+    },
+    placeholder: placeholder || "",
+    style: {
+      ...inputStyle,
+      fontWeight: bold ? 700 : 500,
+      fontFamily: mono ? "'JetBrains Mono', monospace" : "inherit",
+      borderColor: dirty ? "#f59e0b" : "#e2e8f0",
+      background: dirty ? "#fffbeb" : "#fff"
+    }
+  }));
+};
+var EditNumber = ({
+  label,
+  value,
+  onSave,
+  suffix,
+  savingKey,
+  saving
+}) => {
+  var [local, setLocal] = React.useState(value != null ? String(value) : "");
+  var [dirty, setDirty] = React.useState(false);
+  React.useEffect(() => {
+    if (!dirty) setLocal(value != null ? String(value) : "");
+  }, [value]);
+  var commit = () => {
+    var num = local === "" ? null : Number(local);
+    if (dirty && num !== (value == null ? null : Number(value))) {
+      setDirty(false);
+      onSave(num);
+    } else setDirty(false);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: rowStyle
+  }, /*#__PURE__*/React.createElement("div", {
+    style: labelStyle
+  }, label, /*#__PURE__*/React.createElement(SavingDot, {
+    on: saving === savingKey
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: local,
+    onChange: e => {
+      setLocal(e.target.value);
+      setDirty(true);
+    },
+    onBlur: commit,
+    onKeyDown: e => {
+      if (e.key === "Enter") e.currentTarget.blur();
+    },
+    style: {
+      ...inputStyle,
+      textAlign: "right",
+      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 600,
+      borderColor: dirty ? "#f59e0b" : "#e2e8f0",
+      background: dirty ? "#fffbeb" : "#fff"
+    }
+  }), suffix && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#94a3b8"
+    }
+  }, suffix)));
+};
+var EditDate = ({
+  label,
+  value,
+  onSave,
+  savingKey,
+  saving
+}) => {
+  var cur = value ? String(value).slice(0, 10) : "";
+  return /*#__PURE__*/React.createElement("div", {
+    style: rowStyle
+  }, /*#__PURE__*/React.createElement("div", {
+    style: labelStyle
+  }, label, /*#__PURE__*/React.createElement(SavingDot, {
+    on: saving === savingKey
+  })), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: cur,
+    onChange: e => onSave(e.target.value || null),
+    style: {
+      ...inputStyle,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }));
+};
+var EditSelect = ({
+  label,
+  value,
+  onSave,
+  options,
+  savingKey,
+  saving
+}) => {
+  var cur = options.find(o => o.k === value);
+  var colored = cur && cur.colored;
+  return /*#__PURE__*/React.createElement("div", {
+    style: rowStyle
+  }, /*#__PURE__*/React.createElement("div", {
+    style: labelStyle
+  }, label, /*#__PURE__*/React.createElement(SavingDot, {
+    on: saving === savingKey
+  })), /*#__PURE__*/React.createElement("select", {
+    value: value,
+    onChange: e => onSave(e.target.value),
+    style: {
+      ...inputStyle,
+      fontWeight: 700,
+      background: colored ? colored.bg : "#fff",
+      color: colored ? colored.c : "#0f172a",
+      borderColor: colored ? colored.bg : "#e2e8f0"
+    }
+  }, options.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o.k,
+    value: o.k
+  }, o.label))));
+};
+var EditTextarea = ({
+  value,
+  onSave,
+  placeholder,
+  savingKey,
+  saving
+}) => {
+  var [local, setLocal] = React.useState(value || "");
+  var [dirty, setDirty] = React.useState(false);
+  React.useEffect(() => {
+    if (!dirty) setLocal(value || "");
+  }, [value]);
+  var commit = () => {
+    if (dirty && local !== (value || "")) {
+      setDirty(false);
+      onSave(local);
+    } else setDirty(false);
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("textarea", {
+    value: local,
+    onChange: e => {
+      setLocal(e.target.value);
+      setDirty(true);
+    },
+    onBlur: commit,
+    placeholder: placeholder || "",
+    style: {
+      width: "100%",
+      minHeight: 70,
+      resize: "vertical",
+      padding: 10,
+      border: "1px solid " + (dirty ? "#f59e0b" : "#eef1f5"),
+      borderRadius: 8,
+      fontSize: 12.5,
+      lineHeight: 1.55,
+      color: "#0f172a",
+      background: dirty ? "#fffbeb" : "#fff",
+      fontFamily: "inherit",
+      boxSizing: "border-box",
+      outline: "none"
+    }
+  }), dirty && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      color: "#b45309",
+      marginTop: 4
+    }
+  }, "\u270E clique en dehors pour sauvegarder"));
 };
 window.ProjectQuickView = ProjectQuickView;

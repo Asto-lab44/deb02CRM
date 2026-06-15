@@ -174,6 +174,7 @@ var NewOpportunity = () => {
       besoin: oppBesoin || null,
       concurrent: oppConcurrent || null,
       concurrent_amount: oppConcurrentAmount || null,
+      contract_end: oppProjectDate || null,
       project_date: oppProjectDate || null
     };
     try {

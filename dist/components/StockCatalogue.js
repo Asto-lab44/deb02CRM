@@ -14,7 +14,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 var StockCatalogue = () => {
-  var [view, setView] = React.useState("list");
+  var [view, setView] = React.useState("list"); // "matrix" | "list" | "archive"
   var [rows, setRows] = React.useState([]);
   var [suppliers, setSuppliers] = React.useState([]);
   var [loading, setLoading] = React.useState(true);
@@ -26,8 +26,10 @@ var StockCatalogue = () => {
   var reload = React.useCallback(async () => {
     setLoading(true);
     try {
+      var isArchive = view === "archive";
       var [r, sup] = await Promise.all([window.api.purchaseMatrix.list({
-        since_days: 90
+        since_days: isArchive ? 365 : 90,
+        archived: isArchive
       }), window.api.suppliers.list({
         active: true
       })]);
@@ -37,7 +39,7 @@ var StockCatalogue = () => {
       setRows([]);
     }
     setLoading(false);
-  }, []);
+  }, [view]);
   React.useEffect(() => {
     reload();
   }, [reload]);
@@ -155,6 +157,9 @@ var StockCatalogue = () => {
   }, {
     k: "list",
     label: "📋 Liste détaillée"
+  }, {
+    k: "archive",
+    label: "🗄️ Archivage"
   }].map(v => /*#__PURE__*/React.createElement("div", {
     key: v.k,
     onClick: () => setView(v.k),
@@ -275,14 +280,14 @@ var StockCatalogue = () => {
       fontWeight: 600,
       color: "#0f172a"
     }
-  }, "Aucun article \xE0 acheter"), /*#__PURE__*/React.createElement("div", {
+  }, view === "archive" ? "Aucun devis archivé" : "Aucun article à acheter"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "#64748b",
       marginTop: 6,
       lineHeight: 1.5
     }
-  }, "Cette page agr\xE8ge les ", /*#__PURE__*/React.createElement("strong", null, "lignes des devis accept\xE9s et des commandes"), ".", /*#__PURE__*/React.createElement("br", null), "Cr\xE9e un devis dans Gestion Commerciale, fais-le passer en \xAB Accept\xE9 \xBB,", /*#__PURE__*/React.createElement("br", null), "et ses lignes appara\xEEtront ici pour \xEAtre achet\xE9es chez tes fournisseurs.")) : view === "matrix" ? /*#__PURE__*/React.createElement(MatrixView, {
+  }, view === "archive" ? /*#__PURE__*/React.createElement(React.Fragment, null, "Les devis archiv\xE9s appara\xEEtront ici. Pour archiver, clique sur \uD83D\uDDC4\uFE0F sur la ligne parent dans la vue Liste d\xE9taill\xE9e.") : /*#__PURE__*/React.createElement(React.Fragment, null, "Cette page agr\xE8ge les ", /*#__PURE__*/React.createElement("strong", null, "lignes des devis accept\xE9s et des commandes"), ".", /*#__PURE__*/React.createElement("br", null), "Cr\xE9e un devis dans Gestion Commerciale, fais-le passer en \xAB Accept\xE9 \xBB,", /*#__PURE__*/React.createElement("br", null), "et ses lignes appara\xEEtront ici pour \xEAtre achet\xE9es chez tes fournisseurs."))) : view === "matrix" ? /*#__PURE__*/React.createElement(MatrixView, {
     matrix: matrix,
     fmtEUR: fmtEUR,
     onCellClick: rows => setEditing({
@@ -298,7 +303,8 @@ var StockCatalogue = () => {
       type: "line",
       row: r
     }),
-    onReload: reload
+    onReload: reload,
+    isArchive: view === "archive"
   })), editing && editing.type === "line" && /*#__PURE__*/React.createElement(EditLineModal, {
     row: editing.row,
     suppliers: suppliers,
@@ -923,13 +929,85 @@ var GroupDateCell = ({
     }
   }, "\uD83D\uDCBE"));
 };
+
+// Bouton d'archivage / désarchivage sur la ligne parent.
+// Activé seulement quand TOUT le matériel est au moins « commandé »
+// (statut >= commande dans le cycle de vie).
+var ArchiveButton = ({
+  g,
+  isArchive,
+  onReload
+}) => {
+  var [busy, setBusy] = React.useState(false);
+  var allCommanded = g.lines.every(l => {
+    var s = deriveArticleStatus(l.purchase_status, l.reception_status);
+    return ARTICLE_STATUS[s] && ARTICLE_STATUS[s].order >= 4 || s === "bloque" || s === "differe" || s === "na";
+  });
+  var doArchive = async () => {
+    if (!confirm("Archiver le devis " + (g.doc_number || g.doc_ref.slice(0, 8)) + " ? Il disparaîtra de cette vue et sera visible dans « Archivage ».")) return;
+    setBusy(true);
+    try {
+      await window.api.purchaseMatrix.archiveDoc(g.doc_ref);
+      if (window.HubToast) window.HubToast.success("🗄️ Devis archivé");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Archivage : " + (e.message || e));
+    }
+    setBusy(false);
+  };
+  var doUnarchive = async () => {
+    setBusy(true);
+    try {
+      await window.api.purchaseMatrix.unarchiveDoc(g.doc_ref);
+      if (window.HubToast) window.HubToast.success("↩ Devis restauré");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Restauration : " + (e.message || e));
+    }
+    setBusy(false);
+  };
+  if (isArchive) {
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: doUnarchive,
+      disabled: busy,
+      style: {
+        padding: "6px 10px",
+        borderRadius: 6,
+        border: "1px solid #a855f7",
+        background: "#faf5ff",
+        color: "#7e22ce",
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: busy ? "wait" : "pointer",
+        whiteSpace: "nowrap"
+      }
+    }, busy ? "…" : "↩ Restaurer");
+  }
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: doArchive,
+    disabled: busy || !allCommanded,
+    title: allCommanded ? "Archiver ce devis (tout le matériel est commandé)" : "Tous les articles doivent être au moins « Commandé » pour archiver",
+    style: {
+      padding: "6px 10px",
+      borderRadius: 6,
+      border: "1px solid " + (allCommanded ? "#10b981" : "#cbd5e1"),
+      background: allCommanded ? "#d1fae5" : "#f1f5f9",
+      color: allCommanded ? "#065f46" : "#94a3b8",
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: busy ? "wait" : allCommanded ? "pointer" : "not-allowed",
+      whiteSpace: "nowrap"
+    }
+  }, busy ? "…" : "🗄️ Archiver");
+};
 var ListView = ({
   rows,
   suppliers,
   fmtEUR,
   fmtEURP,
   onEdit,
-  onReload
+  onReload,
+  isArchive
 }) => {
   var [expanded, setExpanded] = React.useState({});
   var toggle = k => setExpanded(cur => ({
@@ -1133,7 +1211,13 @@ var ListView = ({
     }
   }, "Marge"), /*#__PURE__*/React.createElement("th", {
     style: scStyles.thHead
-  }, "Statut article"))), /*#__PURE__*/React.createElement("tbody", null, groups.map(g => {
+  }, "Statut article"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      textAlign: "center",
+      width: 110
+    }
+  }, "Action"))), /*#__PURE__*/React.createElement("tbody", null, groups.map(g => {
     var isOpen = !!expanded[g.doc_ref];
     var tm = TYPE_META[g.doc_type] || {
       icon: "📄",
@@ -1262,8 +1346,18 @@ var ListView = ({
       style: scStyles.td
     }, /*#__PURE__*/React.createElement(ArticleStatusBar, {
       lines: g.lines
+    })), /*#__PURE__*/React.createElement("td", {
+      style: {
+        ...scStyles.td,
+        textAlign: "center"
+      },
+      onClick: e => e.stopPropagation()
+    }, /*#__PURE__*/React.createElement(ArchiveButton, {
+      g: g,
+      isArchive: isArchive,
+      onReload: onReload
     }))), isOpen && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-      colSpan: 9,
+      colSpan: 10,
       style: {
         padding: 0,
         background: "#fafbfc",

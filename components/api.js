@@ -2479,21 +2479,42 @@
   const purchaseMatrix = {
     /** Toutes les lignes à acheter (devis acceptés/transformés/envoyés
      *  + commandes). Filtrable par semaine, fournisseur, statut achat. */
-    async list({ week, year, supplier, purchase_status, reception_status, since_days = 60, types } = {}) {
+    async list({ week, year, supplier, purchase_status, reception_status, since_days = 60, types, archived = false } = {}) {
       const s = supa();
       if (!s) return [];
-      // Par défaut on ne lit QUE les COMMANDES (le client achète vraiment
-      // chez le fournisseur seulement quand il a une commande confirmée).
-      // Pour réafficher les devis, passe types: ['devis', 'commande'].
       const typeFilter = types && types.length ? types : ["commande"];
       const sinceDate = new Date(Date.now() - since_days * 24 * 3600 * 1000).toISOString().slice(0, 10);
-      const { data: docs } = await s.from("commercial_docs")
-        .select("id, type, status, client_name, doc_date, opportunity_id, title, number_year, number_seq")
-        .in("type", typeFilter)
-        .in("status", ["accepte", "transforme", "envoye", "brouillon"])
-        .is("deleted_at", null)
-        .gte("doc_date", sinceDate)
-        .order("doc_date", { ascending: false });
+      // On essaie de sélectionner stock_archived_at ; si la colonne n'existe
+      // pas (migration pas encore passée), on retombe sur data jsonb.
+      let docs;
+      let err;
+      {
+        const res = await s.from("commercial_docs")
+          .select("id, type, status, client_name, doc_date, opportunity_id, title, number_year, number_seq, stock_archived_at, data")
+          .in("type", typeFilter)
+          .in("status", ["accepte", "transforme", "envoye", "brouillon"])
+          .is("deleted_at", null)
+          .gte("doc_date", sinceDate)
+          .order("doc_date", { ascending: false });
+        docs = res.data; err = res.error;
+      }
+      if (err) {
+        // Fallback sans la colonne
+        const res = await s.from("commercial_docs")
+          .select("id, type, status, client_name, doc_date, opportunity_id, title, number_year, number_seq, data")
+          .in("type", typeFilter)
+          .in("status", ["accepte", "transforme", "envoye", "brouillon"])
+          .is("deleted_at", null)
+          .gte("doc_date", sinceDate)
+          .order("doc_date", { ascending: false });
+        docs = res.data;
+      }
+      // Filtrage archivage : la valeur de référence est stock_archived_at,
+      // sinon data.stock_archived_at.
+      docs = (docs || []).filter((d) => {
+        const archivedAt = d.stock_archived_at || (d.data && d.data.stock_archived_at) || null;
+        return archived ? !!archivedAt : !archivedAt;
+      });
       const docMap = {};
       (docs || []).forEach((d) => { docMap[d.id] = d; });
       const docIds = Object.keys(docMap);
@@ -2537,6 +2558,7 @@
             client_name: d.client_name,
             opportunity_id: d.opportunity_id,
             doc_date: d.doc_date,
+            archived_at: d.stock_archived_at || (d.data && d.data.stock_archived_at) || null,
             purchase_date: purchase_date_val, // brut : null si non set explicitement
             effective_date: date,             // fallback pour calculs (semaine, etc.)
             week_number,
@@ -2601,6 +2623,40 @@
         return { ...(retry.data || {}), ...mergedData };
       }
       throw new Error(error.message);
+    },
+
+    /** Archive un document (l'enlève de la vue Stock & Catalogue active).
+     *  Tentative colonne dédiée stock_archived_at ; fallback data jsonb. */
+    async archiveDoc(doc_id) {
+      const s = supa();
+      if (!s) return null;
+      const now = new Date().toISOString();
+      const res = await s.from("commercial_docs").update({ stock_archived_at: now }).eq("id", doc_id).select().maybeSingle();
+      if (!res.error) return res.data;
+      if (/Could not find|does not exist|42703|PGRST204/i.test(res.error.message)) {
+        const { data: cur } = await s.from("commercial_docs").select("data").eq("id", doc_id).maybeSingle();
+        const mergedData = { ...((cur && cur.data) || {}), stock_archived_at: now };
+        const retry = await s.from("commercial_docs").update({ data: mergedData }).eq("id", doc_id).select().maybeSingle();
+        if (retry.error) throw new Error(retry.error.message);
+        return retry.data;
+      }
+      throw new Error(res.error.message);
+    },
+
+    async unarchiveDoc(doc_id) {
+      const s = supa();
+      if (!s) return null;
+      const res = await s.from("commercial_docs").update({ stock_archived_at: null }).eq("id", doc_id).select().maybeSingle();
+      if (!res.error) return res.data;
+      if (/Could not find|does not exist|42703|PGRST204/i.test(res.error.message)) {
+        const { data: cur } = await s.from("commercial_docs").select("data").eq("id", doc_id).maybeSingle();
+        const mergedData = { ...((cur && cur.data) || {}) };
+        delete mergedData.stock_archived_at;
+        const retry = await s.from("commercial_docs").update({ data: mergedData }).eq("id", doc_id).select().maybeSingle();
+        if (retry.error) throw new Error(retry.error.message);
+        return retry.data;
+      }
+      throw new Error(res.error.message);
     },
   };
 

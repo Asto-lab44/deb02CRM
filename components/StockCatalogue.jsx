@@ -14,7 +14,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 const StockCatalogue = () => {
-  const [view, setView] = React.useState("list");
+  const [view, setView] = React.useState("list");   // "matrix" | "list" | "archive"
   const [rows, setRows] = React.useState([]);
   const [suppliers, setSuppliers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -27,15 +27,16 @@ const StockCatalogue = () => {
   const reload = React.useCallback(async () => {
     setLoading(true);
     try {
+      const isArchive = view === "archive";
       const [r, sup] = await Promise.all([
-        window.api.purchaseMatrix.list({ since_days: 90 }),
+        window.api.purchaseMatrix.list({ since_days: isArchive ? 365 : 90, archived: isArchive }),
         window.api.suppliers.list({ active: true }),
       ]);
       setRows(r || []);
       setSuppliers(sup || []);
     } catch (e) { setRows([]); }
     setLoading(false);
-  }, []);
+  }, [view]);
   React.useEffect(() => { reload(); }, [reload]);
 
   // ── Filtres
@@ -110,8 +111,9 @@ const StockCatalogue = () => {
 
         <div style={scStyles.navLabel}>Vue</div>
         {[
-          { k: "matrix", label: "📊 Matrice fournisseurs" },
-          { k: "list",   label: "📋 Liste détaillée" },
+          { k: "matrix",  label: "📊 Matrice fournisseurs" },
+          { k: "list",    label: "📋 Liste détaillée" },
+          { k: "archive", label: "🗄️ Archivage" },
         ].map((v) => (
           <div key={v.k} onClick={() => setView(v.k)}
                style={{ ...scStyles.navItem, ...(view === v.k ? scStyles.navItemActive : {}) }}>
@@ -177,17 +179,25 @@ const StockCatalogue = () => {
           <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Chargement…</div>
         ) : filtered.length === 0 ? (
           <div style={scStyles.empty}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Aucun article à acheter</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
+              {view === "archive" ? "Aucun devis archivé" : "Aucun article à acheter"}
+            </div>
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 6, lineHeight: 1.5 }}>
-              Cette page agrège les <strong>lignes des devis acceptés et des commandes</strong>.<br/>
-              Crée un devis dans Gestion Commerciale, fais-le passer en « Accepté »,<br/>
-              et ses lignes apparaîtront ici pour être achetées chez tes fournisseurs.
+              {view === "archive" ? (
+                <>Les devis archivés apparaîtront ici. Pour archiver, clique sur 🗄️ sur la ligne parent dans la vue Liste détaillée.</>
+              ) : (
+                <>Cette page agrège les <strong>lignes des devis acceptés et des commandes</strong>.<br/>
+                Crée un devis dans Gestion Commerciale, fais-le passer en « Accepté »,<br/>
+                et ses lignes apparaîtront ici pour être achetées chez tes fournisseurs.</>
+              )}
             </div>
           </div>
         ) : view === "matrix" ? (
           <MatrixView matrix={matrix} fmtEUR={fmtEUR} onCellClick={(rows) => setEditing({ type: "cell", rows })} />
         ) : (
-          <ListView rows={filtered} suppliers={suppliers} fmtEUR={fmtEUR} fmtEURP={fmtEURP} onEdit={(r) => setEditing({ type: "line", row: r })} onReload={reload} />
+          <ListView rows={filtered} suppliers={suppliers} fmtEUR={fmtEUR} fmtEURP={fmtEURP}
+                    onEdit={(r) => setEditing({ type: "line", row: r })} onReload={reload}
+                    isArchive={view === "archive"} />
         )}
       </main>
 
@@ -464,7 +474,61 @@ const GroupDateCell = ({ g, defaultDate, onReload }) => {
   );
 };
 
-const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
+// Bouton d'archivage / désarchivage sur la ligne parent.
+// Activé seulement quand TOUT le matériel est au moins « commandé »
+// (statut >= commande dans le cycle de vie).
+const ArchiveButton = ({ g, isArchive, onReload }) => {
+  const [busy, setBusy] = React.useState(false);
+  const allCommanded = g.lines.every((l) => {
+    const s = deriveArticleStatus(l.purchase_status, l.reception_status);
+    return (ARTICLE_STATUS[s] && ARTICLE_STATUS[s].order >= 4) || s === "bloque" || s === "differe" || s === "na";
+  });
+
+  const doArchive = async () => {
+    if (!confirm("Archiver le devis " + (g.doc_number || g.doc_ref.slice(0, 8)) + " ? Il disparaîtra de cette vue et sera visible dans « Archivage ».")) return;
+    setBusy(true);
+    try {
+      await window.api.purchaseMatrix.archiveDoc(g.doc_ref);
+      if (window.HubToast) window.HubToast.success("🗄️ Devis archivé");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Archivage : " + (e.message || e));
+    }
+    setBusy(false);
+  };
+  const doUnarchive = async () => {
+    setBusy(true);
+    try {
+      await window.api.purchaseMatrix.unarchiveDoc(g.doc_ref);
+      if (window.HubToast) window.HubToast.success("↩ Devis restauré");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Restauration : " + (e.message || e));
+    }
+    setBusy(false);
+  };
+
+  if (isArchive) {
+    return (
+      <button onClick={doUnarchive} disabled={busy}
+              style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #a855f7", background: "#faf5ff", color: "#7e22ce", fontSize: 11, fontWeight: 700, cursor: busy ? "wait" : "pointer", whiteSpace: "nowrap" }}>
+        {busy ? "…" : "↩ Restaurer"}
+      </button>
+    );
+  }
+  return (
+    <button onClick={doArchive} disabled={busy || !allCommanded}
+            title={allCommanded ? "Archiver ce devis (tout le matériel est commandé)" : "Tous les articles doivent être au moins « Commandé » pour archiver"}
+            style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid " + (allCommanded ? "#10b981" : "#cbd5e1"),
+                     background: allCommanded ? "#d1fae5" : "#f1f5f9",
+                     color: allCommanded ? "#065f46" : "#94a3b8", fontSize: 11, fontWeight: 700,
+                     cursor: busy ? "wait" : (allCommanded ? "pointer" : "not-allowed"), whiteSpace: "nowrap" }}>
+      {busy ? "…" : "🗄️ Archiver"}
+    </button>
+  );
+};
+
+const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchive }) => {
   const [expanded, setExpanded] = React.useState({});
   const toggle = (k) => setExpanded((cur) => ({ ...cur, [k]: !cur[k] }));
 
@@ -576,6 +640,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Vente HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>
             <th style={scStyles.thHead}>Statut article</th>
+            <th style={{ ...scStyles.thHead, textAlign: "center", width: 110 }}>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -633,10 +698,13 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
                   <td style={scStyles.td}>
                     <ArticleStatusBar lines={g.lines} />
                   </td>
+                  <td style={{ ...scStyles.td, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                    <ArchiveButton g={g} isArchive={isArchive} onReload={onReload} />
+                  </td>
                 </tr>
                 {isOpen && (
                   <tr>
-                    <td colSpan={9} style={{ padding: 0, background: "#fafbfc", borderBottom: "1px solid #e2e8f0" }}>
+                    <td colSpan={10} style={{ padding: 0, background: "#fafbfc", borderBottom: "1px solid #e2e8f0" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ background: "#eef2f7" }}>

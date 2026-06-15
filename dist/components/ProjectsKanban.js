@@ -373,7 +373,19 @@ var ProjectsKanban = () => {
         color: "#065f46",
         letterSpacing: 0.2
       }
-    }, "\u2713 Clos")))), /*#__PURE__*/React.createElement("div", {
+    }, "\u2713 Clos"), p.data && p.data.bl_pdf_url && /*#__PURE__*/React.createElement("span", {
+      title: "BL PDF disponible \u2014 clique pour voir le projet",
+      style: {
+        display: "inline-block",
+        padding: "1px 6px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 700,
+        background: "#e0f2fe",
+        color: "#075985",
+        letterSpacing: 0.2
+      }
+    }, "\uD83D\uDCC4 BL")))), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 18,
         fontWeight: 600,

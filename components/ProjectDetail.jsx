@@ -329,6 +329,37 @@ const ProjectDetail = () => {
             {/* Livrables avec édition inline */}
             <ItemsBlock project={project} reload={reload} fmtEUR={fmtEUR} S={S} />
 
+            {/* BL généré automatiquement par le cascade workflow (commande→BL) */}
+            {project.data && project.data.bl_pdf_url && (
+              <div style={S.card}>
+                <div style={S.cardHead}>
+                  <h2 style={S.h2}>📄 Bon de livraison (PDF)</h2>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10 }}>
+                  <div style={{ fontSize: 32 }}>📄</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
+                      BL généré automatiquement
+                    </div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                      Doc commercial : <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{project.data.bl_doc_id || "—"}</span>
+                      {project.data.bl_pdf_uploaded_at && (
+                        <> · Mis à jour le {new Date(project.data.bl_pdf_uploaded_at).toLocaleString("fr-FR")}</>
+                      )}
+                    </div>
+                  </div>
+                  <a href={project.data.bl_pdf_url} target="_blank" rel="noreferrer"
+                     style={{ padding: "8px 14px", borderRadius: 8, background: "#0f172a", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+                    📥 Télécharger
+                  </a>
+                  <a href={project.data.bl_pdf_url} target="_blank" rel="noreferrer"
+                     style={{ padding: "8px 14px", borderRadius: 8, background: "#fff", border: "1px solid #cbd5e1", color: "#0f172a", fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+                    👁 Aperçu
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Bons de livraison */}
             <div style={S.card}>
               <div style={S.cardHead}>

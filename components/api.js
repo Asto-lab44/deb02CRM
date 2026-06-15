@@ -1399,6 +1399,89 @@
     return { id: projId };
   }
 
+  /** Hook BL : génère le PDF du bon de livraison (sans tarifs), l'upload
+   *  dans Supabase Storage et l'attache au projet correspondant.
+   *  Appelé automatiquement quand un doc de type=bl est créé. */
+  async function syncBLToProject(s, blRow, lines) {
+    if (!blRow || blRow.type !== "bl") return;
+    if (!window.HubCommercialPdf || !window.pdfMake) {
+      console.warn("[bl→projet auto] HubCommercialPdf indisponible — PDF non généré");
+      return;
+    }
+    // 1. Retrouve le projet lié : via parent_doc_id (commande) ou via opportunity_id
+    let project = null;
+    if (blRow.parent_doc_id) {
+      try {
+        const { data: byCmd } = await s.from("projects")
+          .select("id, data, stage")
+          .contains("data", { commande_id: blRow.parent_doc_id })
+          .is("deleted_at", null)
+          .maybeSingle();
+        project = byCmd;
+      } catch (e) {}
+    }
+    if (!project && blRow.opportunity_id) {
+      try {
+        const { data: byOpp } = await s.from("projects")
+          .select("id, data, stage")
+          .eq("opportunity_id", blRow.opportunity_id)
+          .is("deleted_at", null)
+          .maybeSingle();
+        project = byOpp;
+      } catch (e) {}
+    }
+
+    // 2. Génère le PDF
+    let blob;
+    try {
+      blob = await window.HubCommercialPdf.toBlob({ ...blRow, lines });
+    } catch (e) {
+      console.warn("[bl→projet auto] génération PDF :", e.message || e);
+      return;
+    }
+    if (!blob) return;
+
+    // 3. Upload dans le bucket bl-pdfs (créé à la volée si absent)
+    const path = "bl/" + blRow.id + ".pdf";
+    let { error: upErr } = await s.storage.from("bl-pdfs").upload(path, blob, {
+      cacheControl: "3600", upsert: true, contentType: "application/pdf",
+    });
+    if (upErr && /bucket not found|not_found/i.test(upErr.message || "")) {
+      await s.storage.createBucket("bl-pdfs", { public: true, fileSizeLimit: 10 * 1024 * 1024 }).catch(() => {});
+      const retry = await s.storage.from("bl-pdfs").upload(path, blob, {
+        cacheControl: "3600", upsert: true, contentType: "application/pdf",
+      });
+      upErr = retry.error;
+    }
+    if (upErr) { console.warn("[bl→projet auto] upload :", upErr.message); return; }
+
+    const { data: urlData } = s.storage.from("bl-pdfs").getPublicUrl(path);
+    const pdfUrl = urlData && urlData.publicUrl;
+    if (!pdfUrl) return;
+
+    // 4. Mémorise l'URL sur le doc BL (data jsonb)
+    try {
+      const { data: cur } = await s.from("commercial_docs").select("data").eq("id", blRow.id).maybeSingle();
+      const mergedData = { ...((cur && cur.data) || {}), pdf_url: pdfUrl, pdf_uploaded_at: new Date().toISOString() };
+      await s.from("commercial_docs").update({ data: mergedData }).eq("id", blRow.id);
+    } catch (e) { console.warn("[bl→projet auto] update doc data :", e.message); }
+
+    // 5. Mémorise l'URL sur le projet
+    if (project) {
+      try {
+        const mergedProj = { ...((project.data) || {}), bl_doc_id: blRow.id, bl_pdf_url: pdfUrl, bl_pdf_uploaded_at: new Date().toISOString() };
+        await s.from("projects").update({ data: mergedProj }).eq("id", project.id);
+        await s.from("project_events").insert({
+          id: "PEVT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          project_id: project.id, type: "delivery_note_created",
+          payload: { bl_id: blRow.id, pdf_url: pdfUrl },
+          author_id: null, author_name: getCurrentUserName(),
+        }).catch(() => {});
+      } catch (e) { console.warn("[bl→projet auto] update projet :", e.message); }
+    }
+    return { pdf_url: pdfUrl, project_id: project && project.id };
+  }
+
   const commercialDocs = {
     TYPE_PREFIX, TYPE_LABEL,
 
@@ -1593,6 +1676,10 @@
           try { await syncCommandeToProject(s, data, lines); } catch (e) { console.warn("[commande→projet auto]", e.message || e); }
           // Crée aussi une COMMANDE D'ACHAT fournisseur (CA-AAAA-NNNN)
           try { await createPurchaseOrder(s, data, lines); } catch (e) { console.warn("[commande→commande_achat auto]", e.message || e); }
+        }
+        // Hook : si c'est un BL, on génère son PDF (sans tarifs) et on l'attache au projet
+        if (type === "bl") {
+          try { await syncBLToProject(s, data, lines); } catch (e) { console.warn("[bl→projet auto]", e.message || e); }
         }
         return { ...data, lines };
       }

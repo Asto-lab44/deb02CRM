@@ -248,6 +248,10 @@ const ProjectsKanban = () => {
               <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: tagBg, color: tagColor, letterSpacing: 0.2 }}>{stageMeta.label}</span>
               {overdue && <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: "#fee2e2", color: "#991b1b", letterSpacing: 0.2 }}>⏰ En retard</span>}
               {isWon && <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: "#dcfce7", color: "#065f46", letterSpacing: 0.2 }}>✓ Clos</span>}
+              {p.data && p.data.bl_pdf_url && (
+                <span title="BL PDF disponible — clique pour voir le projet"
+                      style={{ display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: "#e0f2fe", color: "#075985", letterSpacing: 0.2 }}>📄 BL</span>
+              )}
             </div>
           </div>
         </div>

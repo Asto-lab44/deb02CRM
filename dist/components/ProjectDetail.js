@@ -522,7 +522,77 @@ var ProjectDetail = () => {
     reload: reload,
     fmtEUR: fmtEUR,
     S: S
-  }), /*#__PURE__*/React.createElement("div", {
+  }), project.data && project.data.bl_pdf_url && /*#__PURE__*/React.createElement("div", {
+    style: S.card
+  }, /*#__PURE__*/React.createElement("div", {
+    style: S.cardHead
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: S.h2
+  }, "\uD83D\uDCC4 Bon de livraison (PDF)")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: 16,
+      background: "#f8fafc",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 32
+    }
+  }, "\uD83D\uDCC4"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, "BL g\xE9n\xE9r\xE9 automatiquement"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, "Doc commercial : ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#3730a3"
+    }
+  }, project.data.bl_doc_id || "—"), project.data.bl_pdf_uploaded_at && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 Mis \xE0 jour le ", new Date(project.data.bl_pdf_uploaded_at).toLocaleString("fr-FR")))), /*#__PURE__*/React.createElement("a", {
+    href: project.data.bl_pdf_url,
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      padding: "8px 14px",
+      borderRadius: 8,
+      background: "#0f172a",
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: 600,
+      textDecoration: "none",
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDCE5 T\xE9l\xE9charger"), /*#__PURE__*/React.createElement("a", {
+    href: project.data.bl_pdf_url,
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      padding: "8px 14px",
+      borderRadius: 8,
+      background: "#fff",
+      border: "1px solid #cbd5e1",
+      color: "#0f172a",
+      fontSize: 12,
+      fontWeight: 600,
+      textDecoration: "none",
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDC41 Aper\xE7u"))), /*#__PURE__*/React.createElement("div", {
     style: S.card
   }, /*#__PURE__*/React.createElement("div", {
     style: S.cardHead

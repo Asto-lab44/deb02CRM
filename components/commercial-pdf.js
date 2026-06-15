@@ -57,23 +57,39 @@
   function buildDocDefinition(doc, company) {
     const typeLabel = TYPE_LABEL[doc.type] || "DOCUMENT";
     const typePrefixLabel = TYPE_PREFIX_LABEL[doc.type] || "Document";
+    // BL : le bon de livraison reprend la mise en forme du devis SANS les
+    // informations tarifaires (pas de PU, pas de montant, pas de TVA, pas de net à payer).
+    const isBL = doc.type === "bl";
 
-    // ───── Lignes du tableau (Article | Désignation | Qté | P.U. HT | Montant HT)
+    // ───── Lignes du tableau
     const tableBody = [];
-    tableBody.push([
-      { text: "Article", style: "tableHeader" },
-      { text: "Désignation", style: "tableHeader" },
-      { text: "Qté", style: "tableHeader", alignment: "right" },
-      { text: "P.U. HT", style: "tableHeader", alignment: "right" },
-      { text: "Montant\nHT", style: "tableHeader", alignment: "right" },
-    ]);
+    if (isBL) {
+      tableBody.push([
+        { text: "Article", style: "tableHeader" },
+        { text: "Désignation", style: "tableHeader" },
+        { text: "Qté", style: "tableHeader", alignment: "right" },
+        { text: "N° de série", style: "tableHeader" },
+      ]);
+    } else {
+      tableBody.push([
+        { text: "Article", style: "tableHeader" },
+        { text: "Désignation", style: "tableHeader" },
+        { text: "Qté", style: "tableHeader", alignment: "right" },
+        { text: "P.U. HT", style: "tableHeader", alignment: "right" },
+        { text: "Montant\nHT", style: "tableHeader", alignment: "right" },
+      ]);
+    }
     (doc.lines || []).forEach((l) => {
       if (l.is_text_only) {
-        tableBody.push([
+        const span = isBL ? 3 : 4;
+        const row = [
           { text: "", style: "tableCell" },
-          { text: l.designation || "", style: "tableCell", colSpan: 4, italics: true, color: "#666" },
-          {}, {}, {},
-        ]);
+          { text: l.designation || "", style: "tableCell", colSpan: span, italics: true, color: "#666" },
+          {},
+          {},
+        ];
+        if (!isBL) row.push({});
+        tableBody.push(row);
         return;
       }
       const desStack = [];
@@ -81,13 +97,22 @@
       if (l.description && String(l.description).trim()) {
         desStack.push({ text: l.description, style: "tableCellSm", margin: [0, 2, 0, 0] });
       }
-      tableBody.push([
-        { text: l.ref || "—", style: "tableCellMono" },
-        { stack: desStack },
-        { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" },
-        { text: fmtEUR(l.unit_price_ht), style: "tableCell", alignment: "right" },
-        { text: fmtEUR(l.total_ht), style: "tableCell", alignment: "right", bold: true },
-      ]);
+      if (isBL) {
+        tableBody.push([
+          { text: l.ref || "—", style: "tableCellMono" },
+          { stack: desStack },
+          { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" },
+          { text: (l.serial_number || l.sn || ""), style: "tableCellMono" },
+        ]);
+      } else {
+        tableBody.push([
+          { text: l.ref || "—", style: "tableCellMono" },
+          { stack: desStack },
+          { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" },
+          { text: fmtEUR(l.unit_price_ht), style: "tableCell", alignment: "right" },
+          { text: fmtEUR(l.total_ht), style: "tableCell", alignment: "right", bold: true },
+        ]);
+      }
     });
 
     // ───── Récap TVA par taux
@@ -194,7 +219,7 @@
     const linesTable = {
       table: {
         headerRows: 1,
-        widths: [60, "*", 40, 65, 65],
+        widths: isBL ? [60, "*", 40, 120] : [60, "*", 40, 65, 65],
         body: tableBody,
       },
       layout: {
@@ -263,8 +288,33 @@
       ],
     };
 
-    // ───── Devis suivi par + coordonnées bancaires + signature
-    const signatureBlock = {
+    // ───── Bloc bas : signature + coordonnées bancaires (selon type)
+    const signatureBlock = isBL ? {
+      margin: [0, 16, 0, 0],
+      columns: [
+        {
+          width: "*",
+          stack: [
+            { text: "Livraison effectuée par : " + (doc.owner || "—"), bold: true, fontSize: 10, margin: [0, 0, 0, 12] },
+            { text: "Lieu de livraison", bold: true, fontSize: 9 },
+            { text: (doc.delivery_address || doc.client_address || "—"), fontSize: 8.5 },
+            { text: ((doc.delivery_cp || doc.client_cp || "") + " " + (doc.delivery_city || doc.client_city || "")).trim(), fontSize: 8.5 },
+          ],
+        },
+        {
+          width: 240,
+          stack: [
+            { text: "Reçu et vérifié par le client :", bold: true, fontSize: 10 },
+            { text: " ", fontSize: 16 },
+            { text: "Nom :", fontSize: 9, margin: [0, 8, 0, 0] },
+            { text: " ", fontSize: 14 },
+            { text: "Date :", fontSize: 9 },
+            { text: " ", fontSize: 14 },
+            { text: "Signature :", fontSize: 9 },
+          ],
+        },
+      ],
+    } : {
       margin: [0, 16, 0, 0],
       columns: [
         {
@@ -355,7 +405,7 @@
       metaRow,
       linesTable,
       notesBlock || { text: " " },
-      totalsBlock,
+      isBL ? null : totalsBlock,
       signatureBlock,
       contactsBlock,
       reserveBlock,

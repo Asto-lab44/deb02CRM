@@ -17,7 +17,9 @@ CREATE TABLE IF NOT EXISTS commercial_docs (
   number_seq      integer NOT NULL,
 
   -- Client (snapshot pour traçabilité même si client modifié après)
-  client_id       text REFERENCES clients(id),
+  -- NOTE : pas de FK sur clients pour éviter de bloquer la migration si la
+  -- table clients n'existe pas. Le lien est géré côté application.
+  client_id       text,
   client_name     text,
   client_address  text,
   client_cp       text,
@@ -27,9 +29,10 @@ CREATE TABLE IF NOT EXISTS commercial_docs (
   contact_name    text,
   contact_email   text,
 
-  -- Liens optionnels vers le reste du Hub
-  project_id      text REFERENCES projects(id),
-  opportunity_id  text REFERENCES opportunities(id),
+  -- Liens optionnels vers le reste du Hub (sans FK pour permettre la migration
+  -- indépendamment de l'existence de projects/opportunities)
+  project_id      text,
+  opportunity_id  text,
   parent_doc_id   text REFERENCES commercial_docs(id),     -- chaînage Devis → Commande → BL → Facture
 
   -- Dates
@@ -222,9 +225,15 @@ CREATE POLICY auth_read_pterms    ON commercial_payment_terms  FOR SELECT USING 
 
 -- ─────────────────────────────────────────────────────────────────
 -- 8. Compat — ajout opportunity_id sur projects pour le lien CRM
+-- (skip silencieusement si la table projects n'existe pas)
 -- ─────────────────────────────────────────────────────────────────
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS opportunity_id text REFERENCES opportunities(id);
-CREATE INDEX IF NOT EXISTS idx_projects_opp ON projects(opportunity_id) WHERE deleted_at IS NULL;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='projects') THEN
+    EXECUTE 'ALTER TABLE projects ADD COLUMN IF NOT EXISTS opportunity_id text';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_projects_opp ON projects(opportunity_id)';
+  END IF;
+END $$;
 
 -- ─────────────────────────────────────────────────────────────────
 -- 8b. Paramètres société émettrice (pour entête PDF Phase 2)

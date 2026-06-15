@@ -137,22 +137,51 @@ const ProjectDetail = () => {
     if (window.HubToast) window.HubToast.success("✓ Date de livraison enregistrée");
   };
 
+  // Filtre des profils par groupe technique (Support, Ops, Techniciens) —
+  // un projet doit être affecté à un technicien, pas à n'importe qui.
+  const technicianProfiles = React.useMemo(() => {
+    try {
+      const groups = window.HubAccess && window.HubAccess.loadGroups ? window.HubAccess.loadGroups() : [];
+      // Groupes considérés comme "techniques" : ceux qui contiennent "tech" dans access,
+      // OU dont le nom/id matche technicien/support/ops.
+      const techGroupIds = new Set();
+      const memberIds = new Set();
+      (groups || []).forEach((g) => {
+        const isTechGroup = (g.access || []).includes("tech")
+          || /technicien|support|operation|ops/i.test(g.id || "")
+          || /technicien|support|opérations?/i.test(g.name || "");
+        if (isTechGroup) {
+          techGroupIds.add(g.id);
+          (g.members || []).forEach((m) => memberIds.add(typeof m === "string" ? m : m.id));
+        }
+      });
+      // Si aucun membre dans les groupes tech → fallback : tous les profils marqués 'tech'/'support' par team
+      if (memberIds.size === 0) {
+        return (profiles || []).filter((p) => /tech|support|ops|opérations?/i.test((p.team || "") + " " + (p.role || "")));
+      }
+      return (profiles || []).filter((p) => memberIds.has(p.id));
+    } catch (e) {
+      return profiles || [];
+    }
+  }, [profiles]);
+
   const assignPM = async () => {
-    if (!profiles.length) {
-      if (window.HubToast) window.HubToast.warn("Aucun profil disponible. Crée d'abord des comptes utilisateurs.");
+    const techs = technicianProfiles;
+    if (!techs.length) {
+      if (window.HubToast) window.HubToast.warn("Aucun technicien disponible — ajoute des membres au groupe Support/Techniciens dans l'admin.");
       return;
     }
     if (!window.HubModal) return;
     const chosen = await window.HubModal.choice({
-      title: "Affecter un chef de projet",
-      message: "Choisis le PM qui pilote ce projet.",
-      options: profiles.map((p) => ({ value: p.id, label: p.name || p.email, sub: p.team || p.role || "—" })),
+      title: "Affecter un technicien",
+      message: "Choisis le technicien qui prend en charge ce projet (liste filtrée sur les groupes techniques).",
+      options: techs.map((p) => ({ value: p.id, label: p.name || p.email, sub: p.team || p.role || "Technicien" })),
     });
     if (!chosen) return;
-    const p = profiles.find((x) => x.id === chosen);
+    const p = techs.find((x) => x.id === chosen);
     await window.api.projects.update(project.id, { pm_id: chosen, pm_name: p ? p.name : null });
     reload();
-    if (window.HubToast) window.HubToast.success("✓ Chef de projet : " + (p ? p.name : "—"));
+    if (window.HubToast) window.HubToast.success("✓ Technicien affecté : " + (p ? p.name : "—"));
   };
 
   const addTeamMember = async () => {
@@ -398,19 +427,20 @@ const ProjectDetail = () => {
 
           {/* COLONNE SIDE */}
           <aside style={S.colSide}>
-            {/* Chef de projet */}
+            {/* Technicien affecté */}
             <div style={S.card}>
-              <h2 style={S.h2}>👤 Chef de projet</h2>
+              <h2 style={S.h2}>🔧 Technicien</h2>
               {project.pm_name ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
                   <Avatar name={project.pm_name} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{project.pm_name}</div>
+                    <div style={{ fontSize: 10.5, color: "#64748b" }}>Technicien en charge</div>
                   </div>
                   <button onClick={assignPM} style={S.smallBtn}>Changer</button>
                 </div>
               ) : (
-                <button onClick={assignPM} style={{ ...S.btnPrimary, width: "100%", marginTop: 6 }}>+ Affecter un chef</button>
+                <button onClick={assignPM} style={{ ...S.btnPrimary, width: "100%", marginTop: 6 }}>+ Affecter un technicien</button>
               )}
             </div>
 
@@ -524,6 +554,60 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
         quantity: 1, unit: "u", unit_price_ht: 0, total_ht: 0, status: "todo",
       });
       if (window.HubToast) window.HubToast.success("✓ Livrable ajouté — édite les détails inline");
+      reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+
+  // Import des lignes depuis le devis lié à l'opportunité du projet
+  const importFromDevis = async () => {
+    try {
+      const oppId = project.opportunity_id || (project.data && project.data.opportunity_id);
+      if (!oppId) {
+        if (window.HubToast) window.HubToast.warn("Ce projet n'est lié à aucune opportunité — pas de devis à importer");
+        return;
+      }
+      // Cherche les devis (et autres docs) liés à cette opportunité
+      const docs = await window.api.commercialDocs.list({ opportunity_id: oppId });
+      // Préfère facture > BL > commande > devis pour avoir la version la plus aboutie
+      const order = ["facture", "bl", "commande", "devis"];
+      let chosen = null;
+      for (const t of order) {
+        chosen = (docs || []).find((d) => d.type === t && d.status !== "annule" && d.status !== "refuse");
+        if (chosen) break;
+      }
+      if (!chosen) {
+        if (window.HubToast) window.HubToast.warn("Aucun document commercial trouvé pour cette opportunité");
+        return;
+      }
+      const full = await window.api.commercialDocs.getById(chosen.id);
+      if (!full || !full.lines || full.lines.length === 0) {
+        if (window.HubToast) window.HubToast.warn(chosen.id + " n'a aucune ligne");
+        return;
+      }
+      const ok = (project.items || []).length === 0 || confirm(
+        "Importer " + full.lines.length + " ligne(s) depuis " + chosen.id + " ?\n\n" +
+        "Le projet a déjà " + (project.items || []).length + " livrable(s). Les nouvelles lignes seront ajoutées (pas de remplacement)."
+      );
+      if (!ok) return;
+      let added = 0;
+      for (const l of full.lines) {
+        if (l.is_text_only) continue;
+        try {
+          await window.api.projects.addItem(project.id, {
+            ref_produit: l.ref || null,
+            designation: l.designation || "—",
+            quantity: Number(l.quantity) || 1,
+            unit: l.unit || "u",
+            unit_price_ht: Number(l.unit_price_ht) || 0,
+            total_ht: Number(l.total_ht) || 0,
+            status: "todo",
+          });
+          added++;
+        } catch (e) {}
+      }
+      if (window.HubToast) window.HubToast.success("✓ " + added + " ligne(s) importée(s) depuis " + chosen.id);
       reload();
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));

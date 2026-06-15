@@ -362,7 +362,12 @@
         }
         // Transition vers "won" → auto-création d'un projet dans Projets & Livrables
         // (idempotent : ne crée pas si un projet est déjà lié à cette opp)
-        if (data && row.stage === "won" && previousStage !== "won") {
+        // Hook idempotent : se déclenche tant que l'opp est en 'won' ET qu'il
+        // manque des étapes downstream (projet, commande, BL). Évite que
+        // le cascade ne se fasse jamais si l'opp était déjà 'won' lors de
+        // l'introduction du hook (existant historique).
+        const oppIsWonNow = (data && data.stage === "won") || row.stage === "won";
+        if (oppIsWonNow) {
           try {
             const { data: existingProj } = await s.from("projects").select("id").eq("opportunity_id", id).maybeSingle();
             if (!existingProj) {

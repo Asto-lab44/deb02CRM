@@ -923,6 +923,34 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                 </button>
               );
             })()}
+            {/* Bouton CASCADE : devis → commande → BL en chaîne (rejoue le hook
+                manuellement si l'auto-cascade côté opp n'a pas fonctionné) */}
+            {d.type === "devis" && d.status !== "transforme" && (
+              <button
+                onClick={async () => {
+                  if (!confirm("Cascader ce devis en Commande puis BL automatiquement ?\n\n• Le devis sera marqué Accepté\n• Une commande sera créée (transformation)\n• La commande sera marquée Acceptée\n• Un BL sera créé\n• Une commande d'achat fournisseur sera générée")) return;
+                  try {
+                    await save({ keepOpen: true });
+                    // 1. Marque devis accepte
+                    await window.api.commercialDocs.update(d.id, { status: "accepte" });
+                    // 2. Transforme en commande
+                    const commande = await window.api.commercialDocs.transform(d.id, "commande");
+                    if (!commande) throw new Error("Échec création commande");
+                    // 3. Marque commande accepte
+                    await window.api.commercialDocs.update(commande.id, { status: "accepte" });
+                    // 4. Transforme commande → BL
+                    const bl = await window.api.commercialDocs.transform(commande.id, "bl");
+                    if (window.HubToast) window.HubToast.success("✓ Cascade OK : " + commande.id + " + " + (bl ? bl.id : "") + " + commande d'achat");
+                    onSaved && onSaved();
+                    onClose && onClose();
+                  } catch (e) {
+                    if (window.HubToast) window.HubToast.error("Cascade : " + (e.message || e));
+                  }
+                }}
+                title="Bascule automatique en Commande + BL + génération commande d'achat"
+                style={{ ...cdStyles.ghostBtn, borderColor: "#a855f7", color: "#7e22ce", background: "#f5efff", fontWeight: 600 }}
+              >⚡ Cascade workflow</button>
+            )}
             <button onClick={save} disabled={saving} style={cdStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
             <button onClick={onClose} style={cdStyles.closeBtn}>×</button>
           </div>

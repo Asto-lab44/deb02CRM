@@ -1556,7 +1556,42 @@ var CommercialDocEditor = ({
       commande: "BL",
       bl: "facture"
     }[d.type]);
-  })(), /*#__PURE__*/React.createElement("button", {
+  })(), d.type === "devis" && d.status !== "transforme" && /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!confirm("Cascader ce devis en Commande puis BL automatiquement ?\n\n• Le devis sera marqué Accepté\n• Une commande sera créée (transformation)\n• La commande sera marquée Acceptée\n• Un BL sera créé\n• Une commande d'achat fournisseur sera générée")) return;
+      try {
+        await save({
+          keepOpen: true
+        });
+        // 1. Marque devis accepte
+        await window.api.commercialDocs.update(d.id, {
+          status: "accepte"
+        });
+        // 2. Transforme en commande
+        var commande = await window.api.commercialDocs.transform(d.id, "commande");
+        if (!commande) throw new Error("Échec création commande");
+        // 3. Marque commande accepte
+        await window.api.commercialDocs.update(commande.id, {
+          status: "accepte"
+        });
+        // 4. Transforme commande → BL
+        var bl = await window.api.commercialDocs.transform(commande.id, "bl");
+        if (window.HubToast) window.HubToast.success("✓ Cascade OK : " + commande.id + " + " + (bl ? bl.id : "") + " + commande d'achat");
+        onSaved && onSaved();
+        onClose && onClose();
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Cascade : " + (e.message || e));
+      }
+    },
+    title: "Bascule automatique en Commande + BL + g\xE9n\xE9ration commande d'achat",
+    style: {
+      ...cdStyles.ghostBtn,
+      borderColor: "#a855f7",
+      color: "#7e22ce",
+      background: "#f5efff",
+      fontWeight: 600
+    }
+  }, "\u26A1 Cascade workflow"), /*#__PURE__*/React.createElement("button", {
     onClick: save,
     disabled: saving,
     style: cdStyles.primaryBtn

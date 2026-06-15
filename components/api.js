@@ -2479,15 +2479,17 @@
   const purchaseMatrix = {
     /** Toutes les lignes à acheter (devis acceptés/transformés/envoyés
      *  + commandes). Filtrable par semaine, fournisseur, statut achat. */
-    async list({ week, year, supplier, purchase_status, reception_status, since_days = 60 } = {}) {
+    async list({ week, year, supplier, purchase_status, reception_status, since_days = 60, types } = {}) {
       const s = supa();
       if (!s) return [];
-      // Approche : on lit les docs commercial puis les lignes — plus robuste
-      // que de dépendre d'une vue SQL qui peut ne pas exister.
+      // Par défaut on ne lit QUE les COMMANDES (le client achète vraiment
+      // chez le fournisseur seulement quand il a une commande confirmée).
+      // Pour réafficher les devis, passe types: ['devis', 'commande'].
+      const typeFilter = types && types.length ? types : ["commande"];
       const sinceDate = new Date(Date.now() - since_days * 24 * 3600 * 1000).toISOString().slice(0, 10);
       const { data: docs } = await s.from("commercial_docs")
         .select("id, type, status, client_name, doc_date, opportunity_id, title")
-        .in("type", ["devis", "commande"])
+        .in("type", typeFilter)
         .in("status", ["accepte", "transforme", "envoye", "brouillon"])
         .is("deleted_at", null)
         .gte("doc_date", sinceDate)

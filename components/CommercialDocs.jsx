@@ -667,31 +667,72 @@ const CommercialDocEditor = ({ doc, clients, projects, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* LIGNES */}
+          {/* LIGNES — carte par ligne, désignation pleine largeur en haut */}
           <h3 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Lignes</h3>
-          <div style={cdStyles.linesTable}>
-            <div style={cdStyles.lineHead}>
-              <span style={{ flex: 2 }}>Désignation</span>
-              <span style={{ flex: "0 0 70px", textAlign: "right" }}>Qté</span>
-              <span style={{ flex: "0 0 60px", textAlign: "center" }}>U.</span>
-              <span style={{ flex: "0 0 110px", textAlign: "right" }}>P.U. HT</span>
-              <span style={{ flex: "0 0 70px", textAlign: "right" }}>Rem. %</span>
-              <span style={{ flex: "0 0 70px", textAlign: "center" }}>TVA</span>
-              <span style={{ flex: "0 0 110px", textAlign: "right" }}>Total HT</span>
-              <span style={{ flex: "0 0 30px" }}></span>
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {(d.lines || []).length === 0 && (
+              <div style={{ padding: 18, border: "1px dashed #cbd5e1", borderRadius: 8, textAlign: "center", color: "#94a3b8", fontSize: 12.5, background: "#fafbfc" }}>
+                Aucune ligne pour le moment. Ajoute une ligne libre ou choisis dans le catalogue ci-dessous.
+              </div>
+            )}
             {(d.lines || []).map((l, i) => (
-              <div key={l.id || i} style={cdStyles.lineRow}>
-                <input value={l.designation || ""} onChange={(e) => updateLineField(i, "designation", e.target.value)} placeholder="Désignation" style={{ ...cdStyles.lineInput, flex: 2 }} />
-                <input type="number" value={l.quantity} onChange={(e) => updateLineField(i, "quantity", e.target.value)} style={{ ...cdStyles.lineInput, flex: "0 0 70px", textAlign: "right" }} />
-                <input value={l.unit || "u"} onChange={(e) => updateLineField(i, "unit", e.target.value)} style={{ ...cdStyles.lineInput, flex: "0 0 60px", textAlign: "center" }} />
-                <input type="number" step="0.01" value={l.unit_price_ht} onChange={(e) => updateLineField(i, "unit_price_ht", e.target.value)} style={{ ...cdStyles.lineInput, flex: "0 0 110px", textAlign: "right" }} />
-                <input type="number" value={l.discount_pct || 0} onChange={(e) => updateLineField(i, "discount_pct", e.target.value)} style={{ ...cdStyles.lineInput, flex: "0 0 70px", textAlign: "right" }} />
-                <select value={l.tva_rate} onChange={(e) => updateLineField(i, "tva_rate", e.target.value)} style={{ ...cdStyles.lineInput, flex: "0 0 70px", textAlign: "center" }}>
-                  {tvaRates.map((t) => <option key={t.rate} value={t.rate}>{t.rate}%</option>)}
-                </select>
-                <span style={{ flex: "0 0 110px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{fmtEUR(l.total_ht)}</span>
-                <button onClick={() => removeLine(i)} style={{ flex: "0 0 30px", background: "transparent", border: 0, color: "#dc2626", fontSize: 16, cursor: "pointer" }}>×</button>
+              <div key={l.id || i} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+                {/* Ligne 1 : numéro · désignation pleine largeur · total · suppr */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 6, background: "#eef2ff", color: "#3730a3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                  <input
+                    value={l.designation || ""}
+                    onChange={(e) => updateLineField(i, "designation", e.target.value)}
+                    placeholder="Désignation de la ligne (ex : Astorya Suite — Licence utilisateur)"
+                    style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13, fontFamily: "inherit", fontWeight: 500, color: "#0f172a" }}
+                  />
+                  <div style={{ minWidth: 130, textAlign: "right", padding: "8px 12px", background: "#f8fafc", border: "1px solid #eef1f5", borderRadius: 6 }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4 }}>Total HT</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(l.total_ht)}</div>
+                  </div>
+                  <button onClick={() => removeLine(i)} title="Supprimer la ligne" style={{ width: 32, height: 32, background: "#fff", border: "1px solid #fecaca", color: "#dc2626", fontSize: 14, cursor: "pointer", borderRadius: 6, flexShrink: 0 }}>🗑</button>
+                </div>
+                {/* Ligne 2 : Qté · Unité · P.U. HT · Remise · TVA */}
+                <div style={{ display: "grid", gridTemplateColumns: "100px 110px 1fr 110px 110px", gap: 10 }}>
+                  <div>
+                    <label style={cdStyles.miniLbl}>Qté</label>
+                    <input type="number" step="0.001" value={l.quantity} onChange={(e) => updateLineField(i, "quantity", e.target.value)}
+                           style={cdStyles.miniInput} />
+                  </div>
+                  <div>
+                    <label style={cdStyles.miniLbl}>Unité</label>
+                    <select value={l.unit || "u"} onChange={(e) => updateLineField(i, "unit", e.target.value)} style={cdStyles.miniInput}>
+                      <option value="u">u (unité)</option>
+                      <option value="h">h (heure)</option>
+                      <option value="j">j (journée)</option>
+                      <option value="mois">mois</option>
+                      <option value="an">an</option>
+                      <option value="forfait">forfait</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={cdStyles.miniLbl}>Prix unitaire HT</label>
+                    <div style={{ position: "relative" }}>
+                      <input type="number" step="0.01" value={l.unit_price_ht} onChange={(e) => updateLineField(i, "unit_price_ht", e.target.value)}
+                             style={{ ...cdStyles.miniInput, paddingRight: 26 }} />
+                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>€</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={cdStyles.miniLbl}>Remise</label>
+                    <div style={{ position: "relative" }}>
+                      <input type="number" value={l.discount_pct || 0} onChange={(e) => updateLineField(i, "discount_pct", e.target.value)}
+                             style={{ ...cdStyles.miniInput, paddingRight: 26 }} />
+                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={cdStyles.miniLbl}>TVA</label>
+                    <select value={l.tva_rate} onChange={(e) => updateLineField(i, "tva_rate", e.target.value)} style={cdStyles.miniInput}>
+                      {tvaRates.map((t) => <option key={t.rate} value={t.rate}>{t.rate} %</option>)}
+                    </select>
+                  </div>
+                </div>
               </div>
             ))}
             <div style={{ padding: "10px 8px", display: "flex", gap: 8, alignItems: "center" }}>
@@ -924,8 +965,6 @@ const cdStyles = {
   lbl: { display: "block", fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 },
   input: { width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, fontFamily: "inherit", color: "#0f172a", background: "#fff", boxSizing: "border-box" },
 
-  linesTable: { border: "1px solid #eef1f5", borderRadius: 8, overflow: "hidden" },
-  lineHead: { display: "flex", alignItems: "center", padding: "8px 8px", gap: 6, background: "#f8fafc", borderBottom: "1px solid #eef1f5", fontSize: 11, fontWeight: 600, color: "#64748b" },
-  lineRow: { display: "flex", alignItems: "center", padding: "6px 8px", gap: 6, borderBottom: "1px solid #f1f5f9" },
-  lineInput: { padding: "6px 8px", border: "1px solid transparent", borderRadius: 5, fontSize: 12, fontFamily: "inherit", background: "transparent", color: "#0f172a", boxSizing: "border-box" },
+  miniLbl: { display: "block", fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 3 },
+  miniInput: { width: "100%", padding: "7px 9px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12.5, fontFamily: "inherit", color: "#0f172a", background: "#fff", boxSizing: "border-box" },
 };

@@ -1202,124 +1202,193 @@ var CommercialDocEditor = ({
       color: "#0f172a"
     }
   }, "Lignes"), /*#__PURE__*/React.createElement("div", {
-    style: cdStyles.linesTable
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, (d.lines || []).length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 18,
+      border: "1px dashed #cbd5e1",
+      borderRadius: 8,
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 12.5,
+      background: "#fafbfc"
+    }
+  }, "Aucune ligne pour le moment. Ajoute une ligne libre ou choisis dans le catalogue ci-dessous."), (d.lines || []).map((l, i) => /*#__PURE__*/React.createElement("div", {
+    key: l.id || i,
+    style: {
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      padding: 12
+    }
   }, /*#__PURE__*/React.createElement("div", {
-    style: cdStyles.lineHead
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 10
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: 2
+      width: 26,
+      height: 26,
+      borderRadius: 6,
+      background: "#eef2ff",
+      color: "#3730a3",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 11,
+      fontWeight: 700,
+      flexShrink: 0
     }
-  }, "D\xE9signation"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 70px",
-      textAlign: "right"
-    }
-  }, "Qt\xE9"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 60px",
-      textAlign: "center"
-    }
-  }, "U."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 110px",
-      textAlign: "right"
-    }
-  }, "P.U. HT"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 70px",
-      textAlign: "right"
-    }
-  }, "Rem. %"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 70px",
-      textAlign: "center"
-    }
-  }, "TVA"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 110px",
-      textAlign: "right"
-    }
-  }, "Total HT"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 30px"
-    }
-  })), (d.lines || []).map((l, i) => /*#__PURE__*/React.createElement("div", {
-    key: l.id || i,
-    style: cdStyles.lineRow
-  }, /*#__PURE__*/React.createElement("input", {
+  }, i + 1), /*#__PURE__*/React.createElement("input", {
     value: l.designation || "",
     onChange: e => updateLineField(i, "designation", e.target.value),
-    placeholder: "D\xE9signation",
+    placeholder: "D\xE9signation de la ligne (ex : Astorya Suite \u2014 Licence utilisateur)",
     style: {
-      ...cdStyles.lineInput,
-      flex: 2
+      flex: 1,
+      padding: "8px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 6,
+      fontSize: 13,
+      fontFamily: "inherit",
+      fontWeight: 500,
+      color: "#0f172a"
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 130,
+      textAlign: "right",
+      padding: "8px 12px",
+      background: "#f8fafc",
+      border: "1px solid #eef1f5",
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Total HT"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#0f172a",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => removeLine(i),
+    title: "Supprimer la ligne",
+    style: {
+      width: 32,
+      height: 32,
+      background: "#fff",
+      border: "1px solid #fecaca",
+      color: "#dc2626",
+      fontSize: 14,
+      cursor: "pointer",
+      borderRadius: 6,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDDD1")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "100px 110px 1fr 110px 110px",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.miniLbl
+  }, "Qt\xE9"), /*#__PURE__*/React.createElement("input", {
     type: "number",
+    step: "0.001",
     value: l.quantity,
     onChange: e => updateLineField(i, "quantity", e.target.value),
-    style: {
-      ...cdStyles.lineInput,
-      flex: "0 0 70px",
-      textAlign: "right"
-    }
-  }), /*#__PURE__*/React.createElement("input", {
+    style: cdStyles.miniInput
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.miniLbl
+  }, "Unit\xE9"), /*#__PURE__*/React.createElement("select", {
     value: l.unit || "u",
     onChange: e => updateLineField(i, "unit", e.target.value),
+    style: cdStyles.miniInput
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "u"
+  }, "u (unit\xE9)"), /*#__PURE__*/React.createElement("option", {
+    value: "h"
+  }, "h (heure)"), /*#__PURE__*/React.createElement("option", {
+    value: "j"
+  }, "j (journ\xE9e)"), /*#__PURE__*/React.createElement("option", {
+    value: "mois"
+  }, "mois"), /*#__PURE__*/React.createElement("option", {
+    value: "an"
+  }, "an"), /*#__PURE__*/React.createElement("option", {
+    value: "forfait"
+  }, "forfait"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.miniLbl
+  }, "Prix unitaire HT"), /*#__PURE__*/React.createElement("div", {
     style: {
-      ...cdStyles.lineInput,
-      flex: "0 0 60px",
-      textAlign: "center"
+      position: "relative"
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("input", {
     type: "number",
     step: "0.01",
     value: l.unit_price_ht,
     onChange: e => updateLineField(i, "unit_price_ht", e.target.value),
     style: {
-      ...cdStyles.lineInput,
-      flex: "0 0 110px",
-      textAlign: "right"
+      ...cdStyles.miniInput,
+      paddingRight: 26
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 11,
+      color: "#94a3b8",
+      pointerEvents: "none"
+    }
+  }, "\u20AC"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.miniLbl
+  }, "Remise"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
     type: "number",
     value: l.discount_pct || 0,
     onChange: e => updateLineField(i, "discount_pct", e.target.value),
     style: {
-      ...cdStyles.lineInput,
-      flex: "0 0 70px",
-      textAlign: "right"
+      ...cdStyles.miniInput,
+      paddingRight: 26
     }
-  }), /*#__PURE__*/React.createElement("select", {
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 11,
+      color: "#94a3b8",
+      pointerEvents: "none"
+    }
+  }, "%"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.miniLbl
+  }, "TVA"), /*#__PURE__*/React.createElement("select", {
     value: l.tva_rate,
     onChange: e => updateLineField(i, "tva_rate", e.target.value),
-    style: {
-      ...cdStyles.lineInput,
-      flex: "0 0 70px",
-      textAlign: "center"
-    }
+    style: cdStyles.miniInput
   }, tvaRates.map(t => /*#__PURE__*/React.createElement("option", {
     key: t.rate,
     value: t.rate
-  }, t.rate, "%"))), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 110px",
-      textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 12,
-      fontWeight: 600
-    }
-  }, fmtEUR(l.total_ht)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => removeLine(i),
-    style: {
-      flex: "0 0 30px",
-      background: "transparent",
-      border: 0,
-      color: "#dc2626",
-      fontSize: 16,
-      cursor: "pointer"
-    }
-  }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
+  }, t.rate, " %"))))))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 8px",
       display: "flex",
@@ -1944,37 +2013,24 @@ var cdStyles = {
     background: "#fff",
     boxSizing: "border-box"
   },
-  linesTable: {
-    border: "1px solid #eef1f5",
-    borderRadius: 8,
-    overflow: "hidden"
+  miniLbl: {
+    display: "block",
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 3
   },
-  lineHead: {
-    display: "flex",
-    alignItems: "center",
-    padding: "8px 8px",
-    gap: 6,
-    background: "#f8fafc",
-    borderBottom: "1px solid #eef1f5",
-    fontSize: 11,
-    fontWeight: 600,
-    color: "#64748b"
-  },
-  lineRow: {
-    display: "flex",
-    alignItems: "center",
-    padding: "6px 8px",
-    gap: 6,
-    borderBottom: "1px solid #f1f5f9"
-  },
-  lineInput: {
-    padding: "6px 8px",
-    border: "1px solid transparent",
-    borderRadius: 5,
-    fontSize: 12,
+  miniInput: {
+    width: "100%",
+    padding: "7px 9px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 6,
+    fontSize: 12.5,
     fontFamily: "inherit",
-    background: "transparent",
     color: "#0f172a",
+    background: "#fff",
     boxSizing: "border-box"
   }
 };

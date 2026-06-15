@@ -48,6 +48,7 @@ var ProjectsKanban = () => {
     value: null
   });
   var [draggedId, setDraggedId] = React.useState(null);
+  var [quickViewId, setQuickViewId] = React.useState(null);
   var [filterPM, setFilterPM] = React.useState(""); // chef projet
   var [filterClient, setFilterClient] = React.useState(""); // client_id
   var [advancedOpen, setAdvancedOpen] = React.useState(false);
@@ -278,7 +279,7 @@ var ProjectsKanban = () => {
       draggable: true,
       onDragStart: () => setDraggedId(p.id),
       onDragEnd: () => setDraggedId(null),
-      onClick: () => window.location.href = "/projet?id=" + encodeURIComponent(p.id),
+      onClick: () => setQuickViewId(p.id),
       style: {
         background: isWon ? "linear-gradient(180deg, #ecfdf5 0%, #fff 100%)" : "#fff",
         border: "1px solid " + (overdue ? "#fca5a5" : isWon ? "#86efac" : "#eef1f5"),
@@ -808,7 +809,11 @@ var ProjectsKanban = () => {
       },
       title: "Créer un projet directement à l'étape " + stage.label
     }, "+ Ajouter un projet")));
-  }))));
+  }))), quickViewId && window.ProjectQuickView && React.createElement(window.ProjectQuickView, {
+    projectId: quickViewId,
+    onClose: () => setQuickViewId(null),
+    onChanged: () => reload()
+  }));
 };
 var S = {
   frame: {

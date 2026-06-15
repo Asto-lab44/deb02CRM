@@ -649,7 +649,12 @@ var DocRow = ({
   onReload
 }) => {
   var [menuOpen, setMenuOpen] = React.useState(false);
+  var [menuPos, setMenuPos] = React.useState({
+    top: 0,
+    right: 0
+  });
   var menuRef = React.useRef(null);
+  var btnRef = React.useRef(null);
   var sm = statusMeta[doc.status] || statusMeta.brouillon;
 
   // Click outside : on attend la frame suivante pour ne pas catcher
@@ -842,12 +847,21 @@ var DocRow = ({
   })), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px",
-      textAlign: "right",
-      position: "relative"
+      textAlign: "right"
     }
   }, /*#__PURE__*/React.createElement("button", {
+    ref: btnRef,
     onClick: e => {
       stop(e);
+      // Calcule la position du menu en viewport (position fixed) pour
+      // qu'il échappe à l'overflow:hidden du parent docList
+      if (btnRef.current) {
+        var r = btnRef.current.getBoundingClientRect();
+        setMenuPos({
+          top: r.bottom + 4,
+          right: window.innerWidth - r.right
+        });
+      }
       setMenuOpen(v => !v);
     },
     style: {
@@ -856,7 +870,7 @@ var DocRow = ({
       color: "#94a3b8",
       fontSize: 18,
       cursor: "pointer",
-      padding: "2px 8px",
+      padding: "4px 10px",
       borderRadius: 4
     },
     title: "Actions"
@@ -865,15 +879,15 @@ var DocRow = ({
     onClick: stop,
     onMouseDown: stop,
     style: {
-      position: "absolute",
-      right: 0,
-      top: 28,
+      position: "fixed",
+      top: menuPos.top,
+      right: menuPos.right,
       background: "#fff",
       border: "1px solid #e2e8f0",
       borderRadius: 8,
-      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
-      zIndex: 10,
-      minWidth: 200,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.18)",
+      zIndex: 9999,
+      minWidth: 220,
       padding: 4
     }
   }, /*#__PURE__*/React.createElement(MenuItem, {

@@ -371,7 +371,9 @@ const WorkflowBar = ({ doc, canTransform }) => {
 // ─────────────────────────────────────────────────────────────────
 const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [menuPos, setMenuPos] = React.useState({ top: 0, right: 0 });
   const menuRef = React.useRef(null);
+  const btnRef = React.useRef(null);
   const sm = statusMeta[doc.status] || statusMeta.brouillon;
 
   // Click outside : on attend la frame suivante pour ne pas catcher
@@ -483,12 +485,21 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload }) => {
       <span style={{ flex: "0 0 170px" }}>
         <WorkflowChain chain={chain} currentType={doc.type} />
       </span>
-      <span style={{ flex: "0 0 60px", textAlign: "right", position: "relative" }}>
-        <button onClick={(e) => { stop(e); setMenuOpen((v) => !v); }}
-                style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 18, cursor: "pointer", padding: "2px 8px", borderRadius: 4 }}
+      <span style={{ flex: "0 0 60px", textAlign: "right" }}>
+        <button ref={btnRef} onClick={(e) => {
+          stop(e);
+          // Calcule la position du menu en viewport (position fixed) pour
+          // qu'il échappe à l'overflow:hidden du parent docList
+          if (btnRef.current) {
+            const r = btnRef.current.getBoundingClientRect();
+            setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+          }
+          setMenuOpen((v) => !v);
+        }}
+                style={{ background: "transparent", border: 0, color: "#94a3b8", fontSize: 18, cursor: "pointer", padding: "4px 10px", borderRadius: 4 }}
                 title="Actions">⋯</button>
         {menuOpen && (
-          <div ref={menuRef} onClick={stop} onMouseDown={stop} style={{ position: "absolute", right: 0, top: 28, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", zIndex: 10, minWidth: 200, padding: 4 }}>
+          <div ref={menuRef} onClick={stop} onMouseDown={stop} style={{ position: "fixed", top: menuPos.top, right: menuPos.right, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.18)", zIndex: 9999, minWidth: 220, padding: 4 }}>
             <MenuItem icon="👁" label="Aperçu PDF" onClick={async () => {
               setMenuOpen(false);
               if (!window.HubCommercialPdf) {

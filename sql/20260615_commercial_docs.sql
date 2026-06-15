@@ -227,6 +227,106 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS opportunity_id text REFERENCES opp
 CREATE INDEX IF NOT EXISTS idx_projects_opp ON projects(opportunity_id) WHERE deleted_at IS NULL;
 
 -- ─────────────────────────────────────────────────────────────────
+-- 8b. Paramètres société émettrice (pour entête PDF Phase 2)
+-- ─────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS commercial_company_settings (
+  id              text PRIMARY KEY DEFAULT 'default',
+  raison_sociale  text NOT NULL,
+  forme_juridique text,                                   -- SARL, SAS, SA…
+  adresse         text,
+  cp              text,
+  ville           text,
+  pays            text DEFAULT 'France',
+  tel             text,
+  email           text,
+  site_web        text,
+  siret           text,
+  naf             text,
+  tva_intra       text,
+  rcs             text,
+  capital_eur     numeric(14,2),
+  iban            text,
+  bic             text,
+  banque_nom      text,
+  -- Contacts pied de page
+  contact_commercial_nom   text,
+  contact_commercial_email text,
+  contact_commercial_tel   text,
+  contact_admin_nom        text,
+  contact_admin_email      text,
+  contact_admin_tel        text,
+  contact_compta_nom       text,
+  contact_compta_email     text,
+  contact_compta_tel       text,
+  -- Mentions
+  mention_reserve_propriete text,
+  mention_cgv             text,                            -- texte long CGV (page 4)
+  conditions_paiement_default text,                        -- "Règlement à la commande d'un acompte de 40%"
+  delai_validite_devis_jours integer DEFAULT 30,
+  -- Logo
+  logo_url        text,
+  updated_at      timestamptz DEFAULT now()
+);
+
+ALTER TABLE commercial_company_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS auth_all_company_settings ON commercial_company_settings;
+CREATE POLICY auth_all_company_settings ON commercial_company_settings FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+
+INSERT INTO commercial_company_settings (
+  id, raison_sociale, forme_juridique, adresse, cp, ville, pays,
+  tel, email, site_web, siret, capital_eur,
+  iban, bic, banque_nom,
+  contact_commercial_nom, contact_commercial_email, contact_commercial_tel,
+  contact_admin_nom, contact_admin_email, contact_admin_tel,
+  contact_compta_nom, contact_compta_email, contact_compta_tel,
+  mention_reserve_propriete, conditions_paiement_default
+) VALUES (
+  'default',
+  'S.A.R.L. ASTORYA SGI', 'SARL',
+  '9 rue du Petit Châtelier', '44300', 'Nantes', 'France',
+  '02 85 52 13 95', 'contact@astorya.fr', 'www.astorya.fr',
+  '52362580400027', 7500.00,
+  'FR7630004018540001003802740', 'BNPAFRPPNAN', 'BNP Paribas',
+  'Romain DAVIAUD', 'r.daviaud@astorya.fr', '02 85 52 13 95',
+  'Laëtitia LUCAS',  'l.lucas@astorya.fr',  '02 85 52 13 95',
+  'Louise NEAU',     'l.neau@astorya.fr',    '02 85 52 13 95',
+  'RESERVE DE PROPRIETE : Nous nous réservons la propriété des marchandises jusqu''au paiement du prix par l''acheteur. Notre droit de revendication porte aussi bien sur les marchandises que sur leur prix si elles ont déjà été revendues (Loi du 12 mai 1980).',
+  'Règlement à la commande d''un acompte de 40%'
+) ON CONFLICT (id) DO NOTHING;
+
+-- ─────────────────────────────────────────────────────────────────
+-- 8c. Audit log des envois (email tracking permanent)
+-- ─────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS commercial_doc_sends (
+  id              text PRIMARY KEY,
+  doc_id          text NOT NULL REFERENCES commercial_docs(id) ON DELETE CASCADE,
+  doc_type        text,
+  channel         text NOT NULL DEFAULT 'email',         -- email | print | download | api
+  recipient_email text,
+  recipient_name  text,
+  cc              text,
+  subject         text,
+  body            text,
+  attachment_url  text,
+  status          text NOT NULL DEFAULT 'pending',       -- pending | sent | delivered | bounced | opened | failed
+  error_message   text,
+  sent_by         uuid REFERENCES auth.users(id),
+  sent_by_name    text,
+  sent_at         timestamptz DEFAULT now(),
+  delivered_at    timestamptz,
+  opened_at       timestamptz,
+  provider        text,                                  -- resend | smtp | mailto | manual
+  provider_msg_id text
+);
+
+CREATE INDEX IF NOT EXISTS idx_cdoc_sends_doc ON commercial_doc_sends(doc_id, sent_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cdoc_sends_status ON commercial_doc_sends(status, sent_at DESC);
+
+ALTER TABLE commercial_doc_sends ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS auth_all_sends ON commercial_doc_sends;
+CREATE POLICY auth_all_sends ON commercial_doc_sends FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ─────────────────────────────────────────────────────────────────
 -- 9. Catalogue d'articles seed (Astorya)
 -- ─────────────────────────────────────────────────────────────────
 INSERT INTO commercial_articles(id, ref, name, category, unit, price_ht, tva_rate, is_service, is_recurring) VALUES

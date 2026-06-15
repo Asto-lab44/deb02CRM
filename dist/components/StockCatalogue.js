@@ -545,40 +545,238 @@ var RECEPTION_STATUS = {
     bg: "#ffe4e6"
   }
 };
+
+// ─────────────────────────────────────────────────────────────────
+// EditableRow — chaque ligne avec édition inline directe
+// ─────────────────────────────────────────────────────────────────
+var EditableRow = ({
+  r,
+  suppliers,
+  fmtEURP,
+  onUpdated
+}) => {
+  var [local, setLocal] = React.useState(r);
+  var [saving, setSaving] = React.useState(null);
+  React.useEffect(() => {
+    setLocal(r);
+  }, [r.line_id, r.purchase_price_ht, r.supplier, r.purchase_status, r.reception_status]);
+
+  // Auto-save debounce sur les inputs numbers/texts (500ms)
+  var debounceRef = React.useRef(null);
+  var queueSave = patch => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSave(patch), 500);
+  };
+  var doSave = async patch => {
+    setSaving(Object.keys(patch)[0]);
+    try {
+      await window.api.purchaseMatrix.updateLine(r.line_id, patch);
+      if (onUpdated) onUpdated();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
+    }
+    setSaving(null);
+  };
+  var updateField = (k, v, immediate) => {
+    setLocal(cur => ({
+      ...cur,
+      [k]: v
+    }));
+    if (immediate) doSave({
+      [k]: v
+    });else queueSave({
+      [k]: v
+    });
+  };
+  var ps = PURCHASE_STATUS[local.purchase_status] || PURCHASE_STATUS.panier;
+  var rs = RECEPTION_STATUS[local.reception_status] || RECEPTION_STATUS.en_cours;
+  var purchaseN = Number(local.purchase_price_ht) || 0;
+  var sellN = Number(r.sell_price_ht) || 0;
+  var marginPct = purchaseN > 0 ? (sellN - purchaseN) / purchaseN * 100 : null;
+  var cellInput = {
+    padding: "5px 8px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 6,
+    fontSize: 12.5,
+    fontFamily: "inherit",
+    color: "#0f172a",
+    background: "#fff",
+    boxSizing: "border-box",
+    width: "100%"
+  };
+  return /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: scStyles.td
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, r.designation || r.ref || "—"), r.ref && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, r.ref)), /*#__PURE__*/React.createElement("td", {
+    style: scStyles.td
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#0f172a",
+      fontWeight: 500
+    }
+  }, r.client_name || "—"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#3730a3"
+    }
+  }, r.doc_ref)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...scStyles.td,
+      textAlign: "center",
+      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 600
+    }
+  }, r.quantity), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...scStyles.td,
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: local.purchase_price_ht || "",
+    placeholder: "\u2014",
+    onChange: e => updateField("purchase_price_ht", e.target.value ? Number(e.target.value) : null),
+    style: {
+      ...cellInput,
+      textAlign: "right",
+      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 600,
+      borderColor: !local.purchase_price_ht ? "#fca5a5" : "#e2e8f0",
+      background: !local.purchase_price_ht ? "#fef2f2" : "#fff"
+    }
+  }), saving === "purchase_price_ht" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: "#94a3b8",
+      textAlign: "right",
+      marginTop: 2
+    }
+  }, "\uD83D\uDCBE")), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...scStyles.td,
+      textAlign: "right",
+      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 600,
+      color: "#10b981"
+    }
+  }, fmtEURP(r.sell_price_ht)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...scStyles.td,
+      textAlign: "right"
+    }
+  }, marginPct != null ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 700,
+      color: marginPct >= 20 ? "#10b981" : marginPct >= 10 ? "#f59e0b" : "#dc2626"
+    }
+  }, marginPct.toFixed(1), " %") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#cbd5e1"
+    }
+  }, "\u2014")), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...scStyles.td,
+      padding: "6px 8px",
+      minWidth: 160
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: local.supplier || "",
+    onChange: e => updateField("supplier", e.target.value || null, true),
+    style: {
+      ...cellInput,
+      borderColor: !local.supplier ? "#fca5a5" : "#e2e8f0",
+      color: !local.supplier ? "#dc2626" : "#0f172a",
+      fontWeight: 600
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u26A0 \xC0 assigner"), suppliers.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s.id,
+    value: s.name
+  }, s.name)))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...scStyles.td,
+      padding: "6px 8px",
+      minWidth: 140
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: local.purchase_status || "panier",
+    onChange: e => updateField("purchase_status", e.target.value, true),
+    style: {
+      ...cellInput,
+      background: ps.bg,
+      color: ps.color,
+      fontWeight: 600,
+      borderColor: ps.bg
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "panier"
+  }, "\uD83D\uDED2 Panier"), /*#__PURE__*/React.createElement("option", {
+    value: "demande"
+  }, "\uD83D\uDCE4 Demande envoy\xE9e"), /*#__PURE__*/React.createElement("option", {
+    value: "transmis"
+  }, "\uD83D\uDCE8 Panier transmis"), /*#__PURE__*/React.createElement("option", {
+    value: "commande"
+  }, "\u2705 Command\xE9"))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...scStyles.td,
+      padding: "6px 8px",
+      minWidth: 140
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: local.reception_status || "en_cours",
+    onChange: e => updateField("reception_status", e.target.value, true),
+    style: {
+      ...cellInput,
+      background: rs.bg,
+      color: rs.color,
+      fontWeight: 600,
+      borderColor: rs.bg
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "en_cours"
+  }, "\u23F3 En cours"), /*#__PURE__*/React.createElement("option", {
+    value: "ok"
+  }, "\u2713 R\xE9ception OK"), /*#__PURE__*/React.createElement("option", {
+    value: "en_stock"
+  }, "\uD83D\uDCE6 En stock"), /*#__PURE__*/React.createElement("option", {
+    value: "partielle"
+  }, "\u25D0 Partielle"), /*#__PURE__*/React.createElement("option", {
+    value: "bloque"
+  }, "\u26D4 Bloqu\xE9"), /*#__PURE__*/React.createElement("option", {
+    value: "differe"
+  }, "\u23F8 Diff\xE9r\xE9"), /*#__PURE__*/React.createElement("option", {
+    value: "na"
+  }, "N/A"))));
+};
 var ListView = ({
   rows,
   suppliers,
   fmtEUR,
   fmtEURP,
-  onEdit
+  onEdit,
+  onReload
 }) => {
-  // Groupe les lignes par document (devis / commande) pour ne pas répéter
-  // l'info client × N lignes
-  var groups = React.useMemo(() => {
-    var m = {};
-    (rows || []).forEach(r => {
-      var key = r.doc_ref || "?";
-      var qty = Number(r.quantity) || 0;
-      var purchase = Number(r.purchase_price_ht) || 0;
-      var sell = Number(r.sell_price_ht) || 0;
-      if (!m[key]) m[key] = {
-        doc_ref: key,
-        doc_type: r.doc_type,
-        doc_status: r.doc_status,
-        doc_title: r.doc_title,
-        client_name: r.client_name,
-        doc_date: r.doc_date,
-        items: [],
-        totalPurchase: 0,
-        totalSell: 0
-      };
-      m[key].items.push(r);
-      m[key].totalPurchase += purchase * qty;
-      m[key].totalSell += sell * qty;
-    });
-    return Object.values(m).sort((a, b) => (b.doc_date || "").localeCompare(a.doc_date || ""));
-  }, [rows]);
-  if (!groups.length) {
+  if (!rows || !rows.length) {
     return /*#__PURE__*/React.createElement("div", {
       style: {
         padding: 50,
@@ -606,253 +804,58 @@ var ListView = ({
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 14
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      overflow: "auto"
     }
-  }, groups.map(g => {
-    var meta = TYPE_META[g.doc_type] || TYPE_META.devis;
-    var groupMarginEur = g.totalSell - g.totalPurchase;
-    var groupMarginPct = g.totalPurchase > 0 ? groupMarginEur / g.totalPurchase * 100 : null;
-    return /*#__PURE__*/React.createElement("div", {
-      key: g.doc_ref,
-      style: {
-        background: "#fff",
-        border: "1px solid #eef1f5",
-        borderRadius: 12,
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "14px 18px",
-        background: "#fafbfc",
-        borderBottom: "1px solid #eef1f5",
-        display: "flex",
-        alignItems: "center",
-        gap: 14
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 10px",
-        borderRadius: 999,
-        background: meta.bg,
-        color: meta.color,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: 0.3
-      }
-    }, meta.icon, " ", meta.label), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: "#0f172a",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      }
-    }, g.client_name || "Client non renseigné"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        color: "#64748b",
-        marginTop: 2
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "'JetBrains Mono', monospace",
-        color: "#3730a3",
-        fontWeight: 600
-      }
-    }, g.doc_ref), g.doc_title && /*#__PURE__*/React.createElement("span", null, " \xB7 ", g.doc_title), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#94a3b8"
-      }
-    }, " \xB7 ", g.items.length, " article(s)"))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: "right"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        color: "#94a3b8",
-        letterSpacing: 0.4,
-        textTransform: "uppercase",
-        fontWeight: 700
-      }
-    }, "Total"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 700,
-        color: "#10b981"
-      }
-    }, "+", fmtEUR(g.totalSell), " HT"), g.totalPurchase > 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        fontFamily: "'JetBrains Mono', monospace",
-        color: groupMarginPct >= 20 ? "#10b981" : groupMarginPct >= 10 ? "#f59e0b" : "#dc2626"
-      }
-    }, "Marge ", fmtEUR(groupMarginEur), " (", groupMarginPct.toFixed(1), " %)"))), /*#__PURE__*/React.createElement("div", null, g.items.map(r => {
-      var ps = PURCHASE_STATUS[r.purchase_status] || PURCHASE_STATUS.panier;
-      var rs = RECEPTION_STATUS[r.reception_status] || RECEPTION_STATUS.en_cours;
-      var hasMargin = r.margin_pct != null;
-      return /*#__PURE__*/React.createElement("div", {
-        key: r.line_id,
-        onClick: () => onEdit(r),
-        style: {
-          display: "grid",
-          gridTemplateColumns: "1fr 130px 110px 110px 200px",
-          gap: 14,
-          alignItems: "center",
-          padding: "12px 18px",
-          borderBottom: "1px solid #f1f5f9",
-          cursor: "pointer",
-          transition: "background 0.1s"
-        },
-        onMouseEnter: e => e.currentTarget.style.background = "#fafbfc",
-        onMouseLeave: e => e.currentTarget.style.background = ""
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          minWidth: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#0f172a"
-        }
-      }, r.designation || r.ref || "—"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 11,
-          color: "#64748b",
-          marginTop: 2
-        }
-      }, "Qt\xE9 ", /*#__PURE__*/React.createElement("strong", {
-        style: {
-          fontFamily: "'JetBrains Mono', monospace",
-          color: "#0f172a"
-        }
-      }, r.quantity, " ", r.unit || ""), r.ref && /*#__PURE__*/React.createElement("span", {
-        style: {
-          marginLeft: 8,
-          fontFamily: "'JetBrains Mono', monospace",
-          color: "#94a3b8"
-        }
-      }, "\xB7 ", r.ref))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          textAlign: "right"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          color: "#94a3b8",
-          letterSpacing: 0.3,
-          textTransform: "uppercase",
-          fontWeight: 700
-        }
-      }, "PU Achet\xE9"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 13,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontWeight: 600,
-          color: r.purchase_price_ht ? "#0f172a" : "#dc2626"
-        }
-      }, r.purchase_price_ht ? fmtEURP(r.purchase_price_ht) : "⚠ —")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          textAlign: "right"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          color: "#94a3b8",
-          letterSpacing: 0.3,
-          textTransform: "uppercase",
-          fontWeight: 700
-        }
-      }, "PU Vendu"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 13,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontWeight: 700,
-          color: "#10b981"
-        }
-      }, fmtEURP(r.sell_price_ht))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          textAlign: "right"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          color: "#94a3b8",
-          letterSpacing: 0.3,
-          textTransform: "uppercase",
-          fontWeight: 700
-        }
-      }, "Marge"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 13,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontWeight: 700,
-          color: !hasMargin ? "#cbd5e1" : r.margin_pct >= 20 ? "#10b981" : r.margin_pct >= 10 ? "#f59e0b" : "#dc2626"
-        }
-      }, hasMargin ? r.margin_pct.toFixed(1) + " %" : "—")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          alignItems: "flex-end"
-        }
-      }, r.supplier ? /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 11,
-          padding: "2px 9px",
-          borderRadius: 999,
-          background: "#eef2ff",
-          color: "#3730a3",
-          fontWeight: 700
-        }
-      }, r.supplier) : /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 11,
-          padding: "2px 9px",
-          borderRadius: 999,
-          background: "#fee2e2",
-          color: "#991b1b",
-          fontWeight: 700
-        }
-      }, "\u26A0 \xC0 assigner"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          gap: 4
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10,
-          padding: "1px 7px",
-          borderRadius: 999,
-          background: ps.bg,
-          color: ps.color,
-          fontWeight: 600
-        }
-      }, ps.label), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10,
-          padding: "1px 7px",
-          borderRadius: 999,
-          background: rs.bg,
-          color: rs.color,
-          fontWeight: 600
-        }
-      }, rs.label))));
-    })));
-  }));
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      minWidth: 1280
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#f8fafc"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: scStyles.thHead
+  }, "Article"), /*#__PURE__*/React.createElement("th", {
+    style: scStyles.thHead
+  }, "Client / Doc"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      textAlign: "center"
+    }
+  }, "Qt\xE9"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      textAlign: "right"
+    }
+  }, "PU Achet\xE9"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      textAlign: "right"
+    }
+  }, "PU Vendu"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      textAlign: "right"
+    }
+  }, "Marge"), /*#__PURE__*/React.createElement("th", {
+    style: scStyles.thHead
+  }, "Fournisseur"), /*#__PURE__*/React.createElement("th", {
+    style: scStyles.thHead
+  }, "Achat"), /*#__PURE__*/React.createElement("th", {
+    style: scStyles.thHead
+  }, "R\xE9ception"))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => /*#__PURE__*/React.createElement(EditableRow, {
+    key: r.line_id,
+    r: r,
+    suppliers: suppliers,
+    fmtEURP: fmtEURP,
+    onUpdated: onReload
+  })))));
 };
 
 // ─────────────────────────────────────────────────────────────────

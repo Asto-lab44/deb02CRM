@@ -287,25 +287,109 @@ const RECEPTION_STATUS = {
   differe:   { label: "⏸ Différé",   color: "#9f1239", bg: "#ffe4e6" },
 };
 
-const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit }) => {
-  // Groupe les lignes par document (devis / commande) pour ne pas répéter
-  // l'info client × N lignes
-  const groups = React.useMemo(() => {
-    const m = {};
-    (rows || []).forEach((r) => {
-      const key = r.doc_ref || "?";
-      const qty = Number(r.quantity) || 0;
-      const purchase = Number(r.purchase_price_ht) || 0;
-      const sell = Number(r.sell_price_ht) || 0;
-      if (!m[key]) m[key] = { doc_ref: key, doc_type: r.doc_type, doc_status: r.doc_status, doc_title: r.doc_title, client_name: r.client_name, doc_date: r.doc_date, items: [], totalPurchase: 0, totalSell: 0 };
-      m[key].items.push(r);
-      m[key].totalPurchase += purchase * qty;
-      m[key].totalSell += sell * qty;
-    });
-    return Object.values(m).sort((a, b) => (b.doc_date || "").localeCompare(a.doc_date || ""));
-  }, [rows]);
+// ─────────────────────────────────────────────────────────────────
+// EditableRow — chaque ligne avec édition inline directe
+// ─────────────────────────────────────────────────────────────────
+const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
+  const [local, setLocal] = React.useState(r);
+  const [saving, setSaving] = React.useState(null);
+  React.useEffect(() => { setLocal(r); }, [r.line_id, r.purchase_price_ht, r.supplier, r.purchase_status, r.reception_status]);
 
-  if (!groups.length) {
+  // Auto-save debounce sur les inputs numbers/texts (500ms)
+  const debounceRef = React.useRef(null);
+  const queueSave = (patch) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSave(patch), 500);
+  };
+  const doSave = async (patch) => {
+    setSaving(Object.keys(patch)[0]);
+    try {
+      await window.api.purchaseMatrix.updateLine(r.line_id, patch);
+      if (onUpdated) onUpdated();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
+    }
+    setSaving(null);
+  };
+
+  const updateField = (k, v, immediate) => {
+    setLocal((cur) => ({ ...cur, [k]: v }));
+    if (immediate) doSave({ [k]: v });
+    else queueSave({ [k]: v });
+  };
+
+  const ps = PURCHASE_STATUS[local.purchase_status] || PURCHASE_STATUS.panier;
+  const rs = RECEPTION_STATUS[local.reception_status] || RECEPTION_STATUS.en_cours;
+  const purchaseN = Number(local.purchase_price_ht) || 0;
+  const sellN = Number(r.sell_price_ht) || 0;
+  const marginPct = purchaseN > 0 ? (sellN - purchaseN) / purchaseN * 100 : null;
+
+  const cellInput = { padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12.5, fontFamily: "inherit", color: "#0f172a", background: "#fff", boxSizing: "border-box", width: "100%" };
+
+  return (
+    <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <td style={scStyles.td}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{r.designation || r.ref || "—"}</div>
+        {r.ref && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{r.ref}</div>}
+      </td>
+      <td style={scStyles.td}>
+        <div style={{ fontSize: 12, color: "#0f172a", fontWeight: 500 }}>{r.client_name || "—"}</div>
+        <div style={{ fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{r.doc_ref}</div>
+      </td>
+      <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{r.quantity}</td>
+      <td style={{ ...scStyles.td, padding: "6px 8px" }}>
+        <input type="number" step="0.01" value={local.purchase_price_ht || ""} placeholder="—"
+               onChange={(e) => updateField("purchase_price_ht", e.target.value ? Number(e.target.value) : null)}
+               style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, borderColor: !local.purchase_price_ht ? "#fca5a5" : "#e2e8f0", background: !local.purchase_price_ht ? "#fef2f2" : "#fff" }} />
+        {saving === "purchase_price_ht" && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 2 }}>💾</div>}
+      </td>
+      <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#10b981" }}>
+        {fmtEURP(r.sell_price_ht)}
+      </td>
+      <td style={{ ...scStyles.td, textAlign: "right" }}>
+        {marginPct != null ? (
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: marginPct >= 20 ? "#10b981" : marginPct >= 10 ? "#f59e0b" : "#dc2626" }}>
+            {marginPct.toFixed(1)} %
+          </div>
+        ) : <span style={{ color: "#cbd5e1" }}>—</span>}
+      </td>
+      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 160 }}>
+        <select value={local.supplier || ""}
+                onChange={(e) => updateField("supplier", e.target.value || null, true)}
+                style={{ ...cellInput, borderColor: !local.supplier ? "#fca5a5" : "#e2e8f0", color: !local.supplier ? "#dc2626" : "#0f172a", fontWeight: 600 }}>
+          <option value="">⚠ À assigner</option>
+          {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+        </select>
+      </td>
+      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }}>
+        <select value={local.purchase_status || "panier"}
+                onChange={(e) => updateField("purchase_status", e.target.value, true)}
+                style={{ ...cellInput, background: ps.bg, color: ps.color, fontWeight: 600, borderColor: ps.bg }}>
+          <option value="panier">🛒 Panier</option>
+          <option value="demande">📤 Demande envoyée</option>
+          <option value="transmis">📨 Panier transmis</option>
+          <option value="commande">✅ Commandé</option>
+        </select>
+      </td>
+      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }}>
+        <select value={local.reception_status || "en_cours"}
+                onChange={(e) => updateField("reception_status", e.target.value, true)}
+                style={{ ...cellInput, background: rs.bg, color: rs.color, fontWeight: 600, borderColor: rs.bg }}>
+          <option value="en_cours">⏳ En cours</option>
+          <option value="ok">✓ Réception OK</option>
+          <option value="en_stock">📦 En stock</option>
+          <option value="partielle">◐ Partielle</option>
+          <option value="bloque">⛔ Bloqué</option>
+          <option value="differe">⏸ Différé</option>
+          <option value="na">N/A</option>
+        </select>
+      </td>
+    </tr>
+  );
+};
+
+const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload }) => {
+  if (!rows || !rows.length) {
     return (
       <div style={{ padding: 50, background: "#fff", border: "1px dashed #cbd5e1", borderRadius: 12, textAlign: "center", color: "#94a3b8" }}>
         Aucun article à afficher avec les filtres actuels.
@@ -319,88 +403,27 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit }) => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {groups.map((g) => {
-        const meta = TYPE_META[g.doc_type] || TYPE_META.devis;
-        const groupMarginEur = g.totalSell - g.totalPurchase;
-        const groupMarginPct = g.totalPurchase > 0 ? (groupMarginEur / g.totalPurchase * 100) : null;
-        return (
-          <div key={g.doc_ref} style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "hidden" }}>
-            {/* Header du groupe : client + doc + KPI */}
-            <div style={{ padding: "14px 18px", background: "#fafbfc", borderBottom: "1px solid #eef1f5", display: "flex", alignItems: "center", gap: 14 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: meta.bg, color: meta.color, fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>{meta.icon} {meta.label}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {g.client_name || "Client non renseigné"}
-                </div>
-                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#3730a3", fontWeight: 600 }}>{g.doc_ref}</span>
-                  {g.doc_title && <span> · {g.doc_title}</span>}
-                  <span style={{ color: "#94a3b8" }}> · {g.items.length} article(s)</span>
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.4, textTransform: "uppercase", fontWeight: 700 }}>Total</div>
-                <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#10b981" }}>+{fmtEUR(g.totalSell)} HT</div>
-                {g.totalPurchase > 0 && (
-                  <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: groupMarginPct >= 20 ? "#10b981" : groupMarginPct >= 10 ? "#f59e0b" : "#dc2626" }}>
-                    Marge {fmtEUR(groupMarginEur)} ({groupMarginPct.toFixed(1)} %)
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Lignes articles : carte par ligne avec édition rapide visible */}
-            <div>
-              {g.items.map((r) => {
-                const ps = PURCHASE_STATUS[r.purchase_status] || PURCHASE_STATUS.panier;
-                const rs = RECEPTION_STATUS[r.reception_status] || RECEPTION_STATUS.en_cours;
-                const hasMargin = r.margin_pct != null;
-                return (
-                  <div key={r.line_id} onClick={() => onEdit(r)} style={{ display: "grid", gridTemplateColumns: "1fr 130px 110px 110px 200px", gap: 14, alignItems: "center", padding: "12px 18px", borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.1s" }}
-                       onMouseEnter={(e) => e.currentTarget.style.background = "#fafbfc"}
-                       onMouseLeave={(e) => e.currentTarget.style.background = ""}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{r.designation || r.ref || "—"}</div>
-                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                        Qté <strong style={{ fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }}>{r.quantity} {r.unit || ""}</strong>
-                        {r.ref && <span style={{ marginLeft: 8, fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8" }}>· {r.ref}</span>}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 700 }}>PU Acheté</div>
-                      <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: r.purchase_price_ht ? "#0f172a" : "#dc2626" }}>
-                        {r.purchase_price_ht ? fmtEURP(r.purchase_price_ht) : "⚠ —"}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 700 }}>PU Vendu</div>
-                      <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#10b981" }}>{fmtEURP(r.sell_price_ht)}</div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 700 }}>Marge</div>
-                      <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: !hasMargin ? "#cbd5e1" : r.margin_pct >= 20 ? "#10b981" : r.margin_pct >= 10 ? "#f59e0b" : "#dc2626" }}>
-                        {hasMargin ? r.margin_pct.toFixed(1) + " %" : "—"}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-                      {r.supplier ? (
-                        <span style={{ fontSize: 11, padding: "2px 9px", borderRadius: 999, background: "#eef2ff", color: "#3730a3", fontWeight: 700 }}>{r.supplier}</span>
-                      ) : (
-                        <span style={{ fontSize: 11, padding: "2px 9px", borderRadius: 999, background: "#fee2e2", color: "#991b1b", fontWeight: 700 }}>⚠ À assigner</span>
-                      )}
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 999, background: ps.bg, color: ps.color, fontWeight: 600 }}>{ps.label}</span>
-                        <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 999, background: rs.bg, color: rs.color, fontWeight: 600 }}>{rs.label}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+    <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1280 }}>
+        <thead>
+          <tr style={{ background: "#f8fafc" }}>
+            <th style={scStyles.thHead}>Article</th>
+            <th style={scStyles.thHead}>Client / Doc</th>
+            <th style={{ ...scStyles.thHead, textAlign: "center" }}>Qté</th>
+            <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Acheté</th>
+            <th style={{ ...scStyles.thHead, textAlign: "right" }}>PU Vendu</th>
+            <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>
+            <th style={scStyles.thHead}>Fournisseur</th>
+            <th style={scStyles.thHead}>Achat</th>
+            <th style={scStyles.thHead}>Réception</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <EditableRow key={r.line_id} r={r} suppliers={suppliers} fmtEURP={fmtEURP} onUpdated={onReload} />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

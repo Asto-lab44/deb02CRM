@@ -1261,7 +1261,18 @@
         opportunity_id: payload.opportunity_id || null,
         parent_doc_id: payload.parent_doc_id || null,
         doc_date: payload.doc_date || new Date().toISOString().slice(0, 10),
-        valid_until: payload.valid_until || null,
+        // Devis : valid_until = doc_date + délai société (30j par défaut) si non fourni
+        valid_until: payload.valid_until || (type === "devis" ? (() => {
+          const base = payload.doc_date ? new Date(payload.doc_date) : new Date();
+          let delay = 30;
+          try {
+            const c = commercialCompany._cache;
+            if (c && c.delai_validite_devis_jours) delay = Number(c.delai_validite_devis_jours) || 30;
+          } catch (e) {}
+          base.setDate(base.getDate() + delay);
+          return base.toISOString().slice(0, 10);
+        })() : null),
+        // Facture : payment_due = doc_date + délai des conditions de paiement (30j si net30)
         payment_due: payload.payment_due || null,
         total_ht: totals.ht,
         total_tva: totals.tva,

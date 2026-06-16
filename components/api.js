@@ -2600,6 +2600,33 @@
       if (error) throw new Error(error.message);
       return data;
     },
+    /** Soft delete = active=false. Ne perd pas l'historique des références fournisseurs. */
+    async remove(id) {
+      const s = supa();
+      if (!s) return null;
+      const { error } = await s.from("suppliers").update({ active: false, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw new Error(error.message);
+      return true;
+    },
+    /** Import en lot : crée tous les fournisseurs qui n'existent pas encore.
+     *  Retourne { created: N, skipped: N }. */
+    async bulkImport(names) {
+      const s = supa();
+      if (!s) return { created: 0, skipped: 0 };
+      const { data: existing } = await s.from("suppliers").select("name");
+      const existingNames = new Set((existing || []).map((r) => (r.name || "").toLowerCase()));
+      const toCreate = (names || [])
+        .map((n) => String(n || "").trim())
+        .filter((n) => n.length >= 2 && !existingNames.has(n.toLowerCase()));
+      let created = 0;
+      for (const name of toCreate) {
+        try {
+          await this.create({ name });
+          created++;
+        } catch (e) { /* doublon racey ou autre — on continue */ }
+      }
+      return { created, skipped: (names || []).length - created };
+    },
   };
 
   const purchaseMatrix = {

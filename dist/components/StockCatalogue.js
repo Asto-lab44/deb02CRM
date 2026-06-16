@@ -44,6 +44,21 @@ var StockCatalogue = () => {
     reload();
   }, [reload]);
 
+  // Liste complète des fournisseurs du dropdown Monday "1.0 - Achat hebdomadaire"
+  // (column fournisseur_mkm6r10y, board 745054784). Snapshot du 2026-06-16.
+  // Le bulkImport ne crée que ceux qui n'existent pas déjà (idempotent).
+  var MONDAY_SUPPLIERS = ["SENETIC", "OVH", "AMAZON", "ACTUAL SYSTEM", "WITHSECURE", "ASTORYA", "EDOX", "ONEDIRECT", "GLOBALSIGN", "INMAC", "BE-CLOUD", "FACTORIAL", "UNYC", "CID-IT", "EN STOCK", "PC21", "WATESOFT", "GRENKE", "INGRAM", "MAILINBLACK", "Athena global services", "SAGE", "ESET", "3CX", "COLISSIMO", "SOFT4EUROPE", "SUPPORT MURAUX", "AUTODESK", "FOXIT", "SendBlaster", "NEZUMI", "EBP", "UBIQUITI", "SITE MARCHAND", "ALTOSPAM", "ITANCIA", "ALSO", "TS2log", "TD SYNNEX", "CDISCOUNT", "STUDIOCALL", "BATTERY DIRECT", "LDLC PRO", "WEBSOFTSOLUS", "LENOVO", "ALIEXPRESS", "BACKMARKET", "ADHOC CUSTY", "BROTHER MPS", "APOGEA", "LOCAM", "ADAPTATEUR-PC", "TRADEMOS", "HP", "MGF", "DARTY", "Free Pro", "MARCEA", "BOOST MY MAIL", "GOOGLE", "Renewtech", "DEXXON"];
+  var importMondaySuppliers = async () => {
+    if (!confirm("Importer " + MONDAY_SUPPLIERS.length + " fournisseurs depuis Monday ?\n\nSeuls les fournisseurs absents seront créés (idempotent).")) return;
+    try {
+      var res = await window.api.suppliers.bulkImport(MONDAY_SUPPLIERS);
+      if (window.HubToast) window.HubToast.success("✓ " + res.created + " fournisseur(s) créé(s) · " + res.skipped + " déjà présent(s)");
+      reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Import : " + (e.message || e));
+    }
+  };
+
   // ── Filtres
   var filtered = React.useMemo(() => rows.filter(r => {
     if (filter.article_status !== "all") {
@@ -241,6 +256,25 @@ var StockCatalogue = () => {
     },
     title: "Purge le cache localStorage du navigateur (ne touche pas la BDD)"
   }, "\uD83D\uDDD1 Purger cache local"), /*#__PURE__*/React.createElement("button", {
+    onClick: importMondaySuppliers,
+    style: {
+      ...scStyles.ghostBtn,
+      color: "#7e22ce",
+      borderColor: "#e9d5ff"
+    },
+    title: "Importe la liste des fournisseurs depuis le board Monday \xAB 1.0 - Achat hebdomadaire \xBB"
+  }, "\u2B07 Importer fournisseurs Monday"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      window.location.href = "/stock-article-nouveau";
+    },
+    style: {
+      ...scStyles.ghostBtn,
+      color: "#0f766e",
+      borderColor: "#a7f3d0",
+      fontWeight: 600
+    },
+    title: "Cr\xE9er un nouvel article au catalogue"
+  }, "+ Cr\xE9ation d'article"), /*#__PURE__*/React.createElement("button", {
     onClick: reload,
     style: scStyles.primaryBtn
   }, "\u21BB Rafra\xEEchir"))), /*#__PURE__*/React.createElement("div", {
@@ -304,6 +338,7 @@ var StockCatalogue = () => {
       row: r
     }),
     onReload: reload,
+    onSuppliersChanged: reload,
     isArchive: view === "archive"
   })), editing && editing.type === "line" && /*#__PURE__*/React.createElement(EditLineModal, {
     row: editing.row,
@@ -578,13 +613,221 @@ var applyArticleStatus = status => {
 };
 
 // ─────────────────────────────────────────────────────────────────
+// SupplierCombo — combobox fournisseur : recherche + ajout + suppression
+// ─────────────────────────────────────────────────────────────────
+var SupplierCombo = ({
+  value,
+  suppliers,
+  cellInput,
+  onChange,
+  onSuppliersChanged
+}) => {
+  var [open, setOpen] = React.useState(false);
+  var [query, setQuery] = React.useState("");
+  var ref = React.useRef(null);
+
+  // Fermeture au clic extérieur
+  React.useEffect(() => {
+    var h = e => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  var q = query.trim().toLowerCase();
+  var filtered = (suppliers || []).filter(s => !q || (s.name || "").toLowerCase().indexOf(q) !== -1);
+  var exact = (suppliers || []).some(s => (s.name || "").toLowerCase() === q);
+  var canCreate = q && !exact;
+  var select = name => {
+    onChange && onChange(name || null);
+    setQuery("");
+    setOpen(false);
+  };
+  var createNew = async () => {
+    var name = query.trim();
+    if (!name) return;
+    try {
+      await window.api.suppliers.create({
+        name
+      });
+      if (window.HubToast) window.HubToast.success("✓ Fournisseur « " + name + " » ajouté");
+      onSuppliersChanged && onSuppliersChanged();
+      select(name);
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création : " + (e.message || e));
+    }
+  };
+  var removeSupplier = async (e, sup) => {
+    e.stopPropagation();
+    if (!confirm("Désactiver le fournisseur « " + sup.name + " » ?\n\nIl sera caché de la liste mais l'historique des achats est préservé.")) return;
+    try {
+      await window.api.suppliers.remove(sup.id);
+      if (window.HubToast) window.HubToast.success("✓ Fournisseur retiré");
+      onSuppliersChanged && onSuppliersChanged();
+    } catch (e2) {
+      if (window.HubToast) window.HubToast.error("Suppression : " + (e2.message || e2));
+    }
+  };
+  var trigger = /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setOpen(v => !v),
+    style: {
+      ...cellInput,
+      textAlign: "left",
+      cursor: "pointer",
+      borderColor: !value ? "#fca5a5" : "#e2e8f0",
+      color: !value ? "#dc2626" : "#0f172a",
+      fontWeight: 600,
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, value || "⚠ À assigner"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: "#94a3b8"
+    }
+  }, "\u25BE"));
+  return /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    style: {
+      position: "relative"
+    }
+  }, trigger, open && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      marginTop: 4,
+      zIndex: 1000,
+      background: "#fff",
+      border: "1px solid #cbd5e1",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.15)",
+      maxHeight: 320,
+      display: "flex",
+      flexDirection: "column",
+      minWidth: 240
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    autoFocus: true,
+    type: "text",
+    value: query,
+    onChange: e => setQuery(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") {
+        if (filtered[0]) select(filtered[0].name);else if (canCreate) createNew();
+      }
+      if (e.key === "Escape") setOpen(false);
+    },
+    placeholder: "\uD83D\uDD0D Rechercher un fournisseur\u2026",
+    style: {
+      padding: "8px 10px",
+      border: "none",
+      borderBottom: "1px solid #eef1f5",
+      outline: "none",
+      fontSize: 12,
+      fontFamily: "inherit",
+      color: "#0f172a"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto"
+    }
+  }, value && /*#__PURE__*/React.createElement("div", {
+    onClick: () => select(""),
+    style: {
+      padding: "8px 10px",
+      fontSize: 11.5,
+      color: "#dc2626",
+      cursor: "pointer",
+      borderBottom: "1px solid #f1f5f9",
+      fontWeight: 600
+    }
+  }, "\u2715 Retirer la s\xE9lection"), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 14,
+      fontSize: 11.5,
+      color: "#94a3b8",
+      textAlign: "center"
+    }
+  }, "Aucun fournisseur ne correspond.") : filtered.map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.id,
+    onClick: () => select(s.name),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 10px",
+      fontSize: 12,
+      cursor: "pointer",
+      background: s.name === value ? "#eff6ff" : "transparent",
+      borderBottom: "1px solid #f8fafc"
+    },
+    onMouseEnter: e => {
+      if (s.name !== value) e.currentTarget.style.background = "#f8fafc";
+    },
+    onMouseLeave: e => {
+      if (s.name !== value) e.currentTarget.style.background = "transparent";
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      color: "#0f172a",
+      fontWeight: s.name === value ? 700 : 500
+    }
+  }, s.name, s.category && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#94a3b8",
+      marginLeft: 6
+    }
+  }, "\xB7 ", s.category)), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: e => removeSupplier(e, s),
+    title: "D\xE9sactiver ce fournisseur",
+    style: {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      border: "none",
+      background: "transparent",
+      color: "#94a3b8",
+      fontSize: 13,
+      cursor: "pointer"
+    }
+  }, "\xD7")))), canCreate && /*#__PURE__*/React.createElement("div", {
+    onClick: createNew,
+    style: {
+      padding: "10px 12px",
+      fontSize: 12,
+      fontWeight: 600,
+      color: "#065f46",
+      background: "#d1fae5",
+      cursor: "pointer",
+      borderTop: "1px solid #a7f3d0"
+    }
+  }, "+ Ajouter \xAB ", /*#__PURE__*/React.createElement("strong", null, query.trim()), " \xBB")));
+};
+
+// ─────────────────────────────────────────────────────────────────
 // EditableRow — chaque ligne avec édition inline directe
 // ─────────────────────────────────────────────────────────────────
 var EditableRow = ({
   r,
   suppliers,
   fmtEURP,
-  onUpdated
+  onUpdated,
+  onSuppliersChanged
 }) => {
   var [local, setLocal] = React.useState(r);
   var [saving, setSaving] = React.useState(null);
@@ -759,27 +1002,19 @@ var EditableRow = ({
     style: {
       ...scStyles.td,
       padding: "6px 8px",
-      minWidth: 160
+      minWidth: 180
     }
-  }, /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement(SupplierCombo, {
     value: local.supplier || "",
-    onChange: e => updateField("supplier", e.target.value || null),
-    style: {
-      ...cellInput,
-      borderColor: !local.supplier ? "#fca5a5" : "#e2e8f0",
-      color: !local.supplier ? "#dc2626" : "#0f172a",
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u26A0 \xC0 assigner"), suppliers.map(s => /*#__PURE__*/React.createElement("option", {
-    key: s.id,
-    value: s.name
-  }, s.name)))), /*#__PURE__*/React.createElement("td", {
+    suppliers: suppliers,
+    cellInput: cellInput,
+    onChange: v => updateField("supplier", v || null),
+    onSuppliersChanged: onSuppliersChanged
+  })), /*#__PURE__*/React.createElement("td", {
     style: {
       ...scStyles.td,
       padding: "6px 8px",
-      minWidth: 180
+      width: 130
     }
   }, /*#__PURE__*/React.createElement("select", {
     value: articleStatusKey,
@@ -798,7 +1033,8 @@ var EditableRow = ({
       fontWeight: 700,
       borderColor: as.color,
       borderWidth: 2,
-      paddingRight: 22
+      paddingRight: 22,
+      fontSize: 11.5
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "panier",
@@ -1007,6 +1243,7 @@ var ListView = ({
   fmtEURP,
   onEdit,
   onReload,
+  onSuppliersChanged,
   isArchive
 }) => {
   var [expanded, setExpanded] = React.useState({});
@@ -1298,8 +1535,11 @@ var ListView = ({
       textAlign: "right"
     }
   }, "Marge"), /*#__PURE__*/React.createElement("th", {
-    style: scStyles.thHead
-  }, "Statut article"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      ...scStyles.thHead,
+      width: 130
+    }
+  }, "Statut"), /*#__PURE__*/React.createElement("th", {
     style: {
       ...scStyles.thHead,
       textAlign: "center",
@@ -1502,14 +1742,16 @@ var ListView = ({
     }, "Fournisseur"), /*#__PURE__*/React.createElement("th", {
       style: {
         ...scStyles.thHead,
-        fontSize: 10.5
+        fontSize: 10.5,
+        width: 130
       }
-    }, "Statut article"))), /*#__PURE__*/React.createElement("tbody", null, g.lines.map(r => /*#__PURE__*/React.createElement(EditableRow, {
+    }, "Statut"))), /*#__PURE__*/React.createElement("tbody", null, g.lines.map(r => /*#__PURE__*/React.createElement(EditableRow, {
       key: r.line_id,
       r: r,
       suppliers: suppliers,
       fmtEURP: fmtEURP,
-      onUpdated: onReload
+      onUpdated: onReload,
+      onSuppliersChanged: onSuppliersChanged
     })))))));
   })))));
 };

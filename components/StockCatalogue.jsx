@@ -39,6 +39,32 @@ const StockCatalogue = () => {
   }, [view]);
   React.useEffect(() => { reload(); }, [reload]);
 
+  // Liste complète des fournisseurs du dropdown Monday "1.0 - Achat hebdomadaire"
+  // (column fournisseur_mkm6r10y, board 745054784). Snapshot du 2026-06-16.
+  // Le bulkImport ne crée que ceux qui n'existent pas déjà (idempotent).
+  const MONDAY_SUPPLIERS = [
+    "SENETIC", "OVH", "AMAZON", "ACTUAL SYSTEM", "WITHSECURE", "ASTORYA", "EDOX",
+    "ONEDIRECT", "GLOBALSIGN", "INMAC", "BE-CLOUD", "FACTORIAL", "UNYC", "CID-IT",
+    "EN STOCK", "PC21", "WATESOFT", "GRENKE", "INGRAM", "MAILINBLACK",
+    "Athena global services", "SAGE", "ESET", "3CX", "COLISSIMO", "SOFT4EUROPE",
+    "SUPPORT MURAUX", "AUTODESK", "FOXIT", "SendBlaster", "NEZUMI", "EBP",
+    "UBIQUITI", "SITE MARCHAND", "ALTOSPAM", "ITANCIA", "ALSO", "TS2log",
+    "TD SYNNEX", "CDISCOUNT", "STUDIOCALL", "BATTERY DIRECT", "LDLC PRO",
+    "WEBSOFTSOLUS", "LENOVO", "ALIEXPRESS", "BACKMARKET", "ADHOC CUSTY",
+    "BROTHER MPS", "APOGEA", "LOCAM", "ADAPTATEUR-PC", "TRADEMOS", "HP", "MGF",
+    "DARTY", "Free Pro", "MARCEA", "BOOST MY MAIL", "GOOGLE", "Renewtech", "DEXXON",
+  ];
+  const importMondaySuppliers = async () => {
+    if (!confirm("Importer " + MONDAY_SUPPLIERS.length + " fournisseurs depuis Monday ?\n\nSeuls les fournisseurs absents seront créés (idempotent).")) return;
+    try {
+      const res = await window.api.suppliers.bulkImport(MONDAY_SUPPLIERS);
+      if (window.HubToast) window.HubToast.success("✓ " + res.created + " fournisseur(s) créé(s) · " + res.skipped + " déjà présent(s)");
+      reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Import : " + (e.message || e));
+    }
+  };
+
   // ── Filtres
   const filtered = React.useMemo(() => rows.filter((r) => {
     if (filter.article_status !== "all") {
@@ -162,6 +188,16 @@ const StockCatalogue = () => {
               style={{ ...scStyles.ghostBtn, color: "#dc2626", borderColor: "#fecaca" }}
               title="Purge le cache localStorage du navigateur (ne touche pas la BDD)"
             >🗑 Purger cache local</button>
+            <button onClick={importMondaySuppliers}
+                    style={{ ...scStyles.ghostBtn, color: "#7e22ce", borderColor: "#e9d5ff" }}
+                    title="Importe la liste des fournisseurs depuis le board Monday « 1.0 - Achat hebdomadaire »">
+              ⬇ Importer fournisseurs Monday
+            </button>
+            <button onClick={() => { window.location.href = "/stock-article-nouveau"; }}
+                    style={{ ...scStyles.ghostBtn, color: "#0f766e", borderColor: "#a7f3d0", fontWeight: 600 }}
+                    title="Créer un nouvel article au catalogue">
+              + Création d'article
+            </button>
             <button onClick={reload} style={scStyles.primaryBtn}>↻ Rafraîchir</button>
           </div>
         </header>
@@ -197,6 +233,7 @@ const StockCatalogue = () => {
         ) : (
           <ListView rows={filtered} suppliers={suppliers} fmtEUR={fmtEUR} fmtEURP={fmtEURP}
                     onEdit={(r) => setEditing({ type: "line", row: r })} onReload={reload}
+                    onSuppliersChanged={reload}
                     isArchive={view === "archive"} />
         )}
       </main>
@@ -309,9 +346,132 @@ const applyArticleStatus = (status) => {
 };
 
 // ─────────────────────────────────────────────────────────────────
+// SupplierCombo — combobox fournisseur : recherche + ajout + suppression
+// ─────────────────────────────────────────────────────────────────
+const SupplierCombo = ({ value, suppliers, cellInput, onChange, onSuppliersChanged }) => {
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const ref = React.useRef(null);
+
+  // Fermeture au clic extérieur
+  React.useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const q = query.trim().toLowerCase();
+  const filtered = (suppliers || []).filter((s) => !q || (s.name || "").toLowerCase().indexOf(q) !== -1);
+  const exact = (suppliers || []).some((s) => (s.name || "").toLowerCase() === q);
+  const canCreate = q && !exact;
+
+  const select = (name) => {
+    onChange && onChange(name || null);
+    setQuery("");
+    setOpen(false);
+  };
+  const createNew = async () => {
+    const name = query.trim();
+    if (!name) return;
+    try {
+      await window.api.suppliers.create({ name });
+      if (window.HubToast) window.HubToast.success("✓ Fournisseur « " + name + " » ajouté");
+      onSuppliersChanged && onSuppliersChanged();
+      select(name);
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création : " + (e.message || e));
+    }
+  };
+  const removeSupplier = async (e, sup) => {
+    e.stopPropagation();
+    if (!confirm("Désactiver le fournisseur « " + sup.name + " » ?\n\nIl sera caché de la liste mais l'historique des achats est préservé.")) return;
+    try {
+      await window.api.suppliers.remove(sup.id);
+      if (window.HubToast) window.HubToast.success("✓ Fournisseur retiré");
+      onSuppliersChanged && onSuppliersChanged();
+    } catch (e2) {
+      if (window.HubToast) window.HubToast.error("Suppression : " + (e2.message || e2));
+    }
+  };
+
+  const trigger = (
+    <button type="button" onClick={() => setOpen((v) => !v)}
+            style={{ ...cellInput, textAlign: "left", cursor: "pointer",
+                     borderColor: !value ? "#fca5a5" : "#e2e8f0",
+                     color: !value ? "#dc2626" : "#0f172a", fontWeight: 600,
+                     display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {value || "⚠ À assigner"}
+      </span>
+      <span style={{ fontSize: 9, color: "#94a3b8" }}>▾</span>
+    </button>
+  );
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      {trigger}
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, zIndex: 1000,
+                      background: "#fff", border: "1px solid #cbd5e1", borderRadius: 8,
+                      boxShadow: "0 8px 24px rgba(15,23,42,0.15)", maxHeight: 320, display: "flex",
+                      flexDirection: "column", minWidth: 240 }}>
+          <input autoFocus type="text" value={query}
+                 onChange={(e) => setQuery(e.target.value)}
+                 onKeyDown={(e) => { if (e.key === "Enter") { if (filtered[0]) select(filtered[0].name); else if (canCreate) createNew(); } if (e.key === "Escape") setOpen(false); }}
+                 placeholder="🔍 Rechercher un fournisseur…"
+                 style={{ padding: "8px 10px", border: "none", borderBottom: "1px solid #eef1f5",
+                          outline: "none", fontSize: 12, fontFamily: "inherit", color: "#0f172a" }} />
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {value && (
+              <div onClick={() => select("")}
+                   style={{ padding: "8px 10px", fontSize: 11.5, color: "#dc2626", cursor: "pointer",
+                            borderBottom: "1px solid #f1f5f9", fontWeight: 600 }}>
+                ✕ Retirer la sélection
+              </div>
+            )}
+            {filtered.length === 0 ? (
+              <div style={{ padding: 14, fontSize: 11.5, color: "#94a3b8", textAlign: "center" }}>
+                Aucun fournisseur ne correspond.
+              </div>
+            ) : (
+              filtered.map((s) => (
+                <div key={s.id}
+                     onClick={() => select(s.name)}
+                     style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px",
+                              fontSize: 12, cursor: "pointer",
+                              background: s.name === value ? "#eff6ff" : "transparent",
+                              borderBottom: "1px solid #f8fafc" }}
+                     onMouseEnter={(e) => { if (s.name !== value) e.currentTarget.style.background = "#f8fafc"; }}
+                     onMouseLeave={(e) => { if (s.name !== value) e.currentTarget.style.background = "transparent"; }}>
+                  <span style={{ flex: 1, color: "#0f172a", fontWeight: s.name === value ? 700 : 500 }}>
+                    {s.name}
+                    {s.category && <span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 6 }}>· {s.category}</span>}
+                  </span>
+                  <button type="button" onClick={(e) => removeSupplier(e, s)}
+                          title="Désactiver ce fournisseur"
+                          style={{ width: 20, height: 20, borderRadius: 4, border: "none",
+                                   background: "transparent", color: "#94a3b8", fontSize: 13, cursor: "pointer" }}>×</button>
+                </div>
+              ))
+            )}
+          </div>
+          {canCreate && (
+            <div onClick={createNew}
+                 style={{ padding: "10px 12px", fontSize: 12, fontWeight: 600, color: "#065f46",
+                          background: "#d1fae5", cursor: "pointer", borderTop: "1px solid #a7f3d0" }}>
+              + Ajouter « <strong>{query.trim()}</strong> »
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
 // EditableRow — chaque ligne avec édition inline directe
 // ─────────────────────────────────────────────────────────────────
-const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
+const EditableRow = ({ r, suppliers, fmtEURP, onUpdated, onSuppliersChanged }) => {
   const [local, setLocal] = React.useState(r);
   const [saving, setSaving] = React.useState(null);
   // Champs en cours de saisie : on n'écrase pas local depuis r tant que l'utilisateur tape.
@@ -392,22 +552,21 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated }) => {
           </div>
         ) : <span style={{ color: "#cbd5e1" }}>—</span>}
       </td>
-      <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 160 }}>
-        <select value={local.supplier || ""}
-                onChange={(e) => updateField("supplier", e.target.value || null)}
-                style={{ ...cellInput, borderColor: !local.supplier ? "#fca5a5" : "#e2e8f0", color: !local.supplier ? "#dc2626" : "#0f172a", fontWeight: 600 }}>
-          <option value="">⚠ À assigner</option>
-          {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
-        </select>
-      </td>
       <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 180 }}>
+        <SupplierCombo value={local.supplier || ""}
+                       suppliers={suppliers}
+                       cellInput={cellInput}
+                       onChange={(v) => updateField("supplier", v || null)}
+                       onSuppliersChanged={onSuppliersChanged} />
+      </td>
+      <td style={{ ...scStyles.td, padding: "6px 8px", width: 130 }}>
         <select value={articleStatusKey}
                 onChange={(e) => {
                   const patch = applyArticleStatus(e.target.value);
                   setLocal((cur) => ({ ...cur, ...patch }));
                   doSave(patch);
                 }}
-                style={{ ...cellInput, background: as.bg, color: as.color, fontWeight: 700, borderColor: as.color, borderWidth: 2, paddingRight: 22 }}>
+                style={{ ...cellInput, background: as.bg, color: as.color, fontWeight: 700, borderColor: as.color, borderWidth: 2, paddingRight: 22, fontSize: 11.5 }}>
           <option value="panier"    style={{ background: ARTICLE_STATUS.panier.bg,    color: ARTICLE_STATUS.panier.color    }}>🛒 Panier</option>
           <option value="commande"  style={{ background: ARTICLE_STATUS.commande.bg,  color: ARTICLE_STATUS.commande.color  }}>✅ Commandé</option>
           <option value="partielle" style={{ background: ARTICLE_STATUS.partielle.bg, color: ARTICLE_STATUS.partielle.color }}>◐ Réception partielle</option>
@@ -528,7 +687,7 @@ const ArchiveButton = ({ g, isArchive, onReload }) => {
   );
 };
 
-const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchive }) => {
+const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, onSuppliersChanged, isArchive }) => {
   const [expanded, setExpanded] = React.useState({});
   const [search, setSearch] = React.useState("");
   const toggle = (k) => setExpanded((cur) => ({ ...cur, [k]: !cur[k] }));
@@ -697,7 +856,7 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchiv
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Achat HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Total Vente HT</th>
             <th style={{ ...scStyles.thHead, textAlign: "right" }}>Marge</th>
-            <th style={scStyles.thHead}>Statut article</th>
+            <th style={{ ...scStyles.thHead, width: 130 }}>Statut</th>
             <th style={{ ...scStyles.thHead, textAlign: "center", width: 110 }}>Action</th>
           </tr>
         </thead>
@@ -773,12 +932,12 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, isArchiv
                             <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>PU Vendu</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5, textAlign: "right" }}>Marge</th>
                             <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Fournisseur</th>
-                            <th style={{ ...scStyles.thHead, fontSize: 10.5 }}>Statut article</th>
+                            <th style={{ ...scStyles.thHead, fontSize: 10.5, width: 130 }}>Statut</th>
                           </tr>
                         </thead>
                         <tbody>
                           {g.lines.map((r) => (
-                            <EditableRow key={r.line_id} r={r} suppliers={suppliers} fmtEURP={fmtEURP} onUpdated={onReload} />
+                            <EditableRow key={r.line_id} r={r} suppliers={suppliers} fmtEURP={fmtEURP} onUpdated={onReload} onSuppliersChanged={onSuppliersChanged} />
                           ))}
                         </tbody>
                       </table>

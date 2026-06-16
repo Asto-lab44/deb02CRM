@@ -281,8 +281,71 @@ var NewContract = () => {
   var [signMethod, setSignMethod] = React.useState("qualified");
   var [signatory, setSignatory] = React.useState({
     name: "",
-    role: ""
+    role: "",
+    email: "",
+    phone: ""
   });
+  // Contacts du client (pour sélection du signataire)
+  var [clientContacts, setClientContacts] = React.useState([]);
+  var [showNewContactForm, setShowNewContactForm] = React.useState(false);
+  var [newContact, setNewContact] = React.useState({
+    prenom: "",
+    nom: "",
+    fonction: "",
+    email: "",
+    phone: ""
+  });
+  React.useEffect(() => {
+    if (!clientId || !window.api || !window.api.contacts) return;
+    window.api.contacts.list({
+      client_id: clientId
+    }).then(list => setClientContacts(list || [])).catch(() => {});
+  }, [clientId]);
+  var reloadContacts = async () => {
+    if (!clientId || !window.api || !window.api.contacts) return;
+    var list = await window.api.contacts.list({
+      client_id: clientId
+    });
+    setClientContacts(list || []);
+  };
+  var saveNewContact = async () => {
+    var prenom = (newContact.prenom || "").trim();
+    var nom = (newContact.nom || "").trim();
+    if (!prenom && !nom) {
+      if (window.HubToast) window.HubToast.error("Renseigne au moins un prénom ou un nom.");
+      return;
+    }
+    try {
+      var created = await window.api.contacts.create({
+        client_id: clientId,
+        prenom,
+        nom,
+        fonction: (newContact.fonction || "").trim(),
+        email: (newContact.email || "").trim(),
+        phone: (newContact.phone || "").trim()
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact " + (prenom + " " + nom).trim() + " créé");
+      await reloadContacts();
+      // Pré-sélection automatique en signataire
+      var fullName = ((created.prenom || prenom) + " " + (created.nom || nom)).trim();
+      setSignatory({
+        name: fullName,
+        role: created.fonction || newContact.fonction || "",
+        email: created.email || newContact.email || "",
+        phone: created.phone || newContact.phone || ""
+      });
+      setShowNewContactForm(false);
+      setNewContact({
+        prenom: "",
+        nom: "",
+        fonction: "",
+        email: "",
+        phone: ""
+      });
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création contact : " + (e.message || e));
+    }
+  };
   var [savedTick, setSavedTick] = React.useState(0);
   // Preview avant envoi pour signature
   var [previewOpen, setPreviewOpen] = React.useState(false);
@@ -984,7 +1047,32 @@ var NewContract = () => {
   }, "SIREN ", clientSiren)))), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Signataire habilit\xE9",
     required: true
-  }, /*#__PURE__*/React.createElement("div", {
+  }, clientContacts.length > 0 && /*#__PURE__*/React.createElement("select", {
+    value: "",
+    onChange: e => {
+      var c = clientContacts.find(x => x.id === e.target.value);
+      if (c) {
+        var full = ((c.prenom || "") + " " + (c.nom || "")).trim();
+        setSignatory({
+          name: full,
+          role: c.fonction || "",
+          email: c.email || "",
+          phone: c.phone || ""
+        });
+      }
+    },
+    style: {
+      ...ncStyles.select100,
+      marginBottom: 6,
+      fontSize: 12,
+      color: "#475569"
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Choisir un contact existant (", clientContacts.length, ") \u2014"), clientContacts.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, ((c.prenom || "") + " " + (c.nom || "")).trim() || "(sans nom)", c.fonction ? " · " + c.fonction : ""))), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.linkedCardMini
   }, /*#__PURE__*/React.createElement(NCAvatar, {
     name: signatory.name || "?",
@@ -1026,7 +1114,146 @@ var NewContract = () => {
       background: "transparent",
       color: "#64748b"
     }
-  }))))))), /*#__PURE__*/React.createElement("section", {
+  }))), !showNewContactForm && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowNewContactForm(true),
+    style: {
+      marginTop: 8,
+      padding: "5px 10px",
+      fontSize: 11.5,
+      fontWeight: 600,
+      background: "transparent",
+      color: "#4f46e5",
+      border: "1px dashed #c7d2fe",
+      borderRadius: 6,
+      cursor: "pointer",
+      width: "100%"
+    }
+  }, "+ Ajouter un nouveau contact pour ce client"), showNewContactForm && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      padding: 10,
+      background: "#fafbfc",
+      border: "1px solid #c7d2fe",
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#4f46e5",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 8
+    }
+  }, "Nouveau contact"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 6,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newContact.prenom,
+    onChange: e => setNewContact({
+      ...newContact,
+      prenom: e.target.value
+    }),
+    placeholder: "Pr\xE9nom",
+    style: {
+      ...ncStyles.input,
+      padding: "5px 8px",
+      fontSize: 12
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: newContact.nom,
+    onChange: e => setNewContact({
+      ...newContact,
+      nom: e.target.value
+    }),
+    placeholder: "Nom *",
+    style: {
+      ...ncStyles.input,
+      padding: "5px 8px",
+      fontSize: 12
+    }
+  })), /*#__PURE__*/React.createElement("input", {
+    value: newContact.fonction,
+    onChange: e => setNewContact({
+      ...newContact,
+      fonction: e.target.value
+    }),
+    placeholder: "Fonction (ex. G\xE9rant, DAF, Resp. SI\u2026)",
+    style: {
+      ...ncStyles.input,
+      padding: "5px 8px",
+      fontSize: 12,
+      marginBottom: 6,
+      width: "100%",
+      boxSizing: "border-box"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 6,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newContact.email,
+    onChange: e => setNewContact({
+      ...newContact,
+      email: e.target.value
+    }),
+    placeholder: "Email",
+    type: "email",
+    style: {
+      ...ncStyles.input,
+      padding: "5px 8px",
+      fontSize: 12
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: newContact.phone,
+    onChange: e => setNewContact({
+      ...newContact,
+      phone: e.target.value
+    }),
+    placeholder: "T\xE9l\xE9phone",
+    type: "tel",
+    style: {
+      ...ncStyles.input,
+      padding: "5px 8px",
+      fontSize: 12
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      justifyContent: "flex-end"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setShowNewContactForm(false);
+      setNewContact({
+        prenom: "",
+        nom: "",
+        fonction: "",
+        email: "",
+        phone: ""
+      });
+    },
+    style: {
+      ...ncStyles.ghostBtn,
+      padding: "6px 12px",
+      fontSize: 11.5
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: saveNewContact,
+    style: {
+      ...ncStyles.primaryBtn,
+      padding: "6px 14px",
+      fontSize: 11.5
+    }
+  }, "\u2713 Cr\xE9er & s\xE9lectionner"))))))), /*#__PURE__*/React.createElement("section", {
     style: {
       ...ncStyles.section,
       ...ncStyles.sectionActive

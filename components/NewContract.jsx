@@ -111,7 +111,51 @@ const NewContract = () => {
   });
   const [currency, setCurrency] = React.useState("EUR");
   const [signMethod, setSignMethod] = React.useState("qualified");
-  const [signatory, setSignatory] = React.useState({ name: "", role: "" });
+  const [signatory, setSignatory] = React.useState({ name: "", role: "", email: "", phone: "" });
+  // Contacts du client (pour sélection du signataire)
+  const [clientContacts, setClientContacts] = React.useState([]);
+  const [showNewContactForm, setShowNewContactForm] = React.useState(false);
+  const [newContact, setNewContact] = React.useState({ prenom: "", nom: "", fonction: "", email: "", phone: "" });
+  React.useEffect(() => {
+    if (!clientId || !window.api || !window.api.contacts) return;
+    window.api.contacts.list({ client_id: clientId }).then((list) => setClientContacts(list || [])).catch(() => {});
+  }, [clientId]);
+  const reloadContacts = async () => {
+    if (!clientId || !window.api || !window.api.contacts) return;
+    const list = await window.api.contacts.list({ client_id: clientId });
+    setClientContacts(list || []);
+  };
+  const saveNewContact = async () => {
+    const prenom = (newContact.prenom || "").trim();
+    const nom = (newContact.nom || "").trim();
+    if (!prenom && !nom) {
+      if (window.HubToast) window.HubToast.error("Renseigne au moins un prénom ou un nom.");
+      return;
+    }
+    try {
+      const created = await window.api.contacts.create({
+        client_id: clientId,
+        prenom, nom,
+        fonction: (newContact.fonction || "").trim(),
+        email: (newContact.email || "").trim(),
+        phone: (newContact.phone || "").trim(),
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact " + (prenom + " " + nom).trim() + " créé");
+      await reloadContacts();
+      // Pré-sélection automatique en signataire
+      const fullName = ((created.prenom || prenom) + " " + (created.nom || nom)).trim();
+      setSignatory({
+        name: fullName,
+        role: created.fonction || newContact.fonction || "",
+        email: created.email || newContact.email || "",
+        phone: created.phone || newContact.phone || "",
+      });
+      setShowNewContactForm(false);
+      setNewContact({ prenom: "", nom: "", fonction: "", email: "", phone: "" });
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création contact : " + (e.message || e));
+    }
+  };
   const [savedTick, setSavedTick] = React.useState(0);
   // Preview avant envoi pour signature
   const [previewOpen, setPreviewOpen] = React.useState(false);
@@ -510,23 +554,88 @@ const NewContract = () => {
                 </NCFormRow>
 
                 <NCFormRow label="Signataire habilité" required>
+                  {/* Sélection d'un contact existant du client */}
+                  {clientContacts.length > 0 && (
+                    <select value="" onChange={(e) => {
+                      const c = clientContacts.find((x) => x.id === e.target.value);
+                      if (c) {
+                        const full = ((c.prenom || "") + " " + (c.nom || "")).trim();
+                        setSignatory({ name: full, role: c.fonction || "", email: c.email || "", phone: c.phone || "" });
+                      }
+                    }}
+                    style={{ ...ncStyles.select100, marginBottom: 6, fontSize: 12, color: "#475569" }}>
+                      <option value="">— Choisir un contact existant ({clientContacts.length}) —</option>
+                      {clientContacts.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {((c.prenom || "") + " " + (c.nom || "")).trim() || "(sans nom)"}{c.fonction ? " · " + c.fonction : ""}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <div style={ncStyles.linkedCardMini}>
                     <NCAvatar name={signatory.name || "?"} size={26} color="#a855f7" />
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                      <input
-                        value={signatory.name}
-                        onChange={(e) => setSignatory({ ...signatory, name: e.target.value })}
-                        placeholder="Nom complet"
-                        style={{ ...ncStyles.input, padding: "4px 8px", fontSize: 12, border: "none", background: "transparent" }}
-                      />
-                      <input
-                        value={signatory.role}
-                        onChange={(e) => setSignatory({ ...signatory, role: e.target.value })}
-                        placeholder="Fonction"
-                        style={{ ...ncStyles.input, padding: "4px 8px", fontSize: 11, border: "none", background: "transparent", color: "#64748b" }}
-                      />
+                      <input value={signatory.name}
+                             onChange={(e) => setSignatory({ ...signatory, name: e.target.value })}
+                             placeholder="Nom complet"
+                             style={{ ...ncStyles.input, padding: "4px 8px", fontSize: 12, border: "none", background: "transparent" }} />
+                      <input value={signatory.role}
+                             onChange={(e) => setSignatory({ ...signatory, role: e.target.value })}
+                             placeholder="Fonction"
+                             style={{ ...ncStyles.input, padding: "4px 8px", fontSize: 11, border: "none", background: "transparent", color: "#64748b" }} />
                     </div>
                   </div>
+                  {/* Bouton « + Nouveau contact » */}
+                  {!showNewContactForm && (
+                    <button onClick={() => setShowNewContactForm(true)}
+                            style={{ marginTop: 8, padding: "5px 10px", fontSize: 11.5, fontWeight: 600,
+                                     background: "transparent", color: "#4f46e5", border: "1px dashed #c7d2fe",
+                                     borderRadius: 6, cursor: "pointer", width: "100%" }}>
+                      + Ajouter un nouveau contact pour ce client
+                    </button>
+                  )}
+                  {showNewContactForm && (
+                    <div style={{ marginTop: 8, padding: 10, background: "#fafbfc", border: "1px solid #c7d2fe", borderRadius: 8 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: "#4f46e5", textTransform: "uppercase",
+                                    letterSpacing: 0.4, marginBottom: 8 }}>
+                        Nouveau contact
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
+                        <input value={newContact.prenom}
+                               onChange={(e) => setNewContact({ ...newContact, prenom: e.target.value })}
+                               placeholder="Prénom"
+                               style={{ ...ncStyles.input, padding: "5px 8px", fontSize: 12 }} />
+                        <input value={newContact.nom}
+                               onChange={(e) => setNewContact({ ...newContact, nom: e.target.value })}
+                               placeholder="Nom *"
+                               style={{ ...ncStyles.input, padding: "5px 8px", fontSize: 12 }} />
+                      </div>
+                      <input value={newContact.fonction}
+                             onChange={(e) => setNewContact({ ...newContact, fonction: e.target.value })}
+                             placeholder="Fonction (ex. Gérant, DAF, Resp. SI…)"
+                             style={{ ...ncStyles.input, padding: "5px 8px", fontSize: 12, marginBottom: 6, width: "100%", boxSizing: "border-box" }} />
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
+                        <input value={newContact.email}
+                               onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                               placeholder="Email" type="email"
+                               style={{ ...ncStyles.input, padding: "5px 8px", fontSize: 12 }} />
+                        <input value={newContact.phone}
+                               onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                               placeholder="Téléphone" type="tel"
+                               style={{ ...ncStyles.input, padding: "5px 8px", fontSize: 12 }} />
+                      </div>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <button onClick={() => { setShowNewContactForm(false); setNewContact({ prenom: "", nom: "", fonction: "", email: "", phone: "" }); }}
+                                style={{ ...ncStyles.ghostBtn, padding: "6px 12px", fontSize: 11.5 }}>
+                          Annuler
+                        </button>
+                        <button onClick={saveNewContact}
+                                style={{ ...ncStyles.primaryBtn, padding: "6px 14px", fontSize: 11.5 }}>
+                          ✓ Créer & sélectionner
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </NCFormRow>
               </div>
             </section>

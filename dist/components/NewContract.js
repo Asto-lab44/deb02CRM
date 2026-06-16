@@ -410,7 +410,10 @@ var NewContract = () => {
         cp: clientObj && (clientObj.cp || clientObj.zip_code) || "",
         city: clientObj && (clientObj.city || clientObj.ville) || "",
         siren: clientSiren !== "—" ? clientSiren : "",
-        billing_email: clientObj && (clientObj.billing_email || clientObj.email) || ""
+        billing_email: clientObj && (clientObj.billing_email || clientObj.email) || "",
+        tel: clientObj && (clientObj.tel || clientObj.phone) || "",
+        iban: clientObj && clientObj.iban || "",
+        bic: clientObj && clientObj.bic || ""
       },
       products,
       duration,
@@ -422,6 +425,10 @@ var NewContract = () => {
       startDate,
       endDate,
       signatory,
+      referent: {
+        name: signatory.name,
+        email: clientObj && clientObj.email || ""
+      },
       sums
     };
     try {

@@ -62,33 +62,52 @@
     const isBL = doc.type === "bl";
 
     // ───── Lignes du tableau
+    // Si AUCUNE ligne n'a de référence article (ref), on masque la colonne
+    // « Article » et on récupère sa place pour la désignation. Évite d'avoir
+    // une colonne de « — » sur toute la hauteur du tableau.
+    const hasAnyRef = (doc.lines || []).some((l) => l.ref && String(l.ref).trim() && String(l.ref).trim() !== "—");
     const tableBody = [];
     if (isBL) {
-      tableBody.push([
-        { text: "Article", style: "tableHeader" },
-        { text: "Désignation", style: "tableHeader" },
-        { text: "Qté", style: "tableHeader", alignment: "right" },
-        { text: "N° de série", style: "tableHeader" },
-      ]);
+      const header = hasAnyRef
+        ? [
+            { text: "Article", style: "tableHeader" },
+            { text: "Désignation", style: "tableHeader" },
+            { text: "Qté", style: "tableHeader", alignment: "right" },
+            { text: "N° de série", style: "tableHeader" },
+          ]
+        : [
+            { text: "Désignation", style: "tableHeader" },
+            { text: "Qté", style: "tableHeader", alignment: "right" },
+            { text: "N° de série", style: "tableHeader" },
+          ];
+      tableBody.push(header);
     } else {
-      tableBody.push([
-        { text: "Article", style: "tableHeader" },
-        { text: "Désignation", style: "tableHeader" },
-        { text: "Qté", style: "tableHeader", alignment: "right" },
-        { text: "P.U. HT", style: "tableHeader", alignment: "right" },
-        { text: "Montant\nHT", style: "tableHeader", alignment: "right" },
-      ]);
+      const header = hasAnyRef
+        ? [
+            { text: "Article", style: "tableHeader" },
+            { text: "Désignation", style: "tableHeader" },
+            { text: "Qté", style: "tableHeader", alignment: "right" },
+            { text: "P.U. HT", style: "tableHeader", alignment: "right" },
+            { text: "Montant\nHT", style: "tableHeader", alignment: "right" },
+          ]
+        : [
+            { text: "Désignation", style: "tableHeader" },
+            { text: "Qté", style: "tableHeader", alignment: "right" },
+            { text: "P.U. HT", style: "tableHeader", alignment: "right" },
+            { text: "Montant\nHT", style: "tableHeader", alignment: "right" },
+          ];
+      tableBody.push(header);
     }
     (doc.lines || []).forEach((l) => {
       if (l.is_text_only) {
-        const span = isBL ? 3 : 4;
+        // colSpan = nombre total de colonnes - 1 (toujours laisser la première vide)
+        const totalCols = (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 1 : 2);
+        const span = totalCols - 1;
         const row = [
           { text: "", style: "tableCell" },
           { text: l.designation || "", style: "tableCell", colSpan: span, italics: true, color: "#666" },
-          {},
-          {},
         ];
-        if (!isBL) row.push({});
+        for (let i = 1; i < span; i++) row.push({});
         tableBody.push(row);
         return;
       }
@@ -97,21 +116,33 @@
       if (l.description && String(l.description).trim()) {
         desStack.push({ text: l.description, style: "tableCellSm", margin: [0, 2, 0, 0] });
       }
+      // Si la colonne Article est masquée, on injecte la ref EN HEAD de la
+      // désignation (en monospace petit, gris) pour ne pas perdre l'info.
+      if (!hasAnyRef && l.ref && String(l.ref).trim() && String(l.ref).trim() !== "—") {
+        desStack.unshift({ text: l.ref, style: "tableCellMono", margin: [0, 0, 0, 1] });
+      }
+      const qtyCell = { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" };
       if (isBL) {
-        tableBody.push([
-          { text: l.ref || "—", style: "tableCellMono" },
-          { stack: desStack },
-          { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" },
-          { text: (l.serial_number || l.sn || ""), style: "tableCellMono" },
-        ]);
+        const row = hasAnyRef
+          ? [{ text: l.ref || "—", style: "tableCellMono" }, { stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }]
+          : [{ stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }];
+        tableBody.push(row);
       } else {
-        tableBody.push([
-          { text: l.ref || "—", style: "tableCellMono" },
-          { stack: desStack },
-          { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" },
-          { text: fmtEUR(l.unit_price_ht), style: "tableCell", alignment: "right" },
-          { text: fmtEUR(l.total_ht), style: "tableCell", alignment: "right", bold: true },
-        ]);
+        const row = hasAnyRef
+          ? [
+              { text: l.ref || "—", style: "tableCellMono" },
+              { stack: desStack },
+              qtyCell,
+              { text: fmtEUR(l.unit_price_ht), style: "tableCell", alignment: "right" },
+              { text: fmtEUR(l.total_ht), style: "tableCell", alignment: "right", bold: true },
+            ]
+          : [
+              { stack: desStack },
+              qtyCell,
+              { text: fmtEUR(l.unit_price_ht), style: "tableCell", alignment: "right" },
+              { text: fmtEUR(l.total_ht), style: "tableCell", alignment: "right", bold: true },
+            ];
+        tableBody.push(row);
       }
     });
 
@@ -214,10 +245,14 @@
     };
 
     // ───── Tableau lignes
+    // Widths adaptés à la présence ou non de la colonne Article
+    const linesWidths = isBL
+      ? (hasAnyRef ? [60, "*", 40, 120] : ["*", 40, 130])
+      : (hasAnyRef ? [60, "*", 40, 65, 65] : ["*", 40, 65, 65]);
     const linesTable = {
       table: {
         headerRows: 1,
-        widths: isBL ? [60, "*", 40, 120] : [60, "*", 40, 65, 65],
+        widths: linesWidths,
         body: tableBody,
       },
       layout: {
@@ -231,7 +266,10 @@
     };
 
     // ───── Totaux (récap TVA + Total HT/TVA/NET A PAYER)
+    // unbreakable : pdfmake garde tout le bloc sur la même page (évite que
+    // le « NET A PAYER » se retrouve seul sur la page suivante).
     const totalsBlock = {
+      unbreakable: true,
       columns: [
         {
           width: "*",

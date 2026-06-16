@@ -636,6 +636,13 @@ var ProjectsKanban = () => {
     },
     title: "Filtres avanc\xE9s"
   }, "\u2699 Filtres", hasAdvancedFilter ? " · " + (Number(!!filterPM) + Number(!!filterClient)) : ""), /*#__PURE__*/React.createElement("a", {
+    href: "/projets-tableau",
+    style: {
+      ...S.btnGhost,
+      textDecoration: "none"
+    },
+    title: "Vue tableau plat (style Monday)"
+  }, "\u229E Tableau"), /*#__PURE__*/React.createElement("a", {
     href: "/projets-calendrier",
     style: {
       ...S.btnGhost,

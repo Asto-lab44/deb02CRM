@@ -357,6 +357,7 @@ const ProjectsKanban = () => {
             <button onClick={() => setAdvancedOpen((v) => !v)} style={{ ...S.btnGhost, ...(hasAdvancedFilter ? { borderColor: "#3730a3", color: "#3730a3", fontWeight: 700 } : {}) }} title="Filtres avancés">
               ⚙ Filtres{hasAdvancedFilter ? " · " + (Number(!!filterPM) + Number(!!filterClient)) : ""}
             </button>
+            <a href="/projets-tableau" style={{ ...S.btnGhost, textDecoration: "none" }} title="Vue tableau plat (style Monday)">⊞ Tableau</a>
             <a href="/projets-calendrier" style={{ ...S.btnGhost, textDecoration: "none" }} title="Vue calendrier mensuelle">📅 Calendrier</a>
             <a href="/projets-gantt" style={{ ...S.btnGhost, textDecoration: "none" }} title="Vue Gantt frise temporelle">📊 Gantt</a>
             <button onClick={downloadTemplate} style={S.btnGhost} title="Télécharger un template CSV vide à remplir">📋 Template CSV</button>

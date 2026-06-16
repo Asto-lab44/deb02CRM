@@ -94,6 +94,7 @@ const ProjectsGantt = () => {
           </div>
         </a>
         <a href="/projets" style={{ ...S.viewBtn, ...S.viewBtnGhost, textDecoration: "none" }}>📋 Kanban</a>
+        <a href="/projets-tableau" style={{ ...S.viewBtn, ...S.viewBtnGhost, textDecoration: "none" }}>⊞ Tableau</a>
         <a href="/projets-calendrier" style={{ ...S.viewBtn, ...S.viewBtnGhost, textDecoration: "none" }}>📅 Calendrier</a>
         <div style={{ ...S.viewBtn, ...S.viewBtnActive }}>📊 Gantt</div>
 

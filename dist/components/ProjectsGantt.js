@@ -147,6 +147,13 @@ var ProjectsGantt = () => {
       textDecoration: "none"
     }
   }, "\uD83D\uDCCB Kanban"), /*#__PURE__*/React.createElement("a", {
+    href: "/projets-tableau",
+    style: {
+      ...S.viewBtn,
+      ...S.viewBtnGhost,
+      textDecoration: "none"
+    }
+  }, "\u229E Tableau"), /*#__PURE__*/React.createElement("a", {
     href: "/projets-calendrier",
     style: {
       ...S.viewBtn,

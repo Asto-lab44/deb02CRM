@@ -3738,6 +3738,169 @@ var ClientPage = () => {
     style: editInput
   }))), /*#__PURE__*/React.createElement("div", {
     style: editSection
+  }, "01b \xB7 \xC9tablissements secondaires"), (() => {
+    var list = Array.isArray(editDraft.etablissements_secondaires) ? editDraft.etablissements_secondaires : [];
+    var update = (i, patch) => {
+      var next = list.map((e, j) => j === i ? {
+        ...e,
+        ...patch
+      } : e);
+      setEditDraft({
+        ...editDraft,
+        etablissements_secondaires: next
+      });
+    };
+    var add = () => {
+      setEditDraft({
+        ...editDraft,
+        etablissements_secondaires: [...list, {
+          nom: "",
+          adresse: "",
+          cp: "",
+          ville: ""
+        }]
+      });
+    };
+    var remove = i => {
+      setEditDraft({
+        ...editDraft,
+        etablissements_secondaires: list.filter((_, j) => j !== i)
+      });
+    };
+    return /*#__PURE__*/React.createElement("div", null, list.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 12px",
+        background: "#fafbfc",
+        border: "1px dashed #e2e8f0",
+        borderRadius: 8,
+        fontSize: 12,
+        color: "#94a3b8",
+        marginBottom: 8
+      }
+    }, "Aucun \xE9tablissement secondaire. Clique sur \xAB + Ajouter \xBB pour ajouter une succursale, une antenne ou un site distant.") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        marginBottom: 8
+      }
+    }, list.map((es, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        padding: 12,
+        background: "#fafbfc",
+        border: "1px solid #eef1f5",
+        borderRadius: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "#3730a3",
+        textTransform: "uppercase",
+        letterSpacing: 0.4
+      }
+    }, "\uD83C\uDFE2 \xC9tablissement ", i + 1), /*#__PURE__*/React.createElement("button", {
+      onClick: () => remove(i),
+      type: "button",
+      style: {
+        padding: "3px 8px",
+        fontSize: 11,
+        color: "#dc2626",
+        background: "transparent",
+        border: "1px solid #fecaca",
+        borderRadius: 5,
+        cursor: "pointer"
+      }
+    }, "Supprimer")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: editLabel
+    }, "Nom / libell\xE9"), /*#__PURE__*/React.createElement("input", {
+      value: es.nom || "",
+      onChange: e => update(i, {
+        nom: e.target.value
+      }),
+      placeholder: "ex. Antenne Paris, Atelier Rennes\u2026",
+      style: editInput
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: editLabel
+    }, "SIRET (optionnel)"), /*#__PURE__*/React.createElement("input", {
+      value: es.siret || "",
+      onChange: e => update(i, {
+        siret: e.target.value
+      }),
+      placeholder: "14 chiffres",
+      style: {
+        ...editInput,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: editLabel
+    }, "Adresse"), /*#__PURE__*/React.createElement("input", {
+      value: es.adresse || "",
+      onChange: e => update(i, {
+        adresse: e.target.value
+      }),
+      placeholder: "N\xB0, voie",
+      style: editInput
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "150px 1fr",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: editLabel
+    }, "Code postal"), /*#__PURE__*/React.createElement("input", {
+      value: es.cp || "",
+      onChange: e => update(i, {
+        cp: e.target.value
+      }),
+      placeholder: "44000",
+      style: editInput
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: editLabel
+    }, "Ville"), /*#__PURE__*/React.createElement("input", {
+      value: es.ville || "",
+      onChange: e => update(i, {
+        ville: e.target.value
+      }),
+      placeholder: "Nantes",
+      style: editInput
+    })))))), /*#__PURE__*/React.createElement("button", {
+      onClick: add,
+      type: "button",
+      style: {
+        padding: "8px 14px",
+        fontSize: 12,
+        fontWeight: 600,
+        color: "#3730a3",
+        background: "transparent",
+        border: "1px dashed #c7d2fe",
+        borderRadius: 8,
+        cursor: "pointer",
+        width: "100%"
+      }
+    }, "+ Ajouter un \xE9tablissement secondaire"));
+  })(), /*#__PURE__*/React.createElement("div", {
+    style: editSection
   }, "02 \xB7 Contact principal"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",

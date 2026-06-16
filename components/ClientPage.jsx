@@ -1939,6 +1939,83 @@ const ClientPage = () => {
                 </div>
               </div>
 
+              {/* ÉTABLISSEMENTS SECONDAIRES */}
+              <div style={editSection}>01b · Établissements secondaires</div>
+              {(() => {
+                const list = Array.isArray(editDraft.etablissements_secondaires) ? editDraft.etablissements_secondaires : [];
+                const update = (i, patch) => {
+                  const next = list.map((e, j) => j === i ? { ...e, ...patch } : e);
+                  setEditDraft({ ...editDraft, etablissements_secondaires: next });
+                };
+                const add = () => {
+                  setEditDraft({ ...editDraft, etablissements_secondaires: [...list, { nom: "", adresse: "", cp: "", ville: "" }] });
+                };
+                const remove = (i) => {
+                  setEditDraft({ ...editDraft, etablissements_secondaires: list.filter((_, j) => j !== i) });
+                };
+                return (
+                  <div>
+                    {list.length === 0 ? (
+                      <div style={{ padding: "10px 12px", background: "#fafbfc", border: "1px dashed #e2e8f0", borderRadius: 8, fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>
+                        Aucun établissement secondaire. Clique sur « + Ajouter » pour ajouter une succursale, une antenne ou un site distant.
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
+                        {list.map((es, i) => (
+                          <div key={i} style={{ padding: 12, background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#3730a3", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                                🏢 Établissement {i + 1}
+                              </div>
+                              <button onClick={() => remove(i)} type="button"
+                                      style={{ padding: "3px 8px", fontSize: 11, color: "#dc2626", background: "transparent",
+                                               border: "1px solid #fecaca", borderRadius: 5, cursor: "pointer" }}>
+                                Supprimer
+                              </button>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                              <div>
+                                <label style={editLabel}>Nom / libellé</label>
+                                <input value={es.nom || ""} onChange={(e) => update(i, { nom: e.target.value })}
+                                       placeholder="ex. Antenne Paris, Atelier Rennes…" style={editInput} />
+                              </div>
+                              <div>
+                                <label style={editLabel}>SIRET (optionnel)</label>
+                                <input value={es.siret || ""} onChange={(e) => update(i, { siret: e.target.value })}
+                                       placeholder="14 chiffres" style={{ ...editInput, fontFamily: "'JetBrains Mono', monospace" }} />
+                              </div>
+                            </div>
+                            <div style={{ marginBottom: 8 }}>
+                              <label style={editLabel}>Adresse</label>
+                              <input value={es.adresse || ""} onChange={(e) => update(i, { adresse: e.target.value })}
+                                     placeholder="N°, voie" style={editInput} />
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 8 }}>
+                              <div>
+                                <label style={editLabel}>Code postal</label>
+                                <input value={es.cp || ""} onChange={(e) => update(i, { cp: e.target.value })}
+                                       placeholder="44000" style={editInput} />
+                              </div>
+                              <div>
+                                <label style={editLabel}>Ville</label>
+                                <input value={es.ville || ""} onChange={(e) => update(i, { ville: e.target.value })}
+                                       placeholder="Nantes" style={editInput} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button onClick={add} type="button"
+                            style={{ padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#3730a3",
+                                     background: "transparent", border: "1px dashed #c7d2fe", borderRadius: 8,
+                                     cursor: "pointer", width: "100%" }}>
+                      + Ajouter un établissement secondaire
+                    </button>
+                  </div>
+                );
+              })()}
+
               {/* CONTACT PRINCIPAL */}
               <div style={editSection}>02 · Contact principal</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

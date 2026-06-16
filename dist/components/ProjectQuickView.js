@@ -79,26 +79,101 @@ var ProjectQuickView = ({
     }
     setSavingField(null);
   };
+
+  // ── BL : génération + affichage immédiat ──
+  // localBlobUrl = PDF généré côté client (affiché instantanément, pas besoin de Storage).
+  // proj.data.bl_pdf_url = URL Storage persistée (chargée à la réouverture du projet).
+  var [localBlobUrl, setLocalBlobUrl] = React.useState(null);
+  React.useEffect(() => () => {
+    if (localBlobUrl) URL.revokeObjectURL(localBlobUrl);
+  }, [localBlobUrl]);
+
+  // Récupère le BL doc lié au projet, en remontant la chaîne devis→commande→BL
+  // et en créant les maillons manquants si besoin.
+  var ensureBLDoc = async () => {
+    // 1. Déjà mémorisé sur le projet ?
+    var blId = proj.data && proj.data.bl_doc_id;
+    if (blId) {
+      var exists = await window.api.commercialDocs.getById(blId);
+      if (exists && exists.type === "bl") return exists;
+      blId = null;
+    }
+    // 2. Recherche dans commercial_docs via commande_id / opportunity_id
+    var found = await window.api.commercialDocs.findBLForProject(proj);
+    if (found) {
+      var full = await window.api.commercialDocs.getById(found.id);
+      if (full) return full;
+    }
+    // 3. Recherche d'une COMMANDE liée → cascade vers BL
+    var oppId = proj.opportunity_id || proj.data && proj.data.opportunity_id;
+    var cmdId = proj.data && proj.data.commande_id;
+    var candidates = [];
+    if (cmdId) {
+      var c = await window.api.commercialDocs.getById(cmdId);
+      if (c && c.type === "commande") candidates.push(c);
+    }
+    if (!candidates.length && oppId) {
+      var all = await window.api.commercialDocs.list({
+        opportunity_id: oppId
+      });
+      candidates = (all || []).filter(d => d.type === "commande" && d.status !== "annule" && d.status !== "refuse");
+    }
+    if (candidates.length) {
+      var cmd = candidates[0];
+      var bl = await window.api.commercialDocs.transform(cmd.id, "bl");
+      if (bl) return bl;
+    }
+    // 4. Recherche d'un DEVIS lié → cascade vers commande → BL
+    if (oppId) {
+      var _all = await window.api.commercialDocs.list({
+        opportunity_id: oppId
+      });
+      var devis = (_all || []).filter(d => d.type === "devis" && d.status !== "annule" && d.status !== "refuse");
+      if (devis.length) {
+        var _cmd = await window.api.commercialDocs.transform(devis[0].id, "commande");
+        if (_cmd) {
+          var _bl = await window.api.commercialDocs.transform(_cmd.id, "bl");
+          if (_bl) return _bl;
+        }
+      }
+    }
+    return null;
+  };
   var regenerateBL = async () => {
     if (!proj) return;
+    if (!window.HubCommercialPdf) {
+      if (window.HubToast) window.HubToast.error("Le générateur PDF n'est pas chargé. Recharge la page (Ctrl+F5).");
+      return;
+    }
     setGeneratingBL(true);
     try {
-      // 1. Si on a déjà un bl_doc_id en data, regen direct
-      var blId = proj.data && proj.data.bl_doc_id;
-      // 2. Sinon, chercher le BL lié via commande_id / opportunity_id
-      if (!blId) {
-        var found = await window.api.commercialDocs.findBLForProject(proj);
-        if (found) blId = found.id;
-      }
-      if (!blId) {
-        if (window.HubToast) window.HubToast.warn("Aucun BL trouvé pour ce projet. Le cascade workflow doit d'abord créer un BL.");
+      // 1. Trouve ou crée le BL doc (cascade devis→commande→BL si nécessaire)
+      var blDoc = await ensureBLDoc();
+      if (!blDoc) {
+        if (window.HubToast) window.HubToast.warn("Aucun devis/commande lié à ce projet — impossible de générer un BL.");
         setGeneratingBL(false);
         return;
       }
-      await window.api.commercialDocs.regenerateBLPdf(blId);
-      if (window.HubToast) window.HubToast.success("✓ PDF du BL généré et attaché");
-      await reload();
-      if (onChanged) onChanged();
+      var full = blDoc.lines ? blDoc : await window.api.commercialDocs.getById(blDoc.id);
+      // 2. Génère le PDF côté client → blob URL → affichage immédiat
+      var blob = await window.HubCommercialPdf.toBlob({
+        ...full
+      });
+      if (blob) {
+        var url = URL.createObjectURL(blob);
+        if (localBlobUrl) URL.revokeObjectURL(localBlobUrl);
+        setLocalBlobUrl(url);
+        if (window.HubToast) window.HubToast.success("✓ BL généré (affiché ci-dessous)");
+      }
+      // 3. En arrière-plan : upload vers Storage + persiste sur le projet
+      try {
+        await window.api.commercialDocs.regenerateBLPdf(full.id);
+        await reload();
+        if (onChanged) onChanged();
+      } catch (eUp) {
+        console.warn("[BL upload Storage]", eUp.message || eUp);
+        // Le PDF reste affiché en local même si l'upload échoue
+      }
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Génération : " + (e.message || e));
     }
@@ -417,12 +492,25 @@ var ProjectQuickView = ({
       fontWeight: 700,
       color: "#0f172a"
     }
-  }, "\uD83D\uDCC4 Bon de livraison"), proj && proj.data && proj.data.bl_pdf_url && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+  }, "\uD83D\uDCC4 Bon de livraison"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1
     }
-  }), /*#__PURE__*/React.createElement("a", {
-    href: proj.data.bl_pdf_url,
+  }), (localBlobUrl || proj && proj.data && proj.data.bl_pdf_url) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: regenerateBL,
+    disabled: generatingBL,
+    style: {
+      fontSize: 11,
+      padding: "5px 10px",
+      borderRadius: 6,
+      border: "1px solid #cbd5e1",
+      background: "#fff",
+      color: "#0f172a",
+      fontWeight: 600,
+      cursor: generatingBL ? "wait" : "pointer"
+    }
+  }, generatingBL ? "…" : "↻ Régénérer"), /*#__PURE__*/React.createElement("a", {
+    href: localBlobUrl || proj.data.bl_pdf_url,
     target: "_blank",
     rel: "noreferrer",
     style: {
@@ -437,9 +525,9 @@ var ProjectQuickView = ({
       minHeight: 0,
       padding: 12
     }
-  }, proj && proj.data && proj.data.bl_pdf_url ? /*#__PURE__*/React.createElement("iframe", {
-    src: proj.data.bl_pdf_url,
-    title: "BL PDF",
+  }, localBlobUrl || proj && proj.data && proj.data.bl_pdf_url ? /*#__PURE__*/React.createElement("object", {
+    data: localBlobUrl || proj.data.bl_pdf_url,
+    type: "application/pdf",
     style: {
       width: "100%",
       height: "100%",
@@ -447,7 +535,30 @@ var ProjectQuickView = ({
       borderRadius: 10,
       background: "#fff"
     }
-  }) : /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("iframe", {
+    src: localBlobUrl || proj.data.bl_pdf_url,
+    title: "BL PDF",
+    style: {
+      width: "100%",
+      height: "100%",
+      border: 0,
+      borderRadius: 10,
+      background: "#fff"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 30,
+      textAlign: "center",
+      color: "#64748b"
+    }
+  }, "Ton navigateur ne supporte pas l'aper\xE7u int\xE9gr\xE9.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("a", {
+    href: localBlobUrl || proj.data.bl_pdf_url,
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      color: "#1d4ed8"
+    }
+  }, "T\xE9l\xE9charger le PDF"))) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -469,14 +580,14 @@ var ProjectQuickView = ({
       fontWeight: 600,
       color: "#475569"
     }
-  }, "Aucun BL PDF disponible"), /*#__PURE__*/React.createElement("div", {
+  }, "Aucun BL pour ce projet"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       marginTop: 6,
       lineHeight: 1.5,
-      maxWidth: 360
+      maxWidth: 380
     }
-  }, "Le BL PDF est g\xE9n\xE9r\xE9 automatiquement quand le cascade workflow transforme la commande en bon de livraison. Pour ce projet, tu peux g\xE9n\xE9rer (ou r\xE9g\xE9n\xE9rer) le PDF manuellement :"), /*#__PURE__*/React.createElement("button", {
+  }, "Le BL est g\xE9n\xE9r\xE9 \xE0 partir des articles du devis li\xE9. Clique sur le bouton ci-dessous pour le g\xE9n\xE9rer et l'afficher :", generatingBL && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("br", null), "\u23F3 Cascade Devis \u2192 Commande \u2192 BL puis g\xE9n\xE9ration PDF en cours\u2026")), /*#__PURE__*/React.createElement("button", {
     onClick: regenerateBL,
     disabled: generatingBL || !proj,
     style: {
@@ -490,7 +601,7 @@ var ProjectQuickView = ({
       fontWeight: 600,
       cursor: generatingBL ? "wait" : "pointer"
     }
-  }, generatingBL ? "Génération en cours…" : "📄 Générer le BL")))), /*#__PURE__*/React.createElement("aside", {
+  }, generatingBL ? "Génération en cours…" : "📄 Générer le BL maintenant")))), /*#__PURE__*/React.createElement("aside", {
     style: {
       borderLeft: "1px solid #eef1f5",
       display: "flex",

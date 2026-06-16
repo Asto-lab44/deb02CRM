@@ -60,26 +60,93 @@ const ProjectQuickView = ({ projectId, onClose, onChanged }) => {
     setSavingField(null);
   };
 
+  // ── BL : génération + affichage immédiat ──
+  // localBlobUrl = PDF généré côté client (affiché instantanément, pas besoin de Storage).
+  // proj.data.bl_pdf_url = URL Storage persistée (chargée à la réouverture du projet).
+  const [localBlobUrl, setLocalBlobUrl] = React.useState(null);
+  React.useEffect(() => () => { if (localBlobUrl) URL.revokeObjectURL(localBlobUrl); }, [localBlobUrl]);
+
+  // Récupère le BL doc lié au projet, en remontant la chaîne devis→commande→BL
+  // et en créant les maillons manquants si besoin.
+  const ensureBLDoc = async () => {
+    // 1. Déjà mémorisé sur le projet ?
+    let blId = proj.data && proj.data.bl_doc_id;
+    if (blId) {
+      const exists = await window.api.commercialDocs.getById(blId);
+      if (exists && exists.type === "bl") return exists;
+      blId = null;
+    }
+    // 2. Recherche dans commercial_docs via commande_id / opportunity_id
+    const found = await window.api.commercialDocs.findBLForProject(proj);
+    if (found) {
+      const full = await window.api.commercialDocs.getById(found.id);
+      if (full) return full;
+    }
+    // 3. Recherche d'une COMMANDE liée → cascade vers BL
+    const oppId = proj.opportunity_id || (proj.data && proj.data.opportunity_id);
+    const cmdId = proj.data && proj.data.commande_id;
+    let candidates = [];
+    if (cmdId) {
+      const c = await window.api.commercialDocs.getById(cmdId);
+      if (c && c.type === "commande") candidates.push(c);
+    }
+    if (!candidates.length && oppId) {
+      const all = await window.api.commercialDocs.list({ opportunity_id: oppId });
+      candidates = (all || []).filter((d) => d.type === "commande" && d.status !== "annule" && d.status !== "refuse");
+    }
+    if (candidates.length) {
+      const cmd = candidates[0];
+      const bl = await window.api.commercialDocs.transform(cmd.id, "bl");
+      if (bl) return bl;
+    }
+    // 4. Recherche d'un DEVIS lié → cascade vers commande → BL
+    if (oppId) {
+      const all = await window.api.commercialDocs.list({ opportunity_id: oppId });
+      const devis = (all || []).filter((d) => d.type === "devis" && d.status !== "annule" && d.status !== "refuse");
+      if (devis.length) {
+        const cmd = await window.api.commercialDocs.transform(devis[0].id, "commande");
+        if (cmd) {
+          const bl = await window.api.commercialDocs.transform(cmd.id, "bl");
+          if (bl) return bl;
+        }
+      }
+    }
+    return null;
+  };
+
   const regenerateBL = async () => {
     if (!proj) return;
+    if (!window.HubCommercialPdf) {
+      if (window.HubToast) window.HubToast.error("Le générateur PDF n'est pas chargé. Recharge la page (Ctrl+F5).");
+      return;
+    }
     setGeneratingBL(true);
     try {
-      // 1. Si on a déjà un bl_doc_id en data, regen direct
-      let blId = proj.data && proj.data.bl_doc_id;
-      // 2. Sinon, chercher le BL lié via commande_id / opportunity_id
-      if (!blId) {
-        const found = await window.api.commercialDocs.findBLForProject(proj);
-        if (found) blId = found.id;
-      }
-      if (!blId) {
-        if (window.HubToast) window.HubToast.warn("Aucun BL trouvé pour ce projet. Le cascade workflow doit d'abord créer un BL.");
+      // 1. Trouve ou crée le BL doc (cascade devis→commande→BL si nécessaire)
+      const blDoc = await ensureBLDoc();
+      if (!blDoc) {
+        if (window.HubToast) window.HubToast.warn("Aucun devis/commande lié à ce projet — impossible de générer un BL.");
         setGeneratingBL(false);
         return;
       }
-      await window.api.commercialDocs.regenerateBLPdf(blId);
-      if (window.HubToast) window.HubToast.success("✓ PDF du BL généré et attaché");
-      await reload();
-      if (onChanged) onChanged();
+      const full = blDoc.lines ? blDoc : await window.api.commercialDocs.getById(blDoc.id);
+      // 2. Génère le PDF côté client → blob URL → affichage immédiat
+      const blob = await window.HubCommercialPdf.toBlob({ ...full });
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        if (localBlobUrl) URL.revokeObjectURL(localBlobUrl);
+        setLocalBlobUrl(url);
+        if (window.HubToast) window.HubToast.success("✓ BL généré (affiché ci-dessous)");
+      }
+      // 3. En arrière-plan : upload vers Storage + persiste sur le projet
+      try {
+        await window.api.commercialDocs.regenerateBLPdf(full.id);
+        await reload();
+        if (onChanged) onChanged();
+      } catch (eUp) {
+        console.warn("[BL upload Storage]", eUp.message || eUp);
+        // Le PDF reste affiché en local même si l'upload échoue
+      }
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Génération : " + (e.message || e));
     }
@@ -228,10 +295,16 @@ const ProjectQuickView = ({ projectId, onClose, onChanged }) => {
             <div style={{ padding: "10px 18px", borderBottom: "1px solid #eef1f5", background: "#fff",
                           display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>📄 Bon de livraison</div>
-              {proj && proj.data && proj.data.bl_pdf_url && (
+              <span style={{ flex: 1 }} />
+              {(localBlobUrl || (proj && proj.data && proj.data.bl_pdf_url)) && (
                 <>
-                  <span style={{ flex: 1 }} />
-                  <a href={proj.data.bl_pdf_url} target="_blank" rel="noreferrer"
+                  <button onClick={regenerateBL} disabled={generatingBL}
+                          style={{ fontSize: 11, padding: "5px 10px", borderRadius: 6,
+                                   border: "1px solid #cbd5e1", background: "#fff", color: "#0f172a",
+                                   fontWeight: 600, cursor: generatingBL ? "wait" : "pointer" }}>
+                    {generatingBL ? "…" : "↻ Régénérer"}
+                  </button>
+                  <a href={localBlobUrl || proj.data.bl_pdf_url} target="_blank" rel="noreferrer"
                      style={{ fontSize: 11.5, color: "#1d4ed8", textDecoration: "none", fontWeight: 600 }}>
                     ↗ Ouvrir en plein écran
                   </a>
@@ -239,26 +312,35 @@ const ProjectQuickView = ({ projectId, onClose, onChanged }) => {
               )}
             </div>
             <div style={{ flex: 1, minHeight: 0, padding: 12 }}>
-              {proj && proj.data && proj.data.bl_pdf_url ? (
-                <iframe src={proj.data.bl_pdf_url} title="BL PDF"
-                        style={{ width: "100%", height: "100%", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff" }} />
+              {(localBlobUrl || (proj && proj.data && proj.data.bl_pdf_url)) ? (
+                <object data={localBlobUrl || proj.data.bl_pdf_url} type="application/pdf"
+                        style={{ width: "100%", height: "100%", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff" }}>
+                  <iframe src={localBlobUrl || proj.data.bl_pdf_url} title="BL PDF"
+                          style={{ width: "100%", height: "100%", border: 0, borderRadius: 10, background: "#fff" }} />
+                  <div style={{ padding: 30, textAlign: "center", color: "#64748b" }}>
+                    Ton navigateur ne supporte pas l'aperçu intégré.<br/>
+                    <a href={localBlobUrl || proj.data.bl_pdf_url} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>
+                      Télécharger le PDF
+                    </a>
+                  </div>
+                </object>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                               height: "100%", color: "#94a3b8", textAlign: "center", padding: 30 }}>
                   <div style={{ fontSize: 38, marginBottom: 10 }}>📄</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>
-                    Aucun BL PDF disponible
+                    Aucun BL pour ce projet
                   </div>
-                  <div style={{ fontSize: 11.5, marginTop: 6, lineHeight: 1.5, maxWidth: 360 }}>
-                    Le BL PDF est généré automatiquement quand le cascade workflow
-                    transforme la commande en bon de livraison. Pour ce projet,
-                    tu peux générer (ou régénérer) le PDF manuellement :
+                  <div style={{ fontSize: 11.5, marginTop: 6, lineHeight: 1.5, maxWidth: 380 }}>
+                    Le BL est généré à partir des articles du devis lié.
+                    Clique sur le bouton ci-dessous pour le générer et l'afficher :
+                    {generatingBL && <><br/><br/>⏳ Cascade Devis → Commande → BL puis génération PDF en cours…</>}
                   </div>
                   <button onClick={regenerateBL} disabled={generatingBL || !proj}
                           style={{ marginTop: 16, padding: "10px 18px", borderRadius: 8, background: "#0f172a",
                                    color: "#fff", border: "none", fontSize: 12.5, fontWeight: 600,
                                    cursor: generatingBL ? "wait" : "pointer" }}>
-                    {generatingBL ? "Génération en cours…" : "📄 Générer le BL"}
+                    {generatingBL ? "Génération en cours…" : "📄 Générer le BL maintenant"}
                   </button>
                 </div>
               )}

@@ -193,7 +193,13 @@ const CRMPipeline = () => {
         owner: o.owner || "—",
         proba: o.proba || ({ qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 }[s.key] || 20),
         tag: moduleTag(o.modules, o.produit),
-        logo: ((o.client_name || "??").slice(0, 2)).toUpperCase(),
+        // Initiales du client (prend la 1ʳᵉ lettre de chaque mot, max 2),
+        // comme sur la fiche client. Fallback sur le nom de l'opp si pas de client.
+        logo: (() => {
+          const src = (o.client_name && o.client_name.trim()) || (o.name && o.name.trim()) || "?";
+          const ini = src.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+          return ini || src.slice(0, 2).toUpperCase();
+        })(),
         logoBg: palette[(idx * 3 + i) % palette.length],
         won: o.stage === "won",
       })),

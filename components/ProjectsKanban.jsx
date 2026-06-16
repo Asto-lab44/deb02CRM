@@ -108,17 +108,33 @@ const ProjectsKanban = () => {
     return c;
   }, [projects, currentUser]);
 
-  // Drag-and-drop : change le stage du projet
+  // Drag-and-drop : change le stage du projet (avec confirmation utilisateur)
   const handleDrop = async (newStage) => {
     if (!draggedId) return;
     const proj = projects.find((p) => p.id === draggedId);
     setDraggedId(null);
     if (!proj || proj.stage === newStage) return;
+    // Pop-up de confirmation : évite un déplacement par mégarde lors d'un drag
+    // accidentel. Affiche le nom du projet + étape source + étape cible.
+    const fromLbl = ((STAGES.find((s) => s.k === proj.stage) || {}).label) || proj.stage;
+    const toLbl = ((STAGES.find((s) => s.k === newStage) || {}).label) || newStage;
+    const ok = window.HubModal
+      ? await window.HubModal.confirm({
+          title: "Confirmer le déplacement",
+          message: "Déplacer « " + (proj.name || "ce projet") + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nUn événement sera enregistré dans le journal du projet.",
+          okLabel: "Oui, déplacer",
+          okStyle: "primary",
+        })
+      : confirm("Déplacer « " + (proj.name || "ce projet") + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
+    if (!ok) {
+      if (window.HubToast) window.HubToast.info("Déplacement annulé — le projet reste en « " + fromLbl + " »");
+      return;
+    }
     // Optimistic update
-    setProjects((arr) => arr.map((p) => p.id === draggedId ? { ...p, stage: newStage } : p));
+    setProjects((arr) => arr.map((p) => p.id === proj.id ? { ...p, stage: newStage } : p));
     try {
-      await window.api.projects.changeStage(draggedId, newStage);
-      if (window.HubToast) window.HubToast.success("✓ Projet déplacé vers « " + ((STAGES.find(s => s.k === newStage) || {}).label || newStage) + " »");
+      await window.api.projects.changeStage(proj.id, newStage);
+      if (window.HubToast) window.HubToast.success("✓ « " + (proj.name || "Projet") + " » déplacé vers « " + toLbl + " »");
     } catch (e) {
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
       reload(); // rollback

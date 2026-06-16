@@ -1404,10 +1404,6 @@
    *  Appelé automatiquement quand un doc de type=bl est créé. */
   async function syncBLToProject(s, blRow, lines) {
     if (!blRow || blRow.type !== "bl") return;
-    if (!window.HubCommercialPdf) {
-      console.warn("[bl→projet auto] HubCommercialPdf indisponible — PDF non généré (charge components/commercial-pdf.js sur cette page).");
-      return;
-    }
     // 1. Retrouve le projet lié : via parent_doc_id (commande) ou via opportunity_id
     let project = null;
     if (blRow.parent_doc_id) {
@@ -1431,7 +1427,44 @@
       } catch (e) {}
     }
 
-    // 2. Génère le PDF
+    // 2. Synchronise les livrables du projet à partir des lignes du BL.
+    //    Les livrables = articles du devis transformé en BL.
+    //    Si le projet n'a pas encore de project_items, on les crée.
+    if (project && lines && lines.length) {
+      try {
+        const { data: existing } = await s.from("project_items").select("id").eq("project_id", project.id);
+        if (!existing || existing.length === 0) {
+          const items = lines.filter((l) => !l.is_text_only).map((l, i) => ({
+            id: genId("PIT"),
+            project_id: project.id,
+            position: i,
+            ref: l.ref || null,
+            designation: l.designation || "",
+            quantity: Number(l.quantity) || 1,
+            unit: l.unit || "u",
+            unit_price_ht: Number(l.unit_price_ht) || 0,
+            status: "pending",
+          }));
+          if (items.length) {
+            const { error: itemsErr } = await s.from("project_items").insert(items);
+            if (itemsErr) console.warn("[bl→projet items]", itemsErr.message);
+          }
+        }
+      } catch (e) { console.warn("[bl→projet items sync]", e.message || e); }
+    }
+
+    // 3. Génère le PDF (skip silencieux si lib pas chargée — les livrables sont déjà synchronisés)
+    if (!window.HubCommercialPdf) {
+      console.warn("[bl→projet auto] HubCommercialPdf indisponible — PDF non généré (charge components/commercial-pdf.js sur cette page).");
+      // Mémorise quand même la liaison BL ↔ projet pour pouvoir régénérer le PDF plus tard.
+      if (project) {
+        try {
+          const mergedProj = { ...((project.data) || {}), bl_doc_id: blRow.id };
+          await s.from("projects").update({ data: mergedProj }).eq("id", project.id);
+        } catch (e) {}
+      }
+      return { project_id: project && project.id };
+    }
     let blob;
     try {
       blob = await window.HubCommercialPdf.toBlob({ ...blRow, lines });
@@ -1804,7 +1837,22 @@
     async transform(parent_id, new_type) {
       const parent = await this.getById(parent_id);
       if (!parent) throw new Error("Document parent introuvable");
-      const lines = (parent.lines || []).map((l) => ({
+      // Si le parent n'a pas de lignes (commande "from scratch" / commande vide),
+      // on remonte la chaîne parent_doc_id jusqu'à trouver un ancêtre avec des
+      // lignes — en général le devis d'origine. Comme ça le BL est toujours
+      // créé avec les articles du devis.
+      let sourceLines = parent.lines || [];
+      if (sourceLines.length === 0 && parent.parent_doc_id) {
+        let cur = parent;
+        for (let i = 0; i < 5; i++) {
+          if (!cur.parent_doc_id) break;
+          const anc = await this.getById(cur.parent_doc_id);
+          if (!anc) break;
+          if (anc.lines && anc.lines.length) { sourceLines = anc.lines; break; }
+          cur = anc;
+        }
+      }
+      const lines = sourceLines.map((l) => ({
         article_id: l.article_id, ref: l.ref, designation: l.designation, description: l.description,
         quantity: l.quantity, unit: l.unit, unit_price_ht: l.unit_price_ht,
         discount_pct: l.discount_pct, tva_rate: l.tva_rate,

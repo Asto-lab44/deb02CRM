@@ -129,13 +129,13 @@ var AdvanceOpportunity = () => {
       done: false
     }],
     propo: [{
-      label: "Discovery call réalisé",
+      label: "Rendez vous client en présentiel ou en visioconférence réalisé",
       done: true
     }, {
       label: "Cartographie des décideurs (≥ 3)",
       done: true
     }, {
-      label: "Use-cases clés validés",
+      label: "Valeurs ajoutées de la solution proposée validées",
       done: true
     }, {
       label: "Critères de décision identifiés",

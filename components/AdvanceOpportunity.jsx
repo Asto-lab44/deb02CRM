@@ -89,9 +89,9 @@ const AdvanceOpportunity = () => {
       { label: "Calendrier projet estimé",     done: false },
     ],
     propo: [
-      { label: "Discovery call réalisé",                  done: true },
+      { label: "Rendez vous client en présentiel ou en visioconférence réalisé", done: true },
       { label: "Cartographie des décideurs (≥ 3)",        done: true },
-      { label: "Use-cases clés validés",                  done: true },
+      { label: "Valeurs ajoutées de la solution proposée validées", done: true },
       { label: "Critères de décision identifiés",         done: false },
     ],
     nego: [

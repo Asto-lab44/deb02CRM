@@ -151,7 +151,7 @@ var AdvanceOpportunity = () => {
       label: "Budget confirmé par CFO",
       done: false
     }, {
-      label: "Sponsor exécutif client confirmé",
+      label: "Sponsor exécutif client confirmé : la réussite du projet et l'alignement du projet sur la vision et la stratégie de l'entreprise",
       done: false
     }],
     won: [{

@@ -98,7 +98,7 @@ const AdvanceOpportunity = () => {
       { label: "Proposition commerciale envoyée",          done: true },
       { label: "Décideurs identifiés (≥ 3 personas)",     done: true },
       { label: "Budget confirmé par CFO",                 done: false },
-      { label: "Sponsor exécutif client confirmé",         done: false },
+      { label: "Sponsor exécutif client confirmé : la réussite du projet et l'alignement du projet sur la vision et la stratégie de l'entreprise", done: false },
     ],
     won: [
       { label: "Conditions juridiques arrêtées",   done: false },

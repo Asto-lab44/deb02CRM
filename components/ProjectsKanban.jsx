@@ -213,11 +213,6 @@ const ProjectsKanban = () => {
     const initials = (p.name || "??").trim().slice(0, 2).toUpperCase();
     const tagBg = { recu: "#f1f5f9", preparation: "#f5efff", pret_livrer: "#fef0e6", livre: "#fffbeb", installe: "#e0f4fc", clos: "#dcfce7" }[p.stage] || "#f1f5f9";
     const tagColor = stageMeta.color;
-    const amountStr = p.amount_ttc
-      ? Math.round(p.amount_ttc).toLocaleString("fr-FR").replace(/,/g, " ") + " €"
-      : p.amount_ht
-      ? Math.round(p.amount_ht).toLocaleString("fr-FR").replace(/,/g, " ") + " €"
-      : "—";
     const daysSince = p.created_at ? Math.floor((Date.now() - new Date(p.created_at).getTime()) / (24 * 3600 * 1000)) : 0;
     const isWon = p.stage === "clos";
 
@@ -256,9 +251,6 @@ const ProjectsKanban = () => {
             </div>
           </div>
         </div>
-
-        {/* Amount */}
-        <div style={{ fontSize: 18, fontWeight: 600, color: "#0f172a", letterSpacing: -0.4, fontFamily: "'Inter', sans-serif" }}>{amountStr}</div>
 
         {/* Progression */}
         <div style={{ marginTop: 8 }}>
@@ -391,12 +383,6 @@ const ProjectsKanban = () => {
           <div style={S.kanban}>
             {STAGES.map((stage) => {
               const stageProjects = filteredProjects.filter((p) => p.stage === stage.k);
-              const stageTotal = stageProjects.reduce((sum, p) => sum + (Number(p.amount_ttc) || Number(p.amount_ht) || 0), 0);
-              const totalLabel = stageTotal >= 1000
-                ? Math.round(stageTotal / 1000) + " k€"
-                : stageTotal > 0
-                ? Math.round(stageTotal) + " €"
-                : "0 €";
               return (
                 <div key={stage.k}
                      onDragOver={(e) => e.preventDefault()}
@@ -406,7 +392,6 @@ const ProjectsKanban = () => {
                     <span style={{ width: 7, height: 7, borderRadius: 2, background: stage.color }} />
                     <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a" }}>{stage.label}</span>
                     <span style={S.colCount}>{stageProjects.length}</span>
-                    <span style={{ marginLeft: "auto", fontSize: 10.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>{totalLabel}</span>
                   </div>
                   <div style={S.colBody}>
                     {stageProjects.length === 0 && (

@@ -366,20 +366,6 @@ var ProjectQuickView = ({
     savingKey: "pm_name",
     saving: savingField,
     onSave: v => saveField("pm_name", v)
-  }), /*#__PURE__*/React.createElement(EditNumber, {
-    label: "Montant HT",
-    value: proj.amount_ht,
-    suffix: " \u20AC",
-    savingKey: "amount_ht",
-    saving: savingField,
-    onSave: v => saveField("amount_ht", v)
-  }), /*#__PURE__*/React.createElement(EditNumber, {
-    label: "Montant TTC",
-    value: proj.amount_ttc,
-    suffix: " \u20AC",
-    savingKey: "amount_ttc",
-    saving: savingField,
-    onSave: v => saveField("amount_ttc", v)
   }), /*#__PURE__*/React.createElement(EditText, {
     label: "R\xE9f. Sage",
     value: proj.sage_ref || "",

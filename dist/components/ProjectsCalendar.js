@@ -180,19 +180,7 @@ var ProjectsCalendar = () => {
       marginTop: 6,
       fontWeight: 700
     }
-  }, "\u26A0 ", monthStats.overdue, " en retard"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...S.statSub,
-      marginTop: 8,
-      paddingTop: 8,
-      borderTop: "1px solid #f1f5f9"
-    }
-  }, "CA pr\xE9vu : ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, Math.round(monthStats.totalAmount / 1000), " k\u20AC"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u26A0 ", monthStats.overdue, " en retard")), /*#__PURE__*/React.createElement("div", {
     style: S.legend
   }, /*#__PURE__*/React.createElement("div", {
     style: S.legendLabel
@@ -406,14 +394,7 @@ var ProjectsCalendar = () => {
         color: "#64748b",
         marginTop: 2
       }
-    }, p.sage_ref ? "Sage " + p.sage_ref + " · " : "", stage.label, p.pm_name ? " · " + p.pm_name : "")), p.amount_ttc && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 700,
-        color: "#0f172a"
-      }
-    }, Math.round(p.amount_ttc / 1000), " k\u20AC"));
+    }, p.sage_ref ? "Sage " + p.sage_ref + " · " : "", stage.label, p.pm_name ? " · " + p.pm_name : "")));
   }))))));
 };
 var S = {

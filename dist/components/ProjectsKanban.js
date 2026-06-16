@@ -272,7 +272,6 @@ var ProjectsKanban = () => {
       clos: "#dcfce7"
     }[p.stage] || "#f1f5f9";
     var tagColor = stageMeta.color;
-    var amountStr = p.amount_ttc ? Math.round(p.amount_ttc).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : p.amount_ht ? Math.round(p.amount_ht).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—";
     var daysSince = p.created_at ? Math.floor((Date.now() - new Date(p.created_at).getTime()) / (24 * 3600 * 1000)) : 0;
     var isWon = p.stage === "clos";
     return /*#__PURE__*/React.createElement("div", {
@@ -387,14 +386,6 @@ var ProjectsKanban = () => {
         letterSpacing: 0.2
       }
     }, "\uD83D\uDCC4 BL")))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 18,
-        fontWeight: 600,
-        color: "#0f172a",
-        letterSpacing: -0.4,
-        fontFamily: "'Inter', sans-serif"
-      }
-    }, amountStr), /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 8
       }
@@ -751,8 +742,6 @@ var ProjectsKanban = () => {
     style: S.kanban
   }, STAGES.map(stage => {
     var stageProjects = filteredProjects.filter(p => p.stage === stage.k);
-    var stageTotal = stageProjects.reduce((sum, p) => sum + (Number(p.amount_ttc) || Number(p.amount_ht) || 0), 0);
-    var totalLabel = stageTotal >= 1000 ? Math.round(stageTotal / 1000) + " k€" : stageTotal > 0 ? Math.round(stageTotal) + " €" : "0 €";
     return /*#__PURE__*/React.createElement("div", {
       key: stage.k,
       onDragOver: e => e.preventDefault(),
@@ -775,15 +764,7 @@ var ProjectsKanban = () => {
       }
     }, stage.label), /*#__PURE__*/React.createElement("span", {
       style: S.colCount
-    }, stageProjects.length), /*#__PURE__*/React.createElement("span", {
-      style: {
-        marginLeft: "auto",
-        fontSize: 10.5,
-        color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 500
-      }
-    }, totalLabel)), /*#__PURE__*/React.createElement("div", {
+    }, stageProjects.length)), /*#__PURE__*/React.createElement("div", {
       style: S.colBody
     }, stageProjects.length === 0 && /*#__PURE__*/React.createElement("div", {
       style: S.colEmpty

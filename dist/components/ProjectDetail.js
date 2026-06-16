@@ -497,13 +497,6 @@ var ProjectDetail = () => {
   }, "\u270E \xC9diter")), /*#__PURE__*/React.createElement("div", {
     style: S.metaGrid
   }, /*#__PURE__*/React.createElement(Meta, {
-    label: "Montant HT",
-    val: fmtEUR(project.amount_ht)
-  }), /*#__PURE__*/React.createElement(Meta, {
-    label: "Montant TTC",
-    val: fmtEUR(project.amount_ttc),
-    strong: true
-  }), /*#__PURE__*/React.createElement(Meta, {
     label: "Livraison souhait\xE9e",
     val: fmtDate(project.delivery_due),
     onClick: setDueDate,
@@ -1081,18 +1074,6 @@ var ItemsBlock = ({
   }, "Qt\xE9"), /*#__PURE__*/React.createElement("th", {
     style: {
       ...S.th,
-      textAlign: "right",
-      width: 100
-    }
-  }, "PU HT"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      ...S.th,
-      textAlign: "right",
-      width: 100
-    }
-  }, "Total HT"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      ...S.th,
       width: 110
     }
   }, "Statut"), /*#__PURE__*/React.createElement("th", {
@@ -1149,31 +1130,6 @@ var ItemsBlock = ({
           fontFamily: "'JetBrains Mono', monospace"
         }
       })), /*#__PURE__*/React.createElement("td", {
-        style: {
-          ...S.td,
-          textAlign: "right"
-        }
-      }, /*#__PURE__*/React.createElement("input", {
-        type: "number",
-        step: "0.01",
-        value: draft.unit_price_ht || 0,
-        onChange: e => setDraft({
-          ...draft,
-          unit_price_ht: e.target.value
-        }),
-        style: {
-          ...cellInput,
-          textAlign: "right",
-          fontFamily: "'JetBrains Mono', monospace"
-        }
-      })), /*#__PURE__*/React.createElement("td", {
-        style: {
-          ...S.td,
-          textAlign: "right",
-          fontFamily: "'JetBrains Mono', monospace",
-          fontWeight: 700
-        }
-      }, fmtEUR((parseFloat(draft.quantity) || 0) * (parseFloat(draft.unit_price_ht) || 0))), /*#__PURE__*/React.createElement("td", {
         style: S.td
       }, /*#__PURE__*/React.createElement("select", {
         value: draft.status || "todo",
@@ -1257,19 +1213,6 @@ var ItemsBlock = ({
         fontFamily: "'JetBrains Mono', monospace"
       }
     }, Number(it.quantity).toFixed(0), " ", it.unit), /*#__PURE__*/React.createElement("td", {
-      style: {
-        ...S.td,
-        textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, fmtEUR(it.unit_price_ht)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        ...S.td,
-        textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 700
-      }
-    }, fmtEUR(it.total_ht)), /*#__PURE__*/React.createElement("td", {
       style: S.td
     }, /*#__PURE__*/React.createElement(ItemStatusBadge, {
       status: it.status
@@ -1305,35 +1248,7 @@ var ItemsBlock = ({
         cursor: "pointer"
       }
     }, "\xD7"))));
-  }), /*#__PURE__*/React.createElement("tr", {
-    style: {
-      background: "#fafbfc",
-      borderTop: "2px solid #0f172a"
-    }
-  }, /*#__PURE__*/React.createElement("td", {
-    colSpan: 3,
-    style: {
-      ...S.td,
-      textAlign: "right",
-      fontWeight: 700,
-      color: "#0f172a",
-      textTransform: "uppercase",
-      fontSize: 11,
-      letterSpacing: 0.5
-    }
-  }, "TOTAL HT"), /*#__PURE__*/React.createElement("td", {
-    style: {
-      ...S.td,
-      textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace",
-      fontWeight: 800,
-      fontSize: 14,
-      color: "#0f172a"
-    }
-  }, fmtEUR((project.items || []).reduce((s, it) => s + (Number(it.total_ht) || 0), 0))), /*#__PURE__*/React.createElement("td", {
-    colSpan: 2,
-    style: S.td
-  })))));
+  }))));
 };
 var Meta = ({
   label,

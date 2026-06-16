@@ -317,8 +317,6 @@ const ProjectDetail = () => {
                 <button onClick={() => editField("name", project.name, "Nom du projet")} style={S.editBtn}>✎ Éditer</button>
               </div>
               <div style={S.metaGrid}>
-                <Meta label="Montant HT"  val={fmtEUR(project.amount_ht)} />
-                <Meta label="Montant TTC" val={fmtEUR(project.amount_ttc)} strong />
                 <Meta label="Livraison souhaitée" val={fmtDate(project.delivery_due)} onClick={setDueDate} editable />
                 <Meta label="Livré le"  val={fmtDate(project.delivery_done)} />
                 <Meta label="Installé le" val={fmtDate(project.install_done)} />
@@ -667,8 +665,6 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
             <tr>
               <th style={S.th}>Désignation</th>
               <th style={{ ...S.th, textAlign: "right", width: 70 }}>Qté</th>
-              <th style={{ ...S.th, textAlign: "right", width: 100 }}>PU HT</th>
-              <th style={{ ...S.th, textAlign: "right", width: 100 }}>Total HT</th>
               <th style={{ ...S.th, width: 110 }}>Statut</th>
               <th style={{ ...S.th, width: 60 }}></th>
             </tr>
@@ -685,12 +681,6 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
                     </td>
                     <td style={{ ...S.td, textAlign: "right" }}>
                       <input type="number" value={draft.quantity || 0} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }} />
-                    </td>
-                    <td style={{ ...S.td, textAlign: "right" }}>
-                      <input type="number" step="0.01" value={draft.unit_price_ht || 0} onChange={(e) => setDraft({ ...draft, unit_price_ht: e.target.value })} style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }} />
-                    </td>
-                    <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
-                      {fmtEUR((parseFloat(draft.quantity) || 0) * (parseFloat(draft.unit_price_ht) || 0))}
                     </td>
                     <td style={S.td}>
                       <select value={draft.status || "todo"} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={cellInput}>
@@ -719,8 +709,6 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
                     {it.serial_numbers && it.serial_numbers.length > 0 && <div style={{ fontSize: 10.5, color: "#0e7a55", marginTop: 2 }}>SN : {it.serial_numbers.join(", ")}</div>}
                   </td>
                   <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
-                  <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(it.unit_price_ht)}</td>
-                  <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{fmtEUR(it.total_ht)}</td>
                   <td style={S.td}><ItemStatusBadge status={it.status} /></td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 4 }}>
@@ -731,14 +719,6 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
                 </tr>
               );
             })}
-            {/* Total ligne */}
-            <tr style={{ background: "#fafbfc", borderTop: "2px solid #0f172a" }}>
-              <td colSpan={3} style={{ ...S.td, textAlign: "right", fontWeight: 700, color: "#0f172a", textTransform: "uppercase", fontSize: 11, letterSpacing: 0.5 }}>TOTAL HT</td>
-              <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
-                {fmtEUR((project.items || []).reduce((s, it) => s + (Number(it.total_ht) || 0), 0))}
-              </td>
-              <td colSpan={2} style={S.td}></td>
-            </tr>
           </tbody>
         </table>
       )}

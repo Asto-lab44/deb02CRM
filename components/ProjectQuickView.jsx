@@ -207,10 +207,6 @@ const ProjectQuickView = ({ projectId, onClose, onChanged }) => {
                          value={proj.opportunity_id || (proj.data && proj.data.opportunity_id) || "—"} mono />
                 <EditText label="Chef de projet" value={proj.pm_name || ""} savingKey="pm_name" saving={savingField}
                           onSave={(v) => saveField("pm_name", v)} />
-                <EditNumber label="Montant HT" value={proj.amount_ht} suffix=" €" savingKey="amount_ht" saving={savingField}
-                            onSave={(v) => saveField("amount_ht", v)} />
-                <EditNumber label="Montant TTC" value={proj.amount_ttc} suffix=" €" savingKey="amount_ttc" saving={savingField}
-                            onSave={(v) => saveField("amount_ttc", v)} />
                 <EditText label="Réf. Sage" value={proj.sage_ref || ""} mono savingKey="sage_ref" saving={savingField}
                           onSave={(v) => saveField("sage_ref", v)} />
                 <InfoRow label="Journal de création" value={fmtDateTime(proj.created_at)} />

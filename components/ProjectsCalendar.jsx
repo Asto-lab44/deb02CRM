@@ -111,9 +111,6 @@ const ProjectsCalendar = () => {
           {monthStats.overdue > 0 && (
             <div style={{ ...S.statSub, color: "#dc2626", marginTop: 6, fontWeight: 700 }}>⚠ {monthStats.overdue} en retard</div>
           )}
-          <div style={{ ...S.statSub, marginTop: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
-            CA prévu : <strong style={{ color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{Math.round(monthStats.totalAmount / 1000)} k€</strong>
-          </div>
         </div>
 
         <div style={S.legend}>
@@ -234,7 +231,6 @@ const ProjectsCalendar = () => {
                             {p.sage_ref ? "Sage " + p.sage_ref + " · " : ""}{stage.label}{p.pm_name ? " · " + p.pm_name : ""}
                           </div>
                         </div>
-                        {p.amount_ttc && <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#0f172a" }}>{Math.round(p.amount_ttc / 1000)} k€</span>}
                       </a>
                     );
                   })}

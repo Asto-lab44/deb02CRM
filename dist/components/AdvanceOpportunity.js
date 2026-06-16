@@ -324,26 +324,44 @@ var AdvanceOpportunity = () => {
       color: "#64748b"
     }
   }, /*#__PURE__*/React.createElement("a", {
-    href: "/crm",
+    href: "/",
+    title: "Retour Hub Astorya",
     style: {
       color: "#64748b",
       textDecoration: "none"
-    }
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#4f46e5",
+    onMouseLeave: e => e.currentTarget.style.color = "#64748b"
   }, "CRM"), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#cbd5e1"
     }
   }, "/"), /*#__PURE__*/React.createElement("a", {
     href: "/crm",
+    title: "Ouvrir le pipeline commercial",
     style: {
       color: "#64748b",
       textDecoration: "none"
-    }
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "#4f46e5",
+    onMouseLeave: e => e.currentTarget.style.color = "#64748b"
   }, "Pipeline"), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#cbd5e1"
     }
-  }, "/"), /*#__PURE__*/React.createElement("span", {
+  }, "/"), clientId ? /*#__PURE__*/React.createElement("a", {
+    href: "/fiche-client?id=" + encodeURIComponent(clientId),
+    title: "Ouvrir la fiche client",
+    style: {
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 11.5,
+      color: "#3730a3",
+      textDecoration: "none",
+      fontWeight: 600
+    },
+    onMouseEnter: e => e.currentTarget.style.textDecoration = "underline",
+    onMouseLeave: e => e.currentTarget.style.textDecoration = "none"
+  }, opp.ref) : /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 11.5,

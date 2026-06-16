@@ -1986,8 +1986,12 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("input", {
     type: "number",
-    value: l.discount_pct || 0,
-    onChange: e => updateLineField(i, "discount_pct", e.target.value),
+    step: "0.01",
+    min: "0",
+    max: "100",
+    value: l.discount_pct == null ? "" : l.discount_pct,
+    onFocus: e => e.target.select(),
+    onChange: e => updateLineField(i, "discount_pct", e.target.value === "" ? 0 : Number(e.target.value)),
     style: {
       ...cdStyles.miniInput,
       paddingRight: 26

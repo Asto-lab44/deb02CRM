@@ -1157,7 +1157,10 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                   <div>
                     <label style={cdStyles.miniLbl}>Remise</label>
                     <div style={{ position: "relative" }}>
-                      <input type="number" value={l.discount_pct || 0} onChange={(e) => updateLineField(i, "discount_pct", e.target.value)}
+                      <input type="number" step="0.01" min="0" max="100"
+                             value={l.discount_pct == null ? "" : l.discount_pct}
+                             onFocus={(e) => e.target.select()}
+                             onChange={(e) => updateLineField(i, "discount_pct", e.target.value === "" ? 0 : Number(e.target.value))}
                              style={{ ...cdStyles.miniInput, paddingRight: 26 }} />
                       <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>%</span>
                     </div>

@@ -1874,8 +1874,18 @@
         lines,
       };
       const child = await this.create(childPayload);
-      // Marque le parent comme transformé
-      await this.update(parent_id, { status: "transforme" });
+      // Le parent garde son statut métier (accepte / livre / paye) au lieu
+      // d'être figé en « transforme ». Le lien parent_doc_id sur l'enfant
+      // matérialise la transformation sans bloquer l'édition du parent.
+      // Si le statut courant est < requires, on force au moins requires
+      // pour que les pills du workflow restent cohérentes.
+      try {
+        const REQ = { devis: "accepte", commande: "accepte", bl: "livre", facture: "paye" };
+        const target = REQ[parent.type];
+        if (target && parent.status !== target && parent.status !== "paye") {
+          await this.update(parent_id, { status: target });
+        }
+      } catch (e) { /* non bloquant */ }
       return child;
     },
 

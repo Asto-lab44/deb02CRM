@@ -91,12 +91,15 @@
     const checked = (k) => p.billingPeriod === k ? "☒" : "☐";
     const monthlyHT = (sums.recurringHT || 0) / 12;
 
-    // ── HEADER
+    // ── HEADER (logo officiel + titre)
+    const logoBlock = (window.AstoryaAssets && window.AstoryaAssets.logoDataUrl)
+      ? { image: window.AstoryaAssets.logoDataUrl, width: 130, border: [false, false, false, false] }
+      : { svg: ASTORYA_LOGO_SVG, width: 130, fit: [130, 50], border: [false, false, false, false] };
     const headerBand = {
       table: {
         widths: [150, "*"],
         body: [[
-          { svg: ASTORYA_LOGO_SVG, width: 140, fit: [140, 50], border: [false, false, false, false] },
+          logoBlock,
           { stack: [
             { text: "CONTRAT D'HÉBERGEMENT", fontSize: 16, bold: true, alignment: "right", color: "#0f172a" },
             { text: "EXTERNALISÉ", fontSize: 16, bold: true, alignment: "right", color: "#c91c45", margin: [0, 2, 0, 0] },

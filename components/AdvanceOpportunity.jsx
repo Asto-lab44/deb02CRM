@@ -102,7 +102,7 @@ const AdvanceOpportunity = () => {
     ],
     won: [
       { label: "Conditions juridiques arrêtées",   done: false },
-      { label: "Bon de commande / engagement",      done: false },
+      { label: "Bon de commande / Contrat d'engagement / Dossier de financement signé", done: false },
       { label: "Signataire confirmé",              done: false },
     ],
   };

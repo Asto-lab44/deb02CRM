@@ -158,7 +158,7 @@ var AdvanceOpportunity = () => {
       label: "Conditions juridiques arrêtées",
       done: false
     }, {
-      label: "Bon de commande / engagement",
+      label: "Bon de commande / Contrat d'engagement / Dossier de financement signé",
       done: false
     }, {
       label: "Signataire confirmé",

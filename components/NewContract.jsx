@@ -179,13 +179,22 @@ const NewContract = () => {
     return d.toISOString().slice(0, 10);
   }, [startDate, duration]);
 
-  // ── Génération PDF du Contrat d'Hébergement Externalisé
+  // ── Génération PDF du Contrat (multi-templates)
+  const [contractKind, setContractKind] = React.useState("auto");
+  const KINDS = (window.HubHostingContractPdf && window.HubHostingContractPdf.KINDS) || {};
+  const detectedKind = React.useMemo(() => {
+    if (!window.HubHostingContractPdf) return "hosting";
+    return window.HubHostingContractPdf.detectKind(products);
+  }, [products]);
+  const effectiveKind = contractKind === "auto" ? detectedKind : contractKind;
+
   const generateContractPdf = async () => {
     if (!window.HubHostingContractPdf) {
       alert("Le générateur PDF n'est pas chargé. Recharge la page (Ctrl+F5).");
       return;
     }
     const payload = {
+      kind: effectiveKind,
       client: {
         name: clientName !== "Chargement…" && clientName !== "Aucun client sélectionné" ? clientName : "",
         address: (clientObj && (clientObj.address || clientObj.adresse)) || "",
@@ -347,12 +356,26 @@ const NewContract = () => {
           <span style={ncStyles.refMono}>CTR-{new Date().getFullYear()}-DRAFT</span>
           <span style={{ fontSize: 11, color: "#10b981", fontWeight: 500 }}>● Auto-save · il y a {savedTick * 8 % 60} sec</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => history.back()} style={ncStyles.ghostBtn}>Annuler</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", border: "1px solid #fecdd3", borderRadius: 7, background: "#fff5f6" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#c91c45", letterSpacing: 0.3, textTransform: "uppercase" }}>📄 Modèle</span>
+            <select value={contractKind} onChange={(e) => setContractKind(e.target.value)}
+                    title={contractKind === "auto" ? "Auto-détecté : " + ((KINDS[detectedKind] && KINDS[detectedKind].label) || detectedKind) : ""}
+                    style={{ border: "none", background: "transparent", fontSize: 11.5, fontWeight: 600, color: "#0f172a", cursor: "pointer", outline: "none" }}>
+              <option value="auto">Auto ({(KINDS[detectedKind] && KINDS[detectedKind].label) || detectedKind})</option>
+              {Object.keys(KINDS).map((k) => (
+                <option key={k} value={k}>{KINDS[k].label}</option>
+              ))}
+            </select>
+          </div>
           <button onClick={generateContractPdf} style={{ ...ncStyles.ghostBtn, color: "#c91c45", borderColor: "#fecdd3" }}
-                  title="Génère le PDF du Contrat d'Hébergement Externalisé pré-rempli avec les valeurs ci-dessous">
+                  title="Génère le PDF du contrat pré-rempli avec les valeurs ci-dessous">
             📄 Aperçu PDF du contrat
           </button>
+          <a href="/administration-contrats-mapping"
+             title="Configurer les règles de détection automatique du modèle de contrat"
+             style={{ ...ncStyles.ghostBtn, textDecoration: "none", color: "#475569" }}>⚙</a>
           <button onClick={() => setPreviewOpen(true)} style={ncStyles.primaryBtn}>Créer & envoyer pour signature</button>
         </div>
       </header>

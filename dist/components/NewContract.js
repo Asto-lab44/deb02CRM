@@ -397,13 +397,21 @@ var NewContract = () => {
     return d.toISOString().slice(0, 10);
   }, [startDate, duration]);
 
-  // ── Génération PDF du Contrat d'Hébergement Externalisé
+  // ── Génération PDF du Contrat (multi-templates)
+  var [contractKind, setContractKind] = React.useState("auto");
+  var KINDS = window.HubHostingContractPdf && window.HubHostingContractPdf.KINDS || {};
+  var detectedKind = React.useMemo(() => {
+    if (!window.HubHostingContractPdf) return "hosting";
+    return window.HubHostingContractPdf.detectKind(products);
+  }, [products]);
+  var effectiveKind = contractKind === "auto" ? detectedKind : contractKind;
   var generateContractPdf = async () => {
     if (!window.HubHostingContractPdf) {
       alert("Le générateur PDF n'est pas chargé. Recharge la page (Ctrl+F5).");
       return;
     }
     var payload = {
+      kind: effectiveKind,
       client: {
         name: clientName !== "Chargement…" && clientName !== "Aucun client sélectionné" ? clientName : "",
         address: clientObj && (clientObj.address || clientObj.adresse) || "",
@@ -663,20 +671,65 @@ var NewContract = () => {
   }, "\u25CF Auto-save \xB7 il y a ", savedTick * 8 % 60, " sec")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8
+      gap: 8,
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => history.back(),
     style: ncStyles.ghostBtn
-  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+  }, "Annuler"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 8px",
+      border: "1px solid #fecdd3",
+      borderRadius: 7,
+      background: "#fff5f6"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#c91c45",
+      letterSpacing: 0.3,
+      textTransform: "uppercase"
+    }
+  }, "\uD83D\uDCC4 Mod\xE8le"), /*#__PURE__*/React.createElement("select", {
+    value: contractKind,
+    onChange: e => setContractKind(e.target.value),
+    title: contractKind === "auto" ? "Auto-détecté : " + (KINDS[detectedKind] && KINDS[detectedKind].label || detectedKind) : "",
+    style: {
+      border: "none",
+      background: "transparent",
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "#0f172a",
+      cursor: "pointer",
+      outline: "none"
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "auto"
+  }, "Auto (", KINDS[detectedKind] && KINDS[detectedKind].label || detectedKind, ")"), Object.keys(KINDS).map(k => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, KINDS[k].label)))), /*#__PURE__*/React.createElement("button", {
     onClick: generateContractPdf,
     style: {
       ...ncStyles.ghostBtn,
       color: "#c91c45",
       borderColor: "#fecdd3"
     },
-    title: "G\xE9n\xE8re le PDF du Contrat d'H\xE9bergement Externalis\xE9 pr\xE9-rempli avec les valeurs ci-dessous"
-  }, "\uD83D\uDCC4 Aper\xE7u PDF du contrat"), /*#__PURE__*/React.createElement("button", {
+    title: "G\xE9n\xE8re le PDF du contrat pr\xE9-rempli avec les valeurs ci-dessous"
+  }, "\uD83D\uDCC4 Aper\xE7u PDF du contrat"), /*#__PURE__*/React.createElement("a", {
+    href: "/administration-contrats-mapping",
+    title: "Configurer les r\xE8gles de d\xE9tection automatique du mod\xE8le de contrat",
+    style: {
+      ...ncStyles.ghostBtn,
+      textDecoration: "none",
+      color: "#475569"
+    }
+  }, "\u2699"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setPreviewOpen(true),
     style: ncStyles.primaryBtn
   }, "Cr\xE9er & envoyer pour signature"))), /*#__PURE__*/React.createElement("div", {

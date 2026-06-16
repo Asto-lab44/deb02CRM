@@ -67,6 +67,66 @@ var NewOpportunity = () => {
   // IDs des co-contacts sélectionnés pour cette opportunité (parmi
   // les contacts existants du client, hors contact principal).
   var [selectedCoContactIds, setSelectedCoContactIds] = React.useState(new Set());
+  // Mini-formulaire de création de contact à la volée
+  var [showAddContact, setShowAddContact] = React.useState(false);
+  var [newContact, setNewContact] = React.useState({
+    prenom: "",
+    nom: "",
+    fonction: "",
+    email: "",
+    phone: ""
+  });
+  var reloadClientContacts = async () => {
+    if (!selectedClient || !selectedClient.id) return;
+    try {
+      var conts = await window.api.contacts.list({
+        client_id: selectedClient.id
+      });
+      setClientContacts(conts || []);
+    } catch (e) {}
+  };
+  var saveNewContact = async () => {
+    if (!selectedClient || !selectedClient.id) {
+      if (window.HubToast) window.HubToast.warn("Sélectionne d'abord un client.");
+      return;
+    }
+    var prenom = (newContact.prenom || "").trim();
+    var nom = (newContact.nom || "").trim();
+    if (!prenom && !nom) {
+      if (window.HubToast) window.HubToast.error("Renseigne au moins un prénom ou un nom.");
+      return;
+    }
+    try {
+      var created = await window.api.contacts.create({
+        client_id: selectedClient.id,
+        prenom,
+        nom,
+        fonction: (newContact.fonction || "").trim(),
+        email: (newContact.email || "").trim(),
+        phone: (newContact.phone || "").trim()
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact créé pour " + selectedClient.name);
+      await reloadClientContacts();
+      // Coche directement le nouveau contact en co-contact
+      if (created && created.id) {
+        setSelectedCoContactIds(prev => {
+          var next = new Set(prev);
+          next.add(created.id);
+          return next;
+        });
+      }
+      setShowAddContact(false);
+      setNewContact({
+        prenom: "",
+        nom: "",
+        fonction: "",
+        email: "",
+        phone: ""
+      });
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création contact : " + (e.message || e));
+    }
+  };
   React.useEffect(() => {
     setSelectedCoContactIds(new Set());
   }, [selectedClient && selectedClient.id]);
@@ -218,6 +278,136 @@ var NewOpportunity = () => {
         flexShrink: 0
       }
     }, initials);
+  };
+
+  // Mini-formulaire de création de contact, partagé entre les deux états du bloc co-contacts
+  var renderNewContactForm = () => {
+    if (!showAddContact) return null;
+    var input = {
+      padding: "5px 8px",
+      border: "1px solid #cbd5e1",
+      borderRadius: 5,
+      fontSize: 12,
+      fontFamily: "inherit",
+      outline: "none",
+      boxSizing: "border-box",
+      width: "100%"
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        padding: 12,
+        background: "#fafbfc",
+        border: "1px solid #c7d2fe",
+        borderRadius: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "#3730a3",
+        textTransform: "uppercase",
+        letterSpacing: 0.4,
+        marginBottom: 8
+      }
+    }, "Nouveau contact pour ", selectedClient && selectedClient.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 6,
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: newContact.prenom,
+      onChange: e => setNewContact({
+        ...newContact,
+        prenom: e.target.value
+      }),
+      placeholder: "Pr\xE9nom",
+      style: input
+    }), /*#__PURE__*/React.createElement("input", {
+      value: newContact.nom,
+      onChange: e => setNewContact({
+        ...newContact,
+        nom: e.target.value
+      }),
+      placeholder: "Nom *",
+      style: input
+    })), /*#__PURE__*/React.createElement("input", {
+      value: newContact.fonction,
+      onChange: e => setNewContact({
+        ...newContact,
+        fonction: e.target.value
+      }),
+      placeholder: "Fonction (ex. G\xE9rant, DAF, Resp. SI\u2026)",
+      style: {
+        ...input,
+        marginBottom: 6
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 6,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: newContact.email,
+      onChange: e => setNewContact({
+        ...newContact,
+        email: e.target.value
+      }),
+      placeholder: "Email",
+      type: "email",
+      style: input
+    }), /*#__PURE__*/React.createElement("input", {
+      value: newContact.phone,
+      onChange: e => setNewContact({
+        ...newContact,
+        phone: e.target.value
+      }),
+      placeholder: "T\xE9l\xE9phone",
+      type: "tel",
+      style: input
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        justifyContent: "flex-end"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setShowAddContact(false);
+        setNewContact({
+          prenom: "",
+          nom: "",
+          fonction: "",
+          email: "",
+          phone: ""
+        });
+      },
+      style: {
+        padding: "6px 12px",
+        fontSize: 11.5,
+        background: "#fff",
+        color: "#475569",
+        border: "1px solid #e2e8f0",
+        borderRadius: 6,
+        cursor: "pointer"
+      }
+    }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+      onClick: saveNewContact,
+      style: {
+        padding: "6px 14px",
+        fontSize: 11.5,
+        fontWeight: 600,
+        background: "#4f46e5",
+        color: "#fff",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer"
+      }
+    }, "\u2713 Cr\xE9er & cocher")));
   };
 
   // Faded background context (showing pipeline behind modal)
@@ -567,7 +757,7 @@ var NewOpportunity = () => {
       }, "S\xE9lectionne d'abord un client.");
     }
     if (eligible.length === 0) {
-      return /*#__PURE__*/React.createElement("div", {
+      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
         style: {
           padding: "10px 12px",
           background: "#fafbfc",
@@ -576,14 +766,21 @@ var NewOpportunity = () => {
           fontSize: 12,
           color: "#94a3b8"
         }
-      }, "Aucun co-contact disponible.", " ", /*#__PURE__*/React.createElement("a", {
-        href: "/fiche-client?id=" + encodeURIComponent(selectedClient.id),
+      }, "Aucun co-contact disponible pour ce client."), /*#__PURE__*/React.createElement("button", {
+        onClick: () => setShowAddContact(true),
         style: {
+          marginTop: 8,
+          padding: "6px 12px",
+          fontSize: 11.5,
+          fontWeight: 600,
+          background: "transparent",
           color: "#3730a3",
-          textDecoration: "none",
-          fontWeight: 600
+          border: "1px dashed #c7d2fe",
+          borderRadius: 6,
+          cursor: "pointer",
+          width: "100%"
         }
-      }, "Ajouter un contact \xE0 ce client \u2192"));
+      }, "+ Ajouter un contact \xE0 ce client"), renderNewContactForm());
     }
     var colors = ["#dc2626", "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6"];
     return /*#__PURE__*/React.createElement("div", {
@@ -642,20 +839,21 @@ var NewOpportunity = () => {
           color: "#64748b"
         }
       }, c.fonction || "Fonction non renseignée", c.email ? " · " + c.email : "")));
-    }), /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setShowAddContact(true),
       style: {
-        fontSize: 11,
-        color: "#94a3b8",
-        marginTop: 4
-      }
-    }, "\uD83D\uDCA1 Besoin d'un contact qui n'appara\xEEt pas ?", " ", /*#__PURE__*/React.createElement("a", {
-      href: "/fiche-client?id=" + encodeURIComponent(selectedClient.id),
-      style: {
+        marginTop: 6,
+        padding: "6px 12px",
+        fontSize: 11.5,
+        fontWeight: 600,
+        background: "transparent",
         color: "#3730a3",
-        textDecoration: "none",
-        fontWeight: 600
+        border: "1px dashed #c7d2fe",
+        borderRadius: 6,
+        cursor: "pointer",
+        alignSelf: "flex-start"
       }
-    }, "Ajoute-le dans la fiche client \u2192")));
+    }, "+ Ajouter un autre contact \xE0 ce client"), renderNewContactForm());
   })())), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
   }, /*#__PURE__*/React.createElement(SectionHead, {

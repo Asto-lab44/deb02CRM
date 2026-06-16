@@ -68,6 +68,47 @@ const NewOpportunity = () => {
   // IDs des co-contacts sélectionnés pour cette opportunité (parmi
   // les contacts existants du client, hors contact principal).
   const [selectedCoContactIds, setSelectedCoContactIds] = React.useState(new Set());
+  // Mini-formulaire de création de contact à la volée
+  const [showAddContact, setShowAddContact] = React.useState(false);
+  const [newContact, setNewContact] = React.useState({ prenom: "", nom: "", fonction: "", email: "", phone: "" });
+  const reloadClientContacts = async () => {
+    if (!selectedClient || !selectedClient.id) return;
+    try {
+      const conts = await window.api.contacts.list({ client_id: selectedClient.id });
+      setClientContacts(conts || []);
+    } catch (e) {}
+  };
+  const saveNewContact = async () => {
+    if (!selectedClient || !selectedClient.id) {
+      if (window.HubToast) window.HubToast.warn("Sélectionne d'abord un client.");
+      return;
+    }
+    const prenom = (newContact.prenom || "").trim();
+    const nom = (newContact.nom || "").trim();
+    if (!prenom && !nom) {
+      if (window.HubToast) window.HubToast.error("Renseigne au moins un prénom ou un nom.");
+      return;
+    }
+    try {
+      const created = await window.api.contacts.create({
+        client_id: selectedClient.id,
+        prenom, nom,
+        fonction: (newContact.fonction || "").trim(),
+        email: (newContact.email || "").trim(),
+        phone: (newContact.phone || "").trim(),
+      });
+      if (window.HubToast) window.HubToast.success("✓ Contact créé pour " + selectedClient.name);
+      await reloadClientContacts();
+      // Coche directement le nouveau contact en co-contact
+      if (created && created.id) {
+        setSelectedCoContactIds((prev) => { const next = new Set(prev); next.add(created.id); return next; });
+      }
+      setShowAddContact(false);
+      setNewContact({ prenom: "", nom: "", fonction: "", email: "", phone: "" });
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création contact : " + (e.message || e));
+    }
+  };
   React.useEffect(() => { setSelectedCoContactIds(new Set()); }, [selectedClient && selectedClient.id]);
   React.useEffect(() => {
     if (!selectedClient || !selectedClient.id) { setClientContacts([]); return; }
@@ -165,6 +206,38 @@ const NewOpportunity = () => {
     const bg = color || palette[initials[0]] || "#64748b";
     return (
       <div style={{ width: size, height: size, borderRadius: 999, background: bg, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.4, fontWeight: 600, flexShrink: 0 }}>{initials}</div>
+    );
+  };
+
+  // Mini-formulaire de création de contact, partagé entre les deux états du bloc co-contacts
+  const renderNewContactForm = () => {
+    if (!showAddContact) return null;
+    const input = { padding: "5px 8px", border: "1px solid #cbd5e1", borderRadius: 5, fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box", width: "100%" };
+    return (
+      <div style={{ marginTop: 10, padding: 12, background: "#fafbfc", border: "1px solid #c7d2fe", borderRadius: 8 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#3730a3", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
+          Nouveau contact pour {selectedClient && selectedClient.name}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
+          <input value={newContact.prenom} onChange={(e) => setNewContact({ ...newContact, prenom: e.target.value })} placeholder="Prénom" style={input} />
+          <input value={newContact.nom} onChange={(e) => setNewContact({ ...newContact, nom: e.target.value })} placeholder="Nom *" style={input} />
+        </div>
+        <input value={newContact.fonction} onChange={(e) => setNewContact({ ...newContact, fonction: e.target.value })} placeholder="Fonction (ex. Gérant, DAF, Resp. SI…)" style={{ ...input, marginBottom: 6 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
+          <input value={newContact.email} onChange={(e) => setNewContact({ ...newContact, email: e.target.value })} placeholder="Email" type="email" style={input} />
+          <input value={newContact.phone} onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })} placeholder="Téléphone" type="tel" style={input} />
+        </div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+          <button onClick={() => { setShowAddContact(false); setNewContact({ prenom: "", nom: "", fonction: "", email: "", phone: "" }); }}
+                  style={{ padding: "6px 12px", fontSize: 11.5, background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, cursor: "pointer" }}>
+            Annuler
+          </button>
+          <button onClick={saveNewContact}
+                  style={{ padding: "6px 14px", fontSize: 11.5, fontWeight: 600, background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
+            ✓ Créer & cocher
+          </button>
+        </div>
+      </div>
     );
   };
 
@@ -341,11 +414,17 @@ const NewOpportunity = () => {
                     }
                     if (eligible.length === 0) {
                       return (
-                        <div style={{ padding: "10px 12px", background: "#fafbfc", border: "1px dashed #e2e8f0", borderRadius: 8, fontSize: 12, color: "#94a3b8" }}>
-                          Aucun co-contact disponible.{" "}
-                          <a href={"/fiche-client?id=" + encodeURIComponent(selectedClient.id)} style={{ color: "#3730a3", textDecoration: "none", fontWeight: 600 }}>
-                            Ajouter un contact à ce client →
-                          </a>
+                        <div>
+                          <div style={{ padding: "10px 12px", background: "#fafbfc", border: "1px dashed #e2e8f0", borderRadius: 8, fontSize: 12, color: "#94a3b8" }}>
+                            Aucun co-contact disponible pour ce client.
+                          </div>
+                          <button onClick={() => setShowAddContact(true)}
+                                  style={{ marginTop: 8, padding: "6px 12px", fontSize: 11.5, fontWeight: 600,
+                                           background: "transparent", color: "#3730a3", border: "1px dashed #c7d2fe",
+                                           borderRadius: 6, cursor: "pointer", width: "100%" }}>
+                            + Ajouter un contact à ce client
+                          </button>
+                          {renderNewContactForm()}
                         </div>
                       );
                     }
@@ -381,12 +460,13 @@ const NewOpportunity = () => {
                             </label>
                           );
                         })}
-                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
-                          💡 Besoin d'un contact qui n'apparaît pas ?{" "}
-                          <a href={"/fiche-client?id=" + encodeURIComponent(selectedClient.id)} style={{ color: "#3730a3", textDecoration: "none", fontWeight: 600 }}>
-                            Ajoute-le dans la fiche client →
-                          </a>
-                        </div>
+                        <button onClick={() => setShowAddContact(true)}
+                                style={{ marginTop: 6, padding: "6px 12px", fontSize: 11.5, fontWeight: 600,
+                                         background: "transparent", color: "#3730a3", border: "1px dashed #c7d2fe",
+                                         borderRadius: 6, cursor: "pointer", alignSelf: "flex-start" }}>
+                          + Ajouter un autre contact à ce client
+                        </button>
+                        {renderNewContactForm()}
                       </div>
                     );
                   })()}

@@ -1770,20 +1770,42 @@ var CommercialDocEditor = ({
     };
     var allowed = STATUS_FLOW[d.type] || [];
     var isLocked = d.status === "transforme";
-    return /*#__PURE__*/React.createElement("select", {
+    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("select", {
       value: d.status,
-      disabled: isLocked,
-      title: isLocked ? "Document figé après transformation — statut verrouillé" : "",
-      onChange: e => setField("status", e.target.value),
+      onChange: e => {
+        var next = e.target.value;
+        // Garde-fou : avertit avant de quitter « Transformé »
+        if (isLocked && next !== "transforme") {
+          if (!confirm("⚠ Ce document a déjà été transformé en " + (d.type === "devis" ? "commande" : d.type === "commande" ? "BL" : "facture") + ".\n\nDébloquer son statut peut créer une incohérence avec le document enfant déjà émis.\n\nContinuer et passer au statut « " + (STATUS_LABEL[next] || next) + " » ?")) return;
+        }
+        setField("status", next);
+      },
       style: {
         ...cdStyles.input,
-        background: isLocked ? "#f1f5f9" : "#fff",
-        cursor: isLocked ? "not-allowed" : "pointer"
+        background: isLocked ? "#fef3c7" : "#fff",
+        borderColor: isLocked ? "#f59e0b" : "#cbd5e1",
+        cursor: "pointer"
       }
     }, allowed.map(st => /*#__PURE__*/React.createElement("option", {
       key: st,
       value: st
-    }, STATUS_LABEL[st] || st)));
+    }, STATUS_LABEL[st] || st))), isLocked && /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (!confirm("Débloquer le statut « Transformé » et le repasser à « Accepté » ?\n\nAttention : le document enfant (commande/BL/facture) déjà généré reste en place. À toi de gérer la cohérence.")) return;
+        setField("status", "accepte");
+      },
+      style: {
+        marginTop: 4,
+        padding: "4px 10px",
+        fontSize: 11,
+        fontWeight: 600,
+        background: "transparent",
+        color: "#b45309",
+        border: "1px solid #fcd34d",
+        borderRadius: 5,
+        cursor: "pointer"
+      }
+    }, "\uD83D\uDD13 D\xE9bloquer le statut"));
   })()), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
   }, "Conditions de paiement"), /*#__PURE__*/React.createElement("select", {

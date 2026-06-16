@@ -1066,11 +1066,31 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                 const allowed = STATUS_FLOW[d.type] || [];
                 const isLocked = d.status === "transforme";
                 return (
-                  <select value={d.status} disabled={isLocked} title={isLocked ? "Document figé après transformation — statut verrouillé" : ""}
-                          onChange={(e) => setField("status", e.target.value)}
-                          style={{ ...cdStyles.input, background: isLocked ? "#f1f5f9" : "#fff", cursor: isLocked ? "not-allowed" : "pointer" }}>
-                    {allowed.map((st) => <option key={st} value={st}>{STATUS_LABEL[st] || st}</option>)}
-                  </select>
+                  <div>
+                    <select value={d.status}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              // Garde-fou : avertit avant de quitter « Transformé »
+                              if (isLocked && next !== "transforme") {
+                                if (!confirm("⚠ Ce document a déjà été transformé en " + (d.type === "devis" ? "commande" : d.type === "commande" ? "BL" : "facture") + ".\n\nDébloquer son statut peut créer une incohérence avec le document enfant déjà émis.\n\nContinuer et passer au statut « " + (STATUS_LABEL[next] || next) + " » ?")) return;
+                              }
+                              setField("status", next);
+                            }}
+                            style={{ ...cdStyles.input, background: isLocked ? "#fef3c7" : "#fff", borderColor: isLocked ? "#f59e0b" : "#cbd5e1", cursor: "pointer" }}>
+                      {allowed.map((st) => <option key={st} value={st}>{STATUS_LABEL[st] || st}</option>)}
+                    </select>
+                    {isLocked && (
+                      <button onClick={() => {
+                        if (!confirm("Débloquer le statut « Transformé » et le repasser à « Accepté » ?\n\nAttention : le document enfant (commande/BL/facture) déjà généré reste en place. À toi de gérer la cohérence.")) return;
+                        setField("status", "accepte");
+                      }}
+                      style={{ marginTop: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+                               background: "transparent", color: "#b45309", border: "1px solid #fcd34d",
+                               borderRadius: 5, cursor: "pointer" }}>
+                        🔓 Débloquer le statut
+                      </button>
+                    )}
+                  </div>
                 );
               })()}
             </div>

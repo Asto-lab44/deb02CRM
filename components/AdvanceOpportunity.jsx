@@ -238,6 +238,13 @@ const AdvanceOpportunity = () => {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           <a href={clientId ? "/fiche-client?id=" + clientId : "/crm"} style={S.btnGhost}>{curIdx >= stages.length - 1 ? "← Retour" : "Annuler"}</a>
+          {clientId && (
+            <a href={"/gestion-commerciale?client=" + encodeURIComponent(clientId) + (opp.ref ? "&opp=" + encodeURIComponent(opp.ref) : "")}
+               title="Voir les devis et documents commerciaux liés à ce client"
+               style={{ ...S.btnGhost, borderColor: "#3b82f6", color: "#1d4ed8", background: "#eff6ff", textDecoration: "none" }}>
+              📋 Devis en cours
+            </a>
+          )}
           <button onClick={async () => {
             try {
               const amtN = parseFloat(String(editAmount || "0").replace(/[^\d.]/g, "")) || 0;
@@ -253,7 +260,11 @@ const AdvanceOpportunity = () => {
                 internal_notes: editNotes || null,
                 owner: opp.owner || null,
                 lines: amtN > 0 ? [{
-                  designation: editName || opp.name || "Prestation",
+                  // L'article n'est PAS le nom de l'opportunité. On laisse
+                  // la désignation vide pour forcer l'utilisateur à saisir
+                  // un vrai article (ou ajouter une ligne depuis le catalogue).
+                  designation: "",
+                  description: editBesoin ? "Issu de l'opportunité « " + (editName || opp.name) + " » — " + editBesoin : null,
                   quantity: 1,
                   unit: "forfait",
                   unit_price_ht: amtN,

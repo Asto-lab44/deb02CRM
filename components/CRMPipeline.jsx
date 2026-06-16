@@ -463,10 +463,33 @@ const CRMPipeline = () => {
                    e.currentTarget.style.background = "";
                    const oppId = e.dataTransfer.getData("oppId");
                    if (!oppId || !window.api) return;
+                   // Garde-fou : ignore le drop sur la colonne d'origine
+                   // (évite un appel inutile à l'API et toute notification trompeuse).
+                   const allOpps = await window.api.opportunities.list();
+                   const dragged = (allOpps || []).find((o) => o.id === oppId || o.ref === oppId);
+                   if (!dragged) return;
+                   if (dragged.stage === col.key) return;
+                   // Pop-up de confirmation pour éviter un déplacement par mégarde.
+                   const stageLabels = { qualif: "Prospect", discovery: "Approche", propo: "Négociation", nego: "Conclusion", won: "Ordre", lost: "Perdu" };
+                   const fromLbl = stageLabels[dragged.stage] || dragged.stage;
+                   const toLbl = stageLabels[col.key] || col.label;
+                   const oppName = dragged.name || dragged.client_name || oppId;
+                   const ok = window.HubModal
+                     ? await window.HubModal.confirm({
+                         title: "Confirmer le déplacement",
+                         message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
+                         okLabel: "Oui, déplacer",
+                         okStyle: "primary",
+                       })
+                     : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
+                   if (!ok) {
+                     if (window.HubToast) window.HubToast.info("Déplacement annulé — l'opportunité reste en « " + fromLbl + " »");
+                     return;
+                   }
                    const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
                    try {
                      await window.api.opportunities.update(oppId, { stage: col.key, proba: stageProba[col.key] || 20 });
-                     if (window.HubToast) window.HubToast.success("✓ Opportunité déplacée en " + col.label);
+                     if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
                      // Reload opps
                      const list = await window.api.opportunities.list();
                      setSearchOpps(list || []);

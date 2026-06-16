@@ -959,12 +959,29 @@ var ERPHome = () => {
     },
     title: "Se d\xE9connecter",
     style: {
-      background: "transparent",
+      width: 26,
+      height: 26,
+      background: "#dc2626",
       border: 0,
-      color: "#94a3b8",
-      fontSize: 14,
+      borderRadius: 6,
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: 700,
       cursor: "pointer",
-      padding: 4
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxShadow: "0 1px 2px rgba(220,38,38,0.35)",
+      flexShrink: 0,
+      transition: "transform 100ms ease, background 100ms ease"
+    },
+    onMouseEnter: e => {
+      e.currentTarget.style.background = "#b91c1c";
+      e.currentTarget.style.transform = "scale(1.06)";
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.background = "#dc2626";
+      e.currentTarget.style.transform = "scale(1)";
     }
   }, "\u23FB")) : /*#__PURE__*/React.createElement("a", {
     href: "/login",

@@ -1231,44 +1231,166 @@ var NewOpportunity = () => {
     value: "Augustin Morin"
   }, "Augustin Morin \xB7 Direction \xB7 Commercial"))), /*#__PURE__*/React.createElement(FormRow, {
     label: "\xC9tiquettes",
-    subtitle: "Tags libres pour cat\xE9goriser cette opportunit\xE9"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      flexWrap: "wrap",
-      alignItems: "center"
-    }
-  }, oppTags.map((tag, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      ...noStyles.tag,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4
-    }
-  }, "# ", tag, /*#__PURE__*/React.createElement("span", {
-    onClick: () => setOppTags(arr => arr.filter((_, j) => j !== i)),
-    style: {
-      cursor: "pointer",
-      color: "#cbd5e1",
-      fontSize: 13
-    }
-  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: async () => {
-      var t = window.HubModal ? await window.HubModal.prompt({
-        title: "Nouvelle étiquette",
-        label: "Tag",
-        placeholder: "ex : Hot deal Q2",
-        okLabel: "Ajouter"
-      }) : prompt("Nouvelle étiquette :");
-      if (t && t.trim()) setOppTags(arr => [...arr, t.trim()]);
-    },
-    style: {
-      ...noStyles.addChip,
-      cursor: "pointer"
-    }
-  }, "+ Ajouter")))), /*#__PURE__*/React.createElement("div", {
+    subtitle: "Clique sur une \xE9tiquette sugg\xE9r\xE9e ou ajoute la tienne"
+  }, (() => {
+    // Étiquettes pré-définies : couvrent les catégorisations
+    // commerciales les plus courantes (segment, urgence, type
+    // d'opportunité, concurrence, source).
+    var SUGGESTED = [{
+      label: "🔥 Hot deal",
+      bg: "#fee2e2",
+      c: "#991b1b"
+    }, {
+      label: "🌡️ Warm",
+      bg: "#fef3c7",
+      c: "#92400e"
+    }, {
+      label: "❄️ Cold",
+      bg: "#dbeafe",
+      c: "#1e40af"
+    }, {
+      label: "⚡ Urgent",
+      bg: "#fee2e2",
+      c: "#991b1b"
+    }, {
+      label: "🎯 Stratégique",
+      bg: "#f3e8ff",
+      c: "#7e22ce"
+    }, {
+      label: "💎 Grand compte",
+      bg: "#cffafe",
+      c: "#155e75"
+    }, {
+      label: "🌱 Nouveau client",
+      bg: "#dcfce7",
+      c: "#065f46"
+    }, {
+      label: "♻ Renouvellement",
+      bg: "#e0e7ff",
+      c: "#3730a3"
+    }, {
+      label: "📈 Upsell",
+      bg: "#fef0e6",
+      c: "#9a3412"
+    }, {
+      label: "🔁 Cross-sell",
+      bg: "#fef0e6",
+      c: "#9a3412"
+    }, {
+      label: "🛡 Cyber / RGPD",
+      bg: "#fee2e2",
+      c: "#991b1b"
+    }, {
+      label: "☁ Cloud",
+      bg: "#dbeafe",
+      c: "#1e40af"
+    }, {
+      label: "📞 Téléphonie",
+      bg: "#cffafe",
+      c: "#155e75"
+    }, {
+      label: "🖨 Impression",
+      bg: "#f1f5f9",
+      c: "#475569"
+    }, {
+      label: "🤝 Partenaire",
+      bg: "#dcfce7",
+      c: "#065f46"
+    }, {
+      label: "🏁 Concurrence",
+      bg: "#fee2e2",
+      c: "#991b1b"
+    }, {
+      label: "📅 Q2 2026",
+      bg: "#e0e7ff",
+      c: "#3730a3"
+    }, {
+      label: "📅 Q3 2026",
+      bg: "#e0e7ff",
+      c: "#3730a3"
+    }];
+    var has = t => oppTags.some(x => x.toLowerCase() === t.toLowerCase());
+    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        alignItems: "center",
+        marginBottom: oppTags.length ? 10 : 0
+      }
+    }, oppTags.map((tag, i) => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        ...noStyles.tag,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4
+      }
+    }, "# ", tag, /*#__PURE__*/React.createElement("span", {
+      onClick: () => setOppTags(arr => arr.filter((_, j) => j !== i)),
+      style: {
+        cursor: "pointer",
+        color: "#cbd5e1",
+        fontSize: 13
+      }
+    }, "\xD7")))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.4,
+        marginBottom: 6
+      }
+    }, "Sugg\xE9r\xE9es (clique pour ajouter)"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }
+    }, SUGGESTED.map(s => {
+      var active = has(s.label);
+      return /*#__PURE__*/React.createElement("span", {
+        key: s.label,
+        onClick: () => {
+          if (active) setOppTags(arr => arr.filter(t => t.toLowerCase() !== s.label.toLowerCase()));else setOppTags(arr => [...arr, s.label]);
+        },
+        style: {
+          padding: "3px 9px",
+          borderRadius: 999,
+          fontSize: 11,
+          fontWeight: 600,
+          background: active ? s.bg : "#fff",
+          color: active ? s.c : "#64748b",
+          border: "1px solid " + (active ? s.c : "#e2e8f0"),
+          cursor: "pointer",
+          userSelect: "none",
+          opacity: active ? 1 : 0.85
+        },
+        onMouseEnter: e => {
+          if (!active) e.currentTarget.style.background = s.bg;
+        },
+        onMouseLeave: e => {
+          if (!active) e.currentTarget.style.background = "#fff";
+        }
+      }, active ? "✓ " : "", s.label);
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: async () => {
+        var t = window.HubModal ? await window.HubModal.prompt({
+          title: "Nouvelle étiquette",
+          label: "Tag",
+          placeholder: "ex : Hot deal Q2",
+          okLabel: "Ajouter"
+        }) : prompt("Nouvelle étiquette :");
+        if (t && t.trim()) setOppTags(arr => [...arr, t.trim()]);
+      },
+      style: {
+        ...noStyles.addChip,
+        cursor: "pointer"
+      }
+    }, "+ \xC9tiquette personnalis\xE9e")));
+  })())), /*#__PURE__*/React.createElement("div", {
     style: noStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => {

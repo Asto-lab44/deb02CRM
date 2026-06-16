@@ -937,6 +937,34 @@ var CRMPipeline = () => {
       e.currentTarget.style.background = "";
       var oppId = e.dataTransfer.getData("oppId");
       if (!oppId || !window.api) return;
+      // Garde-fou : ignore le drop sur la colonne d'origine
+      // (évite un appel inutile à l'API et toute notification trompeuse).
+      var allOpps = await window.api.opportunities.list();
+      var dragged = (allOpps || []).find(o => o.id === oppId || o.ref === oppId);
+      if (!dragged) return;
+      if (dragged.stage === col.key) return;
+      // Pop-up de confirmation pour éviter un déplacement par mégarde.
+      var stageLabels = {
+        qualif: "Prospect",
+        discovery: "Approche",
+        propo: "Négociation",
+        nego: "Conclusion",
+        won: "Ordre",
+        lost: "Perdu"
+      };
+      var fromLbl = stageLabels[dragged.stage] || dragged.stage;
+      var toLbl = stageLabels[col.key] || col.label;
+      var oppName = dragged.name || dragged.client_name || oppId;
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Confirmer le déplacement",
+        message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
+        okLabel: "Oui, déplacer",
+        okStyle: "primary"
+      }) : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
+      if (!ok) {
+        if (window.HubToast) window.HubToast.info("Déplacement annulé — l'opportunité reste en « " + fromLbl + " »");
+        return;
+      }
       var stageProba = {
         qualif: 20,
         discovery: 35,
@@ -949,7 +977,7 @@ var CRMPipeline = () => {
           stage: col.key,
           proba: stageProba[col.key] || 20
         });
-        if (window.HubToast) window.HubToast.success("✓ Opportunité déplacée en " + col.label);
+        if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
         // Reload opps
         var list = await window.api.opportunities.list();
         setSearchOpps(list || []);

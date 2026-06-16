@@ -809,11 +809,26 @@ var ProjectsKanban = () => {
       },
       title: "Créer un projet directement à l'étape " + stage.label
     }, "+ Ajouter un projet")));
-  }))), quickViewId && window.ProjectQuickView && React.createElement(window.ProjectQuickView, {
+  }))), quickViewId && (window.ProjectQuickView ? React.createElement(window.ProjectQuickView, {
     projectId: quickViewId,
     onClose: () => setQuickViewId(null),
     onChanged: () => reload()
-  }));
+  }) : React.createElement("div", {
+    onClick: () => setQuickViewId(null),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.55)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      fontSize: 14,
+      padding: 30,
+      textAlign: "center"
+    }
+  }, "⚠ Le composant ProjectQuickView n'est pas chargé. Rafraîchis la page (Ctrl+F5).")));
 };
 var S = {
   frame: {

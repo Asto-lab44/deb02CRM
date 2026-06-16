@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 600" font-family="Helvetica, Arial, sans-serif">
+  <!-- Ring (anneau) -->
+  <circle cx="270" cy="300" r="200" fill="none" stroke="#1f2942" stroke-width="34"/>
+  <!-- Red dot top-right of the ring -->
+  <circle cx="400" cy="178" r="40" fill="#c91c45"/>
+  <!-- "astorya" wordmark -->
+  <text x="560" y="380" font-size="320" font-weight="900" fill="#1f2942" letter-spacing="-6">astorya</text>
+  <!-- Tagline -->
+  <text x="565" y="490" font-size="76" font-weight="700" fill="#c91c45" letter-spacing="14">SOLUTION GLOBALE INFORMATIQUE</text>
+</svg>

@@ -171,8 +171,8 @@
 
     // ───── Bandeau header : logo Astorya à gauche, titre type à droite
     // Le logo SVG est embarqué inline (pas de dépendance asset externe).
-    const logoCell = (window.AstoryaAssets && window.AstoryaAssets.logoDataUrl)
-      ? { image: window.AstoryaAssets.logoDataUrl, width: 200, margin: [4, 8, 0, 8], alignment: "left" }
+    const logoCell = (window.AstoryaAssets && window.AstoryaAssets.logoSvg)
+      ? { svg: window.AstoryaAssets.logoSvg, width: 220, fit: [220, 70], margin: [4, 8, 0, 8], alignment: "left" }
       : { svg: ASTORYA_LOGO_SVG, width: 220, height: 60, margin: [4, 8, 0, 8], alignment: "left" };
     const headerBand = {
       table: {

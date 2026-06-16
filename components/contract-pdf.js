@@ -92,8 +92,8 @@
     const monthlyHT = (sums.recurringHT || 0) / 12;
 
     // ── HEADER (logo officiel + titre)
-    const logoBlock = (window.AstoryaAssets && window.AstoryaAssets.logoDataUrl)
-      ? { image: window.AstoryaAssets.logoDataUrl, width: 130, border: [false, false, false, false] }
+    const logoBlock = (window.AstoryaAssets && window.AstoryaAssets.logoSvg)
+      ? { svg: window.AstoryaAssets.logoSvg, width: 150, fit: [150, 50], border: [false, false, false, false] }
       : { svg: ASTORYA_LOGO_SVG, width: 130, fit: [130, 50], border: [false, false, false, false] };
     const headerBand = {
       table: {

@@ -138,7 +138,7 @@ var AdvanceOpportunity = () => {
       label: "Valeurs ajoutées de la solution proposée validées",
       done: true
     }, {
-      label: "Critères de décision identifiés",
+      label: "Création de l'offre concurrentielle financière SASP (génération d'un tableau situation actuelle - situation proposée)",
       done: false
     }],
     nego: [{

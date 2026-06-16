@@ -92,7 +92,7 @@ const AdvanceOpportunity = () => {
       { label: "Rendez vous client en présentiel ou en visioconférence réalisé", done: true },
       { label: "Cartographie des décideurs (≥ 3)",        done: true },
       { label: "Valeurs ajoutées de la solution proposée validées", done: true },
-      { label: "Critères de décision identifiés",         done: false },
+      { label: "Création de l'offre concurrentielle financière SASP (génération d'un tableau situation actuelle - situation proposée)", done: false },
     ],
     nego: [
       { label: "Proposition commerciale envoyée",          done: true },

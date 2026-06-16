@@ -179,6 +179,30 @@ const NewContract = () => {
     return d.toISOString().slice(0, 10);
   }, [startDate, duration]);
 
+  // ── Génération PDF du Contrat d'Hébergement Externalisé
+  const generateContractPdf = async () => {
+    if (!window.HubHostingContractPdf) {
+      alert("Le générateur PDF n'est pas chargé. Recharge la page (Ctrl+F5).");
+      return;
+    }
+    const payload = {
+      client: {
+        name: clientName !== "Chargement…" && clientName !== "Aucun client sélectionné" ? clientName : "",
+        address: (clientObj && (clientObj.address || clientObj.adresse)) || "",
+        cp: (clientObj && (clientObj.cp || clientObj.zip_code)) || "",
+        city: (clientObj && (clientObj.city || clientObj.ville)) || "",
+        siren: clientSiren !== "—" ? clientSiren : "",
+        billing_email: (clientObj && (clientObj.billing_email || clientObj.email)) || "",
+      },
+      products, duration, billingPeriod, tacite, paymentDelay,
+      indexation, indexCap, startDate, endDate,
+      signatory,
+      sums,
+    };
+    try { await window.HubHostingContractPdf.preview(payload); }
+    catch (e) { alert("Génération PDF : " + (e.message || e)); }
+  };
+
   // ── Mutations
   const updateProduct = (id, patch) => setProducts((ps) => ps.map((p) => p.id === id ? { ...p, ...patch } : p));
   const removeProduct = (id) => setProducts((ps) => ps.filter((p) => p.id !== id));
@@ -321,6 +345,10 @@ const NewContract = () => {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => history.back()} style={ncStyles.ghostBtn}>Annuler</button>
+          <button onClick={generateContractPdf} style={{ ...ncStyles.ghostBtn, color: "#c91c45", borderColor: "#fecdd3" }}
+                  title="Génère le PDF du Contrat d'Hébergement Externalisé pré-rempli avec les valeurs ci-dessous">
+            📄 Aperçu PDF du contrat
+          </button>
           <button onClick={() => setPreviewOpen(true)} style={ncStyles.primaryBtn}>Créer & envoyer pour signature</button>
         </div>
       </header>

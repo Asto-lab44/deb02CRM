@@ -397,6 +397,40 @@ var NewContract = () => {
     return d.toISOString().slice(0, 10);
   }, [startDate, duration]);
 
+  // ── Génération PDF du Contrat d'Hébergement Externalisé
+  var generateContractPdf = async () => {
+    if (!window.HubHostingContractPdf) {
+      alert("Le générateur PDF n'est pas chargé. Recharge la page (Ctrl+F5).");
+      return;
+    }
+    var payload = {
+      client: {
+        name: clientName !== "Chargement…" && clientName !== "Aucun client sélectionné" ? clientName : "",
+        address: clientObj && (clientObj.address || clientObj.adresse) || "",
+        cp: clientObj && (clientObj.cp || clientObj.zip_code) || "",
+        city: clientObj && (clientObj.city || clientObj.ville) || "",
+        siren: clientSiren !== "—" ? clientSiren : "",
+        billing_email: clientObj && (clientObj.billing_email || clientObj.email) || ""
+      },
+      products,
+      duration,
+      billingPeriod,
+      tacite,
+      paymentDelay,
+      indexation,
+      indexCap,
+      startDate,
+      endDate,
+      signatory,
+      sums
+    };
+    try {
+      await window.HubHostingContractPdf.preview(payload);
+    } catch (e) {
+      alert("Génération PDF : " + (e.message || e));
+    }
+  };
+
   // ── Mutations
   var updateProduct = (id, patch) => setProducts(ps => ps.map(p => p.id === id ? {
     ...p,
@@ -628,6 +662,14 @@ var NewContract = () => {
     onClick: () => history.back(),
     style: ncStyles.ghostBtn
   }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: generateContractPdf,
+    style: {
+      ...ncStyles.ghostBtn,
+      color: "#c91c45",
+      borderColor: "#fecdd3"
+    },
+    title: "G\xE9n\xE8re le PDF du Contrat d'H\xE9bergement Externalis\xE9 pr\xE9-rempli avec les valeurs ci-dessous"
+  }, "\uD83D\uDCC4 Aper\xE7u PDF du contrat"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setPreviewOpen(true),
     style: ncStyles.primaryBtn
   }, "Cr\xE9er & envoyer pour signature"))), /*#__PURE__*/React.createElement("div", {

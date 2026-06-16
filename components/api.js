@@ -2573,61 +2573,98 @@
   // ───────────────────────────────────────────────────────────────────
   // §6.73 STOCK & CATALOGUE — Matrice d'achats hebdomadaires
   // ───────────────────────────────────────────────────────────────────
-  const suppliers = {
-    async list({ active = true } = {}) {
-      const s = supa();
-      if (!s) return [];
-      let q = s.from("suppliers").select("*");
-      if (active) q = q.eq("active", true);
-      const { data } = await q.order("name");
-      return data || [];
-    },
-    async create(payload) {
-      const s = supa();
-      const id = payload.id || ("SUP-" + (payload.name || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) + "-" + Math.random().toString(36).slice(2, 4));
-      const row = { id, active: true, ...payload, created_at: new Date().toISOString() };
-      if (s) {
-        const { data, error } = await s.from("suppliers").insert(row).select().maybeSingle();
-        if (error) throw new Error(error.message);
-        return data;
-      }
-      return row;
-    },
-    async update(id, patch) {
-      const s = supa();
-      if (!s) return null;
-      const { data, error } = await s.from("suppliers").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
-      if (error) throw new Error(error.message);
-      return data;
-    },
-    /** Soft delete = active=false. Ne perd pas l'historique des références fournisseurs. */
-    async remove(id) {
-      const s = supa();
-      if (!s) return null;
-      const { error } = await s.from("suppliers").update({ active: false, updated_at: new Date().toISOString() }).eq("id", id);
-      if (error) throw new Error(error.message);
-      return true;
-    },
-    /** Import en lot : crée tous les fournisseurs qui n'existent pas encore.
-     *  Retourne { created: N, skipped: N }. */
-    async bulkImport(names) {
-      const s = supa();
-      if (!s) return { created: 0, skipped: 0 };
-      const { data: existing } = await s.from("suppliers").select("name");
-      const existingNames = new Set((existing || []).map((r) => (r.name || "").toLowerCase()));
-      const toCreate = (names || [])
-        .map((n) => String(n || "").trim())
-        .filter((n) => n.length >= 2 && !existingNames.has(n.toLowerCase()));
-      let created = 0;
-      for (const name of toCreate) {
-        try {
-          await this.create({ name });
-          created++;
-        } catch (e) { /* doublon racey ou autre — on continue */ }
-      }
-      return { created, skipped: (names || []).length - created };
-    },
-  };
+  const suppliers = (function () {
+    // Fallback localStorage : utilisé tant que la table public.suppliers
+    // n'existe pas en base (migration sql/20260615_stock_catalogue.sql
+    // pas encore exécutée). L'erreur Supabase est typique :
+    //   "Could not find the table 'public.suppliers' in the schema cache"
+    const LS_KEY = "hubAstorya.suppliers.v1";
+    const lsList = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (e) { return []; } };
+    const lsSave = (arr) => { try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch (e) {} };
+    const isMissingTable = (err) => err && /Could not find the table|schema cache|relation .* does not exist|42P01|PGRST205/i.test(err.message || "");
+    const genSupId = (name) => "SUP-" + String(name || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) + "-" + Math.random().toString(36).slice(2, 4);
+
+    return {
+      async list({ active = true } = {}) {
+        const s = supa();
+        if (s) {
+          let q = s.from("suppliers").select("*");
+          if (active) q = q.eq("active", true);
+          const { data, error } = await q.order("name");
+          if (!error) return data || [];
+          if (!isMissingTable(error)) { console.warn("[suppliers.list]", error.message); return []; }
+        }
+        // Fallback localStorage
+        const arr = lsList();
+        return active ? arr.filter((r) => r.active !== false) : arr;
+      },
+
+      async create(payload) {
+        const id = payload.id || genSupId(payload.name);
+        const row = { id, active: true, ...payload, created_at: new Date().toISOString() };
+        const s = supa();
+        if (s) {
+          const { data, error } = await s.from("suppliers").insert(row).select().maybeSingle();
+          if (!error) return data;
+          if (!isMissingTable(error)) throw new Error(error.message);
+          // sinon → fallback localStorage
+        }
+        const arr = lsList();
+        if (arr.some((r) => (r.name || "").toLowerCase() === String(row.name || "").toLowerCase())) {
+          throw new Error("Ce fournisseur existe déjà.");
+        }
+        arr.push(row); lsSave(arr);
+        return row;
+      },
+
+      async update(id, patch) {
+        const s = supa();
+        if (s) {
+          const { data, error } = await s.from("suppliers").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+          if (!error) return data;
+          if (!isMissingTable(error)) throw new Error(error.message);
+        }
+        const arr = lsList();
+        const idx = arr.findIndex((r) => r.id === id);
+        if (idx === -1) return null;
+        arr[idx] = { ...arr[idx], ...patch, updated_at: new Date().toISOString() };
+        lsSave(arr); return arr[idx];
+      },
+
+      /** Soft delete = active=false. Préserve l'historique des références fournisseurs. */
+      async remove(id) {
+        const s = supa();
+        if (s) {
+          const { error } = await s.from("suppliers").update({ active: false, updated_at: new Date().toISOString() }).eq("id", id);
+          if (!error) return true;
+          if (!isMissingTable(error)) throw new Error(error.message);
+        }
+        const arr = lsList();
+        const idx = arr.findIndex((r) => r.id === id);
+        if (idx === -1) return false;
+        arr[idx] = { ...arr[idx], active: false }; lsSave(arr);
+        return true;
+      },
+
+      /** Import en lot : crée tous les fournisseurs qui n'existent pas encore.
+       *  Retourne { created: N, skipped: N }. */
+      async bulkImport(names) {
+        const existing = await this.list({ active: false });
+        const existingNames = new Set((existing || []).map((r) => (r.name || "").toLowerCase()));
+        const toCreate = (names || [])
+          .map((n) => String(n || "").trim())
+          .filter((n) => n.length >= 2 && !existingNames.has(n.toLowerCase()));
+        let created = 0;
+        for (const name of toCreate) {
+          try {
+            await this.create({ name });
+            created++;
+          } catch (e) { /* doublon racey ou autre — on continue */ }
+        }
+        return { created, skipped: (names || []).length - created };
+      },
+    };
+  })();
 
   const purchaseMatrix = {
     /** Toutes les lignes à acheter (devis acceptés/transformés/envoyés

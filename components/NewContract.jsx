@@ -101,7 +101,7 @@ const NewContract = () => {
   const [category, setCategory] = React.useState("new");                // new | extension | upsell
   const [duration, setDuration] = React.useState(36);                   // mois
   const [tacite, setTacite] = React.useState(true);
-  const [indexation, setIndexation] = React.useState("SYNTEC");
+  const [indexation, setIndexation] = React.useState("Aucune");
   const [indexCap, setIndexCap] = React.useState(3);
   const [paymentDelay, setPaymentDelay] = React.useState("30j");        // 15j | 30j | 45fdm | 60j
   const [billingPeriod, setBillingPeriod] = React.useState("annual");   // monthly | quarterly | annual
@@ -574,9 +574,9 @@ const NewContract = () => {
                   <NCCondRow label="Indexation annuelle" value={
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <select value={indexation} onChange={(e) => setIndexation(e.target.value)} style={{ ...ncStyles.select100, padding: "5px 10px" }}>
+                        <option>Aucune</option>
                         <option>SYNTEC</option>
                         <option>INSEE IPC</option>
-                        <option>Aucune</option>
                       </select>
                       <span style={{ fontSize: 11, color: "#64748b" }}>plafonnée à</span>
                       <input
@@ -599,6 +599,7 @@ const NewContract = () => {
                     <div style={ncStyles.segCtrl}>
                       {segBill("monthly", "Mensuel")}
                       {segBill("quarterly", "Trim.")}
+                      {segBill("quarterly_due", "Trim. terme à échoir")}
                       {segBill("annual", "Annuel avance")}
                     </div>
                   } />
@@ -668,12 +669,9 @@ const NewContract = () => {
                   <div style={ncStyles.inputHelp}>Auto-calculé selon durée d'engagement</div>
                 </NCFormRow>
                 <NCFormRow label="Devise">
-                  <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={ncStyles.select100}>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="CHF">CHF</option>
-                  </select>
+                  <input value="EUR (€)" readOnly disabled
+                         title="Devise verrouillée"
+                         style={{ ...ncStyles.input, fontFamily: "'JetBrains Mono', monospace", background: "#fafbfc", color: "#475569", cursor: "not-allowed" }} />
                 </NCFormRow>
               </div>
 

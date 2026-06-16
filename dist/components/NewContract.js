@@ -267,7 +267,7 @@ var NewContract = () => {
   var [category, setCategory] = React.useState("new"); // new | extension | upsell
   var [duration, setDuration] = React.useState(36); // mois
   var [tacite, setTacite] = React.useState(true);
-  var [indexation, setIndexation] = React.useState("SYNTEC");
+  var [indexation, setIndexation] = React.useState("Aucune");
   var [indexCap, setIndexCap] = React.useState(3);
   var [paymentDelay, setPaymentDelay] = React.useState("30j"); // 15j | 30j | 45fdm | 60j
   var [billingPeriod, setBillingPeriod] = React.useState("annual"); // monthly | quarterly | annual
@@ -1148,7 +1148,7 @@ var NewContract = () => {
         ...ncStyles.select100,
         padding: "5px 10px"
       }
-    }, /*#__PURE__*/React.createElement("option", null, "SYNTEC"), /*#__PURE__*/React.createElement("option", null, "INSEE IPC"), /*#__PURE__*/React.createElement("option", null, "Aucune")), /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("option", null, "Aucune"), /*#__PURE__*/React.createElement("option", null, "SYNTEC"), /*#__PURE__*/React.createElement("option", null, "INSEE IPC")), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11,
         color: "#64748b"
@@ -1172,7 +1172,7 @@ var NewContract = () => {
     label: "P\xE9riodicit\xE9 facturation",
     value: /*#__PURE__*/React.createElement("div", {
       style: ncStyles.segCtrl
-    }, segBill("monthly", "Mensuel"), segBill("quarterly", "Trim."), segBill("annual", "Annuel avance"))
+    }, segBill("monthly", "Mensuel"), segBill("quarterly", "Trim."), segBill("quarterly_due", "Trim. terme à échoir"), segBill("annual", "Annuel avance"))
   })), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.totalsBlock
   }, /*#__PURE__*/React.createElement("h4", {
@@ -1314,19 +1314,19 @@ var NewContract = () => {
     style: ncStyles.inputHelp
   }, "Auto-calcul\xE9 selon dur\xE9e d'engagement")), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Devise"
-  }, /*#__PURE__*/React.createElement("select", {
-    value: currency,
-    onChange: e => setCurrency(e.target.value),
-    style: ncStyles.select100
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "EUR"
-  }, "EUR (\u20AC)"), /*#__PURE__*/React.createElement("option", {
-    value: "USD"
-  }, "USD ($)"), /*#__PURE__*/React.createElement("option", {
-    value: "GBP"
-  }, "GBP (\xA3)"), /*#__PURE__*/React.createElement("option", {
-    value: "CHF"
-  }, "CHF")))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("input", {
+    value: "EUR (\u20AC)",
+    readOnly: true,
+    disabled: true,
+    title: "Devise verrouill\xE9e",
+    style: {
+      ...ncStyles.input,
+      fontFamily: "'JetBrains Mono', monospace",
+      background: "#fafbfc",
+      color: "#475569",
+      cursor: "not-allowed"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.formGrid2
   }, /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Mod\xE8le juridique",

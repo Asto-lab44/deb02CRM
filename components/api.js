@@ -2484,23 +2484,27 @@
       const tasks = [];
       if (!s) return tasks;
 
-      // 1. Leasing (LOCAM, GRENKE, FRANFINANCE…) — actif et tacite
-      //    On garde aussi les échéances < today récentes (relances post-échéance).
+      // 1. Leasing (LOCAM, GRENKE, FRANFINANCE…)
+      //    Affiche TOUS les contrats actifs + tacite + termine (avec
+      //    date_fin renseignée), sans filtrage temporel. Le tri par
+      //    days_left croissant met naturellement les urgences en tête.
+      //    L'UI peut filtrer côté client via stats.urgent / horizon.
       try {
-        const todayMinus30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
         const { data: leases } = await s.from("leasing_contracts")
           .select("*").is("deleted_at", null)
-          .in("status", ["actif", "tacite"])
-          .gte("date_fin", todayMinus30)
-          .lte("date_fin", horizonDate)
+          .in("status", ["actif", "tacite", "termine"])
+          .not("date_fin", "is", null)
           .order("date_fin");
         (leases || []).forEach((l) => {
           const daysLeft = Math.floor((new Date(l.date_fin) - Date.now()) / (24 * 3600 * 1000));
           const bailleur = l.bailleur || "Leasing";
+          const statusBadge = l.status === "tacite" ? " · ⚠ tacite reconduction"
+                            : l.status === "termine" ? " · ✓ contrat terminé"
+                            : "";
           tasks.push({
             id: "lease_" + l.id, source: "leasing",
             title: l.designation || (bailleur + " · contrat " + (l.ref_contrat || "")),
-            subtitle: bailleur + " · " + (l.ref_contrat || "—") + (l.status === "tacite" ? " · ⚠ tacite reconduction" : ""),
+            subtitle: bailleur + " · " + (l.ref_contrat || "—") + statusBadge,
             client_id: l.client_id, client_name: l.client_name,
             date_echeance: l.date_fin,
             days_left: daysLeft,

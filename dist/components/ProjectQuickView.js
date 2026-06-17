@@ -61,6 +61,84 @@ var ProjectQuickView = ({
   var wfCategory = proj && proj.data && proj.data.workflow_kind && proj.data.workflow_kind.category || detected.category;
   var workflowSteps = WF && wfFamily && wfCategory ? WF.getWorkflow(wfFamily, wfCategory) : [];
   var workflowDone = proj && proj.data && proj.data.workflow_done || {};
+  var dateAchat = proj && proj.data && proj.data.date_achat || null;
+  var dateReception = proj && proj.data && proj.data.date_reception || null;
+
+  // ── Planning prévisionnel : map chaque étape à un offset en jours
+  // à partir de 2 ancres (achat / réception). Heuristique par mots-clés.
+  var PHASES = [
+  // [regex sur etape, ancre, offset en jours]
+  {
+    rx: /demande|devis/i,
+    anchor: "achat",
+    offset: -10
+  }, {
+    rx: /signature/i,
+    anchor: "achat",
+    offset: -3
+  }, {
+    rx: /commande|achat/i,
+    anchor: "achat",
+    offset: 0
+  }, {
+    rx: /réception\s*mat|reception\s*mat|réception|reception/i,
+    anchor: "reception",
+    offset: 0
+  }, {
+    rx: /prépa|prepa|préparation|preparation/i,
+    anchor: "reception",
+    offset: 1
+  }, {
+    rx: /rdv|rendez-vous|prise\s*de\s*rdv/i,
+    anchor: "reception",
+    offset: 1
+  }, {
+    rx: /portab/i,
+    anchor: "reception",
+    offset: 2
+  }, {
+    rx: /planif|provisioning|config\s*serveur|config\s*&\s*portabilité/i,
+    anchor: "reception",
+    offset: 3
+  }, {
+    rx: /installation|déploiement|deploiement|livraison|raccordement|mise\s*en\s*œuvre|mise\s*en\s*service|config\s*&\s*envoi/i,
+    anchor: "reception",
+    offset: 7
+  }, {
+    rx: /recette/i,
+    anchor: "reception",
+    offset: 9
+  }, {
+    rx: /identification\s*glpi|glpi/i,
+    anchor: "reception",
+    offset: 7
+  }, {
+    rx: /validation\s*dossier|validation\s*technique/i,
+    anchor: "reception",
+    offset: 8
+  }, {
+    rx: /passage\s*en\s*comptabilité|comptabilité|compta/i,
+    anchor: "reception",
+    offset: 10
+  }, {
+    rx: /facturation/i,
+    anchor: "reception",
+    offset: 13
+  }, {
+    rx: /clôture|cloture|archivage/i,
+    anchor: "reception",
+    offset: 15
+  }];
+  var stepScheduledDate = step => {
+    if (!dateAchat && !dateReception) return null;
+    var phase = PHASES.find(p => p.rx.test(step.etape || ""));
+    if (!phase) return null;
+    var anchor = phase.anchor === "achat" ? dateAchat : dateReception || dateAchat;
+    if (!anchor) return null;
+    var d = new Date(anchor);
+    d.setDate(d.getDate() + phase.offset);
+    return d.toISOString().slice(0, 10);
+  };
   var setWorkflowKind = async (family, category) => {
     var nextData = {
       ...(proj && proj.data || {}),
@@ -68,6 +146,23 @@ var ProjectQuickView = ({
         family,
         category
       }
+    };
+    setProj(cur => cur ? {
+      ...cur,
+      data: nextData
+    } : cur);
+    try {
+      await window.api.projects.update(proj.id, {
+        data: nextData
+      });
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
+    }
+  };
+  var setAnchorDate = async (key, value) => {
+    var nextData = {
+      ...(proj && proj.data || {}),
+      [key]: value || null
     };
     setProj(cur => cur ? {
       ...cur,
@@ -617,7 +712,71 @@ var ProjectQuickView = ({
       color: "#475569",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, Object.keys(workflowDone).filter(k => k.startsWith(wfFamily + "/" + wfCategory + "::")).length, "/", workflowSteps.length, " \xE9tapes")), workflowSteps.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, Object.keys(workflowDone).filter(k => k.startsWith(wfFamily + "/" + wfCategory + "::")).length, "/", workflowSteps.length, " \xE9tapes")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px",
+      background: "#fafbfc",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Planning :"), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11.5,
+      color: "#475569"
+    }
+  }, "\uD83D\uDED2 Date d'achat", /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: dateAchat || "",
+    onChange: e => setAnchorDate("date_achat", e.target.value || null),
+    style: {
+      padding: "3px 6px",
+      border: "1px solid #cbd5e1",
+      borderRadius: 5,
+      fontSize: 11.5,
+      fontFamily: "inherit",
+      color: "#0f172a"
+    }
+  })), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11.5,
+      color: "#475569"
+    }
+  }, "\uD83D\uDCE6 Date de r\xE9ception", /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: dateReception || "",
+    onChange: e => setAnchorDate("date_reception", e.target.value || null),
+    style: {
+      padding: "3px 6px",
+      border: "1px solid #cbd5e1",
+      borderRadius: 5,
+      fontSize: 11.5,
+      fontFamily: "inherit",
+      color: "#0f172a"
+    }
+  })), !dateAchat && !dateReception && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontStyle: "italic"
+    }
+  }, "Renseigne les dates pour activer le planning automatique.")), workflowSteps.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 18,
       fontSize: 12,
@@ -631,6 +790,38 @@ var ProjectQuickView = ({
   }, workflowSteps.map((step, idx) => {
     var stepKey = wfFamily + "/" + wfCategory + "::" + idx + "::" + step.etape;
     var isDone = !!workflowDone[stepKey];
+    var doneAt = isDone && workflowDone[stepKey] && workflowDone[stepKey].done_at ? new Date(workflowDone[stepKey].done_at).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short"
+    }) : null;
+    var scheduledISO = stepScheduledDate(step);
+    var scheduledLabel = scheduledISO ? new Date(scheduledISO).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short"
+    }) : null;
+    // Couleur du badge : rouge si en retard, orange si aujourd'hui/+3j, gris sinon
+    var schedColor = {
+      bg: "#f1f5f9",
+      c: "#475569",
+      border: "#e2e8f0"
+    };
+    if (scheduledISO && !isDone) {
+      var todayISO = new Date().toISOString().slice(0, 10);
+      var inDays = Math.floor((new Date(scheduledISO) - new Date(todayISO)) / (24 * 3600 * 1000));
+      if (inDays < 0) schedColor = {
+        bg: "#fee2e2",
+        c: "#991b1b",
+        border: "#fca5a5"
+      };else if (inDays <= 3) schedColor = {
+        bg: "#fef3c7",
+        c: "#92400e",
+        border: "#fcd34d"
+      };else if (inDays <= 7) schedColor = {
+        bg: "#dbeafe",
+        c: "#1e40af",
+        border: "#93c5fd"
+      };
+    }
     var roleColor = {
       "COM": "#1d4ed8",
       "COM + RS": "#1d4ed8",
@@ -722,7 +913,29 @@ var ProjectQuickView = ({
         marginTop: 4,
         flexWrap: "wrap"
       }
-    }, step.validation && step.validation !== "—" && /*#__PURE__*/React.createElement("span", {
+    }, isDone && doneAt && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#065f46",
+        background: "#dcfce7",
+        border: "1px solid #86efac",
+        padding: "1px 6px",
+        borderRadius: 3,
+        fontWeight: 700,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, "\u2713 Fait le ", doneAt), !isDone && scheduledLabel && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: schedColor.c,
+        background: schedColor.bg,
+        border: "1px solid " + schedColor.border,
+        padding: "1px 6px",
+        borderRadius: 3,
+        fontWeight: 700,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, "\uD83D\uDCC5 Pr\xE9vu ", scheduledLabel), step.validation && step.validation !== "—" && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
         color: "#92400e",

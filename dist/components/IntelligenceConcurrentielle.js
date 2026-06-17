@@ -257,11 +257,19 @@ var IntelligenceConcurrentielle = () => {
       try {
         if (window.HubToast) window.HubToast.info("Import LOCAM en cours…");
         var res = await window.api.leasingContracts.importLocamCSV(f);
-        var msg = "✓ LOCAM importé · " + res.imported + " nouveaux · " + res.updated + " mis à jour · " + res.skipped + " ignorés";
-        if (window.HubToast) window.HubToast.success(msg);
-        if (res.errors && res.errors.length) console.warn("[LOCAM import errors]", res.errors);
+        console.log("[LOCAM import]", res);
+        var total = res.imported + res.updated;
+        if (total === 0 && res.skipped > 0) {
+          if (window.HubToast) window.HubToast.error("⚠ LOCAM : 0 importé · " + res.skipped + " ignorés. Ouvre la console (F12) pour voir les erreurs.");
+          if (res.errors && res.errors.length) console.error("[LOCAM ERRORS]", res.errors);
+        } else {
+          var msg = "✓ LOCAM : " + res.imported + " nouveau(x) · " + res.updated + " mis à jour" + (res.skipped ? " · " + res.skipped + " ignorés" : "");
+          if (window.HubToast) window.HubToast.success(msg);
+          if (res.errors && res.errors.length) console.warn("[LOCAM import warnings]", res.errors);
+        }
         reload();
       } catch (err) {
+        console.error("[LOCAM import exception]", err);
         if (window.HubToast) window.HubToast.error("Import LOCAM : " + (err.message || err));
       }
     }
@@ -286,11 +294,19 @@ var IntelligenceConcurrentielle = () => {
       try {
         if (window.HubToast) window.HubToast.info("Import GRENKE en cours…");
         var res = await window.api.leasingContracts.importGrenkeXLSX(f);
-        var msg = "✓ GRENKE importé · " + res.imported + " nouveaux · " + res.updated + " mis à jour · " + res.skipped + " ignorés";
-        if (window.HubToast) window.HubToast.success(msg);
-        if (res.errors && res.errors.length) console.warn("[GRENKE import errors]", res.errors);
+        console.log("[GRENKE import]", res);
+        var total = res.imported + res.updated;
+        if (total === 0 && res.skipped > 0) {
+          if (window.HubToast) window.HubToast.error("⚠ GRENKE : 0 importé · " + res.skipped + " ignorés. Ouvre la console (F12) pour voir les erreurs.");
+          if (res.errors && res.errors.length) console.error("[GRENKE ERRORS]", res.errors);
+        } else {
+          var msg = "✓ GRENKE : " + res.imported + " nouveau(x) · " + res.updated + " mis à jour" + (res.skipped ? " · " + res.skipped + " ignorés" : "");
+          if (window.HubToast) window.HubToast.success(msg);
+          if (res.errors && res.errors.length) console.warn("[GRENKE import warnings]", res.errors);
+        }
         reload();
       } catch (err) {
+        console.error("[GRENKE import exception]", err);
         if (window.HubToast) window.HubToast.error("Import GRENKE : " + (err.message || err));
       }
     }

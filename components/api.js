@@ -2643,8 +2643,9 @@
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
       // Première feuille (GRENKE n'en utilise qu'une)
       const ws = wb.Sheets[wb.SheetNames[0]];
-      // header:1 → renvoie un array of arrays, on lit les en-têtes manuellement
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false, dateNF: "yyyy-mm-dd" });
+      // header:1 → array of arrays, raw:true → garde les valeurs brutes
+      // (Date JS si cellDates a fonctionné, number sinon → toISODate gère les 2)
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
       if (!rows || rows.length < 2) return { imported: 0, updated: 0, skipped: 0, errors: ["Fichier vide ou sans données"] };
       const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
       const idx = (name) => header.findIndex((h) => h === name.toLowerCase());
@@ -2660,22 +2661,37 @@
         end:      idx("End of primary period"),
       };
       if (COL.ref === -1) throw new Error("Colonne « Contract No. » introuvable — format inattendu.");
-      // Helpers
+      // Helpers — toISODate robuste : Date | number serial Excel | string ISO/DD-MM-YYYY
       const toISODate = (v) => {
-        if (!v) return null;
+        if (v == null || v === "") return null;
+        // 1. JS Date object
         if (v instanceof Date && !isNaN(v)) return v.toISOString().slice(0, 10);
+        // 2. Nombre direct (Excel serial)
+        if (typeof v === "number" && isFinite(v) && v > 1000 && v < 100000) {
+          const d = new Date(Date.UTC(1899, 11, 30) + v * 86400000);
+          return d.toISOString().slice(0, 10);
+        }
         const s = String(v).trim();
-        // Déjà ISO ?
+        if (!s) return null;
+        // 3. Déjà ISO YYYY-MM-DD
         if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-        // Format DD/MM/YYYY
-        const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        // 4. DD/MM/YYYY ou DD-MM-YYYY
+        let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
         if (m) return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
-        // Serial Excel
-        const n = Number(s);
+        // 5. DD/MM/YY → on assume 20YY si < 50, 19YY sinon
+        m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+        if (m) {
+          const yy = parseInt(m[3], 10);
+          const yyyy = yy < 50 ? 2000 + yy : 1900 + yy;
+          return yyyy + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+        }
+        // 6. String numérique → serial Excel
+        const n = Number(s.replace(",", "."));
         if (isFinite(n) && n > 1000 && n < 100000) {
           const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
           return d.toISOString().slice(0, 10);
         }
+        console.warn("[importGrenkeXLSX] date non parseable :", JSON.stringify(v));
         return null;
       };
       const parseNum = (v) => {

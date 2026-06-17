@@ -39,6 +39,72 @@ var ProjectQuickView = ({
     reload();
   }, [reload]);
 
+  // ── Workflow Astorya — détection auto + override manuel + checklist ──
+  var WF = window.HubProjectWorkflows;
+  var productNames = React.useMemo(() => {
+    if (!proj || !proj.items) return [];
+    return proj.items.map(it => (it.designation || "") + " " + (it.ref || "")).filter(Boolean);
+  }, [proj]);
+  var detected = React.useMemo(() => {
+    if (!WF || !productNames.length) return {
+      family: null,
+      category: null
+    };
+    var stored = proj && proj.data && proj.data.workflow_kind;
+    if (stored && stored.family) return {
+      family: stored.family,
+      category: stored.category
+    };
+    return WF.detect(productNames);
+  }, [proj, productNames, WF]);
+  var wfFamily = proj && proj.data && proj.data.workflow_kind && proj.data.workflow_kind.family || detected.family;
+  var wfCategory = proj && proj.data && proj.data.workflow_kind && proj.data.workflow_kind.category || detected.category;
+  var workflowSteps = WF && wfFamily && wfCategory ? WF.getWorkflow(wfFamily, wfCategory) : [];
+  var workflowDone = proj && proj.data && proj.data.workflow_done || {};
+  var setWorkflowKind = async (family, category) => {
+    var nextData = {
+      ...(proj && proj.data || {}),
+      workflow_kind: {
+        family,
+        category
+      }
+    };
+    setProj(cur => cur ? {
+      ...cur,
+      data: nextData
+    } : cur);
+    try {
+      await window.api.projects.update(proj.id, {
+        data: nextData
+      });
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
+    }
+  };
+  var toggleStep = async stepKey => {
+    var next = {
+      ...workflowDone
+    };
+    if (next[stepKey]) delete next[stepKey];else next[stepKey] = {
+      done_at: new Date().toISOString()
+    };
+    var nextData = {
+      ...(proj && proj.data || {}),
+      workflow_done: next
+    };
+    setProj(cur => cur ? {
+      ...cur,
+      data: nextData
+    } : cur);
+    try {
+      await window.api.projects.update(proj.id, {
+        data: nextData
+      });
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Sauvegarde : " + (e.message || e));
+    }
+  };
+
   // Sauvegarde inline d'un champ projet (top-level column).
   var saveField = async (key, value) => {
     if (!proj) return;
@@ -472,19 +538,225 @@ var ProjectQuickView = ({
     placeholder: "Ajoute des notes internes sur ce projet\u2026"
   })))), /*#__PURE__*/React.createElement("section", {
     style: {
-      overflow: "hidden",
+      overflow: "auto",
       display: "flex",
       flexDirection: "column",
       background: "#f3f5f8"
     }
+  }, WF && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      margin: "12px 12px 0 12px",
+      borderRadius: 10,
+      border: "1px solid #e2e8f0"
+    }
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px",
+      borderBottom: "1px solid #eef1f5",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCCB Workflow Astorya"), /*#__PURE__*/React.createElement("select", {
+    value: wfFamily || "",
+    onChange: e => {
+      var fam = e.target.value || null;
+      var firstCat = fam && WF.listCategories(fam)[0];
+      setWorkflowKind(fam, firstCat || null);
+    },
+    style: {
+      fontSize: 11.5,
+      padding: "4px 8px",
+      border: "1px solid #cbd5e1",
+      borderRadius: 6,
+      background: "#fff",
+      color: "#0f172a",
+      fontFamily: "inherit",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Famille \u2014"), WF.listFamilies().map(f => /*#__PURE__*/React.createElement("option", {
+    key: f,
+    value: f
+  }, f))), /*#__PURE__*/React.createElement("select", {
+    value: wfCategory || "",
+    onChange: e => setWorkflowKind(wfFamily, e.target.value || null),
+    disabled: !wfFamily,
+    style: {
+      fontSize: 11.5,
+      padding: "4px 8px",
+      border: "1px solid #cbd5e1",
+      borderRadius: 6,
+      background: wfFamily ? "#fff" : "#f8fafc",
+      color: "#0f172a",
+      fontFamily: "inherit",
+      cursor: wfFamily ? "pointer" : "not-allowed",
+      minWidth: 200
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Sous-cat\xE9gorie \u2014"), wfFamily && WF.listCategories(wfFamily).map(c => /*#__PURE__*/React.createElement("option", {
+    key: c,
+    value: c
+  }, c))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), workflowSteps.length > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "#475569",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, Object.keys(workflowDone).filter(k => k.startsWith(wfFamily + "/" + wfCategory + "::")).length, "/", workflowSteps.length, " \xE9tapes")), workflowSteps.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 18,
+      fontSize: 12,
+      color: "#94a3b8",
+      textAlign: "center"
+    }
+  }, !wfFamily ? "Sélectionne une famille puis une sous-catégorie pour afficher le workflow." : "Aucune étape trouvée pour cette sous-catégorie.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px"
+    }
+  }, workflowSteps.map((step, idx) => {
+    var stepKey = wfFamily + "/" + wfCategory + "::" + idx + "::" + step.etape;
+    var isDone = !!workflowDone[stepKey];
+    var roleColor = {
+      "COM": "#1d4ed8",
+      "COM + RS": "#1d4ed8",
+      "ADV": "#7e22ce",
+      "ADV/RS": "#7e22ce",
+      "ADV / RS": "#7e22ce",
+      "RS": "#9a3412",
+      "TECH": "#0d9488",
+      "TECH terrain": "#0d9488",
+      "SUPPORT": "#0e7490",
+      "COMPTA": "#065f46"
+    }[step.role] || "#475569";
+    return /*#__PURE__*/React.createElement("div", {
+      key: stepKey,
+      onClick: () => toggleStep(stepKey),
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        padding: "9px 10px",
+        borderRadius: 8,
+        marginBottom: 6,
+        cursor: "pointer",
+        background: isDone ? "#f0fdf4" : "#fafbfc",
+        border: "1px solid " + (isDone ? "#86efac" : "#eef1f5"),
+        opacity: isDone ? 0.75 : 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 20,
+        height: 20,
+        borderRadius: 5,
+        flexShrink: 0,
+        border: "2px solid " + (isDone ? "#10b981" : "#cbd5e1"),
+        background: isDone ? "#10b981" : "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontSize: 12,
+        fontWeight: 700,
+        marginTop: 1
+      }
+    }, isDone ? "✓" : ""), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 3,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        fontWeight: 700,
+        color: "#fff",
+        background: roleColor,
+        padding: "1px 6px",
+        borderRadius: 3,
+        letterSpacing: 0.3
+      }
+    }, step.role || "—"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "#0f172a",
+        textDecoration: isDone ? "line-through" : "none"
+      }
+    }, step.etape), step.intervenant && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#64748b"
+      }
+    }, "\xB7 ", step.intervenant)), step.action && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#475569",
+        lineHeight: 1.45
+      }
+    }, step.action), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        marginTop: 4,
+        flexWrap: "wrap"
+      }
+    }, step.validation && step.validation !== "—" && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#92400e",
+        background: "#fef3c7",
+        padding: "1px 6px",
+        borderRadius: 3
+      }
+    }, "\u2713 ", step.validation), step.board && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#3730a3",
+        background: "#e0e7ff",
+        padding: "1px 6px",
+        borderRadius: 3,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, "\uD83D\uDCCB ", step.board), step.automation && step.automation !== "—" && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#0e7490",
+        background: "#cffafe",
+        padding: "1px 6px",
+        borderRadius: 3
+      }
+    }, "\u2699 ", step.automation))));
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 18px",
       borderBottom: "1px solid #eef1f5",
       background: "#fff",
       display: "flex",
       alignItems: "center",
-      gap: 10
+      gap: 10,
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {

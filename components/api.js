@@ -2528,6 +2528,9 @@
       } catch (e) {}
 
       // 3. Concurrents depuis opportunités ouvertes (contract_end dans data jsonb)
+      //    On inclut les opps avec contract_end MÊME SANS concurrent nommé :
+      //    la simple présence d'une échéance contractuelle doit déclencher une
+      //    action de rappel (à contacter avant l'échéance).
       try {
         const { data: opps } = await s.from("opportunities")
           .select("*").not("stage", "in", "(won,lost)");
@@ -2535,13 +2538,18 @@
           // contract_end peut être en colonne directe ou dans data jsonb
           const ce = o.contract_end || (o.data && o.data.contract_end);
           const concurrent = o.concurrent || (o.data && o.data.concurrent);
-          if (!ce || !concurrent) return;
-          if (ce > horizonDate || ce < today) return;
+          if (!ce) return;
+          if (ce > horizonDate) return;
+          // Les échéances dans le passé < 30 jours sont conservées (relances tardives)
+          const todayMinus30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+          if (ce < todayMinus30) return;
           const daysLeft = Math.floor((new Date(ce) - Date.now()) / (24 * 3600 * 1000));
           tasks.push({
             id: "opp_" + o.id, source: "concurrent",
-            title: "Fin contrat " + concurrent,
-            subtitle: o.name || "Opportunité",
+            title: concurrent ? ("Fin contrat " + concurrent) : "Échéance contrat actuel",
+            subtitle: concurrent
+              ? (o.name || "Opportunité")
+              : ((o.name || "Opportunité") + " · concurrent non renseigné"),
             client_id: o.client_id, client_name: o.client_name || (o.data && o.data.client_name),
             date_echeance: ce,
             days_left: daysLeft,

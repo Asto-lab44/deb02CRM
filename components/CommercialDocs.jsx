@@ -809,6 +809,9 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
           tva_rate: Number(line.tva_rate) || 0,
           is_text_only: !!line.is_text_only,
           position: i,
+          // Champs internes (jamais sur PDF client)
+          manufacturer_ref: line.manufacturer_ref || null,
+          purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative),
         };
         if (line._new || String(line.id || "").startsWith("tmp_")) {
           const created = await window.api.commercialDocs.addLine(d.id, normalizedLine);
@@ -1173,6 +1176,32 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                     <select value={l.tva_rate} onChange={(e) => updateLineField(i, "tva_rate", e.target.value)} style={cdStyles.miniInput}>
                       {tvaRates.map((t) => <option key={t.rate} value={t.rate}>{t.rate} %</option>)}
                     </select>
+                  </div>
+                </div>
+                {/* Ligne 3 : INFOS INTERNES (non visibles sur le PDF client) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 10, marginTop: 8,
+                              padding: "8px 10px", background: "#fafbfc", borderRadius: 6, border: "1px dashed #e2e8f0" }}>
+                  <div>
+                    <label style={{ ...cdStyles.miniLbl, color: "#94a3b8" }}>
+                      🔒 Référence constructeur <span style={{ fontSize: 9, fontWeight: 500, fontStyle: "italic" }}>(interne — non imprimée sur le PDF)</span>
+                    </label>
+                    <input type="text" value={l.manufacturer_ref || ""}
+                           onChange={(e) => updateLineField(i, "manufacturer_ref", e.target.value)}
+                           placeholder="ex. HP-EB840-G11-A26S0EA"
+                           style={{ ...cdStyles.miniInput, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }} />
+                  </div>
+                  <div>
+                    <label style={{ ...cdStyles.miniLbl, color: "#94a3b8" }}>
+                      🔒 Prix d'achat indicatif <span style={{ fontSize: 9, fontWeight: 500, fontStyle: "italic" }}>(interne)</span>
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <input type="number" step="0.01"
+                             value={l.purchase_price_indicative == null ? "" : l.purchase_price_indicative}
+                             onChange={(e) => updateLineField(i, "purchase_price_indicative", e.target.value === "" ? null : Number(e.target.value))}
+                             placeholder="ex. 850.00"
+                             style={{ ...cdStyles.miniInput, paddingRight: 26, fontFamily: "'JetBrains Mono', monospace" }} />
+                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>€</span>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1346,7 +1346,10 @@ var CommercialDocEditor = ({
           discount_pct: Number(line.discount_pct) || 0,
           tva_rate: Number(line.tva_rate) || 0,
           is_text_only: !!line.is_text_only,
-          position: i
+          position: i,
+          // Champs internes (jamais sur PDF client)
+          manufacturer_ref: line.manufacturer_ref || null,
+          purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative)
         };
         if (line._new || String(line.id || "").startsWith("tmp_")) {
           var created = await window.api.commercialDocs.addLine(d.id, normalizedLine);
@@ -2018,7 +2021,75 @@ var CommercialDocEditor = ({
   }, tvaRates.map(t => /*#__PURE__*/React.createElement("option", {
     key: t.rate,
     value: t.rate
-  }, t.rate, " %"))))))), /*#__PURE__*/React.createElement("div", {
+  }, t.rate, " %"))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 200px",
+      gap: 10,
+      marginTop: 8,
+      padding: "8px 10px",
+      background: "#fafbfc",
+      borderRadius: 6,
+      border: "1px dashed #e2e8f0"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...cdStyles.miniLbl,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDD12 R\xE9f\xE9rence constructeur ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 500,
+      fontStyle: "italic"
+    }
+  }, "(interne \u2014 non imprim\xE9e sur le PDF)")), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: l.manufacturer_ref || "",
+    onChange: e => updateLineField(i, "manufacturer_ref", e.target.value),
+    placeholder: "ex. HP-EB840-G11-A26S0EA",
+    style: {
+      ...cdStyles.miniInput,
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 11.5
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...cdStyles.miniLbl,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDD12 Prix d'achat indicatif ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 500,
+      fontStyle: "italic"
+    }
+  }, "(interne)")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: l.purchase_price_indicative == null ? "" : l.purchase_price_indicative,
+    onChange: e => updateLineField(i, "purchase_price_indicative", e.target.value === "" ? null : Number(e.target.value)),
+    placeholder: "ex. 850.00",
+    style: {
+      ...cdStyles.miniInput,
+      paddingRight: 26,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 11,
+      color: "#94a3b8",
+      pointerEvents: "none"
+    }
+  }, "\u20AC")))))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 8px",
       display: "flex",

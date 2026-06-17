@@ -1614,7 +1614,16 @@
           s.from("commercial_doc_lines").select("*").eq("doc_id", id).order("position"),
         ]);
         if (!doc) return null;
-        return { ...doc, lines: lines || [] };
+        // Hydrate les champs internes depuis data jsonb (champs masqués sur PDF)
+        const hydrated = (lines || []).map((l) => {
+          const meta = (l.data && typeof l.data === "object") ? l.data : {};
+          return {
+            ...l,
+            manufacturer_ref: l.manufacturer_ref || meta.manufacturer_ref || null,
+            purchase_price_indicative: l.purchase_price_indicative != null ? l.purchase_price_indicative : (meta.purchase_price_indicative != null ? meta.purchase_price_indicative : null),
+          };
+        });
+        return { ...doc, lines: hydrated };
       }
       const arr = lsGet("commercial_docs");
       const doc = arr.find((d) => d.id === id);
@@ -1700,6 +1709,13 @@
             total_tva: l.total_tva || 0,
             total_ttc: l.total_ttc || 0,
             is_text_only: !!l.is_text_only,
+            // Champs internes (jamais sur PDF) — persistance dans data jsonb
+            // pour ne pas nécessiter de migration colonne dédiée.
+            data: {
+              ...((l.data && typeof l.data === "object") ? l.data : {}),
+              manufacturer_ref: l.manufacturer_ref || null,
+              purchase_price_indicative: l.purchase_price_indicative == null ? null : Number(l.purchase_price_indicative),
+            },
           }));
           await s.from("commercial_doc_lines").insert(rows);
         }
@@ -2577,6 +2593,75 @@
       tasks.sort((a, b) => (a.days_left || 0) - (b.days_left || 0));
       if (only_imminent) return tasks.filter((t) => t.days_left <= 90);
       return tasks;
+    },
+
+    /** Auto-crée une opportunité de renouvellement pour CHAQUE tâche
+     *  source=concurrent dont days_left <= threshold (90 par défaut).
+     *  Idempotent : ne recrée pas si une opp existe déjà
+     *  (data.renewal_for_task_id = task.id OR client_id + contract_end identiques).
+     *  Retourne { created: N, skipped: N, opps: [{task_id, opp_id, opp_ref}] }. */
+    async autoCreateRenewalOpps({ threshold_days = 90 } = {}) {
+      const s = supa();
+      if (!s) return { created: 0, skipped: 0, opps: [] };
+      // 1. Récupère les tâches concurrent imminentes
+      const tasks = await this.list({ horizon_days: 365 });
+      const candidates = tasks.filter((t) => t.source === "concurrent" && t.days_left <= threshold_days && t.client_id);
+      if (!candidates.length) return { created: 0, skipped: 0, opps: [] };
+      // 2. Pré-charge les opportunités existantes pour le dédoublonnage
+      const clientIds = Array.from(new Set(candidates.map((t) => t.client_id)));
+      const { data: existing } = await s.from("opportunities")
+        .select("id, client_id, contract_end, data, name")
+        .in("client_id", clientIds);
+      const seenByTask = new Map();
+      const seenByCloseDate = new Map();
+      (existing || []).forEach((o) => {
+        const tid = o.data && o.data.renewal_for_task_id;
+        if (tid) seenByTask.set(tid, o);
+        const ce = o.contract_end || (o.data && o.data.contract_end);
+        if (ce) seenByCloseDate.set(o.client_id + "|" + String(ce).slice(0, 10), o);
+      });
+      // 3. Création
+      const result = { created: 0, skipped: 0, opps: [] };
+      for (const t of candidates) {
+        const ceKey = t.client_id + "|" + String(t.date_echeance).slice(0, 10);
+        if (seenByTask.has(t.id) || seenByCloseDate.has(ceKey)) {
+          result.skipped++;
+          continue;
+        }
+        const concurrent = (t.raw && (t.raw.concurrent || (t.raw.data && t.raw.data.concurrent))) || "concurrent inconnu";
+        const oppName = "Renouvellement " + concurrent + " — " + (t.client_name || "");
+        try {
+          const payload = {
+            client_id: t.client_id,
+            client_name: t.client_name,
+            name: oppName,
+            stage: "qualif",
+            proba: 20,
+            owner: t.commercial || null,
+            type: "renew",
+            source: "auto_concurrent_renewal",
+            // contract_end = date d'anniversaire (= échéance actuelle du concurrent)
+            contract_end: t.date_echeance,
+            project_date: t.date_echeance,
+            amount: t.amount || 0,
+            notes: "Opp créée automatiquement à J-" + Math.max(0, t.days_left) + " avant échéance du contrat « " + concurrent + " ». À qualifier pour anticiper la reprise.",
+            data: {
+              renewal_for_task_id: t.id,
+              renewal_from: concurrent,
+              renewal_amount_concurrent: t.amount || null,
+              auto_created_at: new Date().toISOString(),
+              source_intel: true,
+            },
+          };
+          const created = await window.api.opportunities.create(payload);
+          result.created++;
+          result.opps.push({ task_id: t.id, opp_id: created.id, opp_ref: created.ref || created.id, client_id: t.client_id });
+        } catch (e) {
+          console.warn("[autoCreateRenewalOpps]", e.message || e);
+          result.skipped++;
+        }
+      }
+      return result;
     },
   };
 

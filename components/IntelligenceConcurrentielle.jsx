@@ -30,6 +30,16 @@ const IntelligenceConcurrentielle = () => {
     try {
       const list = await window.api.intelTasks.list({ horizon_days: 365 });
       setTasks(list || []);
+      // Auto-création d'opportunités de renouvellement à J-90 des concurrents.
+      // Idempotent : ne recrée pas si déjà fait (clé data.renewal_for_task_id).
+      try {
+        const res = await window.api.intelTasks.autoCreateRenewalOpps({ threshold_days: 90 });
+        if (res && res.created > 0) {
+          if (window.HubToast) window.HubToast.success(
+            "🎯 " + res.created + " opportunité(s) de renouvellement créée(s) automatiquement à J-90 — visibles dans les fiches clients."
+          );
+        }
+      } catch (e) { console.warn("[auto renewal]", e); }
     } catch (e) { setTasks([]); }
     setLoading(false);
   }, []);

@@ -67,15 +67,18 @@
     // une colonne de « — » sur toute la hauteur du tableau.
     const hasAnyRef = (doc.lines || []).some((l) => l.ref && String(l.ref).trim() && String(l.ref).trim() !== "—");
     const tableBody = [];
+    // Colonne « N° » TOUJOURS présente en tête : numéro de ligne (position).
     if (isBL) {
       const header = hasAnyRef
         ? [
+            { text: "N°", style: "tableHeader", alignment: "center" },
             { text: "Article", style: "tableHeader" },
             { text: "Désignation", style: "tableHeader" },
             { text: "Qté", style: "tableHeader", alignment: "right" },
             { text: "N° de série", style: "tableHeader" },
           ]
         : [
+            { text: "N°", style: "tableHeader", alignment: "center" },
             { text: "Désignation", style: "tableHeader" },
             { text: "Qté", style: "tableHeader", alignment: "right" },
             { text: "N° de série", style: "tableHeader" },
@@ -84,6 +87,7 @@
     } else {
       const header = hasAnyRef
         ? [
+            { text: "N°", style: "tableHeader", alignment: "center" },
             { text: "Article", style: "tableHeader" },
             { text: "Désignation", style: "tableHeader" },
             { text: "Qté", style: "tableHeader", alignment: "right" },
@@ -91,6 +95,7 @@
             { text: "Montant\nHT", style: "tableHeader", alignment: "right" },
           ]
         : [
+            { text: "N°", style: "tableHeader", alignment: "center" },
             { text: "Désignation", style: "tableHeader" },
             { text: "Qté", style: "tableHeader", alignment: "right" },
             { text: "P.U. HT", style: "tableHeader", alignment: "right" },
@@ -98,10 +103,11 @@
           ];
       tableBody.push(header);
     }
+    let position = 0;
     (doc.lines || []).forEach((l) => {
       if (l.is_text_only) {
-        // colSpan = nombre total de colonnes - 1 (toujours laisser la première vide)
-        const totalCols = (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 1 : 2);
+        // colSpan = nombre total de colonnes - 1 (laisse la 1ʳᵉ vide)
+        const totalCols = 1 /*N°*/ + (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 1 : 2);
         const span = totalCols - 1;
         const row = [
           { text: "", style: "tableCell" },
@@ -111,25 +117,27 @@
         tableBody.push(row);
         return;
       }
+      position++;
+      const numCell = { text: String(position), style: "tableCellMono", alignment: "center", bold: true };
       const desStack = [];
       desStack.push({ text: l.designation || "", style: "tableCell", bold: true });
       if (l.description && String(l.description).trim()) {
         desStack.push({ text: l.description, style: "tableCellSm", margin: [0, 2, 0, 0] });
       }
-      // Si la colonne Article est masquée, on injecte la ref EN HEAD de la
-      // désignation (en monospace petit, gris) pour ne pas perdre l'info.
+      // Si la colonne Article est masquée, on injecte la ref EN HEAD de la désignation.
       if (!hasAnyRef && l.ref && String(l.ref).trim() && String(l.ref).trim() !== "—") {
         desStack.unshift({ text: l.ref, style: "tableCellMono", margin: [0, 0, 0, 1] });
       }
       const qtyCell = { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" };
       if (isBL) {
         const row = hasAnyRef
-          ? [{ text: l.ref || "—", style: "tableCellMono" }, { stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }]
-          : [{ stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }];
+          ? [numCell, { text: l.ref || "—", style: "tableCellMono" }, { stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }]
+          : [numCell, { stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }];
         tableBody.push(row);
       } else {
         const row = hasAnyRef
           ? [
+              numCell,
               { text: l.ref || "—", style: "tableCellMono" },
               { stack: desStack },
               qtyCell,
@@ -137,6 +145,7 @@
               { text: fmtEUR(l.total_ht), style: "tableCell", alignment: "right", bold: true },
             ]
           : [
+              numCell,
               { stack: desStack },
               qtyCell,
               { text: fmtEUR(l.unit_price_ht), style: "tableCell", alignment: "right" },
@@ -247,8 +256,8 @@
     // ───── Tableau lignes
     // Widths adaptés à la présence ou non de la colonne Article
     const linesWidths = isBL
-      ? (hasAnyRef ? [60, "*", 40, 120] : ["*", 40, 130])
-      : (hasAnyRef ? [60, "*", 40, 65, 65] : ["*", 40, 65, 65]);
+      ? (hasAnyRef ? [25, 60, "*", 40, 110] : [25, "*", 40, 120])
+      : (hasAnyRef ? [25, 60, "*", 40, 65, 65] : [25, "*", 40, 65, 65]);
     const linesTable = {
       table: {
         headerRows: 1,

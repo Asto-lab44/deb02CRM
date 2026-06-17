@@ -2259,36 +2259,7 @@ var CommercialDocEditor = ({
     }
   }, fmtEUR(totals.ttc))))), /*#__PURE__*/React.createElement(DocSendHistory, {
     docId: d.id
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 18,
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.lbl
-  }, "Notes (imprim\xE9es sur le doc)"), /*#__PURE__*/React.createElement("textarea", {
-    value: d.notes || "",
-    onChange: e => setField("notes", e.target.value),
-    rows: 3,
-    style: {
-      ...cdStyles.input,
-      resize: "vertical"
-    },
-    placeholder: "Mentions visibles par le client\u2026"
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.lbl
-  }, "Notes internes (non imprim\xE9es)"), /*#__PURE__*/React.createElement("textarea", {
-    value: d.internal_notes || "",
-    onChange: e => setField("internal_notes", e.target.value),
-    rows: 3,
-    style: {
-      ...cdStyles.input,
-      resize: "vertical"
-    },
-    placeholder: "Notes internes pour l'\xE9quipe\u2026"
-  }))))), sendOpen && /*#__PURE__*/React.createElement(DocSendModal, {
+  }))), sendOpen && /*#__PURE__*/React.createElement(DocSendModal, {
     doc: d,
     onSave: save,
     onClose: () => setSendOpen(false)

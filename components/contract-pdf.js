@@ -179,7 +179,7 @@
     const sums = p.sums || {};
     const referent = p.referent || {};
     const signatory = p.signatory || {};
-    const checked = (k) => p.billingPeriod === k ? "☒" : "☐";
+    const checked = (k) => p.billingPeriod === k ? "[X]" : "[ ]";
     const kindKey = p.kind || detectKind(products);
     const K = CONTRACT_KINDS[kindKey] || CONTRACT_KINDS.hosting;
 
@@ -391,7 +391,7 @@
           { width: "*", text: "Fait à : ____________________", fontSize: 10 },
           { width: "*", text: "Le : ____________________", fontSize: 10, alignment: "right" },
         ], margin: [0, 0, 0, 14] },
-        { text: "☐ Le Client accepte les conditions de la présente offre.", fontSize: 10, margin: [0, 0, 0, 10] },
+        { text: "[ ] Le Client accepte les conditions de la présente offre.", fontSize: 10, margin: [0, 0, 0, 10] },
         { columns: [
           { width: "*", stack: [
             { text: "Je soussigné : " + (signatory.name || "_______________________________"), fontSize: 10 },
@@ -628,7 +628,7 @@
     return {
       stack: [
         { text: "MANDAT DE PRÉLÈVEMENT SEPA", style: "h1", margin: [0, 0, 0, 8], pageBreak: "before", alignment: "center" },
-        { text: "Référence Unique du Mandat (RUM) : __________________________________     Type : ☒ Récurrent   ☐ Ponctuel",
+        { text: "Référence Unique du Mandat (RUM) : __________________________________     Type : [X] Récurrent   [ ] Ponctuel",
           fontSize: 9, color: "#475569", margin: [0, 0, 0, 10], alignment: "center" },
         { text: "En signant ce formulaire de mandat, vous autorisez le créancier à envoyer des instructions à votre banque pour débiter votre compte et vous autorisez votre banque à débiter votre compte conformément aux instructions du créancier.", fontSize: 9, alignment: "justify", margin: [0, 0, 0, 4] },
         { text: "Vous bénéficiez du droit d'être remboursé par votre banque selon les conditions décrites dans la convention que vous avez passée avec elle. Une demande de remboursement doit être présentée dans les 8 semaines suivant la date de débit de votre compte pour un prélèvement autorisé.", fontSize: 9, alignment: "justify", margin: [0, 0, 0, 14] },
@@ -642,7 +642,7 @@
         { text: "LES COORDONNÉES DE VOTRE COMPTE", style: "h2", margin: [0, 6, 0, 6] },
         { columns: [ sepaField("IBAN", client.iban) ], margin: [0, 0, 0, 10] },
         { columns: [ sepaField("BIC", client.bic, 220) ], margin: [0, 0, 0, 6] },
-        { text: "▸ Joindre un relevé d'identité bancaire (RIB).", fontSize: 9, italics: true, color: "#9a3412", margin: [0, 0, 0, 14] },
+        { text: "> Joindre un relevé d'identité bancaire (RIB).", fontSize: 9, italics: true, color: "#9a3412", margin: [0, 0, 0, 14] },
 
         { text: "ORGANISME ENCAISSEUR (CRÉANCIER)", style: "h2", margin: [0, 6, 0, 6] },
         { columns: [

@@ -2707,15 +2707,70 @@ var ClientPage = () => {
       ...cliStyles.filterPill,
       cursor: "pointer"
     }
-  }, "\xC9diter")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 4
-    }
-  }, /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Commercial",
-    value: display.owner === "—" ? /*#__PURE__*/React.createElement("span", {
+  }, "\xC9diter")), (() => {
+    var InfoCard = ({
+      label,
+      children,
+      full
+    }) => /*#__PURE__*/React.createElement("div", {
+      style: {
+        gridColumn: full ? "1 / -1" : "auto",
+        padding: "10px 12px",
+        background: "#fff",
+        border: "1px solid #eef1f5",
+        borderRadius: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        marginBottom: 5
+      }
+    }, label), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12.5,
+        color: "#0f172a",
+        minWidth: 0
+      }
+    }, children));
+    var SectionTitle = ({
+      children
+    }) => /*#__PURE__*/React.createElement("div", {
+      style: {
+        gridColumn: "1 / -1",
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "#3730a3",
+        textTransform: "uppercase",
+        letterSpacing: 0.6,
+        padding: "4px 4px 0"
+      }
+    }, children);
+    var monoTxt = {
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 12,
+      color: "#475569"
+    };
+    var actionLabel = {
+      email: "📧 Email d'intro",
+      call: "📞 Cold call",
+      in: "in LinkedIn",
+      wait: "⏸ Attendre"
+    }[display.action] || display.action;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: 10,
+        padding: 4
+      }
+    }, /*#__PURE__*/React.createElement(SectionTitle, null, "Suivi commercial"), /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Commercial"
+    }, display.owner === "—" ? /*#__PURE__*/React.createElement("span", {
+      style: {
         color: "#94a3b8"
       }
     }, "\u2014") : /*#__PURE__*/React.createElement("div", {
@@ -2730,35 +2785,28 @@ var ClientPage = () => {
       color: display.ownerColor
     }), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
-        fontWeight: 500
+        fontWeight: 600
       }
-    }, display.owner))
-  }), display.size && display.size !== "—" && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Effectif",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.owner))), display.size && display.size !== "—" && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Effectif"
+    }, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, display.size)
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Secteur",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.size)), /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Secteur"
+    }, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, display.sector)
-  }), display.sousSecteur && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Sous-secteur",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.sector)), display.sousSecteur && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Sous-secteur"
+    }, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, display.sousSecteur)
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Source",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.sousSecteur)), /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Source"
+    }, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, display.source)
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Concurrent",
-    value: /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    }, display.source)), /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Concurrent"
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12.5,
         color: "#475569"
       }
     }, display.concurrent), (display.concurrentEnd || display.concurrentAmount) && /*#__PURE__*/React.createElement("div", {
@@ -2767,152 +2815,119 @@ var ClientPage = () => {
         color: "#94a3b8",
         marginTop: 2
       }
-    }, display.concurrentEnd && `Fin : ${new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}`, display.concurrentEnd && display.concurrentAmount && " · ", display.concurrentAmount && `${display.concurrentAmount} k€/an`))
-  }), display.contactDate && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "1er contact",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.concurrentEnd && `Fin : ${new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}`, display.concurrentEnd && display.concurrentAmount && " · ", display.concurrentAmount && `${display.concurrentAmount} k€/an`)), display.action && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "1\xE8re action"
+    }, /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, actionLabel)), display.contactDate && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "1er contact"
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
-        color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        ...monoTxt,
+        color: "#0f172a"
       }
     }, new Date(display.contactDate).toLocaleDateString("fr-FR", {
       day: "2-digit",
       month: "long",
       year: "numeric"
-    }))
-  }), display.projectDate && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "\xC9ch\xE9ance projet",
-    value: /*#__PURE__*/React.createElement("span", {
+    }))), display.projectDate && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "\xC9ch\xE9ance projet"
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
-        color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        ...monoTxt,
+        color: "#0f172a"
       }
     }, new Date(display.projectDate).toLocaleDateString("fr-FR", {
       day: "2-digit",
       month: "long",
       year: "numeric"
-    }))
-  }), display.besoin && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Besoin identifi\xE9",
-    value: /*#__PURE__*/React.createElement("span", {
+    }))), display.besoin && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Besoin identifi\xE9",
+      full: true
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12,
         color: "#475569",
-        lineHeight: 1.4
+        lineHeight: 1.5
       }
-    }, display.besoin)
-  }), display.action && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "1\xE8re action",
-    value: /*#__PURE__*/React.createElement("span", {
-      style: cliStyles.fieldChip
-    }, {
-      email: "📧 Email d'intro",
-      call: "📞 Cold call",
-      in: "in LinkedIn",
-      wait: "⏸ Attendre"
-    }[display.action] || display.action)
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: isCustom ? "Prospect depuis" : "Client depuis",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.besoin)), /*#__PURE__*/React.createElement(SectionTitle, null, "Cycle de vie"), /*#__PURE__*/React.createElement(InfoCard, {
+      label: isCustom ? "Prospect depuis" : "Client depuis"
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
-        fontFamily: "'JetBrains Mono', monospace",
+        ...monoTxt,
         color: "#0f172a",
         fontWeight: 600
       }
-    }, display.clientSince)
-  }), !isCustom && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Renouvellement",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.clientSince)), !isCustom && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Renouvellement"
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
         color: "#0e7a55",
         fontWeight: 600
       }
-    }, display.renewal)
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Contrats actifs",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.renewal)), /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Contrats actifs"
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
         fontWeight: 600
       }
-    }, contractsList.length > 0 ? `${contractsList.length} (${contractsList.map(x => x.name).slice(0, 2).join(", ")}${contractsList.length > 2 ? "…" : ""})` : isCustom ? "Aucun" : display.activeContracts)
-  }), display.siren && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "SIREN",
-    value: /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: "#475569",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, display.siren)
-  }), display.naf && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "NAF",
-    value: /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: "#475569",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, display.naf)
-  }), display.tva && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "TVA intra.",
-    value: /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: "#475569",
-        fontFamily: "'JetBrains Mono', monospace"
-      }
-    }, display.tva)
-  }), display.ca && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "CA annuel",
-    value: /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 600
-      }
-    }, display.ca, " M\u20AC")
-  }), display.tier && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Tier",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, contractsList.length > 0 ? `${contractsList.length} (${contractsList.map(x => x.name).slice(0, 2).join(", ")}${contractsList.length > 2 ? "…" : ""})` : isCustom ? "Aucun" : display.activeContracts)), display.tier && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Tier"
+    }, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, "Tier ", display.tier)
-  }), display.linkedin && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "LinkedIn",
-    value: /*#__PURE__*/React.createElement("a", {
+    }, "Tier ", display.tier)), display.ca && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "CA annuel"
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600
+      }
+    }, display.ca, " M\u20AC")), /*#__PURE__*/React.createElement(SectionTitle, null, "Identit\xE9 l\xE9gale"), display.siren && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "SIREN"
+    }, /*#__PURE__*/React.createElement("span", {
+      style: monoTxt
+    }, display.siren)), display.naf && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "NAF"
+    }, /*#__PURE__*/React.createElement("span", {
+      style: monoTxt
+    }, display.naf)), display.tva && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "TVA intra."
+    }, /*#__PURE__*/React.createElement("span", {
+      style: monoTxt
+    }, display.tva)), display.linkedin && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "LinkedIn"
+    }, /*#__PURE__*/React.createElement("a", {
       href: display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin,
       target: "_blank",
       rel: "noopener",
       style: {
         fontSize: 12,
-        color: "#3730a3"
+        color: "#3730a3",
+        textDecoration: "none",
+        wordBreak: "break-all"
       }
-    }, display.linkedin.replace(/^https?:\/\//, ""), " \u2197")
-  }), /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Adresse si\xE8ge",
-    value: /*#__PURE__*/React.createElement("span", {
+    }, display.linkedin.replace(/^https?:\/\//, ""), " \u2197")), /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Adresse si\xE8ge",
+      full: true
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12,
         color: "#475569",
-        lineHeight: 1.4
+        lineHeight: 1.5
       }
-    }, display.address, display.cp || display.addressCity ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), display.cp, " ", display.addressCity) : null)
-  }), Array.isArray(display.etablissements_secondaires) && display.etablissements_secondaires.length > 0 && /*#__PURE__*/React.createElement(DetailRow, {
-    label: "Établissements secondaires (" + display.etablissements_secondaires.length + ")",
-    value: /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDCCD ", display.address, (display.cp || display.addressCity) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), display.cp, " ", display.addressCity))), Array.isArray(display.etablissements_secondaires) && display.etablissements_secondaires.length > 0 && /*#__PURE__*/React.createElement(InfoCard, {
+      label: "Établissements secondaires (" + display.etablissements_secondaires.length + ")",
+      full: true
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: 6
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: 8
       }
     }, display.etablissements_secondaires.map((es, i) => /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
         fontSize: 12,
-        padding: "6px 8px",
+        padding: "8px 10px",
         background: "#fafbfc",
         border: "1px solid #eef1f5",
         borderRadius: 6
@@ -2920,15 +2935,16 @@ var ClientPage = () => {
     }, es.nom && /*#__PURE__*/React.createElement("div", {
       style: {
         fontWeight: 600,
-        color: "#0f172a"
+        color: "#0f172a",
+        marginBottom: 2
       }
     }, es.nom), /*#__PURE__*/React.createElement("div", {
       style: {
         color: "#475569",
         lineHeight: 1.4
       }
-    }, es.adresse, (es.cp || es.ville) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), es.cp, " ", es.ville)))))
-  }))))), /*#__PURE__*/React.createElement("section", {
+    }, es.adresse, (es.cp || es.ville) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), es.cp, " ", es.ville)))))));
+  })()))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.blockHead

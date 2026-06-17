@@ -755,10 +755,13 @@ const CRMAccountsList = () => {
           {merged.length === 0 ? "Aucun compte pour l'instant. Créez votre premier prospect via le bouton ci-dessus." : "Aucun compte ne correspond à la recherche."}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10 }}>
-          {filtered.map((c) => (
-            <a key={c.id} href={`/fiche-client?id=${encodeURIComponent(c.id)}`}
-               style={{ display: "block", padding: 14, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, textDecoration: "none", color: "inherit", cursor: "pointer", transition: "border-color 120ms" }}>
+        (() => {
+          const isProspect = (c) => c._source === "local" || (c.status && /prospect|nouveau/i.test(c.status));
+          const prospects = filtered.filter(isProspect);
+          const clients = filtered.filter((c) => !isProspect(c));
+          const cardStyle = { display: "block", padding: 14, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, textDecoration: "none", color: "inherit", cursor: "pointer", transition: "border-color 120ms" };
+          const renderCard = (c) => (
+            <a key={c.id} href={`/fiche-client?id=${encodeURIComponent(c.id)}`} style={cardStyle}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.raison_sociale || c.name || "—"}</div>
@@ -768,8 +771,8 @@ const CRMAccountsList = () => {
                   </div>
                   {c.siren && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>SIREN {c.siren}</div>}
                 </div>
-                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, fontWeight: 700, background: c._source === "local" ? "#fef3c7" : "#dcfce7", color: c._source === "local" ? "#78350f" : "#065f46", textTransform: "uppercase", letterSpacing: 0.4 }}>
-                  {c._source === "local" ? "Nouveau" : "Client"}
+                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, fontWeight: 700, background: isProspect(c) ? "#fef3c7" : "#dcfce7", color: isProspect(c) ? "#78350f" : "#065f46", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  {isProspect(c) ? "Prospect" : "Client"}
                 </span>
               </div>
               {c.contact_principal && (c.contact_principal.prenom || c.contact_principal.nom) && (
@@ -779,8 +782,42 @@ const CRMAccountsList = () => {
                 </div>
               )}
             </a>
-          ))}
-        </div>
+          );
+          const bandHeader = (label, count, color, bg) => (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color, background: bg, padding: "3px 9px", borderRadius: 999, letterSpacing: 0.3, textTransform: "uppercase" }}>{label}</span>
+              <span style={{ fontSize: 12, color: "#64748b" }}>{count} {label === "Clients" ? "client" : "prospect"}{count > 1 ? "s" : ""}</span>
+            </div>
+          );
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
+              <div>
+                {bandHeader("Prospects", prospects.length, "#78350f", "#fef3c7")}
+                {prospects.length === 0 ? (
+                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12.5, fontStyle: "italic", background: "#fffbeb", borderRadius: 10, border: "1px dashed #fcd34d" }}>
+                    Aucun prospect à afficher.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10 }}>
+                    {prospects.map(renderCard)}
+                  </div>
+                )}
+              </div>
+              <div>
+                {bandHeader("Clients", clients.length, "#065f46", "#dcfce7")}
+                {clients.length === 0 ? (
+                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12.5, fontStyle: "italic", background: "#f0fdf4", borderRadius: 10, border: "1px dashed #86efac" }}>
+                    Aucun client à afficher.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10 }}>
+                    {clients.map(renderCard)}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()
       )}
     </section>
   );

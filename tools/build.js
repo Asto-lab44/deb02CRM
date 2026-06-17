@@ -6,6 +6,9 @@ const fs = require("fs");
 const path = require("path");
 const babel = require("@babel/core");
 
+const PRESET_REACT = require.resolve("@babel/preset-react");
+const PLUGIN_BLOCK_SCOPING = require.resolve("@babel/plugin-transform-block-scoping");
+
 const ROOT = path.resolve(__dirname, "..");
 const SRC_DIRS = [".", "components"];
 const OUT_DIR = path.join(ROOT, "dist");
@@ -24,8 +27,10 @@ function compile(srcRel) {
   const code = fs.readFileSync(absSrc, "utf8");
   const { code: out } = babel.transformSync(code, {
     filename: absSrc,
-    presets: [["@babel/preset-react", { runtime: "classic" }]],
-    plugins: [["@babel/plugin-transform-block-scoping", { throwIfClosureRequired: false }]],
+    presets: [[PRESET_REACT, { runtime: "classic" }]],
+    plugins: [[PLUGIN_BLOCK_SCOPING, { throwIfClosureRequired: false }]],
+    babelrc: false,
+    configFile: false,
     sourceMaps: false,
     compact: false,
   });

@@ -1824,16 +1824,11 @@ var CRMAccountsList = () => {
       borderRadius: 10,
       border: "1px dashed #e2e8f0"
     }
-  }, merged.length === 0 ? "Aucun compte pour l'instant. Créez votre premier prospect via le bouton ci-dessus." : "Aucun compte ne correspond à la recherche.") : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-      gap: 10
-    }
-  }, filtered.map(c => /*#__PURE__*/React.createElement("a", {
-    key: c.id,
-    href: `/fiche-client?id=${encodeURIComponent(c.id)}`,
-    style: {
+  }, merged.length === 0 ? "Aucun compte pour l'instant. Créez votre premier prospect via le bouton ci-dessus." : "Aucun compte ne correspond à la recherche.") : (() => {
+    var isProspect = c => c._source === "local" || c.status && /prospect|nouveau/i.test(c.status);
+    var prospects = filtered.filter(isProspect);
+    var clients = filtered.filter(c => !isProspect(c));
+    var cardStyle = {
       display: "block",
       padding: 14,
       background: "#fff",
@@ -1843,65 +1838,133 @@ var CRMAccountsList = () => {
       color: "inherit",
       cursor: "pointer",
       transition: "border-color 120ms"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "#0f172a",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, c.raison_sociale || c.name || "—"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#64748b",
-      marginTop: 3
-    }
-  }, c.secteur || "Secteur non renseigné", c.ville && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 \uD83D\uDCCD ", c.ville)), c.siren && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#94a3b8",
-      marginTop: 2,
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, "SIREN ", c.siren)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      padding: "2px 7px",
-      borderRadius: 999,
-      fontWeight: 700,
-      background: c._source === "local" ? "#fef3c7" : "#dcfce7",
-      color: c._source === "local" ? "#78350f" : "#065f46",
-      textTransform: "uppercase",
-      letterSpacing: 0.4
-    }
-  }, c._source === "local" ? "Nouveau" : "Client")), c.contact_principal && (c.contact_principal.prenom || c.contact_principal.nom) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: "1px solid #f1f5f9",
-      fontSize: 12,
-      color: "#475569"
-    }
-  }, "\uD83D\uDC64 ", c.contact_principal.prenom, " ", c.contact_principal.nom, c.contact_principal.fonction && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#94a3b8"
-    }
-  }, " \xB7 ", c.contact_principal.fonction))))));
+    };
+    var renderCard = c => /*#__PURE__*/React.createElement("a", {
+      key: c.id,
+      href: `/fiche-client?id=${encodeURIComponent(c.id)}`,
+      style: cardStyle
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.raison_sociale || c.name || "—"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#64748b",
+        marginTop: 3
+      }
+    }, c.secteur || "Secteur non renseigné", c.ville && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 \uD83D\uDCCD ", c.ville)), c.siren && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#94a3b8",
+        marginTop: 2,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, "SIREN ", c.siren)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "2px 7px",
+        borderRadius: 999,
+        fontWeight: 700,
+        background: isProspect(c) ? "#fef3c7" : "#dcfce7",
+        color: isProspect(c) ? "#78350f" : "#065f46",
+        textTransform: "uppercase",
+        letterSpacing: 0.4
+      }
+    }, isProspect(c) ? "Prospect" : "Client")), c.contact_principal && (c.contact_principal.prenom || c.contact_principal.nom) && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid #f1f5f9",
+        fontSize: 12,
+        color: "#475569"
+      }
+    }, "\uD83D\uDC64 ", c.contact_principal.prenom, " ", c.contact_principal.nom, c.contact_principal.fonction && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, " \xB7 ", c.contact_principal.fonction)));
+    var bandHeader = (label, count, color, bg) => /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color,
+        background: bg,
+        padding: "3px 9px",
+        borderRadius: 999,
+        letterSpacing: 0.3,
+        textTransform: "uppercase"
+      }
+    }, label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#64748b"
+      }
+    }, count, " ", label === "Clients" ? "client" : "prospect", count > 1 ? "s" : ""));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr",
+        gap: 16
+      }
+    }, /*#__PURE__*/React.createElement("div", null, bandHeader("Prospects", prospects.length, "#78350f", "#fef3c7"), prospects.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 14,
+        color: "#94a3b8",
+        fontSize: 12.5,
+        fontStyle: "italic",
+        background: "#fffbeb",
+        borderRadius: 10,
+        border: "1px dashed #fcd34d"
+      }
+    }, "Aucun prospect \xE0 afficher.") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+        gap: 10
+      }
+    }, prospects.map(renderCard))), /*#__PURE__*/React.createElement("div", null, bandHeader("Clients", clients.length, "#065f46", "#dcfce7"), clients.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 14,
+        color: "#94a3b8",
+        fontSize: 12.5,
+        fontStyle: "italic",
+        background: "#f0fdf4",
+        borderRadius: 10,
+        border: "1px dashed #86efac"
+      }
+    }, "Aucun client \xE0 afficher.") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+        gap: 10
+      }
+    }, clients.map(renderCard))));
+  })());
 };
 window.CRMAccountsList = CRMAccountsList;
 

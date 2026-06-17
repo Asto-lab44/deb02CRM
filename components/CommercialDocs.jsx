@@ -1291,17 +1291,6 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
           {/* HISTORIQUE ENVOIS (visible si déjà envoyé) */}
           <DocSendHistory docId={d.id} />
 
-          {/* NOTES */}
-          <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={cdStyles.lbl}>Notes (imprimées sur le doc)</label>
-              <textarea value={d.notes || ""} onChange={(e) => setField("notes", e.target.value)} rows={3} style={{ ...cdStyles.input, resize: "vertical" }} placeholder="Mentions visibles par le client…" />
-            </div>
-            <div>
-              <label style={cdStyles.lbl}>Notes internes (non imprimées)</label>
-              <textarea value={d.internal_notes || ""} onChange={(e) => setField("internal_notes", e.target.value)} rows={3} style={{ ...cdStyles.input, resize: "vertical" }} placeholder="Notes internes pour l'équipe…" />
-            </div>
-          </div>
         </div>
       </div>
       {sendOpen && <DocSendModal doc={d} onSave={save} onClose={() => setSendOpen(false)} />}

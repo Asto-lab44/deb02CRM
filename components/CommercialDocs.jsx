@@ -336,7 +336,7 @@ const WorkflowBar = ({ doc, canTransform }) => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: "#3730a3", letterSpacing: 0.4, textTransform: "uppercase" }}>Workflow Sage</div>
         <div style={{ fontSize: 11, color: "#475569" }}>
-          {isLocked ? "🔒 Document figé après transformation" : canTransform.ok ? "✅ Transformation autorisée" : "⚠ Bloqué : " + canTransform.reason}
+          {isLocked ? "✓ Doc transformé — lignes & champs restent éditables" : canTransform.ok ? "✅ Transformation autorisée" : "⚠ Bloqué : " + canTransform.reason}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -368,7 +368,7 @@ const WorkflowBar = ({ doc, canTransform }) => {
         })}
       </div>
       <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 8, lineHeight: 1.5 }}>
-        💡 <strong>Règles de validation</strong> : un devis doit être <strong>Accepté</strong> pour être transformé en commande · une commande doit être <strong>Acceptée</strong> pour générer un BL · un BL doit être <strong>Livré</strong> pour produire une facture. Une fois transformé, le document est figé.
+        💡 <strong>Règles de validation</strong> : un devis doit être <strong>Accepté</strong> pour être transformé en commande · une commande doit être <strong>Acceptée</strong> pour générer un BL · un BL doit être <strong>Livré</strong> pour produire une facture. Même après transformation, les <strong>lignes et champs restent éditables</strong> (ajout, modification, suppression d'articles autorisés).
       </div>
     </div>
   );
@@ -1126,9 +1126,19 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
             )}
             {(d.lines || []).map((l, i) => (
               <div key={l.id || i} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
-                {/* Ligne 1 : numéro · désignation pleine largeur · total · suppr */}
+                {/* Ligne 1 : numéro · n° article · désignation pleine largeur · total · suppr */}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                   <span style={{ width: 26, height: 26, borderRadius: 6, background: "#eef2ff", color: "#3730a3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                  <input
+                    value={l.ref || ""}
+                    onChange={(e) => updateLineField(i, "ref", e.target.value)}
+                    placeholder="N° Article"
+                    title="Numéro / référence article — apparaît dans la colonne « Article » du PDF"
+                    style={{ width: 140, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6,
+                             fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+                             color: "#3730a3", textTransform: "uppercase", flexShrink: 0,
+                             background: l.ref ? "#eef2ff" : "#fff" }}
+                  />
                   <input
                     value={l.designation || ""}
                     onChange={(e) => updateLineField(i, "designation", e.target.value)}

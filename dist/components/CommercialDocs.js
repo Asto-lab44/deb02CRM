@@ -589,7 +589,7 @@ var WorkflowBar = ({
       fontSize: 11,
       color: "#475569"
     }
-  }, isLocked ? "🔒 Document figé après transformation" : canTransform.ok ? "✅ Transformation autorisée" : "⚠ Bloqué : " + canTransform.reason)), /*#__PURE__*/React.createElement("div", {
+  }, isLocked ? "✓ Doc transformé — lignes & champs restent éditables" : canTransform.ok ? "✅ Transformation autorisée" : "⚠ Bloqué : " + canTransform.reason)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -648,7 +648,7 @@ var WorkflowBar = ({
       marginTop: 8,
       lineHeight: 1.5
     }
-  }, "\uD83D\uDCA1 ", /*#__PURE__*/React.createElement("strong", null, "R\xE8gles de validation"), " : un devis doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9"), " pour \xEAtre transform\xE9 en commande \xB7 une commande doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9e"), " pour g\xE9n\xE9rer un BL \xB7 un BL doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Livr\xE9"), " pour produire une facture. Une fois transform\xE9, le document est fig\xE9."));
+  }, "\uD83D\uDCA1 ", /*#__PURE__*/React.createElement("strong", null, "R\xE8gles de validation"), " : un devis doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9"), " pour \xEAtre transform\xE9 en commande \xB7 une commande doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9e"), " pour g\xE9n\xE9rer un BL \xB7 un BL doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Livr\xE9"), " pour produire une facture. M\xEAme apr\xE8s transformation, les ", /*#__PURE__*/React.createElement("strong", null, "lignes et champs restent \xE9ditables"), " (ajout, modification, suppression d'articles autoris\xE9s)."));
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -1886,6 +1886,24 @@ var CommercialDocEditor = ({
       flexShrink: 0
     }
   }, i + 1), /*#__PURE__*/React.createElement("input", {
+    value: l.ref || "",
+    onChange: e => updateLineField(i, "ref", e.target.value),
+    placeholder: "N\xB0 Article",
+    title: "Num\xE9ro / r\xE9f\xE9rence article \u2014 appara\xEEt dans la colonne \xAB Article \xBB du PDF",
+    style: {
+      width: 140,
+      padding: "8px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 6,
+      fontSize: 12,
+      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 600,
+      color: "#3730a3",
+      textTransform: "uppercase",
+      flexShrink: 0,
+      background: l.ref ? "#eef2ff" : "#fff"
+    }
+  }), /*#__PURE__*/React.createElement("input", {
     value: l.designation || "",
     onChange: e => updateLineField(i, "designation", e.target.value),
     placeholder: "D\xE9signation de la ligne (ex : Astorya Suite \u2014 Licence utilisateur)",

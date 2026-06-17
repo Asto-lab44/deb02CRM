@@ -1592,6 +1592,7 @@
         if (filter.client_id) q = q.eq("client_id", filter.client_id);
         if (filter.project_id) q = q.eq("project_id", filter.project_id);
         if (filter.opportunity_id) q = q.eq("opportunity_id", filter.opportunity_id);
+        if (filter.parent_doc_id) q = q.eq("parent_doc_id", filter.parent_doc_id);
         const { data, error } = await q.order("doc_date", { ascending: false }).limit(500);
         if (error) {
           console.warn("[api.commercialDocs.list]", error.message);

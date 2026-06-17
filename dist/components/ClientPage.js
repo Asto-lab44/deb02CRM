@@ -1326,16 +1326,27 @@ var ClientPage = () => {
     }
   }, "\uD83D\uDCCD ", display.city), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.dot
-  }), /*#__PURE__*/React.createElement("a", {
-    href: display.web && display.web.startsWith("http") ? display.web : "https://" + display.web,
-    target: "_blank",
-    style: {
-      fontSize: 12,
-      color: "#4f46e5",
-      cursor: "pointer",
-      textDecoration: "none"
-    }
-  }, display.web, " \u2197"), /*#__PURE__*/React.createElement("span", {
+  }), (() => {
+    var w = String(display.web || "").trim();
+    var safe = w.match(/^https?:\/\//i) ? w : "https://" + w.replace(/^[a-z]+:\/*/i, "");
+    if (!safe.match(/^https?:\/\/[\w.-]+\.\w{2,}/i)) return /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#94a3b8"
+      }
+    }, w);
+    return /*#__PURE__*/React.createElement("a", {
+      href: safe,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        fontSize: 12,
+        color: "#4f46e5",
+        cursor: "pointer",
+        textDecoration: "none"
+      }
+    }, w, " \u2197");
+  })(), /*#__PURE__*/React.createElement("span", {
     style: cliStyles.dot
   }), /*#__PURE__*/React.createElement("span", {
     style: {

@@ -16,9 +16,12 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // ── Auth simple via header partagé
+  // ── Auth obligatoire via header partagé (fail closed)
   const secret = req.headers["x-3cx-secret"];
-  if (process.env.CX_WEBHOOK_SECRET && secret !== process.env.CX_WEBHOOK_SECRET) {
+  if (!process.env.CX_WEBHOOK_SECRET) {
+    return res.status(500).json({ error: "CX_WEBHOOK_SECRET not configured" });
+  }
+  if (!secret || secret !== process.env.CX_WEBHOOK_SECRET) {
     return res.status(401).json({ error: "Bad secret" });
   }
 

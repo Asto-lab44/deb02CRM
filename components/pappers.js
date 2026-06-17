@@ -51,24 +51,44 @@
       return { status: "unknown", error: "SIREN invalide", checked_at: new Date().toISOString() };
     }
 
-    // Priorité : 1) localStorage (configurable depuis l'admin), 2) window
+    // PROXY préféré : /api/pappers-proxy (token côté serveur). Fallback :
+    // localStorage / window.HubPappersToken pour rétrocompat dev local
+    // (à supprimer une fois le proxy déployé partout).
+    const useProxy = !!(window.HubPappersProxyUrl);
     let token = "";
-    try { token = localStorage.getItem("hubAstorya.pappers.token") || ""; } catch (e) {}
-    if (!token) token = window.HubPappersToken || (window.HubSupabaseConfig && window.HubSupabaseConfig.PAPPERS_TOKEN) || "";
-    if (!token) {
-      // Fallback automatique sur BODACC si pas de token Pappers
-      if (window.HubBodacc && window.HubBodacc.checkSiren) {
-        const r = await window.HubBodacc.checkSiren(clean);
-        r.source = "bodacc";
-        return r;
+    let url = "";
+    let fetchOpts = { method: "GET", headers: { "Accept": "application/json" } };
+    if (useProxy) {
+      // 1. JWT Supabase obligatoire pour passer le proxy
+      let jwt = "";
+      try {
+        const sess = window.HubSupabase && window.HubSupabase.client && (await window.HubSupabase.client.auth.getSession());
+        jwt = (sess && sess.data && sess.data.session && sess.data.session.access_token) || "";
+      } catch (e) {}
+      if (!jwt) {
+        // Si pas connecté, fallback bodacc
+        if (window.HubBodacc && window.HubBodacc.checkSiren) {
+          const r = await window.HubBodacc.checkSiren(clean); r.source = "bodacc"; return r;
+        }
+        return { status: "unknown", error: "Connecte-toi pour interroger Pappers", checked_at: new Date().toISOString(), source: "none" };
       }
-      return { status: "unknown", error: "Aucun token Pappers configuré (HubPappersToken)", checked_at: new Date().toISOString(), source: "none" };
+      url = window.HubPappersProxyUrl + "?path=" + encodeURIComponent("/entreprise") + "&siren=" + encodeURIComponent(clean);
+      fetchOpts.headers["Authorization"] = "Bearer " + jwt;
+    } else {
+      // Legacy : direct call avec token en clair (à supprimer)
+      try { token = localStorage.getItem("hubAstorya.pappers.token") || ""; } catch (e) {}
+      if (!token) token = window.HubPappersToken || (window.HubSupabaseConfig && window.HubSupabaseConfig.PAPPERS_TOKEN) || "";
+      if (!token) {
+        if (window.HubBodacc && window.HubBodacc.checkSiren) {
+          const r = await window.HubBodacc.checkSiren(clean); r.source = "bodacc"; return r;
+        }
+        return { status: "unknown", error: "Aucun token Pappers configuré (HubPappersToken)", checked_at: new Date().toISOString(), source: "none" };
+      }
+      url = BASE + "?siren=" + encodeURIComponent(clean) + "&api_token=" + encodeURIComponent(token);
     }
 
-    const url = BASE + "?siren=" + encodeURIComponent(clean) + "&api_token=" + encodeURIComponent(token);
-
     try {
-      const res = await fetch(url, { method: "GET", headers: { "Accept": "application/json" } });
+      const res = await fetch(url, fetchOpts);
       if (res.status === 404) {
         return { status: "ok", checked_at: new Date().toISOString(), siren: clean, source: "pappers", message: "Entreprise non trouvée sur Pappers." };
       }

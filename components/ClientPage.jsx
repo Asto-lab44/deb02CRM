@@ -850,7 +850,13 @@ const ClientPage = () => {
                   <span style={cliStyles.dot} />
                   <span style={{ fontSize: 12, color: "#64748b" }}>📍 {display.city}</span>
                   <span style={cliStyles.dot} />
-                  <a href={display.web && display.web.startsWith("http") ? display.web : "https://" + display.web} target="_blank" style={{ fontSize: 12, color: "#4f46e5", cursor: "pointer", textDecoration: "none" }}>{display.web} ↗</a>
+                  {/* Anti-XSS : rejette les schemes javascript:/data:/file:. Force http(s). */}
+                  {(() => {
+                    const w = String(display.web || "").trim();
+                    const safe = w.match(/^https?:\/\//i) ? w : "https://" + w.replace(/^[a-z]+:\/*/i, "");
+                    if (!safe.match(/^https?:\/\/[\w.-]+\.\w{2,}/i)) return <span style={{ fontSize: 12, color: "#94a3b8" }}>{w}</span>;
+                    return <a href={safe} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#4f46e5", cursor: "pointer", textDecoration: "none" }}>{w} ↗</a>;
+                  })()}
                   <span style={cliStyles.dot} />
                   <span style={{ fontSize: 12, color: "#64748b" }}>{display.since}</span>
                 </div>

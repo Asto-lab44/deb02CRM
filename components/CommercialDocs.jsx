@@ -824,12 +824,15 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
       if (window.HubToast) window.HubToast.success("✓ Document enregistré");
       onSaved && onSaved();
       if (!options.keepOpen) {
-        // Si ?returnTo=URL dans la query, on y retourne plutôt que de fermer
+        // Si ?returnTo=URL dans la query, on y retourne plutôt que de fermer.
+        // SÉCURITÉ : whitelist same-origin (empêche open redirect vers phishing).
         // le modal (ex: depuis AdvanceOpportunity → édition devis → save → retour pipeline)
         const params = new URLSearchParams(window.location.search);
         const returnTo = params.get("returnTo");
-        if (returnTo) {
-          setTimeout(() => { window.location.href = returnTo; }, 400);
+        // N'accepte que les URLs relatives same-origin (commence par "/" et pas par "//")
+        const safeReturn = returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : null;
+        if (safeReturn) {
+          setTimeout(() => { window.location.href = safeReturn; }, 400);
         } else {
           onClose && onClose();
         }

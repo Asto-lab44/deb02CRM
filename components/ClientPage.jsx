@@ -474,6 +474,10 @@ const ClientPage = () => {
     fonction:  c.fonction || "",
     action:    c.action || "",
     besoin:    c.besoin || "",
+    // Établissements secondaires — peuvent être en colonne top-level OU dans data jsonb
+    etablissements_secondaires: Array.isArray(c.etablissements_secondaires)
+      ? c.etablissements_secondaires
+      : (c.data && Array.isArray(c.data.etablissements_secondaires) ? c.data.etablissements_secondaires : []),
   };
 
   const openEdit = () => {
@@ -513,6 +517,12 @@ const ClientPage = () => {
       besoin: display.besoin || c.besoin || "",
       action: display.action || "",
       desc: c.notes || "",
+      // Établissements secondaires : lis depuis le top-level OU depuis data jsonb
+      etablissements_secondaires: Array.isArray(c.etablissements_secondaires)
+        ? c.etablissements_secondaires.map((e) => ({ ...e }))
+        : (c.data && Array.isArray(c.data.etablissements_secondaires)
+            ? c.data.etablissements_secondaires.map((e) => ({ ...e }))
+            : []),
     });
     setEditOpen(true);
   };

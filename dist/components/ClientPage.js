@@ -634,7 +634,9 @@ var ClientPage = () => {
     tva: c.tva || "",
     fonction: c.fonction || "",
     action: c.action || "",
-    besoin: c.besoin || ""
+    besoin: c.besoin || "",
+    // Établissements secondaires — peuvent être en colonne top-level OU dans data jsonb
+    etablissements_secondaires: Array.isArray(c.etablissements_secondaires) ? c.etablissements_secondaires : c.data && Array.isArray(c.data.etablissements_secondaires) ? c.data.etablissements_secondaires : []
   };
   var openEdit = () => {
     var cp = c.contact_principal || {};
@@ -672,7 +674,13 @@ var ClientPage = () => {
       projectDate: display.projectDate || "",
       besoin: display.besoin || c.besoin || "",
       action: display.action || "",
-      desc: c.notes || ""
+      desc: c.notes || "",
+      // Établissements secondaires : lis depuis le top-level OU depuis data jsonb
+      etablissements_secondaires: Array.isArray(c.etablissements_secondaires) ? c.etablissements_secondaires.map(e => ({
+        ...e
+      })) : c.data && Array.isArray(c.data.etablissements_secondaires) ? c.data.etablissements_secondaires.map(e => ({
+        ...e
+      })) : []
     });
     setEditOpen(true);
   };

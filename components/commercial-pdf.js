@@ -42,6 +42,17 @@
   }
 
   // Format euro 2 décimales en locale fr-FR (séparateur décimal = virgule).
+  // Construit le nom de fichier au format : « <numéro pièce> <nom client>.pdf »
+  // ex. « DEV-2026-0018 ASTORYA SGI.pdf »
+  // Remplace les caractères interdits par OS (/, \, :, *, ?, ", <, >, |) par "_".
+  function buildFilename(d) {
+    const cleanPart = (s) => String(s || "").trim().replace(/[\/\\:*?"<>|]+/g, "_").replace(/\s+/g, " ");
+    const docNum = cleanPart(d.id || "DOC");
+    const client = cleanPart(d.client_name || (d.data && d.data.client_name) || "");
+    const base = client ? (docNum + " " + client) : docNum;
+    return base + ".pdf";
+  }
+
   const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtDate = (s) => {
     if (!s) return "";
@@ -512,7 +523,7 @@
     async download(doc) {
       const pm = await loadPdfMake();
       const { doc: d, company } = await _resolveDoc(doc);
-      pm.createPdf(buildDocDefinition(d, company)).download(d.id + ".pdf");
+      pm.createPdf(buildDocDefinition(d, company)).download(buildFilename(d));
     },
     async toBlob(doc) {
       const pm = await loadPdfMake();

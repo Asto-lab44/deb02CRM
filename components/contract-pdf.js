@@ -699,7 +699,12 @@
       const pdf = await _getPdf(payload);
       const k = (payload && payload.kind) || detectKind(payload && payload.products);
       const lbl = (CONTRACT_KINDS[k] && CONTRACT_KINDS[k].label) || "Contrat";
-      const name = filename || (lbl.replace(/[^A-Za-z0-9]+/g, "-") + "-" + ((payload && payload.client && payload.client.name) || "client").replace(/[^A-Za-z0-9-_]+/g, "_") + ".pdf");
+      // Format : « <Type contrat> <Réf> <Nom client>.pdf »
+      // ex. « Contrat d'Hébergement Externalisé CTR-2026-0042 ASTORYA SGI.pdf »
+      const clean = (s) => String(s || "").trim().replace(/[\/\\:*?"<>|]+/g, "_").replace(/\s+/g, " ");
+      const ref = clean((payload && payload.ref) || (payload && payload.id) || "");
+      const client = clean((payload && payload.client && payload.client.name) || "client");
+      const name = filename || (clean(lbl) + (ref ? " " + ref : "") + " " + client + ".pdf");
       pdf.download(name);
     },
     async toBlob(payload) {

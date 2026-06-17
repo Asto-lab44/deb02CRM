@@ -244,12 +244,14 @@ var CRMPipeline = () => {
           won: 100
         }[s.key] || 20,
         tag: moduleTag(o.modules, o.produit),
-        // Initiales du client (prend la 1ʳᵉ lettre de chaque mot, max 2),
-        // comme sur la fiche client. Fallback sur le nom de l'opp si pas de client.
+        // Initiales du client (prend la 1ʳᵉ lettre de chaque mot, max 2).
+        // client_name peut être au top-level OU dans o.data.client_name (jsonb).
+        // On NE prend PAS le nom de l'opp en fallback : si pas de client → "?".
         logo: (() => {
-          var src = o.client_name && o.client_name.trim() || o.name && o.name.trim() || "?";
-          var ini = src.split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase();
-          return ini || src.slice(0, 2).toUpperCase();
+          var clientName = o.client_name && o.client_name.trim() || o.data && o.data.client_name && String(o.data.client_name).trim() || "";
+          if (!clientName) return "?";
+          var ini = clientName.split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+          return ini || clientName.slice(0, 2).toUpperCase();
         })(),
         logoBg: palette[(idx * 3 + i) % palette.length],
         won: o.stage === "won"

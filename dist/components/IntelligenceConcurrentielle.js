@@ -19,6 +19,7 @@
 
 var IntelligenceConcurrentielle = () => {
   var [tasks, setTasks] = React.useState([]);
+  var locamFileRef = React.useRef(null);
   var [loading, setLoading] = React.useState(true);
   var [filter, setFilter] = React.useState({
     source: "all",
@@ -236,10 +237,44 @@ var IntelligenceConcurrentielle = () => {
     style: icStyles.h1
   }, "Intelligence concurrentielle"), /*#__PURE__*/React.createElement("p", {
     style: icStyles.sub
-  }, "\xC9ch\xE9ances commerciales \xE0 anticiper \xB7 Leasing \xB7 Garanties \xB7 Contrats concurrents")), /*#__PURE__*/React.createElement("button", {
+  }, "\xC9ch\xE9ances commerciales \xE0 anticiper \xB7 Leasing \xB7 Garanties \xB7 Contrats concurrents")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    ref: locamFileRef,
+    type: "file",
+    accept: ".csv,text/csv,application/vnd.ms-excel",
+    style: {
+      display: "none"
+    },
+    onChange: async e => {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      e.target.value = "";
+      try {
+        if (window.HubToast) window.HubToast.info("Import LOCAM en cours…");
+        var res = await window.api.leasingContracts.importLocamCSV(f);
+        var msg = "✓ LOCAM importé · " + res.imported + " nouveaux · " + res.updated + " mis à jour · " + res.skipped + " ignorés";
+        if (window.HubToast) window.HubToast.success(msg);
+        if (res.errors && res.errors.length) console.warn("[LOCAM import errors]", res.errors);
+        reload();
+      } catch (err) {
+        if (window.HubToast) window.HubToast.error("Import LOCAM : " + (err.message || err));
+      }
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => locamFileRef.current && locamFileRef.current.click(),
+    style: {
+      ...icStyles.primaryBtn,
+      background: "#2563eb"
+    },
+    title: "Importer le fichier CSV \xAB Export_Location_Folders \xBB export\xE9 depuis l'extranet LOCAM"
+  }, "\u21E3 Importer LOCAM (CSV)"), /*#__PURE__*/React.createElement("button", {
     onClick: reload,
     style: icStyles.primaryBtn
-  }, "\u21BB Rafra\xEEchir")), /*#__PURE__*/React.createElement("div", {
+  }, "\u21BB Rafra\xEEchir"))), /*#__PURE__*/React.createElement("div", {
     style: icStyles.kpiRow
   }, /*#__PURE__*/React.createElement(KPI, {
     label: "\uD83D\uDD25 URGENT (\u2264 30j)",

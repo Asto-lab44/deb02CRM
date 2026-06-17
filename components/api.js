@@ -2600,6 +2600,149 @@
       if (!s) return;
       await s.from("leasing_contracts").update({ deleted_at: new Date().toISOString() }).eq("id", id);
     },
+
+    /** Import CSV LOCAM "Export_Location_Folders".
+     *  Format ISO-8859-1, séparateur ";", 36 colonnes.
+     *  Détecte les doublons par (bailleur=LOCAM, ref_contrat).
+     *  Retourne { imported, updated, skipped, errors }. */
+    async importLocamCSV(fileOrText) {
+      const s = supa();
+      if (!s) throw new Error("Supabase non configuré.");
+      // 1. Lecture + décodage ISO-8859-1 → UTF-8
+      let raw;
+      if (typeof fileOrText === "string") raw = fileOrText;
+      else {
+        const buf = await fileOrText.arrayBuffer();
+        // LOCAM exporte en windows-1252 / ISO-8859-1
+        const dec = new TextDecoder("windows-1252");
+        raw = dec.decode(buf);
+      }
+      // 2. Parsing CSV ; (sans guillemets — LOCAM n'en utilise pas)
+      const lines = raw.split(/\r?\n/).filter((l) => l.trim().length);
+      if (lines.length < 2) return { imported: 0, updated: 0, skipped: 0, errors: ["Fichier vide ou en-tête seul"] };
+      const header = lines[0].split(";");
+      const idx = (name) => header.findIndex((h) => h.trim().toLowerCase() === name.toLowerCase());
+      const COL = {
+        tacite: idx("Tacite reconduction"),
+        num_agence: idx("Numéro d'agence"),
+        code_commercial: idx("Code commercial"),
+        ref_locam: idx("Votre référence Locam"),
+        denomination: idx("Votre dénomination"),
+        n_dossier: idx("N° Dossier"),
+        n_etude: idx("N° Etude"),
+        client_ref: idx("Référence interne de votre client"),
+        siren: idx("N° Siren"),
+        client_name: idx("Nom du client"),
+        adresse: idx("Adresse"),
+        localite: idx("Localité"),
+        cp: idx("Code postal"),
+        ville: idx("Ville"),
+        tel: idx("N° Téléphone"),
+        portable: idx("N° Portable"),
+        email: idx("Adresse email"),
+        bien: idx("Bien financé"),
+        facture: idx("Votre numéro de facture"),
+        etat: idx("Etat du dossier"),
+        type_produit: idx("Type de produit"),
+        assurance: idx("Présence d'assurance"),
+        montant_finance: idx("Montant financé HT"),
+        periodicite: idx("Périodicité"),
+        nb_loyers: idx("Nombre de loyers"),
+        terme: idx("Terme à échoir / Echu"),
+        montant_loyer: idx("Montant des loyers TTC"),
+        dont_assurance: idx("Dont assurance"),
+        dont_maintenance: idx("Dont prestation / maintenance TTC"),
+        date_apport: idx("Date de l'apport"),
+        date_premiere: idx("Date 1ère échéance"),
+        date_derniere: idx("Date de dernière échéance"),
+        nb_impayes: idx("Nombre d'impayés"),
+        montant_impayes: idx("Montant des impayés TTC"),
+        statut: idx("Statut"),
+      };
+      // 3. Helpers
+      const parseDate = (s) => {
+        if (!s) return null;
+        const m = String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (!m) return null;
+        return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+      };
+      const parseNum = (s) => {
+        if (!s) return null;
+        const cleaned = String(s).replace(/^0+/, "").replace(/\s/g, "").replace(",", ".");
+        const n = parseFloat(cleaned);
+        return isFinite(n) ? n : null;
+      };
+      const mapStatus = (etat, statut) => {
+        const e = String(etat || statut || "").toLowerCase();
+        if (e.indexOf("termin") !== -1)        return "termine";
+        if (e.indexOf("résili") !== -1)        return "resilie";
+        if (e.indexOf("tacite") !== -1)        return "tacite";
+        if (e.indexOf("cours") !== -1 || e.indexOf("actif") !== -1) return "actif";
+        return "actif";
+      };
+      // 4. Pré-charge les contrats LOCAM existants pour détecter doublons
+      const { data: existing } = await s.from("leasing_contracts")
+        .select("id, ref_contrat, data").eq("bailleur", "LOCAM").is("deleted_at", null);
+      const byRef = new Map();
+      (existing || []).forEach((r) => { if (r.ref_contrat) byRef.set(String(r.ref_contrat), r); });
+      // 5. Boucle d'import
+      const result = { imported: 0, updated: 0, skipped: 0, errors: [] };
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(";");
+        const dossier = (cols[COL.n_dossier] || "").trim();
+        if (!dossier) { result.skipped++; continue; }
+        const dateDebut = parseDate(cols[COL.date_premiere]);
+        const dateFin = parseDate(cols[COL.date_derniere]);
+        const payload = {
+          bailleur: "LOCAM",
+          ref_contrat: dossier,
+          client_siren: (cols[COL.siren] || "").trim() || null,
+          client_name: (cols[COL.client_name] || "").trim() || null,
+          designation: ((cols[COL.bien] || "").trim() + (cols[COL.denomination] ? " — " + (cols[COL.denomination] || "").trim() : "")) || null,
+          montant_ht: parseNum(cols[COL.montant_finance]),
+          montant_loyer_ttc: parseNum(cols[COL.montant_loyer]),
+          periodicite: (cols[COL.periodicite] || "").trim() || null,
+          nb_loyers: parseNum(cols[COL.nb_loyers]),
+          date_debut: dateDebut, date_fin: dateFin,
+          status: mapStatus(cols[COL.etat], cols[COL.statut]),
+          data: {
+            // Tout le reste dans le jsonb pour ne rien perdre
+            num_agence: cols[COL.num_agence],
+            code_commercial: cols[COL.code_commercial],
+            ref_locam: cols[COL.ref_locam],
+            n_etude: cols[COL.n_etude],
+            adresse: cols[COL.adresse],
+            cp: cols[COL.cp], ville: cols[COL.ville],
+            tel: cols[COL.tel], portable: cols[COL.portable], email: cols[COL.email],
+            tacite_reconduction: (cols[COL.tacite] || "").toLowerCase() === "oui",
+            type_produit: cols[COL.type_produit],
+            assurance: cols[COL.assurance],
+            terme: cols[COL.terme],
+            dont_assurance: parseNum(cols[COL.dont_assurance]),
+            dont_maintenance: parseNum(cols[COL.dont_maintenance]),
+            date_apport: parseDate(cols[COL.date_apport]),
+            nb_impayes: parseNum(cols[COL.nb_impayes]),
+            montant_impayes: parseNum(cols[COL.montant_impayes]),
+            statut_brut: (cols[COL.statut] || "").trim(),
+            etat_brut: (cols[COL.etat] || "").trim(),
+          },
+        };
+        try {
+          const exists = byRef.get(dossier);
+          if (exists) {
+            await this.update(exists.id, payload);
+            result.updated++;
+          } else {
+            await this.create(payload);
+            result.imported++;
+          }
+        } catch (e) {
+          result.errors.push(dossier + " : " + (e.message || e));
+          result.skipped++;
+        }
+      }
+      return result;
+    },
   };
 
   const warranties = {

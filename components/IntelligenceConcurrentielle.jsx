@@ -19,6 +19,7 @@
 
 const IntelligenceConcurrentielle = () => {
   const [tasks, setTasks] = React.useState([]);
+  const locamFileRef = React.useRef(null);
   const [loading, setLoading] = React.useState(true);
   const [filter, setFilter] = React.useState({ source: "all", urgency: "all" });
   const [editing, setEditing] = React.useState(null); // {type: 'leasing'|'warranty', data: {...}}
@@ -119,7 +120,31 @@ const IntelligenceConcurrentielle = () => {
             <h1 style={icStyles.h1}>Intelligence concurrentielle</h1>
             <p style={icStyles.sub}>Échéances commerciales à anticiper · Leasing · Garanties · Contrats concurrents</p>
           </div>
-          <button onClick={reload} style={icStyles.primaryBtn}>↻ Rafraîchir</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input ref={locamFileRef} type="file" accept=".csv,text/csv,application/vnd.ms-excel"
+                   style={{ display: "none" }}
+                   onChange={async (e) => {
+                     const f = e.target.files && e.target.files[0];
+                     if (!f) return;
+                     e.target.value = "";
+                     try {
+                       if (window.HubToast) window.HubToast.info("Import LOCAM en cours…");
+                       const res = await window.api.leasingContracts.importLocamCSV(f);
+                       const msg = "✓ LOCAM importé · " + res.imported + " nouveaux · " + res.updated + " mis à jour · " + res.skipped + " ignorés";
+                       if (window.HubToast) window.HubToast.success(msg);
+                       if (res.errors && res.errors.length) console.warn("[LOCAM import errors]", res.errors);
+                       reload();
+                     } catch (err) {
+                       if (window.HubToast) window.HubToast.error("Import LOCAM : " + (err.message || err));
+                     }
+                   }} />
+            <button onClick={() => locamFileRef.current && locamFileRef.current.click()}
+                    style={{ ...icStyles.primaryBtn, background: "#2563eb" }}
+                    title="Importer le fichier CSV « Export_Location_Folders » exporté depuis l'extranet LOCAM">
+              ⇣ Importer LOCAM (CSV)
+            </button>
+            <button onClick={reload} style={icStyles.primaryBtn}>↻ Rafraîchir</button>
+          </div>
         </header>
 
         <div style={icStyles.kpiRow}>

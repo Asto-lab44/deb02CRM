@@ -627,16 +627,22 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
   const [articles, setArticles] = React.useState([]);
   const [tvaRates, setTvaRates] = React.useState([]);
   const [paymentTerms, setPaymentTerms] = React.useState([]);
+  const [suppliers, setSuppliers] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
   const [sendOpen, setSendOpen] = React.useState(false);
+
+  const reloadSuppliers = React.useCallback(async () => {
+    try { setSuppliers(await window.api.suppliers.list({ active: true }) || []); } catch (e) {}
+  }, []);
 
   React.useEffect(() => {
     (async () => {
       try { setArticles(await window.api.commercialArticles.list({ active: true }) || []); } catch (e) {}
       try { setTvaRates(await window.api.commercialRefs.tvaRates() || []); } catch (e) {}
       try { setPaymentTerms(await window.api.commercialRefs.paymentTerms() || []); } catch (e) {}
+      reloadSuppliers();
     })();
-  }, []);
+  }, [reloadSuppliers]);
 
   // Si on ouvre un doc existant avec un client mais sans contact rempli,
   // on récupère le contact principal pour pré-remplir contact_name + email
@@ -812,6 +818,7 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
           // Champs internes (jamais sur PDF client)
           manufacturer_ref: line.manufacturer_ref || null,
           purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative),
+          supplier: line.supplier || null,
         };
         if (line._new || String(line.id || "").startsWith("tmp_")) {
           const created = await window.api.commercialDocs.addLine(d.id, normalizedLine);
@@ -1197,16 +1204,36 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                   </div>
                 </div>
                 {/* Ligne 3 : INFOS INTERNES (non visibles sur le PDF client) */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 10, marginTop: 8,
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 220px 180px", gap: 10, marginTop: 8,
                               padding: "8px 10px", background: "#fafbfc", borderRadius: 6, border: "1px dashed #e2e8f0" }}>
                   <div>
                     <label style={{ ...cdStyles.miniLbl, color: "#94a3b8" }}>
-                      🔒 Référence constructeur <span style={{ fontSize: 9, fontWeight: 500, fontStyle: "italic" }}>(interne — non imprimée sur le PDF)</span>
+                      🔒 Référence constructeur <span style={{ fontSize: 9, fontWeight: 500, fontStyle: "italic" }}>(interne — non imprimée)</span>
                     </label>
                     <input type="text" value={l.manufacturer_ref || ""}
                            onChange={(e) => updateLineField(i, "manufacturer_ref", e.target.value)}
                            placeholder="ex. HP-EB840-G11-A26S0EA"
                            style={{ ...cdStyles.miniInput, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }} />
+                  </div>
+                  <div>
+                    <label style={{ ...cdStyles.miniLbl, color: "#94a3b8" }}>
+                      🔒 Fournisseur <span style={{ fontSize: 9, fontWeight: 500, fontStyle: "italic" }}>(interne)</span>
+                    </label>
+                    {window.HubSupplierCombo ? (
+                      React.createElement(window.HubSupplierCombo, {
+                        value: l.supplier || "",
+                        suppliers: suppliers,
+                        cellInput: { ...cdStyles.miniInput, fontSize: 12, fontWeight: 600 },
+                        onChange: (v) => updateLineField(i, "supplier", v || null),
+                        onSuppliersChanged: reloadSuppliers,
+                        placeholder: "— Choisir —",
+                      })
+                    ) : (
+                      <input type="text" value={l.supplier || ""}
+                             onChange={(e) => updateLineField(i, "supplier", e.target.value || null)}
+                             placeholder="ex. INMAC, LDLC PRO…"
+                             style={cdStyles.miniInput} />
+                    )}
                   </div>
                   <div>
                     <label style={{ ...cdStyles.miniLbl, color: "#94a3b8" }}>

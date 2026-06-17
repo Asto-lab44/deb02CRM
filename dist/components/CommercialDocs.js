@@ -1125,8 +1125,16 @@ var CommercialDocEditor = ({
   var [articles, setArticles] = React.useState([]);
   var [tvaRates, setTvaRates] = React.useState([]);
   var [paymentTerms, setPaymentTerms] = React.useState([]);
+  var [suppliers, setSuppliers] = React.useState([]);
   var [saving, setSaving] = React.useState(false);
   var [sendOpen, setSendOpen] = React.useState(false);
+  var reloadSuppliers = React.useCallback(async () => {
+    try {
+      setSuppliers((await window.api.suppliers.list({
+        active: true
+      })) || []);
+    } catch (e) {}
+  }, []);
   React.useEffect(() => {
     (async () => {
       try {
@@ -1140,8 +1148,9 @@ var CommercialDocEditor = ({
       try {
         setPaymentTerms((await window.api.commercialRefs.paymentTerms()) || []);
       } catch (e) {}
+      reloadSuppliers();
     })();
-  }, []);
+  }, [reloadSuppliers]);
 
   // Si on ouvre un doc existant avec un client mais sans contact rempli,
   // on récupère le contact principal pour pré-remplir contact_name + email
@@ -1349,7 +1358,8 @@ var CommercialDocEditor = ({
           position: i,
           // Champs internes (jamais sur PDF client)
           manufacturer_ref: line.manufacturer_ref || null,
-          purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative)
+          purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative),
+          supplier: line.supplier || null
         };
         if (line._new || String(line.id || "").startsWith("tmp_")) {
           var created = await window.api.commercialDocs.addLine(d.id, normalizedLine);
@@ -2055,7 +2065,7 @@ var CommercialDocEditor = ({
   }, t.rate, " %"))))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "1fr 200px",
+      gridTemplateColumns: "1fr 220px 180px",
       gap: 10,
       marginTop: 8,
       padding: "8px 10px",
@@ -2074,7 +2084,7 @@ var CommercialDocEditor = ({
       fontWeight: 500,
       fontStyle: "italic"
     }
-  }, "(interne \u2014 non imprim\xE9e sur le PDF)")), /*#__PURE__*/React.createElement("input", {
+  }, "(interne \u2014 non imprim\xE9e)")), /*#__PURE__*/React.createElement("input", {
     type: "text",
     value: l.manufacturer_ref || "",
     onChange: e => updateLineField(i, "manufacturer_ref", e.target.value),
@@ -2084,6 +2094,34 @@ var CommercialDocEditor = ({
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 11.5
     }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...cdStyles.miniLbl,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDD12 Fournisseur ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 500,
+      fontStyle: "italic"
+    }
+  }, "(interne)")), window.HubSupplierCombo ? React.createElement(window.HubSupplierCombo, {
+    value: l.supplier || "",
+    suppliers: suppliers,
+    cellInput: {
+      ...cdStyles.miniInput,
+      fontSize: 12,
+      fontWeight: 600
+    },
+    onChange: v => updateLineField(i, "supplier", v || null),
+    onSuppliersChanged: reloadSuppliers,
+    placeholder: "— Choisir —"
+  }) : /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: l.supplier || "",
+    onChange: e => updateLineField(i, "supplier", e.target.value || null),
+    placeholder: "ex. INMAC, LDLC PRO\u2026",
+    style: cdStyles.miniInput
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       ...cdStyles.miniLbl,

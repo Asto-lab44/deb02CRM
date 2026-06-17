@@ -1621,6 +1621,7 @@
             ...l,
             manufacturer_ref: l.manufacturer_ref || meta.manufacturer_ref || null,
             purchase_price_indicative: l.purchase_price_indicative != null ? l.purchase_price_indicative : (meta.purchase_price_indicative != null ? meta.purchase_price_indicative : null),
+            supplier: l.supplier || meta.supplier || null,
           };
         });
         return { ...doc, lines: hydrated };
@@ -1715,6 +1716,7 @@
               ...((l.data && typeof l.data === "object") ? l.data : {}),
               manufacturer_ref: l.manufacturer_ref || null,
               purchase_price_indicative: l.purchase_price_indicative == null ? null : Number(l.purchase_price_indicative),
+              supplier: l.supplier || null,
             },
           }));
           await s.from("commercial_doc_lines").insert(rows);

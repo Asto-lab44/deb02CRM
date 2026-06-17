@@ -2522,99 +2522,141 @@ const TECH_STATUSES = [
 const TechModule = ({ clientId, value, onChange }) => {
   const [tech, setTech] = React.useState(value || {});
   React.useEffect(() => { setTech(value || {}); }, [value]);
-  const [openSections, setOpenSections] = React.useState(() => new Set(TECH_SECTIONS.slice(0, 3).map((s) => s.title)));
+  const [activeSection, setActiveSection] = React.useState(TECH_SECTIONS[0].title);
   const [saving, setSaving] = React.useState(false);
+  const [savedFlash, setSavedFlash] = React.useState(false);
 
   const setField = (id, v) => {
     const next = { ...tech, [id]: v };
     setTech(next);
-    // Debounce sauvegarde 400ms
     if (setField._timer) clearTimeout(setField._timer);
     setField._timer = setTimeout(async () => {
       setSaving(true);
-      try { await onChange(next); } finally { setSaving(false); }
+      try { await onChange(next); setSavedFlash(true); setTimeout(() => setSavedFlash(false), 1500); }
+      finally { setSaving(false); }
     }, 400);
   };
 
-  const toggleSection = (title) => {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(title)) next.delete(title); else next.add(title);
-      return next;
-    });
-  };
-
-  // Compteur global
   const totalFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.length, 0);
   const filledFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.filter((f) => tech[f.id] && tech[f.id] !== "").length, 0);
+  const pct = Math.round((filledFields / totalFields) * 100);
+  const sec = TECH_SECTIONS.find((s) => s.title === activeSection) || TECH_SECTIONS[0];
+  const secFilled = sec.fields.filter((f) => tech[f.id] && tech[f.id] !== "").length;
+  const secPct = Math.round((secFilled / sec.fields.length) * 100);
+
+  const STATUS_DOTS = {
+    "":            "#cbd5e1",
+    actif:         "#16a34a",
+    inactif:       "#dc2626",
+    a_installer:   "#f59e0b",
+    non_concerne:  "#64748b",
+    a_verifier:    "#3b82f6",
+  };
 
   return (
-    <section style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 18, marginTop: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.3 }}>
-            🛠 Module technique
-          </h2>
-          <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0" }}>
-            État du parc IT du client · {filledFields}/{totalFields} champs renseignés
-          </p>
+    <section style={{ background: "linear-gradient(180deg, #ffffff 0%, #fafbff 100%)", border: "1px solid #eef1f5", borderRadius: 14, padding: 0, marginTop: 14, overflow: "hidden" }}>
+      {/* Bandeau d'en-tête */}
+      <div style={{ padding: "16px 20px 14px", borderBottom: "1px solid #eef1f5", background: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff", boxShadow: "0 4px 10px rgba(79,70,229,0.25)" }}>🛠</div>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: -0.3 }}>Module technique</h2>
+              <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0" }}>État du parc IT · {filledFields}/{totalFields} champs renseignés</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {saving && <span style={{ fontSize: 11, color: "#0e7a55", display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 6, height: 6, background: "#10b981", borderRadius: 3, animation: "" }} />Sauvegarde…</span>}
+            {savedFlash && !saving && <span style={{ fontSize: 11, color: "#0e7a55" }}>✓ Enregistré</span>}
+            <div style={{ minWidth: 180, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ flex: 1, height: 6, background: "#eef2ff", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ width: pct + "%", height: "100%", background: "linear-gradient(90deg, #4f46e5, #7c3aed)", transition: "width 200ms" }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#3730a3", minWidth: 32, textAlign: "right" }}>{pct}%</span>
+            </div>
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {saving && <span style={{ fontSize: 11, color: "#10b981" }}>● Sauvegarde…</span>}
-          <span style={{ fontSize: 10.5, padding: "2px 8px", background: "#eef2ff", color: "#3730a3", borderRadius: 999, fontWeight: 700 }}>
-            {Math.round((filledFields / totalFields) * 100)}%
-          </span>
+
+        {/* Onglets de sections */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
+          {TECH_SECTIONS.map((s) => {
+            const isActive = s.title === activeSection;
+            const sFilled = s.fields.filter((f) => tech[f.id] && tech[f.id] !== "").length;
+            return (
+              <button
+                key={s.title}
+                onClick={() => setActiveSection(s.title)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  padding: "7px 12px",
+                  border: "1px solid " + (isActive ? s.color : "#e2e8f0"),
+                  background: isActive ? s.color : "#fff",
+                  color: isActive ? "#fff" : "#475569",
+                  borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  boxShadow: isActive ? "0 2px 6px " + s.color + "55" : "none",
+                  transition: "all 150ms",
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{s.icon}</span>
+                <span>{s.title}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700,
+                  padding: "1px 6px", borderRadius: 999,
+                  background: isActive ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                  color: isActive ? "#fff" : "#64748b",
+                }}>{sFilled}/{s.fields.length}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {TECH_SECTIONS.map((sec) => {
-          const isOpen = openSections.has(sec.title);
-          const secFilled = sec.fields.filter((f) => tech[f.id] && tech[f.id] !== "").length;
-          return (
-            <div key={sec.title} style={{ border: "1px solid #eef1f5", borderRadius: 10, overflow: "hidden" }}>
-              <button
-                onClick={() => toggleSection(sec.title)}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 12,
-                  padding: "10px 14px", background: isOpen ? sec.color + "0d" : "#fafbfc",
-                  border: 0, cursor: "pointer", textAlign: "left",
-                }}
-              >
-                <span style={{ fontSize: 16 }}>{sec.icon}</span>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{sec.title}</span>
-                <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{secFilled}/{sec.fields.length}</span>
-                <span style={{ fontSize: 12, color: "#94a3b8" }}>{isOpen ? "▾" : "▸"}</span>
-              </button>
-              {isOpen && (
-                <div style={{ padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  {sec.fields.map((f) => {
-                    const v = tech[f.id] || "";
-                    const meta = TECH_STATUSES.find((s) => s.value === v) || TECH_STATUSES[0];
-                    return (
-                      <label key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8 }}>
-                        <span style={{ flex: 1, fontSize: 12, color: "#0f172a", fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.label}</span>
-                        <select
-                          value={v}
-                          onChange={(e) => setField(f.id, e.target.value)}
-                          style={{
-                            padding: "3px 6px", border: "1px solid " + (v ? meta.color + "40" : "#e2e8f0"),
-                            borderRadius: 5, fontSize: 11, fontWeight: 700,
-                            background: meta.bg, color: meta.color, cursor: "pointer", outline: "none",
-                          }}
-                        >
-                          {TECH_STATUSES.map((s) => (
-                            <option key={s.value} value={s.value}>{s.label}</option>
-                          ))}
-                        </select>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Section active */}
+      <div style={{ padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 4, height: 22, background: sec.color, borderRadius: 3 }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{sec.title}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: sec.color, padding: "2px 8px", background: sec.color + "15", borderRadius: 999 }}>{secPct}% complété</span>
+          </div>
+          <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{secFilled}/{sec.fields.length}</span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+          {sec.fields.map((f) => {
+            const v = tech[f.id] || "";
+            const meta = TECH_STATUSES.find((s) => s.value === v) || TECH_STATUSES[0];
+            const dot = STATUS_DOTS[v] || "#cbd5e1";
+            const isSet = !!v;
+            return (
+              <div key={f.id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px",
+                background: "#fff",
+                border: "1px solid " + (isSet ? sec.color + "30" : "#eef1f5"),
+                borderLeft: "3px solid " + dot,
+                borderRadius: 8,
+                transition: "border-color 150ms",
+              }}>
+                <span style={{ flex: 1, fontSize: 12.5, color: "#0f172a", fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.label}</span>
+                <select
+                  value={v}
+                  onChange={(e) => setField(f.id, e.target.value)}
+                  style={{
+                    padding: "4px 8px", border: "1px solid " + (isSet ? meta.color + "55" : "#e2e8f0"),
+                    borderRadius: 999, fontSize: 11, fontWeight: 700,
+                    background: meta.bg, color: meta.color, cursor: "pointer", outline: "none",
+                    minWidth: 110,
+                  }}
+                >
+                  {TECH_STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

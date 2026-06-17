@@ -1,4 +1,74 @@
 // ════════════════════════════════════════════════════════════════════
+// RichDescriptionEditor — mini WYSIWYG (gras / italique / souligné + 4 couleurs)
+// ════════════════════════════════════════════════════════════════════
+const RichDescriptionEditor = ({ value, onChange, placeholder }) => {
+  const ref = React.useRef(null);
+  const lastValueRef = React.useRef(value || "");
+
+  React.useEffect(() => {
+    if (document.getElementById("rich-desc-styles")) return;
+    const s = document.createElement("style");
+    s.id = "rich-desc-styles";
+    s.textContent = '.rich-desc[contenteditable]:empty:before{content:attr(data-placeholder);color:#94a3b8;font-style:italic;pointer-events:none;}';
+    document.head.appendChild(s);
+  }, []);
+
+  React.useEffect(() => {
+    if (!ref.current) return;
+    const v = value || "";
+    if (ref.current.innerHTML !== v && document.activeElement !== ref.current) {
+      ref.current.innerHTML = v;
+      lastValueRef.current = v;
+    }
+  }, [value]);
+
+  const exec = (cmd, arg) => {
+    if (!ref.current) return;
+    ref.current.focus();
+    try { document.execCommand("styleWithCSS", false, true); } catch (e) {}
+    document.execCommand(cmd, false, arg);
+    const html = ref.current.innerHTML;
+    lastValueRef.current = html;
+    onChange(html);
+  };
+
+  const btnStyle = { minWidth: 26, height: 26, padding: "0 6px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 5, cursor: "pointer", fontSize: 12, color: "#475569", display: "inline-flex", alignItems: "center", justifyContent: "center" };
+  const colorBtn = (color, title) => (
+    React.createElement("button", {
+      type: "button", title, onMouseDown: (e) => e.preventDefault(), onClick: () => exec("foreColor", color),
+      style: { width: 20, height: 20, border: "1px solid #cbd5e1", background: color, borderRadius: 10, cursor: "pointer", padding: 0 },
+    })
+  );
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 6px", border: "1px solid #e2e8f0", borderBottom: 0, borderRadius: "6px 6px 0 0", background: "#fafbfc" }}>
+        <button type="button" title="Gras" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")} style={{ ...btnStyle, fontWeight: 700 }}>B</button>
+        <button type="button" title="Italique" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")} style={{ ...btnStyle, fontStyle: "italic" }}>I</button>
+        <button type="button" title="Souligné" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")} style={{ ...btnStyle, textDecoration: "underline" }}>U</button>
+        <span style={{ width: 1, height: 16, background: "#e2e8f0", margin: "0 4px" }} />
+        {colorBtn("#0f172a", "Noir")}
+        {colorBtn("#16a34a", "Vert")}
+        {colorBtn("#ea580c", "Orange")}
+        {colorBtn("#dc2626", "Rouge")}
+        <span style={{ marginLeft: "auto", fontSize: 10, color: "#94a3b8", fontStyle: "italic" }}>Mise en forme reprise sur le PDF</span>
+      </div>
+      <div
+        ref={ref}
+        className="rich-desc"
+        contentEditable
+        suppressContentEditableWarning
+        data-placeholder={placeholder || ""}
+        onInput={(e) => { lastValueRef.current = e.currentTarget.innerHTML; onChange(e.currentTarget.innerHTML); }}
+        onBlur={(e) => onChange(e.currentTarget.innerHTML)}
+        style={{ minHeight: 48, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: "0 0 6px 6px",
+                 fontSize: 12, color: "#475569", lineHeight: 1.5, background: "#fff", outline: "none", boxSizing: "border-box" }}
+      />
+    </div>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
 // CommercialDocs — Gestion Commerciale (Devis / Commande / BL / Facture)
 // ════════════════════════════════════════════════════════════════════
 //
@@ -1159,14 +1229,10 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                       apparaîtra sous la désignation sur le PDF
                     </span>
                   </label>
-                  <textarea
+                  <RichDescriptionEditor
                     value={l.description || ""}
-                    onChange={(e) => updateLineField(i, "description", e.target.value)}
+                    onChange={(html) => updateLineField(i, "description", html)}
                     placeholder="Ex. caractéristiques techniques, conditions, références produit…"
-                    rows={2}
-                    style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0",
-                             borderRadius: 6, fontSize: 12, fontFamily: "inherit", color: "#475569",
-                             resize: "vertical", boxSizing: "border-box", lineHeight: 1.5 }}
                   />
                 </div>
                 {/* Ligne 2 : Qté · Unité · P.U. HT · Remise · TVA */}

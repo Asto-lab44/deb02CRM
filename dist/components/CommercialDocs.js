@@ -1,4 +1,147 @@
 // ════════════════════════════════════════════════════════════════════
+// RichDescriptionEditor — mini WYSIWYG (gras / italique / souligné + 4 couleurs)
+// ════════════════════════════════════════════════════════════════════
+var RichDescriptionEditor = ({
+  value,
+  onChange,
+  placeholder
+}) => {
+  var ref = React.useRef(null);
+  var lastValueRef = React.useRef(value || "");
+  React.useEffect(() => {
+    if (document.getElementById("rich-desc-styles")) return;
+    var s = document.createElement("style");
+    s.id = "rich-desc-styles";
+    s.textContent = '.rich-desc[contenteditable]:empty:before{content:attr(data-placeholder);color:#94a3b8;font-style:italic;pointer-events:none;}';
+    document.head.appendChild(s);
+  }, []);
+  React.useEffect(() => {
+    if (!ref.current) return;
+    var v = value || "";
+    if (ref.current.innerHTML !== v && document.activeElement !== ref.current) {
+      ref.current.innerHTML = v;
+      lastValueRef.current = v;
+    }
+  }, [value]);
+  var exec = (cmd, arg) => {
+    if (!ref.current) return;
+    ref.current.focus();
+    try {
+      document.execCommand("styleWithCSS", false, true);
+    } catch (e) {}
+    document.execCommand(cmd, false, arg);
+    var html = ref.current.innerHTML;
+    lastValueRef.current = html;
+    onChange(html);
+  };
+  var btnStyle = {
+    minWidth: 26,
+    height: 26,
+    padding: "0 6px",
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    borderRadius: 5,
+    cursor: "pointer",
+    fontSize: 12,
+    color: "#475569",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center"
+  };
+  var colorBtn = (color, title) => React.createElement("button", {
+    type: "button",
+    title,
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => exec("foreColor", color),
+    style: {
+      width: 20,
+      height: 20,
+      border: "1px solid #cbd5e1",
+      background: color,
+      borderRadius: 10,
+      cursor: "pointer",
+      padding: 0
+    }
+  });
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "5px 6px",
+      border: "1px solid #e2e8f0",
+      borderBottom: 0,
+      borderRadius: "6px 6px 0 0",
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Gras",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => exec("bold"),
+    style: {
+      ...btnStyle,
+      fontWeight: 700
+    }
+  }, "B"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Italique",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => exec("italic"),
+    style: {
+      ...btnStyle,
+      fontStyle: "italic"
+    }
+  }, "I"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Soulign\xE9",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => exec("underline"),
+    style: {
+      ...btnStyle,
+      textDecoration: "underline"
+    }
+  }, "U"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 1,
+      height: 16,
+      background: "#e2e8f0",
+      margin: "0 4px"
+    }
+  }), colorBtn("#0f172a", "Noir"), colorBtn("#16a34a", "Vert"), colorBtn("#ea580c", "Orange"), colorBtn("#dc2626", "Rouge"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 10,
+      color: "#94a3b8",
+      fontStyle: "italic"
+    }
+  }, "Mise en forme reprise sur le PDF")), /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    className: "rich-desc",
+    contentEditable: true,
+    suppressContentEditableWarning: true,
+    "data-placeholder": placeholder || "",
+    onInput: e => {
+      lastValueRef.current = e.currentTarget.innerHTML;
+      onChange(e.currentTarget.innerHTML);
+    },
+    onBlur: e => onChange(e.currentTarget.innerHTML),
+    style: {
+      minHeight: 48,
+      padding: "8px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: "0 0 6px 6px",
+      fontSize: 12,
+      color: "#475569",
+      lineHeight: 1.5,
+      background: "#fff",
+      outline: "none",
+      boxSizing: "border-box"
+    }
+  }));
+};
+
+// ════════════════════════════════════════════════════════════════════
 // CommercialDocs — Gestion Commerciale (Devis / Commande / BL / Facture)
 // ════════════════════════════════════════════════════════════════════
 //
@@ -1969,23 +2112,10 @@ var CommercialDocEditor = ({
       color: "#94a3b8",
       fontStyle: "italic"
     }
-  }, "appara\xEEtra sous la d\xE9signation sur le PDF")), /*#__PURE__*/React.createElement("textarea", {
+  }, "appara\xEEtra sous la d\xE9signation sur le PDF")), /*#__PURE__*/React.createElement(RichDescriptionEditor, {
     value: l.description || "",
-    onChange: e => updateLineField(i, "description", e.target.value),
-    placeholder: "Ex. caract\xE9ristiques techniques, conditions, r\xE9f\xE9rences produit\u2026",
-    rows: 2,
-    style: {
-      width: "100%",
-      padding: "8px 10px",
-      border: "1px solid #e2e8f0",
-      borderRadius: 6,
-      fontSize: 12,
-      fontFamily: "inherit",
-      color: "#475569",
-      resize: "vertical",
-      boxSizing: "border-box",
-      lineHeight: 1.5
-    }
+    onChange: html => updateLineField(i, "description", html),
+    placeholder: "Ex. caract\xE9ristiques techniques, conditions, r\xE9f\xE9rences produit\u2026"
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",

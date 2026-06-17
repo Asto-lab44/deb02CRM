@@ -5421,188 +5421,296 @@ var TechModule = ({
   React.useEffect(() => {
     setTech(value || {});
   }, [value]);
-  var [openSections, setOpenSections] = React.useState(() => new Set(TECH_SECTIONS.slice(0, 3).map(s => s.title)));
+  var [activeSection, setActiveSection] = React.useState(TECH_SECTIONS[0].title);
   var [saving, setSaving] = React.useState(false);
+  var [savedFlash, setSavedFlash] = React.useState(false);
   var setField = (id, v) => {
     var next = {
       ...tech,
       [id]: v
     };
     setTech(next);
-    // Debounce sauvegarde 400ms
     if (setField._timer) clearTimeout(setField._timer);
     setField._timer = setTimeout(async () => {
       setSaving(true);
       try {
         await onChange(next);
+        setSavedFlash(true);
+        setTimeout(() => setSavedFlash(false), 1500);
       } finally {
         setSaving(false);
       }
     }, 400);
   };
-  var toggleSection = title => {
-    setOpenSections(prev => {
-      var next = new Set(prev);
-      if (next.has(title)) next.delete(title);else next.add(title);
-      return next;
-    });
-  };
-
-  // Compteur global
   var totalFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.length, 0);
   var filledFields = TECH_SECTIONS.reduce((a, s) => a + s.fields.filter(f => tech[f.id] && tech[f.id] !== "").length, 0);
+  var pct = Math.round(filledFields / totalFields * 100);
+  var sec = TECH_SECTIONS.find(s => s.title === activeSection) || TECH_SECTIONS[0];
+  var secFilled = sec.fields.filter(f => tech[f.id] && tech[f.id] !== "").length;
+  var secPct = Math.round(secFilled / sec.fields.length * 100);
+  var STATUS_DOTS = {
+    "": "#cbd5e1",
+    actif: "#16a34a",
+    inactif: "#dc2626",
+    a_installer: "#f59e0b",
+    non_concerne: "#64748b",
+    a_verifier: "#3b82f6"
+  };
   return /*#__PURE__*/React.createElement("section", {
     style: {
-      background: "#fff",
+      background: "linear-gradient(180deg, #ffffff 0%, #fafbff 100%)",
       border: "1px solid #eef1f5",
-      borderRadius: 12,
-      padding: 18,
-      marginTop: 14
+      borderRadius: 14,
+      padding: 0,
+      marginTop: 14,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 20px 14px",
+      borderBottom: "1px solid #eef1f5",
+      background: "#fff"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: 14
+      gap: 14,
+      flexWrap: "wrap"
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 17,
-      fontWeight: 700,
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 18,
+      color: "#fff",
+      boxShadow: "0 4px 10px rgba(79,70,229,0.25)"
+    }
+  }, "\uD83D\uDEE0"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 16,
+      fontWeight: 800,
       color: "#0f172a",
       margin: 0,
       letterSpacing: -0.3
     }
-  }, "\uD83D\uDEE0 Module technique"), /*#__PURE__*/React.createElement("p", {
+  }, "Module technique"), /*#__PURE__*/React.createElement("p", {
     style: {
-      fontSize: 12,
+      fontSize: 11.5,
       color: "#64748b",
-      margin: "3px 0 0"
+      margin: "2px 0 0"
     }
-  }, "\xC9tat du parc IT du client \xB7 ", filledFields, "/", totalFields, " champs renseign\xE9s")), /*#__PURE__*/React.createElement("div", {
+  }, "\xC9tat du parc IT \xB7 ", filledFields, "/", totalFields, " champs renseign\xE9s"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 8
+      gap: 10
     }
   }, saving && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
-      color: "#10b981"
+      color: "#0e7a55",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
     }
-  }, "\u25CF Sauvegarde\u2026"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 10.5,
-      padding: "2px 8px",
-      background: "#eef2ff",
-      color: "#3730a3",
-      borderRadius: 999,
-      fontWeight: 700
+      width: 6,
+      height: 6,
+      background: "#10b981",
+      borderRadius: 3,
+      animation: ""
     }
-  }, Math.round(filledFields / totalFields * 100), "%"))), /*#__PURE__*/React.createElement("div", {
+  }), "Sauvegarde\u2026"), savedFlash && !saving && /*#__PURE__*/React.createElement("span", {
     style: {
+      fontSize: 11,
+      color: "#0e7a55"
+    }
+  }, "\u2713 Enregistr\xE9"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 180,
       display: "flex",
-      flexDirection: "column",
+      alignItems: "center",
       gap: 8
     }
-  }, TECH_SECTIONS.map(sec => {
-    var isOpen = openSections.has(sec.title);
-    var secFilled = sec.fields.filter(f => tech[f.id] && tech[f.id] !== "").length;
-    return /*#__PURE__*/React.createElement("div", {
-      key: sec.title,
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 6,
+      background: "#eef2ff",
+      borderRadius: 999,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: pct + "%",
+      height: "100%",
+      background: "linear-gradient(90deg, #4f46e5, #7c3aed)",
+      transition: "width 200ms"
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      color: "#3730a3",
+      minWidth: 32,
+      textAlign: "right"
+    }
+  }, pct, "%")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginTop: 14
+    }
+  }, TECH_SECTIONS.map(s => {
+    var isActive = s.title === activeSection;
+    var sFilled = s.fields.filter(f => tech[f.id] && tech[f.id] !== "").length;
+    return /*#__PURE__*/React.createElement("button", {
+      key: s.title,
+      onClick: () => setActiveSection(s.title),
       style: {
-        border: "1px solid #eef1f5",
-        borderRadius: 10,
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => toggleSection(sec.title),
-      style: {
-        width: "100%",
-        display: "flex",
+        display: "inline-flex",
         alignItems: "center",
-        gap: 12,
-        padding: "10px 14px",
-        background: isOpen ? sec.color + "0d" : "#fafbfc",
-        border: 0,
+        gap: 7,
+        padding: "7px 12px",
+        border: "1px solid " + (isActive ? s.color : "#e2e8f0"),
+        background: isActive ? s.color : "#fff",
+        color: isActive ? "#fff" : "#475569",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
         cursor: "pointer",
-        textAlign: "left"
+        boxShadow: isActive ? "0 2px 6px " + s.color + "55" : "none",
+        transition: "all 150ms"
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 16
+        fontSize: 13
       }
-    }, sec.icon), /*#__PURE__*/React.createElement("span", {
+    }, s.icon), /*#__PURE__*/React.createElement("span", null, s.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        padding: "1px 6px",
+        borderRadius: 999,
+        background: isActive ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+        color: isActive ? "#fff" : "#64748b"
+      }
+    }, sFilled, "/", s.fields.length));
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 4,
+      height: 22,
+      background: sec.color,
+      borderRadius: 3
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, sec.title), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: sec.color,
+      padding: "2px 8px",
+      background: sec.color + "15",
+      borderRadius: 999
+    }
+  }, secPct, "% compl\xE9t\xE9")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, secFilled, "/", sec.fields.length)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+      gap: 10
+    }
+  }, sec.fields.map(f => {
+    var v = tech[f.id] || "";
+    var meta = TECH_STATUSES.find(s => s.value === v) || TECH_STATUSES[0];
+    var dot = STATUS_DOTS[v] || "#cbd5e1";
+    var isSet = !!v;
+    return /*#__PURE__*/React.createElement("div", {
+      key: f.id,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        background: "#fff",
+        border: "1px solid " + (isSet ? sec.color + "30" : "#eef1f5"),
+        borderLeft: "3px solid " + dot,
+        borderRadius: 8,
+        transition: "border-color 150ms"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
         flex: 1,
-        fontSize: 13,
-        fontWeight: 700,
-        color: "#0f172a"
+        fontSize: 12.5,
+        color: "#0f172a",
+        fontWeight: 500,
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
       }
-    }, sec.title), /*#__PURE__*/React.createElement("span", {
+    }, f.label), /*#__PURE__*/React.createElement("select", {
+      value: v,
+      onChange: e => setField(f.id, e.target.value),
       style: {
+        padding: "4px 8px",
+        border: "1px solid " + (isSet ? meta.color + "55" : "#e2e8f0"),
+        borderRadius: 999,
         fontSize: 11,
-        color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontWeight: 700,
+        background: meta.bg,
+        color: meta.color,
+        cursor: "pointer",
+        outline: "none",
+        minWidth: 110
       }
-    }, secFilled, "/", sec.fields.length), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: "#94a3b8"
-      }
-    }, isOpen ? "▾" : "▸")), isOpen && /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "10px 14px",
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 8
-      }
-    }, sec.fields.map(f => {
-      var v = tech[f.id] || "";
-      var meta = TECH_STATUSES.find(s => s.value === v) || TECH_STATUSES[0];
-      return /*#__PURE__*/React.createElement("label", {
-        key: f.id,
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "6px 10px",
-          background: "#fafbfc",
-          border: "1px solid #eef1f5",
-          borderRadius: 8
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          flex: 1,
-          fontSize: 12,
-          color: "#0f172a",
-          fontWeight: 500,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap"
-        }
-      }, f.label), /*#__PURE__*/React.createElement("select", {
-        value: v,
-        onChange: e => setField(f.id, e.target.value),
-        style: {
-          padding: "3px 6px",
-          border: "1px solid " + (v ? meta.color + "40" : "#e2e8f0"),
-          borderRadius: 5,
-          fontSize: 11,
-          fontWeight: 700,
-          background: meta.bg,
-          color: meta.color,
-          cursor: "pointer",
-          outline: "none"
-        }
-      }, TECH_STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
-        key: s.value,
-        value: s.value
-      }, s.label))));
-    })));
-  })));
+    }, TECH_STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+      key: s.value,
+      value: s.value
+    }, s.label))));
+  }))));
 };
 
 // ════════════════════════════════════════════════════════════════════

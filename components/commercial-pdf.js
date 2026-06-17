@@ -14,6 +14,58 @@
 (function () {
   "use strict";
 
+  // ───── HTML → pdfmake inlines (gras, italique, souligné, couleurs)
+  function htmlDescToInlines(html) {
+    if (html == null) return "";
+    const s = String(html);
+    if (!/<[a-z][\s\S]*?>/i.test(s)) return s; // texte brut, pas de balises
+    const root = document.createElement("div");
+    root.innerHTML = s;
+    const out = [];
+    function pushNewlineIfNeeded(style) {
+      if (out.length === 0) return;
+      const prev = out[out.length - 1];
+      if (typeof prev === "object" && prev.text === "\n") return;
+      out.push({ text: "\n", ...(style || {}) });
+    }
+    function walk(node, style) {
+      if (node.nodeType === 3) {
+        const t = node.nodeValue;
+        if (t == null || t === "") return;
+        out.push({ text: t.replace(/ /g, " "), ...style });
+        return;
+      }
+      if (node.nodeType !== 1) return;
+      const tag = node.tagName.toLowerCase();
+      if (tag === "br") { out.push({ text: "\n", ...style }); return; }
+      const s2 = { ...style };
+      if (tag === "b" || tag === "strong") s2.bold = true;
+      if (tag === "i" || tag === "em") s2.italics = true;
+      if (tag === "u") s2.decoration = "underline";
+      const inlineColor = node.style && node.style.color;
+      if (inlineColor) {
+        const rgb = inlineColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (rgb) {
+          s2.color = "#" + [rgb[1], rgb[2], rgb[3]].map((x) => Number(x).toString(16).padStart(2, "0")).join("");
+        } else {
+          s2.color = inlineColor;
+        }
+      }
+      const attrColor = node.getAttribute && node.getAttribute("color");
+      if (attrColor) s2.color = attrColor;
+      const isBlock = (tag === "div" || tag === "p" || tag === "li");
+      if (isBlock) pushNewlineIfNeeded(style);
+      for (const c of node.childNodes) walk(c, s2);
+      if (isBlock) pushNewlineIfNeeded(style);
+    }
+    for (const c of root.childNodes) walk(c, {});
+    while (out.length && typeof out[0] === "object" && out[0].text === "\n") out.shift();
+    while (out.length && typeof out[out.length - 1] === "object" && out[out.length - 1].text === "\n") out.pop();
+    return out.length === 1 && typeof out[0] === "object" && !out[0].bold && !out[0].italics && !out[0].decoration && !out[0].color
+      ? out[0].text
+      : out;
+  }
+
   // ───── Logo Astorya — SVG inline, embarqué dans l'en-tête des PDFs.
   // Sphère 3D rouge + "astorya" italique + "solution globale informatique".
   const ASTORYA_LOGO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" font-family="Helvetica, Arial, sans-serif"><defs><radialGradient id="aSphere" cx="35%" cy="32%" r="68%"><stop offset="0%" stop-color="#f5d1d8"/><stop offset="22%" stop-color="#e8a5b2"/><stop offset="55%" stop-color="#c91c45"/><stop offset="100%" stop-color="#7a1126"/></radialGradient></defs><circle cx="165" cy="165" r="148" fill="url(#aSphere)"/><ellipse cx="120" cy="105" rx="55" ry="35" fill="#ffffff" opacity="0.45"/><text x="390" y="200" font-size="220" font-weight="500" font-style="italic" fill="#c91c45" letter-spacing="-4">astorya</text><text x="400" y="280" font-size="44" font-weight="700" fill="#252e44" letter-spacing="1">solution globale informatique</text></svg>';
@@ -132,8 +184,8 @@
       const numCell = { text: String(position), style: "tableCellMono", alignment: "center", bold: true };
       const desStack = [];
       desStack.push({ text: l.designation || "", style: "tableCell", bold: true });
-      if (l.description && String(l.description).trim()) {
-        desStack.push({ text: l.description, style: "tableCellSm", margin: [0, 2, 0, 0] });
+      if (l.description && String(l.description).replace(/<[^>]*>/g, "").trim()) {
+        desStack.push({ text: htmlDescToInlines(l.description), style: "tableCellSm", margin: [0, 2, 0, 0] });
       }
       // Si la colonne Article est masquée, on injecte la ref EN HEAD de la désignation.
       if (!hasAnyRef && l.ref && String(l.ref).trim() && String(l.ref).trim() !== "—") {

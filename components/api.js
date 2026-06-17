@@ -2485,17 +2485,18 @@
       if (!s) return tasks;
 
       // 1. Leasing (LOCAM, GRENKE, FRANFINANCE…)
-      //    Affiche TOUS les contrats actifs + tacite + termine (avec
-      //    date_fin renseignée), sans filtrage temporel. Le tri par
-      //    days_left croissant met naturellement les urgences en tête.
-      //    L'UI peut filtrer côté client via stats.urgent / horizon.
+      //    Requête simple : tous les contrats non supprimés, filtrage
+      //    côté client (statut + présence date_fin) pour éviter les
+      //    subtilités de syntaxe Postgrest sur les NULL.
       try {
         const { data: leases } = await s.from("leasing_contracts")
           .select("*").is("deleted_at", null)
-          .in("status", ["actif", "tacite", "termine"])
-          .not("date_fin", "is", null)
-          .order("date_fin");
+          .order("date_fin", { nullsFirst: false });
+        console.log("[intelTasks] leasing_contracts en BDD :", (leases || []).length);
         (leases || []).forEach((l) => {
+          if (!l.date_fin) return; // sécurité
+          const okStatus = !l.status || l.status === "actif" || l.status === "tacite" || l.status === "termine";
+          if (!okStatus) return;
           const daysLeft = Math.floor((new Date(l.date_fin) - Date.now()) / (24 * 3600 * 1000));
           const bailleur = l.bailleur || "Leasing";
           const statusBadge = l.status === "tacite" ? " · ⚠ tacite reconduction"
@@ -2515,7 +2516,7 @@
             raw: l,
           });
         });
-      } catch (e) {}
+      } catch (e) { console.warn("[intelTasks] leasing fetch:", e); }
 
       // 2. Warranties
       try {

@@ -1134,6 +1134,24 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                   </div>
                   <button onClick={() => removeLine(i)} title="Supprimer la ligne" style={{ width: 32, height: 32, background: "#fff", border: "1px solid #fecaca", color: "#dc2626", fontSize: 14, cursor: "pointer", borderRadius: 6, flexShrink: 0 }}>🗑</button>
                 </div>
+                {/* Description longue / champ libre (apparaît sous la désignation sur le PDF) */}
+                <div style={{ marginBottom: 10 }}>
+                  <label style={cdStyles.miniLbl}>
+                    📝 Description (champ libre)
+                    <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 500, color: "#94a3b8", fontStyle: "italic" }}>
+                      apparaîtra sous la désignation sur le PDF
+                    </span>
+                  </label>
+                  <textarea
+                    value={l.description || ""}
+                    onChange={(e) => updateLineField(i, "description", e.target.value)}
+                    placeholder="Ex. caractéristiques techniques, conditions, références produit…"
+                    rows={2}
+                    style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0",
+                             borderRadius: 6, fontSize: 12, fontFamily: "inherit", color: "#475569",
+                             resize: "vertical", boxSizing: "border-box", lineHeight: 1.5 }}
+                  />
+                </div>
                 {/* Ligne 2 : Qté · Unité · P.U. HT · Remise · TVA */}
                 <div style={{ display: "grid", gridTemplateColumns: "100px 110px 1fr 110px 110px", gap: 10 }}>
                   <div>

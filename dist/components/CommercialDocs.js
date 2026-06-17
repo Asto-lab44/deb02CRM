@@ -1929,6 +1929,37 @@ var CommercialDocEditor = ({
     }
   }, "\uD83D\uDDD1")), /*#__PURE__*/React.createElement("div", {
     style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.miniLbl
+  }, "\uD83D\uDCDD Description (champ libre)", /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 6,
+      fontSize: 9.5,
+      fontWeight: 500,
+      color: "#94a3b8",
+      fontStyle: "italic"
+    }
+  }, "appara\xEEtra sous la d\xE9signation sur le PDF")), /*#__PURE__*/React.createElement("textarea", {
+    value: l.description || "",
+    onChange: e => updateLineField(i, "description", e.target.value),
+    placeholder: "Ex. caract\xE9ristiques techniques, conditions, r\xE9f\xE9rences produit\u2026",
+    rows: 2,
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 6,
+      fontSize: 12,
+      fontFamily: "inherit",
+      color: "#475569",
+      resize: "vertical",
+      boxSizing: "border-box",
+      lineHeight: 1.5
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "grid",
       gridTemplateColumns: "100px 110px 1fr 110px 110px",
       gap: 10

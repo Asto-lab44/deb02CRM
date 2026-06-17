@@ -20,6 +20,7 @@
 var IntelligenceConcurrentielle = () => {
   var [tasks, setTasks] = React.useState([]);
   var locamFileRef = React.useRef(null);
+  var grenkeFileRef = React.useRef(null);
   var [loading, setLoading] = React.useState(true);
   var [filter, setFilter] = React.useState({
     source: "all",
@@ -271,7 +272,36 @@ var IntelligenceConcurrentielle = () => {
       background: "#2563eb"
     },
     title: "Importer le fichier CSV \xAB Export_Location_Folders \xBB export\xE9 depuis l'extranet LOCAM"
-  }, "\u21E3 Importer LOCAM (CSV)"), /*#__PURE__*/React.createElement("button", {
+  }, "\u21E3 Importer LOCAM (CSV)"), /*#__PURE__*/React.createElement("input", {
+    ref: grenkeFileRef,
+    type: "file",
+    accept: ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    style: {
+      display: "none"
+    },
+    onChange: async e => {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      e.target.value = "";
+      try {
+        if (window.HubToast) window.HubToast.info("Import GRENKE en cours…");
+        var res = await window.api.leasingContracts.importGrenkeXLSX(f);
+        var msg = "✓ GRENKE importé · " + res.imported + " nouveaux · " + res.updated + " mis à jour · " + res.skipped + " ignorés";
+        if (window.HubToast) window.HubToast.success(msg);
+        if (res.errors && res.errors.length) console.warn("[GRENKE import errors]", res.errors);
+        reload();
+      } catch (err) {
+        if (window.HubToast) window.HubToast.error("Import GRENKE : " + (err.message || err));
+      }
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => grenkeFileRef.current && grenkeFileRef.current.click(),
+    style: {
+      ...icStyles.primaryBtn,
+      background: "#0d9488"
+    },
+    title: "Importer le fichier XLSX \xAB MyContracts \xBB export\xE9 depuis l'extranet GRENKE"
+  }, "\u21E3 Importer GRENKE (XLSX)"), /*#__PURE__*/React.createElement("button", {
     onClick: reload,
     style: icStyles.primaryBtn
   }, "\u21BB Rafra\xEEchir"))), /*#__PURE__*/React.createElement("div", {

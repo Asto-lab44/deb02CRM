@@ -2484,23 +2484,30 @@
       const tasks = [];
       if (!s) return tasks;
 
-      // 1. Leasing
+      // 1. Leasing (LOCAM, GRENKE, FRANFINANCE…) — actif et tacite
+      //    On garde aussi les échéances < today récentes (relances post-échéance).
       try {
+        const todayMinus30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
         const { data: leases } = await s.from("leasing_contracts")
-          .select("*").is("deleted_at", null).eq("status", "actif")
-          .lte("date_fin", horizonDate).order("date_fin");
+          .select("*").is("deleted_at", null)
+          .in("status", ["actif", "tacite"])
+          .gte("date_fin", todayMinus30)
+          .lte("date_fin", horizonDate)
+          .order("date_fin");
         (leases || []).forEach((l) => {
           const daysLeft = Math.floor((new Date(l.date_fin) - Date.now()) / (24 * 3600 * 1000));
+          const bailleur = l.bailleur || "Leasing";
           tasks.push({
             id: "lease_" + l.id, source: "leasing",
-            title: l.designation || ("Leasing " + l.bailleur),
-            subtitle: l.bailleur + " · " + (l.ref_contrat || "—"),
+            title: l.designation || (bailleur + " · contrat " + (l.ref_contrat || "")),
+            subtitle: bailleur + " · " + (l.ref_contrat || "—") + (l.status === "tacite" ? " · ⚠ tacite reconduction" : ""),
             client_id: l.client_id, client_name: l.client_name,
             date_echeance: l.date_fin,
             days_left: daysLeft,
             amount: l.montant_ht,
             commercial: l.commercial,
             notes: l.notes,
+            bailleur,
             raw: l,
           });
         });
@@ -2599,6 +2606,137 @@
       const s = supa();
       if (!s) return;
       await s.from("leasing_contracts").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    },
+
+    /** Chargement lazy de SheetJS (xlsx) depuis CDN — utilisé pour l'import
+     *  GRENKE et tout autre format Excel. */
+    async _loadXLSX() {
+      if (window.XLSX) return window.XLSX;
+      if (!this._xlsxPromise) {
+        this._xlsxPromise = new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+          s.onload = () => resolve(window.XLSX);
+          s.onerror = () => reject(new Error("Échec chargement SheetJS"));
+          document.head.appendChild(s);
+        });
+      }
+      return this._xlsxPromise;
+    },
+
+    /** Import XLSX GRENKE "MyContracts" depuis le portail GRENKE.
+     *  Colonnes attendues : Contract No., Status, Lessee, Sublessee,
+     *  Term of lease, Amount, Leasing instalment, Start/End of primary period.
+     *  Dates en serial Excel (45352 = 2024-03-12).
+     *  Détecte les doublons par (bailleur=GRENKE, ref_contrat).
+     *  Retourne { imported, updated, skipped, errors }. */
+    async importGrenkeXLSX(file) {
+      const s = supa();
+      if (!s) throw new Error("Supabase non configuré.");
+      const XLSX = await this._loadXLSX();
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      // Première feuille (GRENKE n'en utilise qu'une)
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      // header:1 → renvoie un array of arrays, on lit les en-têtes manuellement
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false, dateNF: "yyyy-mm-dd" });
+      if (!rows || rows.length < 2) return { imported: 0, updated: 0, skipped: 0, errors: ["Fichier vide ou sans données"] };
+      const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
+      const idx = (name) => header.findIndex((h) => h === name.toLowerCase());
+      const COL = {
+        ref:      idx("Contract No."),
+        status:   idx("Status"),
+        lessee:   idx("Lessee"),
+        sublessee:idx("Sublessee"),
+        term:     idx("Term of lease"),
+        amount:   idx("Amount"),
+        instalment:idx("Leasing instalment"),
+        start:    idx("Start of primary period"),
+        end:      idx("End of primary period"),
+      };
+      if (COL.ref === -1) throw new Error("Colonne « Contract No. » introuvable — format inattendu.");
+      // Helpers
+      const toISODate = (v) => {
+        if (!v) return null;
+        if (v instanceof Date && !isNaN(v)) return v.toISOString().slice(0, 10);
+        const s = String(v).trim();
+        // Déjà ISO ?
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        // Format DD/MM/YYYY
+        const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (m) return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+        // Serial Excel
+        const n = Number(s);
+        if (isFinite(n) && n > 1000 && n < 100000) {
+          const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+          return d.toISOString().slice(0, 10);
+        }
+        return null;
+      };
+      const parseNum = (v) => {
+        if (v == null || v === "") return null;
+        const n = parseFloat(String(v).replace(/\s/g, "").replace(",", "."));
+        return isFinite(n) ? n : null;
+      };
+      const mapStatus = (st) => {
+        const s = String(st || "").toLowerCase();
+        if (s.indexOf("end") !== -1 || s.indexOf("termin") !== -1) return "termine";
+        if (s.indexOf("resili") !== -1 || s.indexOf("résili") !== -1) return "resilie";
+        if (s.indexOf("tacite") !== -1 || s.indexOf("renewed") !== -1) return "tacite";
+        if (s.indexOf("running") !== -1 || s.indexOf("actif") !== -1 || s.indexOf("active") !== -1) return "actif";
+        return "actif";
+      };
+      // Pré-charge les contrats GRENKE pour dédup
+      const { data: existing } = await s.from("leasing_contracts")
+        .select("id, ref_contrat").eq("bailleur", "GRENKE").is("deleted_at", null);
+      const byRef = new Map();
+      (existing || []).forEach((r) => { if (r.ref_contrat) byRef.set(String(r.ref_contrat), r); });
+      const result = { imported: 0, updated: 0, skipped: 0, errors: [] };
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i] || [];
+        const ref = String(r[COL.ref] || "").trim();
+        if (!ref) { result.skipped++; continue; }
+        const term = parseNum(r[COL.term]);
+        const amount = parseNum(r[COL.amount]);
+        const instalment = parseNum(r[COL.instalment]);
+        // GRENKE : term = nombre de mois → 63 mois = mensuel, périodicité standard
+        const periodicite = term ? (term <= 12 ? "annuelle" : "mensuelle") : null;
+        const payload = {
+          bailleur: "GRENKE",
+          ref_contrat: ref,
+          client_name: String(r[COL.lessee] || "").trim() || null,
+          designation: r[COL.sublessee] ? ("Sous-locataire : " + String(r[COL.sublessee]).trim()) : null,
+          montant_ht: amount,
+          montant_loyer_ttc: instalment,
+          periodicite,
+          nb_loyers: term,
+          date_debut: toISODate(r[COL.start]),
+          date_fin: toISODate(r[COL.end]),
+          status: mapStatus(r[COL.status]),
+          data: {
+            status_brut: String(r[COL.status] || "").trim(),
+            sublessee: String(r[COL.sublessee] || "").trim(),
+            term_months: term,
+            instalment_raw: instalment,
+            amount_raw: amount,
+            source: "GRENKE_MyContracts_XLSX",
+          },
+        };
+        try {
+          const exists = byRef.get(ref);
+          if (exists) {
+            await this.update(exists.id, payload);
+            result.updated++;
+          } else {
+            await this.create(payload);
+            result.imported++;
+          }
+        } catch (e) {
+          result.errors.push(ref + " : " + (e.message || e));
+          result.skipped++;
+        }
+      }
+      return result;
     },
 
     /** Import CSV LOCAM "Export_Location_Folders".

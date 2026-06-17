@@ -20,6 +20,7 @@
 const IntelligenceConcurrentielle = () => {
   const [tasks, setTasks] = React.useState([]);
   const locamFileRef = React.useRef(null);
+  const grenkeFileRef = React.useRef(null);
   const [loading, setLoading] = React.useState(true);
   const [filter, setFilter] = React.useState({ source: "all", urgency: "all" });
   const [editing, setEditing] = React.useState(null); // {type: 'leasing'|'warranty', data: {...}}
@@ -142,6 +143,28 @@ const IntelligenceConcurrentielle = () => {
                     style={{ ...icStyles.primaryBtn, background: "#2563eb" }}
                     title="Importer le fichier CSV « Export_Location_Folders » exporté depuis l'extranet LOCAM">
               ⇣ Importer LOCAM (CSV)
+            </button>
+            <input ref={grenkeFileRef} type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                   style={{ display: "none" }}
+                   onChange={async (e) => {
+                     const f = e.target.files && e.target.files[0];
+                     if (!f) return;
+                     e.target.value = "";
+                     try {
+                       if (window.HubToast) window.HubToast.info("Import GRENKE en cours…");
+                       const res = await window.api.leasingContracts.importGrenkeXLSX(f);
+                       const msg = "✓ GRENKE importé · " + res.imported + " nouveaux · " + res.updated + " mis à jour · " + res.skipped + " ignorés";
+                       if (window.HubToast) window.HubToast.success(msg);
+                       if (res.errors && res.errors.length) console.warn("[GRENKE import errors]", res.errors);
+                       reload();
+                     } catch (err) {
+                       if (window.HubToast) window.HubToast.error("Import GRENKE : " + (err.message || err));
+                     }
+                   }} />
+            <button onClick={() => grenkeFileRef.current && grenkeFileRef.current.click()}
+                    style={{ ...icStyles.primaryBtn, background: "#0d9488" }}
+                    title="Importer le fichier XLSX « MyContracts » exporté depuis l'extranet GRENKE">
+              ⇣ Importer GRENKE (XLSX)
             </button>
             <button onClick={reload} style={icStyles.primaryBtn}>↻ Rafraîchir</button>
           </div>

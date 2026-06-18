@@ -3306,5 +3306,113 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix };
+  // ───────────────────────────────────────────────────────────────────
+  // §6.80 ASSETS — Stock interne (instances physiques de matériel)
+  // ───────────────────────────────────────────────────────────────────
+  const assets = {
+    async list({ status = null, article_id = null, client_id = null, q = null, limit = 500 } = {}) {
+      const s = supa();
+      if (s) {
+        let req = s.from("assets").select("*").eq("active", true);
+        if (status)     req = req.eq("status", status);
+        if (article_id) req = req.eq("article_id", article_id);
+        if (client_id)  req = req.eq("client_id", client_id);
+        if (q) {
+          const term = "%" + q + "%";
+          req = req.or("serial_number.ilike." + term + ",article_label.ilike." + term + ",article_ref.ilike." + term + ",client_name.ilike." + term + ",location.ilike." + term);
+        }
+        const { data, error } = await req.order("received_at", { ascending: false }).limit(limit);
+        if (error) { console.warn("[assets.list]", error.message); }
+        else return data || [];
+      }
+      let arr = lsGet("assets");
+      arr = arr.filter((a) => a.active !== false);
+      if (status)     arr = arr.filter((a) => a.status === status);
+      if (article_id) arr = arr.filter((a) => a.article_id === article_id);
+      if (client_id)  arr = arr.filter((a) => a.client_id === client_id);
+      if (q) {
+        const t = String(q).toLowerCase();
+        arr = arr.filter((a) => [a.serial_number, a.article_label, a.article_ref, a.client_name, a.location].some((v) => String(v || "").toLowerCase().includes(t)));
+      }
+      return arr.slice(0, limit);
+    },
+
+    async counters() {
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("v_article_counters").select("*");
+        if (!error) return data || [];
+        console.warn("[assets.counters] vue indisponible, fallback agrégation locale", error.message);
+        const { data: rows } = await s.from("assets").select("article_id,status").eq("active", true);
+        const out = {};
+        (rows || []).forEach((r) => {
+          const k = r.article_id || "";
+          if (!out[k]) out[k] = { article_id: k, in_stock: 0, reserved: 0, sold: 0, in_sav: 0, broken: 0 };
+          if (r.status === "disponible") out[k].in_stock++;
+          else if (r.status === "reserve") out[k].reserved++;
+          else if (r.status === "affecte" || r.status === "vendu") out[k].sold++;
+          else if (r.status === "sav") out[k].in_sav++;
+          else if (r.status === "hs") out[k].broken++;
+        });
+        return Object.values(out);
+      }
+      return [];
+    },
+
+    async create(payload) {
+      const id = payload.id || genId("ASSET");
+      const row = {
+        id,
+        active: true,
+        status: payload.status || "disponible",
+        created_at: new Date().toISOString(),
+        ...payload,
+      };
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("assets").insert(row).select().maybeSingle();
+        if (error) { console.warn("[assets.create]", error.message); throw new Error(error.message); }
+        return data;
+      }
+      const arr = lsGet("assets"); arr.unshift(row); lsSet("assets", arr);
+      return row;
+    },
+
+    async update(id, patch) {
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("assets").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+        if (error) { console.warn("[assets.update]", error.message); throw new Error(error.message); }
+        return data;
+      }
+      const arr = lsGet("assets");
+      const idx = arr.findIndex((a) => a.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], ...patch, updated_at: new Date().toISOString() }; lsSet("assets", arr); return arr[idx]; }
+      return null;
+    },
+
+    /** Soft-delete : passe active=false + deleted_at */
+    async remove(id) {
+      const s = supa();
+      if (s) {
+        const { error } = await s.from("assets").update({ active: false, deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) { console.warn("[assets.remove]", error.message); throw new Error(error.message); }
+        return;
+      }
+      const arr = lsGet("assets");
+      const idx = arr.findIndex((a) => a.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], active: false, deleted_at: new Date().toISOString() }; lsSet("assets", arr); }
+    },
+
+    /** Affecte un asset à un client (et optionnellement projet). */
+    async affectToClient(id, { client_id, client_name, project_id = null }) {
+      return assets.update(id, {
+        status: "affecte",
+        client_id, client_name, project_id,
+        affected_at: new Date().toISOString(),
+      });
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets };
 })();

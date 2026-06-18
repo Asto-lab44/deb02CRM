@@ -14,6 +14,18 @@
 // ════════════════════════════════════════════════════════════════════
 
 var StockCatalogue = () => {
+  var [topTab, setTopTab] = React.useState(() => {
+    try {
+      return localStorage.getItem("hubAstorya.stock.topTab") || "achats";
+    } catch (e) {
+      return "achats";
+    }
+  });
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("hubAstorya.stock.topTab", topTab);
+    } catch (e) {}
+  }, [topTab]);
   var [view, setView] = React.useState("list"); // "matrix" | "list" | "archive"
   var [rows, setRows] = React.useState([]);
   var [suppliers, setSuppliers] = React.useState([]);
@@ -166,7 +178,32 @@ var StockCatalogue = () => {
     }
   }, "Stock & Catalogue"))), /*#__PURE__*/React.createElement("div", {
     style: scStyles.navLabel
-  }, "Vue"), [{
+  }, "Module"), [{
+    k: "achats",
+    label: "🛒 Achats",
+    color: "#0891b2"
+  }, {
+    k: "stock",
+    label: "📦 Stock interne",
+    color: "#10b981"
+  }, {
+    k: "catalogue",
+    label: "📚 Catalogue produits",
+    color: "#a855f7"
+  }].map(v => /*#__PURE__*/React.createElement("div", {
+    key: v.k,
+    onClick: () => setTopTab(v.k),
+    style: {
+      ...scStyles.navItem,
+      ...(topTab === v.k ? {
+        background: v.color + "18",
+        color: v.color,
+        fontWeight: 700
+      } : {})
+    }
+  }, /*#__PURE__*/React.createElement("span", null, v.label))), topTab === "achats" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: scStyles.navLabel
+  }, "Vue achats"), [{
     k: "matrix",
     label: "📊 Matrice fournisseurs"
   }, {
@@ -227,7 +264,7 @@ var StockCatalogue = () => {
     }, s.label), /*#__PURE__*/React.createElement("span", {
       style: scStyles.navCount
     }, count));
-  })), /*#__PURE__*/React.createElement("main", {
+  }))), /*#__PURE__*/React.createElement("main", {
     style: scStyles.main
   }, /*#__PURE__*/React.createElement("header", {
     style: scStyles.topbar
@@ -235,7 +272,7 @@ var StockCatalogue = () => {
     style: scStyles.h1
   }, "Stock & Catalogue"), /*#__PURE__*/React.createElement("p", {
     style: scStyles.sub
-  }, "Achats hebdomadaires \u2014 lignes des devis accept\xE9s / commandes en cours")), /*#__PURE__*/React.createElement("div", {
+  }, topTab === "achats" && "Achats hebdomadaires — lignes des devis acceptés / commandes en cours", topTab === "stock" && "Parc matériel interne — instances physiques suivies du fournisseur au client", topTab === "catalogue" && "Référentiel produits — articles disponibles à la vente avec compteurs de stock")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8
@@ -255,7 +292,7 @@ var StockCatalogue = () => {
       borderColor: "#fecaca"
     },
     title: "Purge le cache localStorage du navigateur (ne touche pas la BDD)"
-  }, "\uD83D\uDDD1 Purger cache local"), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDDD1 Purger cache local"), topTab === "achats" && /*#__PURE__*/React.createElement("button", {
     onClick: importMondaySuppliers,
     style: {
       ...scStyles.ghostBtn,
@@ -278,6 +315,48 @@ var StockCatalogue = () => {
     onClick: reload,
     style: scStyles.primaryBtn
   }, "\u21BB Rafra\xEEchir"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      padding: 4,
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 10,
+      marginBottom: 14,
+      width: "fit-content"
+    }
+  }, [{
+    k: "achats",
+    label: "🛒 Achats",
+    color: "#0891b2",
+    desc: "Ce qu'il faut acheter cette semaine"
+  }, {
+    k: "stock",
+    label: "📦 Stock interne",
+    color: "#10b981",
+    desc: "Matériel reçu non encore affecté"
+  }, {
+    k: "catalogue",
+    label: "📚 Catalogue produits",
+    color: "#a855f7",
+    desc: "Référentiel articles + compteurs"
+  }].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.k,
+    onClick: () => setTopTab(t.k),
+    title: t.desc,
+    style: {
+      padding: "8px 16px",
+      border: 0,
+      borderRadius: 7,
+      background: topTab === t.k ? t.color : "transparent",
+      color: topTab === t.k ? "#fff" : "#475569",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer",
+      boxShadow: topTab === t.k ? "0 2px 6px " + t.color + "55" : "none",
+      transition: "all 150ms"
+    }
+  }, t.label))), topTab === "achats" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: scStyles.kpiRow
   }, /*#__PURE__*/React.createElement(KPI, {
     label: "\uD83D\uDED2 Articles \xE0 acheter",
@@ -340,6 +419,15 @@ var StockCatalogue = () => {
     onReload: reload,
     onSuppliersChanged: reload,
     isArchive: view === "archive"
+  })), topTab === "stock" && /*#__PURE__*/React.createElement(StockInternView, {
+    fmtEUR: fmtEUR,
+    fmtEURP: fmtEURP
+  }), topTab === "catalogue" && /*#__PURE__*/React.createElement(CatalogueProduitsView, {
+    fmtEUR: fmtEUR,
+    onSwitchToStock: articleId => {
+      setTopTab("stock");
+      window.__stockFilterArticle = articleId;
+    }
   })), editing && editing.type === "line" && /*#__PURE__*/React.createElement(EditLineModal, {
     row: editing.row,
     suppliers: suppliers,
@@ -2055,6 +2143,922 @@ var CellDetailModal = ({
     fontFamily: "'JetBrains Mono', monospace"
   }
 }, "vente ", fmtEUR(r.total_sell_ht))))))));
+
+// ════════════════════════════════════════════════════════════════════
+// STOCK INTERNE — Liste des assets (instances physiques)
+// ════════════════════════════════════════════════════════════════════
+var ASSET_STATUS = [{
+  k: "disponible",
+  label: "Disponible",
+  bg: "#dcfce7",
+  color: "#065f46",
+  dot: "#16a34a"
+}, {
+  k: "reserve",
+  label: "Réservé",
+  bg: "#fef3c7",
+  color: "#92400e",
+  dot: "#f59e0b"
+}, {
+  k: "affecte",
+  label: "Affecté client",
+  bg: "#dbeafe",
+  color: "#1e40af",
+  dot: "#3b82f6"
+}, {
+  k: "sav",
+  label: "SAV",
+  bg: "#fee2e2",
+  color: "#991b1b",
+  dot: "#dc2626"
+}, {
+  k: "hs",
+  label: "HS",
+  bg: "#f1f5f9",
+  color: "#475569",
+  dot: "#64748b"
+}, {
+  k: "vendu",
+  label: "Vendu",
+  bg: "#ede9fe",
+  color: "#5b21b6",
+  dot: "#a855f7"
+}];
+var StockInternView = ({
+  fmtEUR,
+  fmtEURP
+}) => {
+  var [items, setItems] = React.useState([]);
+  var [loading, setLoading] = React.useState(true);
+  var [statusFilter, setStatusFilter] = React.useState("all");
+  var [search, setSearch] = React.useState("");
+  var [editing, setEditing] = React.useState(null);
+  var [creatingOpen, setCreatingOpen] = React.useState(false);
+  var reload = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      var list = await window.api.assets.list({});
+      setItems(list || []);
+    } catch (e) {
+      setItems([]);
+    }
+    setLoading(false);
+  }, []);
+  React.useEffect(() => {
+    reload();
+    if (window.__stockFilterArticle) {
+      var id = window.__stockFilterArticle;
+      window.__stockFilterArticle = null;
+      setSearch(id);
+    }
+  }, [reload]);
+  var filtered = React.useMemo(() => {
+    var arr = items;
+    if (statusFilter !== "all") arr = arr.filter(a => a.status === statusFilter);
+    var q = search.trim().toLowerCase();
+    if (q) arr = arr.filter(a => [a.serial_number, a.article_label, a.article_ref, a.client_name, a.location, a.supplier, a.article_id].some(v => String(v || "").toLowerCase().includes(q)));
+    return arr;
+  }, [items, statusFilter, search]);
+  var counts = React.useMemo(() => {
+    var c = {
+      all: items.length
+    };
+    ASSET_STATUS.forEach(s => {
+      c[s.k] = items.filter(a => a.status === s.k).length;
+    });
+    return c;
+  }, [items]);
+  var updateStatus = async (id, status) => {
+    try {
+      await window.api.assets.update(id, {
+        status
+      });
+      reload();
+      if (window.HubToast) window.HubToast.success("✓ Statut mis à jour");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + (e.message || e));
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      padding: 4,
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setStatusFilter("all"),
+    style: pillBtn(statusFilter === "all", "#475569")
+  }, "Tous ", /*#__PURE__*/React.createElement("span", {
+    style: pillCount
+  }, counts.all)), ASSET_STATUS.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.k,
+    onClick: () => setStatusFilter(s.k),
+    style: pillBtn(statusFilter === s.k, s.color, s.bg)
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      background: s.dot,
+      marginRight: 5
+    }
+  }), s.label, " ", /*#__PURE__*/React.createElement("span", {
+    style: pillCount
+  }, counts[s.k] || 0)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      flex: 1,
+      minWidth: 240
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8"
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Rechercher n\xB0 s\xE9rie, article, client, emplacement\u2026",
+    style: {
+      width: "100%",
+      padding: "8px 12px 8px 32px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 13,
+      outline: "none",
+      background: "#fff",
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCreatingOpen(true),
+    style: {
+      padding: "8px 14px",
+      background: "#10b981",
+      color: "#fff",
+      border: 0,
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "+ Entr\xE9e stock")), /*#__PURE__*/React.createElement("div", {
+    style: scStyles.kpiRow
+  }, /*#__PURE__*/React.createElement(KPI, {
+    label: "\uD83D\uDCE6 En stock disponible",
+    value: counts.disponible || 0,
+    color: "#10b981"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "\uD83D\uDD12 R\xE9serv\xE9s",
+    value: counts.reserve || 0,
+    color: "#f59e0b"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "\u2713 Affect\xE9s clients",
+    value: counts.affecte || 0,
+    color: "#3b82f6"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "\uD83D\uDEE0 SAV en cours",
+    value: counts.sav || 0,
+    color: "#dc2626"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "\u274C HS / sortis",
+    value: (counts.hs || 0) + (counts.vendu || 0),
+    color: "#64748b"
+  })), loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 60,
+      textAlign: "center",
+      color: "#94a3b8"
+    }
+  }, "Chargement du parc\u2026") : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: scStyles.empty
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, "Aucun mat\xE9riel en stock"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 6,
+      lineHeight: 1.5
+    }
+  }, "Une fois un BL fournisseur re\xE7u dans l'onglet ", /*#__PURE__*/React.createElement("strong", null, "Achats"), ", ajoute ici une entr\xE9e stock pour chaque num\xE9ro de s\xE9rie.", /*#__PURE__*/React.createElement("br", null), "Tu pourras ensuite le r\xE9server, l'affecter \xE0 un client, ou le passer en SAV.")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+      gap: 12
+    }
+  }, filtered.map(a => {
+    var sm = ASSET_STATUS.find(s => s.k === a.status) || ASSET_STATUS[0];
+    return /*#__PURE__*/React.createElement("div", {
+      key: a.id,
+      onClick: () => setEditing(a),
+      style: {
+        background: "#fff",
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        padding: 14,
+        cursor: "pointer",
+        borderLeft: "4px solid " + sm.dot,
+        transition: "border-color 120ms"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, a.article_label || "—"), a.article_ref && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        fontFamily: "'JetBrains Mono', monospace",
+        marginTop: 2
+      }
+    }, a.article_ref)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: sm.bg,
+        color: sm.color,
+        fontWeight: 700,
+        whiteSpace: "nowrap"
+      }
+    }, sm.label)), a.serial_number && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#475569",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "SN :"), " ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'JetBrains Mono', monospace",
+        color: "#0f172a",
+        fontWeight: 600
+      }
+    }, a.serial_number)), a.location && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginBottom: 4
+      }
+    }, "\uD83D\uDCCD ", a.location), a.supplier && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginBottom: 4
+      }
+    }, "\uD83C\uDFED ", a.supplier), a.client_name && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#1e40af",
+        fontWeight: 600,
+        marginTop: 6,
+        paddingTop: 6,
+        borderTop: "1px solid #f1f5f9"
+      }
+    }, "\u2192 ", a.client_name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4,
+        marginTop: 8,
+        flexWrap: "wrap"
+      },
+      onClick: e => e.stopPropagation()
+    }, ASSET_STATUS.filter(s => s.k !== a.status).slice(0, 3).map(s => /*#__PURE__*/React.createElement("button", {
+      key: s.k,
+      onClick: () => updateStatus(a.id, s.k),
+      style: {
+        padding: "3px 8px",
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        color: s.color,
+        borderRadius: 6,
+        fontSize: 10.5,
+        fontWeight: 600,
+        cursor: "pointer"
+      },
+      title: "Passer en " + s.label
+    }, "\u2192 ", s.label))));
+  })), (editing || creatingOpen) && /*#__PURE__*/React.createElement(AssetEditModal, {
+    asset: editing,
+    onClose: () => {
+      setEditing(null);
+      setCreatingOpen(false);
+    },
+    onSaved: () => {
+      setEditing(null);
+      setCreatingOpen(false);
+      reload();
+    }
+  }));
+};
+var pillBtn = (active, color, bg) => ({
+  padding: "5px 10px",
+  border: 0,
+  borderRadius: 6,
+  fontSize: 11.5,
+  fontWeight: 600,
+  cursor: "pointer",
+  background: active ? bg || color + "20" : "transparent",
+  color: active ? color : "#64748b",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4
+});
+var pillCount = {
+  fontSize: 10,
+  padding: "0px 6px",
+  background: "rgba(15,23,42,0.08)",
+  borderRadius: 999,
+  fontWeight: 700,
+  marginLeft: 3
+};
+
+// ─── Modale de création/édition d'un asset ───
+var AssetEditModal = ({
+  asset,
+  onClose,
+  onSaved
+}) => {
+  var isNew = !asset;
+  var [form, setForm] = React.useState(asset || {
+    status: "disponible",
+    received_at: new Date().toISOString().slice(0, 10)
+  });
+  var [articles, setArticles] = React.useState([]);
+  var [saving, setSaving] = React.useState(false);
+  React.useEffect(() => {
+    if (window.api && window.api.commercialArticles) {
+      window.api.commercialArticles.list({
+        active: true
+      }).then(setArticles).catch(() => {});
+    }
+    var onKey = e => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  var set = (k, v) => setForm(f => ({
+    ...f,
+    [k]: v
+  }));
+  var onPickArticle = id => {
+    var a = articles.find(x => x.id === id);
+    setForm(f => ({
+      ...f,
+      article_id: id,
+      article_ref: a ? a.ref : f.article_ref,
+      article_label: a ? a.designation : f.article_label
+    }));
+  };
+  var submit = async () => {
+    setSaving(true);
+    try {
+      if (isNew) await window.api.assets.create(form);else await window.api.assets.update(asset.id, form);
+      if (window.HubToast) window.HubToast.success(isNew ? "✓ Entrée stock créée" : "✓ Asset mis à jour");
+      onSaved();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
+  };
+  var remove = async () => {
+    if (!confirm("Retirer cet asset du parc ? (soft-delete, peut être restauré)")) return;
+    try {
+      await window.api.assets.remove(asset.id);
+      if (window.HubToast) window.HubToast.success("✓ Asset retiré");
+      onSaved();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + (e.message || e));
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: scStyles.modalOverlay
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: scStyles.modalCard
+  }, /*#__PURE__*/React.createElement("div", {
+    style: scStyles.modalHead
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      fontWeight: 700
+    }
+  }, "Stock interne"), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: "2px 0 0",
+      fontSize: 15,
+      fontWeight: 700
+    }
+  }, isNew ? "Nouvelle entrée stock" : "Asset " + asset.id)), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: scStyles.closeBtn
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Article catalogue"), /*#__PURE__*/React.createElement("select", {
+    value: form.article_id || "",
+    onChange: e => onPickArticle(e.target.value),
+    style: scStyles.input
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Hors catalogue \u2014"), articles.map(a => /*#__PURE__*/React.createElement("option", {
+    key: a.id,
+    value: a.id
+  }, a.ref ? a.ref + " · " : "", a.designation)))), !form.article_id && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "R\xE9f article (libre)"), /*#__PURE__*/React.createElement("input", {
+    value: form.article_ref || "",
+    onChange: e => set("article_ref", e.target.value),
+    style: scStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "D\xE9signation"), /*#__PURE__*/React.createElement("input", {
+    value: form.article_label || "",
+    onChange: e => set("article_label", e.target.value),
+    style: scStyles.input
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "N\xB0 s\xE9rie / IMEI"), /*#__PURE__*/React.createElement("input", {
+    value: form.serial_number || "",
+    onChange: e => set("serial_number", e.target.value),
+    style: {
+      ...scStyles.input,
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Lot / palette"), /*#__PURE__*/React.createElement("input", {
+    value: form.lot || "",
+    onChange: e => set("lot", e.target.value),
+    style: scStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Fournisseur"), /*#__PURE__*/React.createElement("input", {
+    value: form.supplier || "",
+    onChange: e => set("supplier", e.target.value),
+    style: scStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Prix d'achat HT"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: form.purchase_price_ht || "",
+    onChange: e => set("purchase_price_ht", e.target.value ? Number(e.target.value) : null),
+    style: scStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Re\xE7u le"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: (form.received_at || "").slice(0, 10),
+    onChange: e => set("received_at", e.target.value || null),
+    style: scStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Emplacement"), /*#__PURE__*/React.createElement("input", {
+    value: form.location || "",
+    onChange: e => set("location", e.target.value),
+    placeholder: "\xC9tag\xE8re A3, Salle stock\u2026",
+    style: scStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Statut"), /*#__PURE__*/React.createElement("select", {
+    value: form.status || "disponible",
+    onChange: e => set("status", e.target.value),
+    style: scStyles.input
+  }, ASSET_STATUS.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s.k,
+    value: s.k
+  }, s.label)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Fin de garantie"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: (form.warranty_end || "").slice(0, 10),
+    onChange: e => set("warranty_end", e.target.value || null),
+    style: scStyles.input
+  })), (form.status === "affecte" || form.status === "reserve") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Client"), /*#__PURE__*/React.createElement("input", {
+    value: form.client_name || "",
+    onChange: e => set("client_name", e.target.value),
+    placeholder: "Raison sociale",
+    style: scStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: scStyles.lbl
+  }, "Notes"), /*#__PURE__*/React.createElement("textarea", {
+    value: form.notes || "",
+    onChange: e => set("notes", e.target.value),
+    rows: 2,
+    style: {
+      ...scStyles.input,
+      resize: "vertical"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 22px",
+      borderTop: "1px solid #eef1f5",
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", null, !isNew && /*#__PURE__*/React.createElement("button", {
+    onClick: remove,
+    style: {
+      ...scStyles.ghostBtn,
+      color: "#dc2626",
+      borderColor: "#fecaca"
+    }
+  }, "Retirer du parc")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: scStyles.ghostBtn
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: submit,
+    disabled: saving,
+    style: {
+      ...scStyles.primaryBtn,
+      background: "#10b981",
+      opacity: saving ? 0.6 : 1
+    }
+  }, saving ? "Enregistrement…" : isNew ? "Créer" : "Enregistrer")))));
+};
+
+// ════════════════════════════════════════════════════════════════════
+// CATALOGUE PRODUITS — Référentiel articles + compteurs live
+// ════════════════════════════════════════════════════════════════════
+var CatalogueProduitsView = ({
+  fmtEUR,
+  onSwitchToStock
+}) => {
+  var [articles, setArticles] = React.useState([]);
+  var [counters, setCounters] = React.useState({});
+  var [loading, setLoading] = React.useState(true);
+  var [search, setSearch] = React.useState("");
+  var [category, setCategory] = React.useState("all");
+  var reload = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      var [arts, cnts] = await Promise.all([window.api.commercialArticles.list({
+        active: true
+      }), window.api.assets.counters()]);
+      setArticles(arts || []);
+      var map = {};
+      (cnts || []).forEach(c => {
+        map[c.article_id] = c;
+      });
+      setCounters(map);
+    } catch (e) {
+      setArticles([]);
+      setCounters({});
+    }
+    setLoading(false);
+  }, []);
+  React.useEffect(() => {
+    reload();
+  }, [reload]);
+  var categories = React.useMemo(() => {
+    var set = new Set();
+    articles.forEach(a => {
+      if (a.category) set.add(a.category);
+    });
+    return ["all", ...Array.from(set).sort()];
+  }, [articles]);
+  var filtered = React.useMemo(() => {
+    var arr = articles;
+    if (category !== "all") arr = arr.filter(a => a.category === category);
+    var q = search.trim().toLowerCase();
+    if (q) arr = arr.filter(a => [a.ref, a.designation, a.category, a.supplier].some(v => String(v || "").toLowerCase().includes(q)));
+    return arr;
+  }, [articles, category, search]);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      padding: 4,
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      flexWrap: "wrap"
+    }
+  }, categories.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c,
+    onClick: () => setCategory(c),
+    style: pillBtn(category === c, "#a855f7", "#ede9fe")
+  }, c === "all" ? "Toutes catégories" : c))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      flex: 1,
+      minWidth: 240
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8"
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Rechercher ref, d\xE9signation, cat\xE9gorie\u2026",
+    style: {
+      width: "100%",
+      padding: "8px 12px 8px 32px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 13,
+      outline: "none",
+      background: "#fff",
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      window.location.href = "/stock-article-nouveau";
+    },
+    style: {
+      padding: "8px 14px",
+      background: "#a855f7",
+      color: "#fff",
+      border: 0,
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "+ Nouvel article")), loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 60,
+      textAlign: "center",
+      color: "#94a3b8"
+    }
+  }, "Chargement du catalogue\u2026") : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: scStyles.empty
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, "Aucun article au catalogue"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 6
+    }
+  }, "Cr\xE9e un premier article via le bouton \xAB + Nouvel article \xBB.")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+      gap: 12
+    }
+  }, filtered.map(a => {
+    var c = counters[a.id] || {};
+    var inStock = Number(c.in_stock || 0);
+    var reserved = Number(c.reserved || 0);
+    var sold = Number(c.sold || 0);
+    var sav = Number(c.in_sav || 0);
+    return /*#__PURE__*/React.createElement("div", {
+      key: a.id,
+      style: {
+        background: "#fff",
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        padding: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, a.designation || "—"), a.ref && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        fontFamily: "'JetBrains Mono', monospace",
+        marginTop: 2
+      }
+    }, a.ref)), a.category && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: "#ede9fe",
+        color: "#5b21b6",
+        fontWeight: 700,
+        whiteSpace: "nowrap"
+      }
+    }, a.category)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 6,
+        fontSize: 11
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#f0fdf4",
+        border: "1px solid #bbf7d0",
+        borderRadius: 6,
+        padding: "6px 8px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#065f46",
+        fontWeight: 700,
+        fontSize: 16,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, inStock), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#16a34a",
+        fontSize: 10,
+        fontWeight: 600
+      }
+    }, "en stock")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#fffbeb",
+        border: "1px solid #fde68a",
+        borderRadius: 6,
+        padding: "6px 8px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#92400e",
+        fontWeight: 700,
+        fontSize: 16,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, reserved), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#f59e0b",
+        fontSize: 10,
+        fontWeight: 600
+      }
+    }, "r\xE9serv\xE9s")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#eff6ff",
+        border: "1px solid #bfdbfe",
+        borderRadius: 6,
+        padding: "6px 8px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#1e40af",
+        fontWeight: 700,
+        fontSize: 16,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, sold), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#3b82f6",
+        fontSize: 10,
+        fontWeight: 600
+      }
+    }, "affect\xE9s")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#fef2f2",
+        border: "1px solid #fecaca",
+        borderRadius: 6,
+        padding: "6px 8px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#991b1b",
+        fontWeight: 700,
+        fontSize: 16,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, sav), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#dc2626",
+        fontSize: 10,
+        fontWeight: 600
+      }
+    }, "en SAV"))), a.unit_price_ht != null && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        display: "flex",
+        justifyContent: "space-between",
+        borderTop: "1px solid #f1f5f9",
+        paddingTop: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Tarif HT"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#0f172a",
+        fontWeight: 700,
+        fontFamily: "'JetBrains Mono', monospace"
+      }
+    }, fmtEUR(a.unit_price_ht))), /*#__PURE__*/React.createElement("button", {
+      onClick: () => onSwitchToStock && onSwitchToStock(a.id),
+      style: {
+        padding: "6px 10px",
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        color: "#475569",
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 600,
+        cursor: "pointer"
+      }
+    }, "Voir les instances en stock \u2192"));
+  })));
+};
 var scStyles = {
   frame: {
     display: "flex",

@@ -14,6 +14,12 @@
 // ════════════════════════════════════════════════════════════════════
 
 const StockCatalogue = () => {
+  const [topTab, setTopTab] = React.useState(() => {
+    try { return localStorage.getItem("hubAstorya.stock.topTab") || "achats"; }
+    catch (e) { return "achats"; }
+  });
+  React.useEffect(() => { try { localStorage.setItem("hubAstorya.stock.topTab", topTab); } catch (e) {} }, [topTab]);
+
   const [view, setView] = React.useState("list");   // "matrix" | "list" | "archive"
   const [rows, setRows] = React.useState([]);
   const [suppliers, setSuppliers] = React.useState([]);
@@ -135,7 +141,23 @@ const StockCatalogue = () => {
           </div>
         </a>
 
-        <div style={scStyles.navLabel}>Vue</div>
+        <div style={scStyles.navLabel}>Module</div>
+        {[
+          { k: "achats",    label: "🛒 Achats",            color: "#0891b2" },
+          { k: "stock",     label: "📦 Stock interne",     color: "#10b981" },
+          { k: "catalogue", label: "📚 Catalogue produits", color: "#a855f7" },
+        ].map((v) => (
+          <div key={v.k} onClick={() => setTopTab(v.k)}
+               style={{
+                 ...scStyles.navItem,
+                 ...(topTab === v.k ? { background: v.color + "18", color: v.color, fontWeight: 700 } : {}),
+               }}>
+            <span>{v.label}</span>
+          </div>
+        ))}
+
+        {topTab === "achats" && (<>
+        <div style={scStyles.navLabel}>Vue achats</div>
         {[
           { k: "matrix",  label: "📊 Matrice fournisseurs" },
           { k: "list",    label: "📋 Liste détaillée" },
@@ -167,13 +189,18 @@ const StockCatalogue = () => {
             </div>
           );
         })}
+        </>)}
       </aside>
 
       <main style={scStyles.main}>
         <header style={scStyles.topbar}>
           <div>
             <h1 style={scStyles.h1}>Stock & Catalogue</h1>
-            <p style={scStyles.sub}>Achats hebdomadaires — lignes des devis acceptés / commandes en cours</p>
+            <p style={scStyles.sub}>
+              {topTab === "achats"    && "Achats hebdomadaires — lignes des devis acceptés / commandes en cours"}
+              {topTab === "stock"     && "Parc matériel interne — instances physiques suivies du fournisseur au client"}
+              {topTab === "catalogue" && "Référentiel produits — articles disponibles à la vente avec compteurs de stock"}
+            </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button
@@ -188,11 +215,13 @@ const StockCatalogue = () => {
               style={{ ...scStyles.ghostBtn, color: "#dc2626", borderColor: "#fecaca" }}
               title="Purge le cache localStorage du navigateur (ne touche pas la BDD)"
             >🗑 Purger cache local</button>
-            <button onClick={importMondaySuppliers}
-                    style={{ ...scStyles.ghostBtn, color: "#7e22ce", borderColor: "#e9d5ff" }}
-                    title="Importe la liste des fournisseurs depuis le board Monday « 1.0 - Achat hebdomadaire »">
-              ⬇ Importer fournisseurs Monday
-            </button>
+            {topTab === "achats" && (
+              <button onClick={importMondaySuppliers}
+                      style={{ ...scStyles.ghostBtn, color: "#7e22ce", borderColor: "#e9d5ff" }}
+                      title="Importe la liste des fournisseurs depuis le board Monday « 1.0 - Achat hebdomadaire »">
+                ⬇ Importer fournisseurs Monday
+              </button>
+            )}
             <button onClick={() => { window.location.href = "/stock-article-nouveau"; }}
                     style={{ ...scStyles.ghostBtn, color: "#0f766e", borderColor: "#a7f3d0", fontWeight: 600 }}
                     title="Créer un nouvel article au catalogue">
@@ -202,39 +231,74 @@ const StockCatalogue = () => {
           </div>
         </header>
 
-        {/* KPIs */}
-        <div style={scStyles.kpiRow}>
-          <KPI label="🛒 Articles à acheter" value={kpis.total_items} color="#0ea5e9" />
-          <KPI label="Total achat HT" value={fmtEUR(kpis.total_purchase)} color="#dc2626" />
-          <KPI label="Total vente HT" value={fmtEUR(kpis.total_sell)} color="#10b981" />
-          <KPI label="Marge prévue" value={fmtEUR(kpis.margin_eur)} sub={(kpis.margin_pct || 0).toFixed(1) + " %"} color="#a855f7" />
-          <KPI label="⚠ Sans fournisseur" value={kpis.no_supplier} color="#f59e0b" />
+        {/* Top tab bar */}
+        <div style={{ display: "flex", gap: 4, padding: 4, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, marginBottom: 14, width: "fit-content" }}>
+          {[
+            { k: "achats",    label: "🛒 Achats",            color: "#0891b2", desc: "Ce qu'il faut acheter cette semaine" },
+            { k: "stock",     label: "📦 Stock interne",     color: "#10b981", desc: "Matériel reçu non encore affecté" },
+            { k: "catalogue", label: "📚 Catalogue produits", color: "#a855f7", desc: "Référentiel articles + compteurs" },
+          ].map((t) => (
+            <button key={t.k} onClick={() => setTopTab(t.k)} title={t.desc}
+              style={{
+                padding: "8px 16px",
+                border: 0,
+                borderRadius: 7,
+                background: topTab === t.k ? t.color : "transparent",
+                color: topTab === t.k ? "#fff" : "#475569",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: topTab === t.k ? "0 2px 6px " + t.color + "55" : "none",
+                transition: "all 150ms",
+              }}>{t.label}</button>
+          ))}
         </div>
 
-        {loading && rows.length === 0 ? (
-          <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Chargement…</div>
-        ) : filtered.length === 0 ? (
-          <div style={scStyles.empty}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
-              {view === "archive" ? "Aucun devis archivé" : "Aucun article à acheter"}
+        {topTab === "achats" && (
+          <>
+            {/* KPIs */}
+            <div style={scStyles.kpiRow}>
+              <KPI label="🛒 Articles à acheter" value={kpis.total_items} color="#0ea5e9" />
+              <KPI label="Total achat HT" value={fmtEUR(kpis.total_purchase)} color="#dc2626" />
+              <KPI label="Total vente HT" value={fmtEUR(kpis.total_sell)} color="#10b981" />
+              <KPI label="Marge prévue" value={fmtEUR(kpis.margin_eur)} sub={(kpis.margin_pct || 0).toFixed(1) + " %"} color="#a855f7" />
+              <KPI label="⚠ Sans fournisseur" value={kpis.no_supplier} color="#f59e0b" />
             </div>
-            <div style={{ fontSize: 12, color: "#64748b", marginTop: 6, lineHeight: 1.5 }}>
-              {view === "archive" ? (
-                <>Les devis archivés apparaîtront ici. Pour archiver, clique sur 🗄️ sur la ligne parent dans la vue Liste détaillée.</>
-              ) : (
-                <>Cette page agrège les <strong>lignes des devis acceptés et des commandes</strong>.<br/>
-                Crée un devis dans Gestion Commerciale, fais-le passer en « Accepté »,<br/>
-                et ses lignes apparaîtront ici pour être achetées chez tes fournisseurs.</>
-              )}
-            </div>
-          </div>
-        ) : view === "matrix" ? (
-          <MatrixView matrix={matrix} fmtEUR={fmtEUR} onCellClick={(rows) => setEditing({ type: "cell", rows })} />
-        ) : (
-          <ListView rows={filtered} suppliers={suppliers} fmtEUR={fmtEUR} fmtEURP={fmtEURP}
-                    onEdit={(r) => setEditing({ type: "line", row: r })} onReload={reload}
-                    onSuppliersChanged={reload}
-                    isArchive={view === "archive"} />
+
+            {loading && rows.length === 0 ? (
+              <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Chargement…</div>
+            ) : filtered.length === 0 ? (
+              <div style={scStyles.empty}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
+                  {view === "archive" ? "Aucun devis archivé" : "Aucun article à acheter"}
+                </div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 6, lineHeight: 1.5 }}>
+                  {view === "archive" ? (
+                    <>Les devis archivés apparaîtront ici. Pour archiver, clique sur 🗄️ sur la ligne parent dans la vue Liste détaillée.</>
+                  ) : (
+                    <>Cette page agrège les <strong>lignes des devis acceptés et des commandes</strong>.<br/>
+                    Crée un devis dans Gestion Commerciale, fais-le passer en « Accepté »,<br/>
+                    et ses lignes apparaîtront ici pour être achetées chez tes fournisseurs.</>
+                  )}
+                </div>
+              </div>
+            ) : view === "matrix" ? (
+              <MatrixView matrix={matrix} fmtEUR={fmtEUR} onCellClick={(rows) => setEditing({ type: "cell", rows })} />
+            ) : (
+              <ListView rows={filtered} suppliers={suppliers} fmtEUR={fmtEUR} fmtEURP={fmtEURP}
+                        onEdit={(r) => setEditing({ type: "line", row: r })} onReload={reload}
+                        onSuppliersChanged={reload}
+                        isArchive={view === "archive"} />
+            )}
+          </>
+        )}
+
+        {topTab === "stock" && (
+          <StockInternView fmtEUR={fmtEUR} fmtEURP={fmtEURP} />
+        )}
+
+        {topTab === "catalogue" && (
+          <CatalogueProduitsView fmtEUR={fmtEUR} onSwitchToStock={(articleId) => { setTopTab("stock"); window.__stockFilterArticle = articleId; }} />
         )}
       </main>
 
@@ -1097,6 +1161,428 @@ const CellDetailModal = ({ rows, fmtEUR, onClose, onOpenLine }) => (
     </div>
   </div>
 );
+
+// ════════════════════════════════════════════════════════════════════
+// STOCK INTERNE — Liste des assets (instances physiques)
+// ════════════════════════════════════════════════════════════════════
+const ASSET_STATUS = [
+  { k: "disponible", label: "Disponible",      bg: "#dcfce7", color: "#065f46", dot: "#16a34a" },
+  { k: "reserve",    label: "Réservé",         bg: "#fef3c7", color: "#92400e", dot: "#f59e0b" },
+  { k: "affecte",    label: "Affecté client",  bg: "#dbeafe", color: "#1e40af", dot: "#3b82f6" },
+  { k: "sav",        label: "SAV",             bg: "#fee2e2", color: "#991b1b", dot: "#dc2626" },
+  { k: "hs",         label: "HS",              bg: "#f1f5f9", color: "#475569", dot: "#64748b" },
+  { k: "vendu",      label: "Vendu",           bg: "#ede9fe", color: "#5b21b6", dot: "#a855f7" },
+];
+
+const StockInternView = ({ fmtEUR, fmtEURP }) => {
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [search, setSearch] = React.useState("");
+  const [editing, setEditing] = React.useState(null);
+  const [creatingOpen, setCreatingOpen] = React.useState(false);
+
+  const reload = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await window.api.assets.list({});
+      setItems(list || []);
+    } catch (e) { setItems([]); }
+    setLoading(false);
+  }, []);
+  React.useEffect(() => {
+    reload();
+    if (window.__stockFilterArticle) {
+      const id = window.__stockFilterArticle;
+      window.__stockFilterArticle = null;
+      setSearch(id);
+    }
+  }, [reload]);
+
+  const filtered = React.useMemo(() => {
+    let arr = items;
+    if (statusFilter !== "all") arr = arr.filter((a) => a.status === statusFilter);
+    const q = search.trim().toLowerCase();
+    if (q) arr = arr.filter((a) => [a.serial_number, a.article_label, a.article_ref, a.client_name, a.location, a.supplier, a.article_id]
+      .some((v) => String(v || "").toLowerCase().includes(q)));
+    return arr;
+  }, [items, statusFilter, search]);
+
+  const counts = React.useMemo(() => {
+    const c = { all: items.length };
+    ASSET_STATUS.forEach((s) => { c[s.k] = items.filter((a) => a.status === s.k).length; });
+    return c;
+  }, [items]);
+
+  const updateStatus = async (id, status) => {
+    try {
+      await window.api.assets.update(id, { status });
+      reload();
+      if (window.HubToast) window.HubToast.success("✓ Statut mis à jour");
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + (e.message || e));
+    }
+  };
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 6, padding: 4, background: "#fff", border: "1px solid #eef1f5", borderRadius: 8 }}>
+          <button onClick={() => setStatusFilter("all")} style={pillBtn(statusFilter === "all", "#475569")}>Tous <span style={pillCount}>{counts.all}</span></button>
+          {ASSET_STATUS.map((s) => (
+            <button key={s.k} onClick={() => setStatusFilter(s.k)} style={pillBtn(statusFilter === s.k, s.color, s.bg)}>
+              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: 4, background: s.dot, marginRight: 5 }} />
+              {s.label} <span style={pillCount}>{counts[s.k] || 0}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ position: "relative", flex: 1, minWidth: 240 }}>
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
+          <input value={search} onChange={(e) => setSearch(e.target.value)}
+                 placeholder="Rechercher n° série, article, client, emplacement…"
+                 style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }} />
+        </div>
+        <button onClick={() => setCreatingOpen(true)} style={{ padding: "8px 14px", background: "#10b981", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ Entrée stock</button>
+      </div>
+
+      {/* KPIs */}
+      <div style={scStyles.kpiRow}>
+        <KPI label="📦 En stock disponible" value={counts.disponible || 0} color="#10b981" />
+        <KPI label="🔒 Réservés" value={counts.reserve || 0} color="#f59e0b" />
+        <KPI label="✓ Affectés clients" value={counts.affecte || 0} color="#3b82f6" />
+        <KPI label="🛠 SAV en cours" value={counts.sav || 0} color="#dc2626" />
+        <KPI label="❌ HS / sortis" value={(counts.hs || 0) + (counts.vendu || 0)} color="#64748b" />
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Chargement du parc…</div>
+      ) : filtered.length === 0 ? (
+        <div style={scStyles.empty}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Aucun matériel en stock</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 6, lineHeight: 1.5 }}>
+            Une fois un BL fournisseur reçu dans l'onglet <strong>Achats</strong>, ajoute ici une entrée stock pour chaque numéro de série.<br/>
+            Tu pourras ensuite le réserver, l'affecter à un client, ou le passer en SAV.
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+          {filtered.map((a) => {
+            const sm = ASSET_STATUS.find((s) => s.k === a.status) || ASSET_STATUS[0];
+            return (
+              <div key={a.id} onClick={() => setEditing(a)}
+                style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: 14, cursor: "pointer", borderLeft: "4px solid " + sm.dot, transition: "border-color 120ms" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.article_label || "—"}</div>
+                    {a.article_ref && <div style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{a.article_ref}</div>}
+                  </div>
+                  <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.color, fontWeight: 700, whiteSpace: "nowrap" }}>{sm.label}</span>
+                </div>
+                {a.serial_number && (
+                  <div style={{ fontSize: 11, color: "#475569", marginBottom: 4 }}>
+                    <span style={{ color: "#94a3b8" }}>SN :</span>{" "}
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", fontWeight: 600 }}>{a.serial_number}</span>
+                  </div>
+                )}
+                {a.location && <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>📍 {a.location}</div>}
+                {a.supplier && <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>🏭 {a.supplier}</div>}
+                {a.client_name && <div style={{ fontSize: 11.5, color: "#1e40af", fontWeight: 600, marginTop: 6, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>→ {a.client_name}</div>}
+                <div style={{ display: "flex", gap: 4, marginTop: 8, flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
+                  {ASSET_STATUS.filter((s) => s.k !== a.status).slice(0, 3).map((s) => (
+                    <button key={s.k} onClick={() => updateStatus(a.id, s.k)}
+                      style={{ padding: "3px 8px", border: "1px solid #e2e8f0", background: "#fff", color: s.color, borderRadius: 6, fontSize: 10.5, fontWeight: 600, cursor: "pointer" }}
+                      title={"Passer en " + s.label}>→ {s.label}</button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {(editing || creatingOpen) && (
+        <AssetEditModal
+          asset={editing}
+          onClose={() => { setEditing(null); setCreatingOpen(false); }}
+          onSaved={() => { setEditing(null); setCreatingOpen(false); reload(); }}
+        />
+      )}
+    </div>
+  );
+};
+
+const pillBtn = (active, color, bg) => ({
+  padding: "5px 10px", border: 0, borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+  background: active ? (bg || color + "20") : "transparent",
+  color: active ? color : "#64748b",
+  display: "inline-flex", alignItems: "center", gap: 4,
+});
+const pillCount = { fontSize: 10, padding: "0px 6px", background: "rgba(15,23,42,0.08)", borderRadius: 999, fontWeight: 700, marginLeft: 3 };
+
+// ─── Modale de création/édition d'un asset ───
+const AssetEditModal = ({ asset, onClose, onSaved }) => {
+  const isNew = !asset;
+  const [form, setForm] = React.useState(asset || { status: "disponible", received_at: new Date().toISOString().slice(0, 10) });
+  const [articles, setArticles] = React.useState([]);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (window.api && window.api.commercialArticles) {
+      window.api.commercialArticles.list({ active: true }).then(setArticles).catch(() => {});
+    }
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const onPickArticle = (id) => {
+    const a = articles.find((x) => x.id === id);
+    setForm((f) => ({
+      ...f,
+      article_id: id,
+      article_ref: a ? a.ref : f.article_ref,
+      article_label: a ? a.designation : f.article_label,
+    }));
+  };
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      if (isNew) await window.api.assets.create(form);
+      else      await window.api.assets.update(asset.id, form);
+      if (window.HubToast) window.HubToast.success(isNew ? "✓ Entrée stock créée" : "✓ Asset mis à jour");
+      onSaved();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + (e.message || e));
+    } finally { setSaving(false); }
+  };
+
+  const remove = async () => {
+    if (!confirm("Retirer cet asset du parc ? (soft-delete, peut être restauré)")) return;
+    try {
+      await window.api.assets.remove(asset.id);
+      if (window.HubToast) window.HubToast.success("✓ Asset retiré");
+      onSaved();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Échec : " + (e.message || e));
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={scStyles.modalOverlay}>
+      <div onClick={(e) => e.stopPropagation()} style={scStyles.modalCard}>
+        <div style={scStyles.modalHead}>
+          <div>
+            <div style={{ fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Stock interne</div>
+            <h2 style={{ margin: "2px 0 0", fontSize: 15, fontWeight: 700 }}>{isNew ? "Nouvelle entrée stock" : "Asset " + asset.id}</h2>
+          </div>
+          <button onClick={onClose} style={scStyles.closeBtn}>×</button>
+        </div>
+        <div style={{ padding: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={scStyles.lbl}>Article catalogue</label>
+            <select value={form.article_id || ""} onChange={(e) => onPickArticle(e.target.value)} style={scStyles.input}>
+              <option value="">— Hors catalogue —</option>
+              {articles.map((a) => <option key={a.id} value={a.id}>{a.ref ? a.ref + " · " : ""}{a.designation}</option>)}
+            </select>
+          </div>
+          {!form.article_id && (
+            <>
+              <div>
+                <label style={scStyles.lbl}>Réf article (libre)</label>
+                <input value={form.article_ref || ""} onChange={(e) => set("article_ref", e.target.value)} style={scStyles.input} />
+              </div>
+              <div>
+                <label style={scStyles.lbl}>Désignation</label>
+                <input value={form.article_label || ""} onChange={(e) => set("article_label", e.target.value)} style={scStyles.input} />
+              </div>
+            </>
+          )}
+          <div>
+            <label style={scStyles.lbl}>N° série / IMEI</label>
+            <input value={form.serial_number || ""} onChange={(e) => set("serial_number", e.target.value)} style={{ ...scStyles.input, fontFamily: "'JetBrains Mono', monospace" }} />
+          </div>
+          <div>
+            <label style={scStyles.lbl}>Lot / palette</label>
+            <input value={form.lot || ""} onChange={(e) => set("lot", e.target.value)} style={scStyles.input} />
+          </div>
+          <div>
+            <label style={scStyles.lbl}>Fournisseur</label>
+            <input value={form.supplier || ""} onChange={(e) => set("supplier", e.target.value)} style={scStyles.input} />
+          </div>
+          <div>
+            <label style={scStyles.lbl}>Prix d'achat HT</label>
+            <input type="number" step="0.01" value={form.purchase_price_ht || ""} onChange={(e) => set("purchase_price_ht", e.target.value ? Number(e.target.value) : null)} style={scStyles.input} />
+          </div>
+          <div>
+            <label style={scStyles.lbl}>Reçu le</label>
+            <input type="date" value={(form.received_at || "").slice(0, 10)} onChange={(e) => set("received_at", e.target.value || null)} style={scStyles.input} />
+          </div>
+          <div>
+            <label style={scStyles.lbl}>Emplacement</label>
+            <input value={form.location || ""} onChange={(e) => set("location", e.target.value)} placeholder="Étagère A3, Salle stock…" style={scStyles.input} />
+          </div>
+          <div>
+            <label style={scStyles.lbl}>Statut</label>
+            <select value={form.status || "disponible"} onChange={(e) => set("status", e.target.value)} style={scStyles.input}>
+              {ASSET_STATUS.map((s) => <option key={s.k} value={s.k}>{s.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={scStyles.lbl}>Fin de garantie</label>
+            <input type="date" value={(form.warranty_end || "").slice(0, 10)} onChange={(e) => set("warranty_end", e.target.value || null)} style={scStyles.input} />
+          </div>
+          {(form.status === "affecte" || form.status === "reserve") && (
+            <>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={scStyles.lbl}>Client</label>
+                <input value={form.client_name || ""} onChange={(e) => set("client_name", e.target.value)} placeholder="Raison sociale" style={scStyles.input} />
+              </div>
+            </>
+          )}
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={scStyles.lbl}>Notes</label>
+            <textarea value={form.notes || ""} onChange={(e) => set("notes", e.target.value)} rows={2} style={{ ...scStyles.input, resize: "vertical" }} />
+          </div>
+        </div>
+        <div style={{ padding: "12px 22px", borderTop: "1px solid #eef1f5", display: "flex", justifyContent: "space-between", gap: 8 }}>
+          <div>
+            {!isNew && <button onClick={remove} style={{ ...scStyles.ghostBtn, color: "#dc2626", borderColor: "#fecaca" }}>Retirer du parc</button>}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onClose} style={scStyles.ghostBtn}>Annuler</button>
+            <button onClick={submit} disabled={saving} style={{ ...scStyles.primaryBtn, background: "#10b981", opacity: saving ? 0.6 : 1 }}>
+              {saving ? "Enregistrement…" : isNew ? "Créer" : "Enregistrer"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// CATALOGUE PRODUITS — Référentiel articles + compteurs live
+// ════════════════════════════════════════════════════════════════════
+const CatalogueProduitsView = ({ fmtEUR, onSwitchToStock }) => {
+  const [articles, setArticles] = React.useState([]);
+  const [counters, setCounters] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+  const [search, setSearch] = React.useState("");
+  const [category, setCategory] = React.useState("all");
+
+  const reload = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const [arts, cnts] = await Promise.all([
+        window.api.commercialArticles.list({ active: true }),
+        window.api.assets.counters(),
+      ]);
+      setArticles(arts || []);
+      const map = {};
+      (cnts || []).forEach((c) => { map[c.article_id] = c; });
+      setCounters(map);
+    } catch (e) { setArticles([]); setCounters({}); }
+    setLoading(false);
+  }, []);
+  React.useEffect(() => { reload(); }, [reload]);
+
+  const categories = React.useMemo(() => {
+    const set = new Set();
+    articles.forEach((a) => { if (a.category) set.add(a.category); });
+    return ["all", ...Array.from(set).sort()];
+  }, [articles]);
+
+  const filtered = React.useMemo(() => {
+    let arr = articles;
+    if (category !== "all") arr = arr.filter((a) => a.category === category);
+    const q = search.trim().toLowerCase();
+    if (q) arr = arr.filter((a) => [a.ref, a.designation, a.category, a.supplier].some((v) => String(v || "").toLowerCase().includes(q)));
+    return arr;
+  }, [articles, category, search]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 4, padding: 4, background: "#fff", border: "1px solid #eef1f5", borderRadius: 8, flexWrap: "wrap" }}>
+          {categories.map((c) => (
+            <button key={c} onClick={() => setCategory(c)} style={pillBtn(category === c, "#a855f7", "#ede9fe")}>
+              {c === "all" ? "Toutes catégories" : c}
+            </button>
+          ))}
+        </div>
+        <div style={{ position: "relative", flex: 1, minWidth: 240 }}>
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
+          <input value={search} onChange={(e) => setSearch(e.target.value)}
+                 placeholder="Rechercher ref, désignation, catégorie…"
+                 style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }} />
+        </div>
+        <button onClick={() => { window.location.href = "/stock-article-nouveau"; }} style={{ padding: "8px 14px", background: "#a855f7", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ Nouvel article</button>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Chargement du catalogue…</div>
+      ) : filtered.length === 0 ? (
+        <div style={scStyles.empty}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Aucun article au catalogue</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>Crée un premier article via le bouton « + Nouvel article ».</div>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+          {filtered.map((a) => {
+            const c = counters[a.id] || {};
+            const inStock = Number(c.in_stock || 0);
+            const reserved = Number(c.reserved || 0);
+            const sold = Number(c.sold || 0);
+            const sav = Number(c.in_sav || 0);
+            return (
+              <div key={a.id} style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.designation || "—"}</div>
+                    {a.ref && <div style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{a.ref}</div>}
+                  </div>
+                  {a.category && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#ede9fe", color: "#5b21b6", fontWeight: 700, whiteSpace: "nowrap" }}>{a.category}</span>}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
+                  <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "6px 8px" }}>
+                    <div style={{ color: "#065f46", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{inStock}</div>
+                    <div style={{ color: "#16a34a", fontSize: 10, fontWeight: 600 }}>en stock</div>
+                  </div>
+                  <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "6px 8px" }}>
+                    <div style={{ color: "#92400e", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{reserved}</div>
+                    <div style={{ color: "#f59e0b", fontSize: 10, fontWeight: 600 }}>réservés</div>
+                  </div>
+                  <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "6px 8px" }}>
+                    <div style={{ color: "#1e40af", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{sold}</div>
+                    <div style={{ color: "#3b82f6", fontSize: 10, fontWeight: 600 }}>affectés</div>
+                  </div>
+                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "6px 8px" }}>
+                    <div style={{ color: "#991b1b", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{sav}</div>
+                    <div style={{ color: "#dc2626", fontSize: 10, fontWeight: 600 }}>en SAV</div>
+                  </div>
+                </div>
+                {a.unit_price_ht != null && (
+                  <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between", borderTop: "1px solid #f1f5f9", paddingTop: 8 }}>
+                    <span>Tarif HT</span>
+                    <span style={{ color: "#0f172a", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(a.unit_price_ht)}</span>
+                  </div>
+                )}
+                <button onClick={() => onSwitchToStock && onSwitchToStock(a.id)}
+                  style={{ padding: "6px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Voir les instances en stock →
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const scStyles = {
   frame: { display: "flex", minHeight: "100vh", background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a" },

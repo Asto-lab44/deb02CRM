@@ -214,6 +214,25 @@ const CommercialDocs = () => {
     return Array.from(set).sort();
   }, [docs]);
 
+  // Map client_id / client_name → status (client | prospect) pour la liste.
+  const clientStatusMap = React.useMemo(() => {
+    const byId = {};
+    const byName = {};
+    (clients || []).forEach((c) => {
+      const s = c.status === "client" ? "client" : "prospect";
+      if (c.id)   byId[c.id] = s;
+      if (c.name) byName[String(c.name).toLowerCase()] = s;
+    });
+    return { byId, byName };
+  }, [clients]);
+
+  const docKind = React.useCallback((d) => {
+    if (d.client_id && clientStatusMap.byId[d.client_id]) return clientStatusMap.byId[d.client_id];
+    const nameKey = String(d.client_name || "").toLowerCase();
+    if (nameKey && clientStatusMap.byName[nameKey]) return clientStatusMap.byName[nameKey];
+    return null;
+  }, [clientStatusMap]);
+
   React.useEffect(() => { setStatusFilter("all"); }, [activeType]);
 
   // Compteurs par statut (pour les pills de filtre)
@@ -425,6 +444,7 @@ const CommercialDocs = () => {
             <div style={cdStyles.tableHead}>
               <span style={{ flex: "0 0 130px" }}>Référence</span>
               <span style={{ flex: 1 }}>Client / Titre</span>
+              <span style={{ flex: "0 0 90px" }}>Type</span>
               <span style={{ flex: "0 0 100px" }}>Date</span>
               <span style={{ flex: "0 0 90px" }}>Code client</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant HT</span>
@@ -434,7 +454,7 @@ const CommercialDocs = () => {
               <span style={{ flex: "0 0 60px" }}></span>
             </div>
             {filtered.map((d) => (
-              <DocRow key={d.id} doc={d} chain={buildChainFromAny(d)} statusMeta={STATUS_META} fmtEUR={fmtEUR} onOpen={openDoc} onReload={reload} />
+              <DocRow key={d.id} doc={d} chain={buildChainFromAny(d)} statusMeta={STATUS_META} fmtEUR={fmtEUR} onOpen={openDoc} onReload={reload} kind={docKind(d)} />
             ))}
           </div>
         )}
@@ -524,7 +544,7 @@ const WorkflowBar = ({ doc, canTransform, chain }) => {
 // ─────────────────────────────────────────────────────────────────
 // DocRow — Ligne de la liste avec menu d'actions rapides
 // ─────────────────────────────────────────────────────────────────
-const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload }) => {
+const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [menuPos, setMenuPos] = React.useState({ top: 0, right: 0 });
   const menuRef = React.useRef(null);
@@ -630,6 +650,15 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload }) => {
       <span style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.client_name || "— Client non renseigné —"}</div>
         <div style={{ fontSize: 11.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.title || "(sans titre)"}</div>
+      </span>
+      <span style={{ flex: "0 0 90px" }}>
+        {kind === "client" ? (
+          <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 999, background: "#dcfce7", color: "#065f46", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Client</span>
+        ) : kind === "prospect" ? (
+          <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 999, background: "#fef3c7", color: "#78350f", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Prospect</span>
+        ) : (
+          <span style={{ fontSize: 11, color: "#cbd5e1" }}>—</span>
+        )}
       </span>
       <span style={{ flex: "0 0 100px", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{doc.doc_date}</span>
       <span style={{ flex: "0 0 90px" }}>

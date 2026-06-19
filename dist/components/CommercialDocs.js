@@ -361,6 +361,27 @@ var CommercialDocs = () => {
     });
     return Array.from(set).sort();
   }, [docs]);
+
+  // Map client_id / client_name → status (client | prospect) pour la liste.
+  var clientStatusMap = React.useMemo(() => {
+    var byId = {};
+    var byName = {};
+    (clients || []).forEach(c => {
+      var s = c.status === "client" ? "client" : "prospect";
+      if (c.id) byId[c.id] = s;
+      if (c.name) byName[String(c.name).toLowerCase()] = s;
+    });
+    return {
+      byId,
+      byName
+    };
+  }, [clients]);
+  var docKind = React.useCallback(d => {
+    if (d.client_id && clientStatusMap.byId[d.client_id]) return clientStatusMap.byId[d.client_id];
+    var nameKey = String(d.client_name || "").toLowerCase();
+    if (nameKey && clientStatusMap.byName[nameKey]) return clientStatusMap.byName[nameKey];
+    return null;
+  }, [clientStatusMap]);
   React.useEffect(() => {
     setStatusFilter("all");
   }, [activeType]);
@@ -786,6 +807,10 @@ var CommercialDocs = () => {
     }
   }, "Client / Titre"), /*#__PURE__*/React.createElement("span", {
     style: {
+      flex: "0 0 90px"
+    }
+  }, "Type"), /*#__PURE__*/React.createElement("span", {
+    style: {
       flex: "0 0 100px"
     }
   }, "Date"), /*#__PURE__*/React.createElement("span", {
@@ -821,7 +846,8 @@ var CommercialDocs = () => {
     statusMeta: STATUS_META,
     fmtEUR: fmtEUR,
     onOpen: openDoc,
-    onReload: reload
+    onReload: reload,
+    kind: docKind(d)
   })))), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
     doc: editing,
     clients: clients,
@@ -979,7 +1005,8 @@ var DocRow = ({
   statusMeta,
   fmtEUR,
   onOpen,
-  onReload
+  onReload,
+  kind
 }) => {
   var [menuOpen, setMenuOpen] = React.useState(false);
   var [menuPos, setMenuPos] = React.useState({
@@ -1132,6 +1159,39 @@ var DocRow = ({
       whiteSpace: "nowrap"
     }
   }, doc.title || "(sans titre)")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 90px"
+    }
+  }, kind === "client" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 9px",
+      borderRadius: 999,
+      background: "#dcfce7",
+      color: "#065f46",
+      fontSize: 10.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Client") : kind === "prospect" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 9px",
+      borderRadius: 999,
+      background: "#fef3c7",
+      color: "#78350f",
+      fontSize: 10.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Prospect") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#cbd5e1"
+    }
+  }, "\u2014")), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 100px",
       fontSize: 12,

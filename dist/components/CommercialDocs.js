@@ -959,7 +959,8 @@ var CommercialDocs = () => {
     }
   }, "Workflow"), /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: "0 0 100px"
+      flex: "0 0 110px",
+      textAlign: "right"
     }
   }, "Date de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1079,6 +1080,11 @@ var WorkflowBar = ({
     var isFuture = i > curIdx;
     var isCreated = isFuture && hasDescendant(s.k); // doc enfant déjà créé
     var child = chain && chain[s.k];
+    // Si le doc courant a un doc aval créé dans la chaîne (facture pour
+    // un BL, BL pour une commande, etc.) → on considère qu'il est
+    // "validé / clos" : pastille verte au lieu d'indigo.
+    var downstream = chain && curIdx >= 0 && i < STEPS.length ? STEPS.slice(curIdx + 1).some(stp => chain[stp.k]) : false;
+    var isCurrentClosed = isCurrent && downstream;
     return /*#__PURE__*/React.createElement(React.Fragment, {
       key: s.k
     }, /*#__PURE__*/React.createElement("div", {
@@ -1098,10 +1104,10 @@ var WorkflowBar = ({
         flex: 1,
         padding: "8px 10px",
         borderRadius: 7,
-        background: isCurrent ? "#3730a3" : isPast ? "#dcfce7" : isCreated ? "#7c3aed" : "#fff",
-        color: isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
-        border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
-        boxShadow: isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
+        background: isCurrentClosed ? "#16a34a" : isCurrent ? "#3730a3" : isPast ? "#dcfce7" : isCreated ? "#7c3aed" : "#fff",
+        color: isCurrentClosed ? "#fff" : isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
+        border: "1px solid " + (isCurrentClosed ? "#16a34a" : isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
+        boxShadow: isCurrentClosed ? "0 2px 6px rgba(22,163,74,0.35)" : isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
         cursor: isCreated || isPast && chain && chain[s.k] && chain[s.k].id !== doc.id ? "pointer" : "default",
         fontSize: 12,
         fontWeight: 600,
@@ -1125,7 +1131,7 @@ var WorkflowBar = ({
         background: "rgba(255,255,255,0.25)",
         fontWeight: 700
       }
-    }, (doc.status || "").toUpperCase()), isPast && /*#__PURE__*/React.createElement("span", {
+    }, isCurrentClosed ? "VALIDÉ" : (doc.status || "").toUpperCase()), isPast && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12
       }
@@ -1333,9 +1339,11 @@ var DocRow = ({
     currentType: doc.type
   })), /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: "0 0 100px",
+      flex: "0 0 110px",
+      textAlign: "right",
       fontSize: 12.5,
       color: "#475569",
+      letterSpacing: 0,
       ...numStyle
     }
   }, fmtDate(doc.doc_date)), /*#__PURE__*/React.createElement("span", {
@@ -2581,7 +2589,7 @@ var CommercialDocEditor = ({
       pointerEvents: d.type === "devis" && (d.status === "accepte" || d.status === "transforme") ? "none" : "auto",
       transition: "opacity 150ms"
     }
-  }, (d.type === "commande" || d.type === "bl") && /*#__PURE__*/React.createElement("div", {
+  }, (d.type === "commande" || d.type === "bl" || d.type === "facture") && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#eef2ff",
       border: "1px solid #c7d2fe",
@@ -2598,15 +2606,15 @@ var CommercialDocEditor = ({
     style: {
       fontSize: 14
     }
-  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, "En-t\xEAte fig\xE9"), " \u2014 les infos client, titre, dates, opportunit\xE9, statut et conditions de paiement sont h\xE9rit\xE9es du devis. Seules les lignes (articles, qt\xE9, prix) sont modifiables ici.")), /*#__PURE__*/React.createElement("fieldset", {
-    disabled: d.type === "commande" || d.type === "bl",
+  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, "En-t\xEAte fig\xE9"), " \u2014 les infos client, titre, dates, opportunit\xE9, statut et conditions de paiement sont h\xE9rit\xE9es des pi\xE8ces amont.", d.type === "facture" ? " La facture est elle aussi figée dans sa totalité." : " Seules les lignes (articles, qté, prix) sont modifiables ici.")), /*#__PURE__*/React.createElement("fieldset", {
+    disabled: d.type === "commande" || d.type === "bl" || d.type === "facture",
     style: {
       border: 0,
       padding: 0,
       margin: 0,
       minWidth: 0,
-      opacity: d.type === "commande" || d.type === "bl" ? 0.7 : 1,
-      pointerEvents: d.type === "commande" || d.type === "bl" ? "none" : "auto"
+      opacity: d.type === "commande" || d.type === "bl" || d.type === "facture" ? 0.7 : 1,
+      pointerEvents: d.type === "commande" || d.type === "bl" || d.type === "facture" ? "none" : "auto"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {

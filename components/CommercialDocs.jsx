@@ -546,7 +546,7 @@ const CommercialDocs = () => {
               <span style={{ flex: "0 0 130px" }}>Référence de la pièce</span>
               <span style={{ flex: "0 0 90px" }}>Code raison sociale</span>
               <span style={{ flex: "0 0 170px" }}>Workflow</span>
-              <span style={{ flex: "0 0 100px" }}>Date de la pièce</span>
+              <span style={{ flex: "0 0 110px", textAlign: "right" }}>Date de la pièce</span>
               <span style={{ flex: 1 }}>Nom de la raison sociale / Titre du devis</span>
               <span style={{ flex: "0 0 90px" }}>Statut de la raison sociale</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant HT</span>
@@ -608,6 +608,12 @@ const WorkflowBar = ({ doc, canTransform, chain, onOpenDoc }) => {
           const isFuture = i > curIdx;
           const isCreated = isFuture && hasDescendant(s.k); // doc enfant déjà créé
           const child = chain && chain[s.k];
+          // Si le doc courant a un doc aval créé dans la chaîne (facture pour
+          // un BL, BL pour une commande, etc.) → on considère qu'il est
+          // "validé / clos" : pastille verte au lieu d'indigo.
+          const downstream = (chain && curIdx >= 0 && i < STEPS.length) ?
+            STEPS.slice(curIdx + 1).some((stp) => chain[stp.k]) : false;
+          const isCurrentClosed = isCurrent && downstream;
           return (
             <React.Fragment key={s.k}>
               <div
@@ -627,16 +633,16 @@ const WorkflowBar = ({ doc, canTransform, chain, onOpenDoc }) => {
                        : ""}
                 style={{
                   flex: 1, padding: "8px 10px", borderRadius: 7,
-                  background: isCurrent ? "#3730a3" : isPast ? "#dcfce7" : isCreated ? "#7c3aed" : "#fff",
-                  color: isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
-                  border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
-                  boxShadow: isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
+                  background: isCurrentClosed ? "#16a34a" : isCurrent ? "#3730a3" : isPast ? "#dcfce7" : isCreated ? "#7c3aed" : "#fff",
+                  color: isCurrentClosed ? "#fff" : isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
+                  border: "1px solid " + (isCurrentClosed ? "#16a34a" : isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
+                  boxShadow: isCurrentClosed ? "0 2px 6px rgba(22,163,74,0.35)" : isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
                   cursor: (isCreated || (isPast && chain && chain[s.k] && chain[s.k].id !== doc.id)) ? "pointer" : "default",
                   fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
                 }}>
                 <span style={{ fontSize: 14 }}>{s.icon}</span>
                 <span style={{ flex: 1 }}>{s.label}</span>
-                {isCurrent && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(255,255,255,0.25)", fontWeight: 700 }}>{(doc.status || "").toUpperCase()}</span>}
+                {isCurrent && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(255,255,255,0.25)", fontWeight: 700 }}>{isCurrentClosed ? "VALIDÉ" : (doc.status || "").toUpperCase()}</span>}
                 {isPast && <span style={{ fontSize: 12 }}>✓</span>}
                 {isCreated && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(255,255,255,0.25)", fontWeight: 700 }}>CRÉÉ</span>}
               </div>
@@ -779,7 +785,7 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
       <span style={{ flex: "0 0 170px" }}>
         <WorkflowChain chain={chain} currentType={doc.type} />
       </span>
-      <span style={{ flex: "0 0 100px", fontSize: 12.5, color: "#475569", ...numStyle }}>{fmtDate(doc.doc_date)}</span>
+      <span style={{ flex: "0 0 110px", textAlign: "right", fontSize: 12.5, color: "#475569", letterSpacing: 0, ...numStyle }}>{fmtDate(doc.doc_date)}</span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.client_name || "— Client non renseigné —"}</div>
         <div style={{ fontSize: 11.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.title || "(sans titre)"}</div>
@@ -1561,21 +1567,23 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                              opacity: (d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) ? 0.65 : 1,
                              pointerEvents: (d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) ? "none" : "auto",
                              transition: "opacity 150ms" }}>
-          {/* Bandeau informatif sur commande / BL : le bloc en-tête (client,
-              titre, dates, opp, statut, paiement) est figé car il provient
-              du devis. Seules les lignes (qté, prix, articles) sont éditables. */}
-          {(d.type === "commande" || d.type === "bl") && (
+          {/* Bandeau informatif sur commande / BL / facture : le bloc en-tête
+              (client, titre, dates, opp, statut, paiement) est figé car il
+              provient des pièces amont. Les lignes sont éditables sur commande
+              et BL uniquement ; sur facture elles sont aussi figées (voir
+              fieldset englobant les lignes plus bas). */}
+          {(d.type === "commande" || d.type === "bl" || d.type === "facture") && (
             <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "8px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "#3730a3" }}>
               <span style={{ fontSize: 14 }}>🔒</span>
-              <span><strong>En-tête figé</strong> — les infos client, titre, dates, opportunité, statut et conditions de paiement sont héritées du devis. Seules les lignes (articles, qté, prix) sont modifiables ici.</span>
+              <span><strong>En-tête figé</strong> — les infos client, titre, dates, opportunité, statut et conditions de paiement sont héritées des pièces amont.{d.type === "facture" ? " La facture est elle aussi figée dans sa totalité." : " Seules les lignes (articles, qté, prix) sont modifiables ici."}</span>
             </div>
           )}
 
-          {/* Bloc client + meta — figé pour commande et BL */}
-          <fieldset disabled={d.type === "commande" || d.type === "bl"}
+          {/* Bloc client + meta — figé pour commande, BL et facture */}
+          <fieldset disabled={d.type === "commande" || d.type === "bl" || d.type === "facture"}
                     style={{ border: 0, padding: 0, margin: 0, minWidth: 0,
-                             opacity: (d.type === "commande" || d.type === "bl") ? 0.7 : 1,
-                             pointerEvents: (d.type === "commande" || d.type === "bl") ? "none" : "auto" }}>
+                             opacity: (d.type === "commande" || d.type === "bl" || d.type === "facture") ? 0.7 : 1,
+                             pointerEvents: (d.type === "commande" || d.type === "bl" || d.type === "facture") ? "none" : "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
             <div>
               <label style={cdStyles.lbl}>Client</label>

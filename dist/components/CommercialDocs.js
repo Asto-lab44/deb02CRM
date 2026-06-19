@@ -2817,27 +2817,23 @@ var CommercialDocEditor = ({
     }
   }, "\u2398"))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 10
+      display: "grid",
+      gridTemplateColumns: "1fr 320px",
+      gap: 12,
+      alignItems: "stretch"
     }
-  }, /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.miniLbl
-  }, "\uD83D\uDCDD Description (champ libre)", /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginLeft: 6,
-      fontSize: 9.5,
-      fontWeight: 500,
-      color: "#94a3b8",
-      fontStyle: "italic"
-    }
-  }, "appara\xEEtra sous la d\xE9signation sur le PDF")), /*#__PURE__*/React.createElement(RichDescriptionEditor, {
+  }, "\uD83D\uDCDD Description (champ libre)"), /*#__PURE__*/React.createElement(RichDescriptionEditor, {
     value: l.description || "",
     onChange: html => updateLineField(i, "description", html),
     placeholder: "Ex. caract\xE9ristiques techniques, conditions, r\xE9f\xE9rences produit\u2026"
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "100px 110px 1fr 110px",
-      gap: 10
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8,
+      alignContent: "start"
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.miniLbl
@@ -2865,7 +2861,11 @@ var CommercialDocEditor = ({
     value: "an"
   }, "an"), /*#__PURE__*/React.createElement("option", {
     value: "forfait"
-  }, "forfait"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, "forfait"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.miniLbl
   }, "Prix unitaire HT"), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2890,16 +2890,7 @@ var CommercialDocEditor = ({
       color: "#94a3b8",
       pointerEvents: "none"
     }
-  }, "\u20AC"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.miniLbl
-  }, "TVA"), /*#__PURE__*/React.createElement("select", {
-    value: l.tva_rate,
-    onChange: e => updateLineField(i, "tva_rate", e.target.value),
-    style: cdStyles.miniInput
-  }, tvaRates.map(t => /*#__PURE__*/React.createElement("option", {
-    key: t.rate,
-    value: t.rate
-  }, t.rate, " %"))))), /*#__PURE__*/React.createElement("div", {
+  }, "\u20AC"))))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 220px 180px",

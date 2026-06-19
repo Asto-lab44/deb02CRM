@@ -1634,51 +1634,43 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                             style={{ width: 32, height: 32, background: "#fff", border: "1px solid #c7d2fe", color: "#3730a3", fontSize: 14, cursor: "pointer", borderRadius: 6 }}>⎘</button>
                   </div>
                 </div>
-                {/* Description longue / champ libre (apparaît sous la désignation sur le PDF) */}
-                <div style={{ marginBottom: 10 }}>
-                  <label style={cdStyles.miniLbl}>
-                    📝 Description (champ libre)
-                    <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 500, color: "#94a3b8", fontStyle: "italic" }}>
-                      apparaîtra sous la désignation sur le PDF
-                    </span>
-                  </label>
-                  <RichDescriptionEditor
-                    value={l.description || ""}
-                    onChange={(html) => updateLineField(i, "description", html)}
-                    placeholder="Ex. caractéristiques techniques, conditions, références produit…"
-                  />
-                </div>
-                {/* Ligne 2 : Qté · Unité · P.U. HT · TVA */}
-                <div style={{ display: "grid", gridTemplateColumns: "100px 110px 1fr 110px", gap: 10 }}>
+                {/* Description (gauche) + Qté/Unité/Prix unitaire HT (droite).
+                    TVA masquée (toujours 20 % par défaut, modifiable via le
+                    paramétrage Société). */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 12, alignItems: "stretch" }}>
                   <div>
-                    <label style={cdStyles.miniLbl}>Qté</label>
-                    <input type="number" step="0.001" value={l.quantity} onChange={(e) => updateLineField(i, "quantity", e.target.value)}
-                           style={cdStyles.miniInput} />
+                    <label style={cdStyles.miniLbl}>📝 Description (champ libre)</label>
+                    <RichDescriptionEditor
+                      value={l.description || ""}
+                      onChange={(html) => updateLineField(i, "description", html)}
+                      placeholder="Ex. caractéristiques techniques, conditions, références produit…"
+                    />
                   </div>
-                  <div>
-                    <label style={cdStyles.miniLbl}>Unité</label>
-                    <select value={l.unit || "u"} onChange={(e) => updateLineField(i, "unit", e.target.value)} style={cdStyles.miniInput}>
-                      <option value="u">u (unité)</option>
-                      <option value="h">h (heure)</option>
-                      <option value="j">j (journée)</option>
-                      <option value="mois">mois</option>
-                      <option value="an">an</option>
-                      <option value="forfait">forfait</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={cdStyles.miniLbl}>Prix unitaire HT</label>
-                    <div style={{ position: "relative" }}>
-                      <input type="number" step="0.01" value={l.unit_price_ht} onChange={(e) => updateLineField(i, "unit_price_ht", e.target.value)}
-                             style={{ ...cdStyles.miniInput, paddingRight: 26 }} />
-                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>€</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start" }}>
+                    <div>
+                      <label style={cdStyles.miniLbl}>Qté</label>
+                      <input type="number" step="0.001" value={l.quantity} onChange={(e) => updateLineField(i, "quantity", e.target.value)}
+                             style={cdStyles.miniInput} />
                     </div>
-                  </div>
-                  <div>
-                    <label style={cdStyles.miniLbl}>TVA</label>
-                    <select value={l.tva_rate} onChange={(e) => updateLineField(i, "tva_rate", e.target.value)} style={cdStyles.miniInput}>
-                      {tvaRates.map((t) => <option key={t.rate} value={t.rate}>{t.rate} %</option>)}
-                    </select>
+                    <div>
+                      <label style={cdStyles.miniLbl}>Unité</label>
+                      <select value={l.unit || "u"} onChange={(e) => updateLineField(i, "unit", e.target.value)} style={cdStyles.miniInput}>
+                        <option value="u">u (unité)</option>
+                        <option value="h">h (heure)</option>
+                        <option value="j">j (journée)</option>
+                        <option value="mois">mois</option>
+                        <option value="an">an</option>
+                        <option value="forfait">forfait</option>
+                      </select>
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label style={cdStyles.miniLbl}>Prix unitaire HT</label>
+                      <div style={{ position: "relative" }}>
+                        <input type="number" step="0.01" value={l.unit_price_ht} onChange={(e) => updateLineField(i, "unit_price_ht", e.target.value)}
+                               style={{ ...cdStyles.miniInput, paddingRight: 26 }} />
+                        <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>€</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Ligne 3 : INFOS INTERNES (non visibles sur le PDF client) */}

@@ -1261,17 +1261,63 @@ var DocRow = ({
     style: {
       flex: "0 0 100px"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-block",
-      padding: "2px 8px",
-      borderRadius: 999,
-      background: sm.bg,
-      color: sm.color,
-      fontSize: 11,
-      fontWeight: 600
-    }
-  }, sm.label)), /*#__PURE__*/React.createElement("span", {
+  }, (() => {
+    // Statut de la pièce = étape d'après dans le workflow Sage.
+    // Si doc déjà transformé ou final → on garde le statut courant.
+    var NEXT_LBL = {
+      devis: {
+        k: "Commande",
+        c: "#a855f7",
+        bg: "#f5efff"
+      },
+      commande: {
+        k: "BL",
+        c: "#ea580c",
+        bg: "#fff7ed"
+      },
+      bl: {
+        k: "Facture",
+        c: "#10b981",
+        bg: "#dcfce7"
+      },
+      facture: null
+    };
+    var stop = doc.status === "annule" || doc.status === "refuse";
+    if (stop) return /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: sm.bg,
+        color: sm.color,
+        fontSize: 11,
+        fontWeight: 600
+      }
+    }, sm.label);
+    var next = NEXT_LBL[doc.type];
+    if (!next) return /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: sm.bg,
+        color: sm.color,
+        fontSize: 11,
+        fontWeight: 600
+      }
+    }, sm.label);
+    return /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: next.bg,
+        color: next.c,
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, "\u2192 ", next.k);
+  })()), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px",
       textAlign: "right"

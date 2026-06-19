@@ -675,7 +675,19 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
       <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(doc.total_ht)}</span>
       <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(doc.total_ttc)}</span>
       <span style={{ flex: "0 0 100px" }}>
-        <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.color, fontSize: 11, fontWeight: 600 }}>{sm.label}</span>
+        {(() => {
+          // Statut de la pièce = étape d'après dans le workflow Sage.
+          // Si doc déjà transformé ou final → on garde le statut courant.
+          const NEXT_LBL = { devis: { k: "Commande", c: "#a855f7", bg: "#f5efff" },
+                             commande: { k: "BL",       c: "#ea580c", bg: "#fff7ed" },
+                             bl:       { k: "Facture",  c: "#10b981", bg: "#dcfce7" },
+                             facture:  null };
+          const stop = (doc.status === "annule" || doc.status === "refuse");
+          if (stop) return <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.color, fontSize: 11, fontWeight: 600 }}>{sm.label}</span>;
+          const next = NEXT_LBL[doc.type];
+          if (!next) return <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.color, fontSize: 11, fontWeight: 600 }}>{sm.label}</span>;
+          return <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, background: next.bg, color: next.c, fontSize: 11, fontWeight: 700 }}>→ {next.k}</span>;
+        })()}
       </span>
       <span style={{ flex: "0 0 60px", textAlign: "right" }}>
         <button ref={btnRef} onClick={(e) => {

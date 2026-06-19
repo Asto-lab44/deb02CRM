@@ -1959,38 +1959,37 @@ var CommercialDocEditor = ({
   // pour garder les 3 docs alignés (lignes + totaux + titre + client).
   // Les lignes downstream ne sont touchées QUE si le BL/CA est toujours en
   // brouillon (sinon on respecte les modifications manuelles aval).
-  var syncCommandeDownstream = async (commande, lines, patch) => {
-    if (!chain) return;
-    var targets = [chain.bl].filter(Boolean);
-    for (var tgt of targets) {
+  // Recopie les lignes et totaux d'un doc source vers une liste de docs cibles
+  // (commande client ↔ BL). Utilisé pour la synchro bidirectionnelle :
+  //   - depuis la commande → BL (via syncCommandeDownstream)
+  //   - depuis le BL → commande (via syncBLUpstream)
+  // Les docs aval figés (livre / paye / transforme / annule / refuse) sont
+  // sautés pour respecter les corrections manuelles.
+  var syncLinesTo = async (targets, lines, patch, options = {}) => {
+    for (var tgt of targets || []) {
       if (!tgt) continue;
-      // Si l'aval a déjà été validé (livré/payé/facturé/transforme), on ne touche pas
-      var frozenStatuses = new Set(["livre", "paye", "transforme", "annule", "refuse"]);
-      if (frozenStatuses.has(tgt.status)) continue;
-
-      // 1. Patch les totaux et infos client (la commande fournisseur garde son client_name "fournisseur" si déjà rempli)
-      var downstreamPatch = {
+      // Demande explicite : la dernière modification l'emporte sur l'autre
+      // pièce, même si l'aval est déjà figé (Livré / Payé / Transformé).
+      // L'utilisateur veut commande ↔ BL toujours strictement identiques.
+      var tgtPatch = {
         total_ht: patch.total_ht,
         total_tva: patch.total_tva,
         total_ttc: patch.total_ttc
       };
-      if (tgt.type === "bl") {
-        // Le BL hérite des infos client / contact
-        downstreamPatch.client_name = patch.client_name;
-        downstreamPatch.client_address = patch.client_address;
-        downstreamPatch.client_cp = patch.client_cp;
-        downstreamPatch.client_city = patch.client_city;
-        downstreamPatch.client_siren = patch.client_siren;
-        downstreamPatch.contact_name = patch.contact_name;
-        downstreamPatch.contact_email = patch.contact_email;
+      if (options.copyClient) {
+        tgtPatch.client_name = patch.client_name;
+        tgtPatch.client_address = patch.client_address;
+        tgtPatch.client_cp = patch.client_cp;
+        tgtPatch.client_city = patch.client_city;
+        tgtPatch.client_siren = patch.client_siren;
+        tgtPatch.contact_name = patch.contact_name;
+        tgtPatch.contact_email = patch.contact_email;
       }
       try {
-        await window.api.commercialDocs.update(tgt.id, downstreamPatch);
+        await window.api.commercialDocs.update(tgt.id, tgtPatch);
       } catch (e) {
         console.warn(e);
       }
-
-      // 2. Recharge les lignes existantes, supprime-les, recrée à l'identique
       try {
         var fresh = await window.api.commercialDocs.getById(tgt.id);
         var existingLines = fresh && fresh.lines || [];
@@ -2027,9 +2026,28 @@ var CommercialDocEditor = ({
           }
         }
       } catch (e) {
-        console.warn("[syncCommandeDownstream lines]", e);
+        console.warn("[syncLinesTo]", e);
       }
     }
+  };
+
+  // Sync commande client → BL (sens descendant — comportement historique).
+  var syncCommandeDownstream = async (commande, lines, patch) => {
+    if (!chain) return;
+    await syncLinesTo([chain.bl].filter(Boolean), lines, patch, {
+      copyClient: true
+    });
+  };
+
+  // Sync BL → commande client (sens montant — nouveau).
+  // Recopie les lignes/totaux du BL vers sa commande parente pour que les
+  // modifications faites sur le BL (qté, prix…) se reflètent côté commande.
+  var syncBLUpstream = async (bl, lines, patch) => {
+    if (!chain || !chain.commande) return;
+    if (chain.commande.id === bl.id) return;
+    await syncLinesTo([chain.commande], lines, patch, {
+      copyClient: false
+    });
   };
   var save = async (options = {}) => {
     setSaving(true);
@@ -2121,11 +2139,19 @@ var CommercialDocEditor = ({
       // 3. Si on vient de modifier une commande client : on synchronise la
       //    commande fournisseur (commande_achat) et le BL avec les mêmes
       //    lignes et totaux. La cohérence chaîne est tenue automatiquement.
+      // Synchronisation bidirectionnelle commande client ↔ BL
+      // (la dernière modification l'emporte, voir syncLinesTo).
       if (d.type === "commande") {
         try {
           await syncCommandeDownstream(d, updatedLines, patch);
         } catch (e) {
-          console.warn("[commande sync downstream]", e);
+          console.warn("[commande → bl sync]", e);
+        }
+      } else if (d.type === "bl") {
+        try {
+          await syncBLUpstream(d, updatedLines, patch);
+        } catch (e) {
+          console.warn("[bl → commande sync]", e);
         }
       }
       if (window.HubToast) window.HubToast.success("✓ Document enregistré");

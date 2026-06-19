@@ -141,6 +141,14 @@ var RichDescriptionEditor = ({
   }));
 };
 
+// Code client = "CLI" + 3 premières lettres du nom (alphanumériques, MAJ).
+// Ex : "ASTORYA SGI" → "CLIAST" · "INIT 2" → "CLIINI" · "CHEVAL SHOP" → "CLICHE".
+var computeClientCode = clientName => {
+  if (!clientName) return "";
+  var cleaned = String(clientName).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return "CLI" + cleaned.slice(0, 3).padEnd(3, "X");
+};
+
 // ════════════════════════════════════════════════════════════════════
 // CommercialDocs — Gestion Commerciale (Devis / Commande / BL / Facture)
 // ════════════════════════════════════════════════════════════════════
@@ -236,6 +244,9 @@ var CommercialDocs = () => {
   };
   var [activeType, setActiveType] = React.useState("devis");
   var [statusFilter, setStatusFilter] = React.useState("all");
+  var [clientFilter, setClientFilter] = React.useState("");
+  var [dateFrom, setDateFrom] = React.useState("");
+  var [dateTo, setDateTo] = React.useState("");
   var [docs, setDocs] = React.useState([]);
   var [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
   var [loading, setLoading] = React.useState(true);
@@ -328,12 +339,28 @@ var CommercialDocs = () => {
   }, []);
   var filtered = React.useMemo(() => {
     var q = search.trim().toLowerCase();
+    var cf = clientFilter.trim().toLowerCase();
     return docs.filter(d => {
       if (statusFilter !== "all" && d.status !== statusFilter) return false;
       if (q && ![d.id, d.client_name, d.title, d.owner].some(v => String(v || "").toLowerCase().includes(q))) return false;
+      if (cf) {
+        var code = computeClientCode(d.client_name || "").toLowerCase();
+        if (!String(d.client_name || "").toLowerCase().includes(cf) && !code.includes(cf)) return false;
+      }
+      if (dateFrom && (!d.doc_date || d.doc_date < dateFrom)) return false;
+      if (dateTo && (!d.doc_date || d.doc_date > dateTo)) return false;
       return true;
     });
-  }, [docs, search, statusFilter]);
+  }, [docs, search, statusFilter, clientFilter, dateFrom, dateTo]);
+
+  // Liste unique des clients présents dans les docs (pour autocomplete)
+  var clientOptions = React.useMemo(() => {
+    var set = new Set();
+    docs.forEach(d => {
+      if (d.client_name) set.add(d.client_name);
+    });
+    return Array.from(set).sort();
+  }, [docs]);
   React.useEffect(() => {
     setStatusFilter("all");
   }, [activeType]);
@@ -596,7 +623,130 @@ var CommercialDocs = () => {
         opacity: 0.85
       }
     }, count));
-  })), loading ? /*#__PURE__*/React.createElement("div", {
+  })), docs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginBottom: 14,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 10px 5px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      background: "#fff",
+      minWidth: 240
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Client"), /*#__PURE__*/React.createElement("input", {
+    value: clientFilter,
+    onChange: e => setClientFilter(e.target.value),
+    list: "cdoc-clients-list",
+    placeholder: "raison sociale ou CLIxxx",
+    style: {
+      border: 0,
+      outline: "none",
+      flex: 1,
+      fontSize: 13,
+      padding: "3px 4px",
+      background: "transparent",
+      minWidth: 0
+    }
+  }), clientFilter && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setClientFilter(""),
+    title: "Effacer",
+    style: {
+      border: 0,
+      background: "transparent",
+      color: "#94a3b8",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\xD7"), /*#__PURE__*/React.createElement("datalist", {
+    id: "cdoc-clients-list"
+  }, clientOptions.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c,
+    value: c
+  }, computeClientCode(c), " \u2014 ", c)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 10px 5px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      background: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: dateFrom,
+    onChange: e => setDateFrom(e.target.value),
+    style: {
+      border: 0,
+      outline: "none",
+      fontSize: 12.5,
+      padding: "3px 4px",
+      background: "transparent",
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#94a3b8",
+      fontSize: 12
+    }
+  }, "\u2192"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: dateTo,
+    onChange: e => setDateTo(e.target.value),
+    style: {
+      border: 0,
+      outline: "none",
+      fontSize: 12.5,
+      padding: "3px 4px",
+      background: "transparent",
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#0f172a"
+    }
+  }), (dateFrom || dateTo) && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setDateFrom("");
+      setDateTo("");
+    },
+    title: "Effacer",
+    style: {
+      border: 0,
+      background: "transparent",
+      color: "#94a3b8",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\xD7")), (clientFilter || dateFrom || dateTo) && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b"
+    }
+  }, filtered.length, " r\xE9sultat", filtered.length > 1 ? "s" : "")), loading ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 60,
       textAlign: "center",
@@ -639,6 +789,10 @@ var CommercialDocs = () => {
       flex: "0 0 100px"
     }
   }, "Date"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 90px"
+    }
+  }, "Code client"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 120px",
       textAlign: "right"
@@ -985,6 +1139,27 @@ var DocRow = ({
       fontFamily: "'JetBrains Mono', monospace"
     }
   }, doc.doc_date), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 90px"
+    }
+  }, doc.client_name ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 7px",
+      borderRadius: 5,
+      background: "#eef2ff",
+      color: "#3730a3",
+      fontSize: 11,
+      fontWeight: 700,
+      fontFamily: "'JetBrains Mono', monospace",
+      letterSpacing: 0.5
+    }
+  }, computeClientCode(doc.client_name)) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#cbd5e1"
+    }
+  }, "\u2014")), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 120px",
       textAlign: "right",

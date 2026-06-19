@@ -442,15 +442,15 @@ const CommercialDocs = () => {
         ) : (
           <div style={cdStyles.docList}>
             <div style={cdStyles.tableHead}>
-              <span style={{ flex: "0 0 130px" }}>Référence</span>
-              <span style={{ flex: "0 0 90px" }}>Code client</span>
+              <span style={{ flex: "0 0 130px" }}>Référence de la pièce</span>
+              <span style={{ flex: "0 0 90px" }}>Code raison sociale</span>
               <span style={{ flex: "0 0 170px" }}>Workflow</span>
-              <span style={{ flex: "0 0 100px" }}>Date</span>
-              <span style={{ flex: 1 }}>Client / Titre</span>
-              <span style={{ flex: "0 0 90px" }}>Type</span>
+              <span style={{ flex: "0 0 100px" }}>Date de la pièce</span>
+              <span style={{ flex: 1 }}>Nom de la raison sociale / Titre du devis</span>
+              <span style={{ flex: "0 0 90px" }}>Statut de la raison sociale</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant HT</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant TTC</span>
-              <span style={{ flex: "0 0 100px" }}>Statut</span>
+              <span style={{ flex: "0 0 100px" }}>Statut de la pièce</span>
               <span style={{ flex: "0 0 60px" }}></span>
             </div>
             {filtered.map((d) => (

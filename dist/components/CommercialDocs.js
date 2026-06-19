@@ -801,11 +801,11 @@ var CommercialDocs = () => {
     style: {
       flex: "0 0 130px"
     }
-  }, "R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("span", {
+  }, "R\xE9f\xE9rence de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 90px"
     }
-  }, "Code client"), /*#__PURE__*/React.createElement("span", {
+  }, "Code raison sociale"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 170px"
     }
@@ -813,15 +813,15 @@ var CommercialDocs = () => {
     style: {
       flex: "0 0 100px"
     }
-  }, "Date"), /*#__PURE__*/React.createElement("span", {
+  }, "Date de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1
     }
-  }, "Client / Titre"), /*#__PURE__*/React.createElement("span", {
+  }, "Nom de la raison sociale / Titre du devis"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 90px"
     }
-  }, "Type"), /*#__PURE__*/React.createElement("span", {
+  }, "Statut de la raison sociale"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 120px",
       textAlign: "right"
@@ -835,7 +835,7 @@ var CommercialDocs = () => {
     style: {
       flex: "0 0 100px"
     }
-  }, "Statut"), /*#__PURE__*/React.createElement("span", {
+  }, "Statut de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px"
     }

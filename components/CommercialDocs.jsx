@@ -155,7 +155,7 @@ const CommercialDocs = () => {
     // bascule sur l'onglet Devis et ouvre un nouveau devis.
     { k: "devis",          label: "Devis",            newLabel: "Nouveau devis", color: "#3b82f6", icon: "📄" },
     { k: "commande",       label: "Commandes client", newLabel: "Nouveau devis", color: "#a855f7", icon: "📋" },
-    { k: "commande_achat", label: "Commande d'achat", newLabel: "Nouveau devis", color: "#0ea5e9", icon: "🛒" },
+    { k: "commande_achat", label: "Commande fournisseur", newLabel: "Nouveau devis", color: "#0ea5e9", icon: "🛒" },
     { k: "bl",             label: "Bons livraison",   newLabel: "Nouveau devis", color: "#ea580c", icon: "🚚" },
     { k: "facture",        label: "Factures",         newLabel: "Nouveau devis", color: "#10b981", icon: "💶" },
   ];
@@ -213,21 +213,41 @@ const CommercialDocs = () => {
     return map;
   }, [allDocs]);
 
-  // Pour un doc devis, retourne la chaîne complète : { devis, commande, bl, facture }
+  // Pour un doc devis, retourne la chaîne complète :
+  // { devis, commande, commande_achat, bl, facture }
+  // commande_achat est rattachée à la commande via data.parent_commande_id
+  // (et non parent_doc_id, car c'est une branche fournisseur parallèle).
   const buildChain = React.useCallback((rootDoc) => {
-    const chain = { devis: null, commande: null, bl: null, facture: null };
+    const chain = { devis: null, commande: null, commande_achat: null, bl: null, facture: null };
     let current = rootDoc;
     while (current) {
       chain[current.type] = current;
       current = childrenMap[current.id] || null;
     }
+    // Cherche la commande d'achat rattachée à la commande client
+    if (chain.commande) {
+      const ca = (allDocs || []).find((dd) =>
+        dd.type === "commande_achat" &&
+        (
+          (dd.data && dd.data.parent_commande_id === chain.commande.id) ||
+          (dd.parent_doc_id === chain.commande.id)
+        )
+      );
+      if (ca) chain.commande_achat = ca;
+    }
     return chain;
-  }, [childrenMap]);
+  }, [childrenMap, allDocs]);
 
-  // Pour un doc enfant (ex commande), remonte la chaîne et retourne les 4 docs
+  // Pour un doc enfant (ex commande), remonte la chaîne et retourne les 5 docs
   const buildChainFromAny = React.useCallback((doc) => {
-    if (!doc) return { devis: null, commande: null, bl: null, facture: null };
-    // Remonte au devis racine
+    if (!doc) return { devis: null, commande: null, commande_achat: null, bl: null, facture: null };
+    // Cas particulier : pour une commande d'achat, remonter à la commande client
+    if (doc.type === "commande_achat") {
+      const parentCommandeId = (doc.data && doc.data.parent_commande_id) || doc.parent_doc_id;
+      const parentCommande = parentCommandeId ? (allDocs || []).find((d) => d.id === parentCommandeId) : null;
+      if (parentCommande) return buildChainFromAny(parentCommande);
+    }
+    // Remonte au devis racine via parent_doc_id
     let root = doc;
     const seen = new Set();
     while (root.parent_doc_id && !seen.has(root.id)) {
@@ -579,10 +599,11 @@ const CommercialDocs = () => {
 // ─────────────────────────────────────────────────────────────────
 const WorkflowBar = ({ doc, canTransform, chain }) => {
   const STEPS = [
-    { k: "devis",    label: "Devis",           icon: "📄" },
-    { k: "commande", label: "Commande client", icon: "📋" },
-    { k: "bl",       label: "BL",              icon: "🚚" },
-    { k: "facture",  label: "Facture",         icon: "💶" },
+    { k: "devis",          label: "Devis",                icon: "📄" },
+    { k: "commande",       label: "Commande client",      icon: "📋" },
+    { k: "commande_achat", label: "Commande fournisseur", icon: "🛒" },
+    { k: "bl",             label: "BL",                   icon: "🚚" },
+    { k: "facture",        label: "Facture",              icon: "💶" },
   ];
   const curIdx = STEPS.findIndex((s) => s.k === doc.type);
   const isLocked = doc.status === "transforme";
@@ -846,10 +867,11 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
 // ─────────────────────────────────────────────────────────────────
 const WorkflowChain = ({ chain, currentType }) => {
   const STEPS = [
-    { k: "devis",    label: "D", title: "Devis",    color: "#3b82f6" },
-    { k: "commande", label: "C", title: "Commande", color: "#a855f7" },
-    { k: "bl",       label: "B", title: "BL",       color: "#ea580c" },
-    { k: "facture",  label: "F", title: "Facture",  color: "#10b981" },
+    { k: "devis",          label: "D", title: "Devis",                color: "#3b82f6" },
+    { k: "commande",       label: "C", title: "Commande client",      color: "#a855f7" },
+    { k: "commande_achat", label: "F", title: "Commande fournisseur", color: "#0ea5e9" },
+    { k: "bl",             label: "B", title: "BL",                   color: "#ea580c" },
+    { k: "facture",        label: "$", title: "Facture",              color: "#10b981" },
   ];
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
@@ -1091,6 +1113,72 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
     return { ht: Math.round(ht * 100) / 100, tva: Math.round(tva * 100) / 100, ttc: Math.round((ht + tva) * 100) / 100 };
   }, [d.lines]);
 
+  // Synchronise la commande fournisseur (commande_achat) et le BL liés à
+  // cette commande client. Appelée après chaque sauvegarde de la commande
+  // pour garder les 3 docs alignés (lignes + totaux + titre + client).
+  // Les lignes downstream ne sont touchées QUE si le BL/CA est toujours en
+  // brouillon (sinon on respecte les modifications manuelles aval).
+  const syncCommandeDownstream = async (commande, lines, patch) => {
+    if (!chain) return;
+    const targets = [chain.commande_achat, chain.bl].filter(Boolean);
+    for (const tgt of targets) {
+      if (!tgt) continue;
+      // Si l'aval a déjà été validé (livré/payé/facturé/transforme), on ne touche pas
+      const frozenStatuses = new Set(["livre", "paye", "transforme", "annule", "refuse"]);
+      if (frozenStatuses.has(tgt.status)) continue;
+
+      // 1. Patch les totaux et infos client (la commande fournisseur garde son client_name "fournisseur" si déjà rempli)
+      const downstreamPatch = {
+        total_ht: patch.total_ht,
+        total_tva: patch.total_tva,
+        total_ttc: patch.total_ttc,
+      };
+      if (tgt.type === "bl") {
+        // Le BL hérite des infos client / contact
+        downstreamPatch.client_name    = patch.client_name;
+        downstreamPatch.client_address = patch.client_address;
+        downstreamPatch.client_cp      = patch.client_cp;
+        downstreamPatch.client_city    = patch.client_city;
+        downstreamPatch.client_siren   = patch.client_siren;
+        downstreamPatch.contact_name   = patch.contact_name;
+        downstreamPatch.contact_email  = patch.contact_email;
+      }
+      try { await window.api.commercialDocs.update(tgt.id, downstreamPatch); } catch (e) { console.warn(e); }
+
+      // 2. Recharge les lignes existantes, supprime-les, recrée à l'identique
+      try {
+        const fresh = await window.api.commercialDocs.getById(tgt.id);
+        const existingLines = (fresh && fresh.lines) || [];
+        for (const el of existingLines) {
+          try { await window.api.commercialDocs.removeLine(el.id); } catch (e) {}
+        }
+        for (let i = 0; i < lines.length; i++) {
+          const l = lines[i];
+          const normalized = {
+            article_id: l.article_id || null,
+            ref: l.ref || null,
+            designation: l.designation || "",
+            description: l.description || null,
+            quantity: Number(l.quantity) || 0,
+            unit: l.unit || "u",
+            unit_price_ht: Number(l.unit_price_ht) || 0,
+            discount_pct: Number(l.discount_pct) || 0,
+            tva_rate: Number(l.tva_rate) || 0,
+            total_ht: Number(l.total_ht) || 0,
+            total_tva: Number(l.total_tva) || 0,
+            total_ttc: Number(l.total_ttc) || 0,
+            is_text_only: !!l.is_text_only,
+            position: i,
+            manufacturer_ref: l.manufacturer_ref || null,
+            purchase_price_indicative: l.purchase_price_indicative == null ? null : Number(l.purchase_price_indicative),
+            supplier: l.supplier || null,
+          };
+          try { await window.api.commercialDocs.addLine(tgt.id, normalized); } catch (e) { console.warn(e); }
+        }
+      } catch (e) { console.warn("[syncCommandeDownstream lines]", e); }
+    }
+  };
+
   const save = async (options = {}) => {
     setSaving(true);
     try {
@@ -1159,6 +1247,14 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
       // Met à jour le state local avec les vrais IDs (au cas où l'utilisateur ne ferme pas)
       setD((cur) => ({ ...cur, lines: updatedLines }));
 
+      // 3. Si on vient de modifier une commande client : on synchronise la
+      //    commande fournisseur (commande_achat) et le BL avec les mêmes
+      //    lignes et totaux. La cohérence chaîne est tenue automatiquement.
+      if (d.type === "commande") {
+        try { await syncCommandeDownstream(d, updatedLines, patch); }
+        catch (e) { console.warn("[commande sync downstream]", e); }
+      }
+
       if (window.HubToast) window.HubToast.success("✓ Document enregistré");
       onSaved && onSaved();
       if (!options.keepOpen) {
@@ -1215,8 +1311,8 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
     // Cascade pour un devis : devis → commande → BL en un seul clic
     if (d.type === "devis") {
       const confirmMsg = (!canTransform.ok && !canTransform.hard)
-        ? "Le devis est en « " + d.status + " ». Le passer en « Accepté » puis cascader en Commande et BL ?\n\n• Devis marqué Accepté\n• Commande créée et marquée Acceptée\n• BL créé\n• Commande d'achat fournisseur générée"
-        : "Cascader ce devis en Commande puis BL ?\n\n• Commande créée et marquée Acceptée\n• BL créé\n• Commande d'achat fournisseur générée";
+        ? "Le devis est en « " + d.status + " ». Le passer en « Accepté » puis cascader la chaîne complète ?\n\n• Devis marqué Accepté\n• Commande client créée et marquée Acceptée\n• Commande fournisseur générée automatiquement\n• BL créé"
+        : "Cascader ce devis en Commande client → Commande fournisseur → BL ?\n\n• Commande client créée et marquée Acceptée\n• Commande fournisseur générée automatiquement\n• BL créé";
       if (!confirm(confirmMsg)) return;
       try {
         if (!canTransform.ok && !canTransform.hard) setField("status", canTransform.needStatus);

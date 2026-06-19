@@ -265,10 +265,16 @@ var CommercialDocs = () => {
     icon: "📄"
   }, {
     k: "commande",
-    label: "Commandes",
-    newLabel: "Nouvelle commande",
+    label: "Commandes client",
+    newLabel: "Nouvelle commande client",
     color: "#a855f7",
     icon: "📋"
+  }, {
+    k: "commande_achat",
+    label: "Commande d'achat",
+    newLabel: "Nouvelle commande d'achat",
+    color: "#0ea5e9",
+    icon: "🛒"
   }, {
     k: "bl",
     label: "Bons livraison",
@@ -281,12 +287,6 @@ var CommercialDocs = () => {
     newLabel: "Nouvelle facture",
     color: "#10b981",
     icon: "💶"
-  }, {
-    k: "commande_achat",
-    label: "Achats fournisseurs",
-    newLabel: "Nouvelle commande d'achat",
-    color: "#0ea5e9",
-    icon: "🛒"
   }];
   var STATUS_META = {
     brouillon: {
@@ -991,7 +991,7 @@ var WorkflowBar = ({
     icon: "📄"
   }, {
     k: "commande",
-    label: "Commande",
+    label: "Commande client",
     icon: "📋"
   }, {
     k: "bl",
@@ -2403,12 +2403,16 @@ var CommercialDocEditor = ({
       facture: "facture"
     };
     var allowed = STATUS_FLOW[d.type] || [];
-    var childExists = chain && NEXT_TYPE[d.type] && chain[NEXT_TYPE[d.type]] && chain[NEXT_TYPE[d.type]].id !== d.id;
-    var childDoc = childExists ? chain[NEXT_TYPE[d.type]] : null;
+    // Règle spéciale "Commande client" : reste modifiable tant qu'aucune
+    // facture n'a été émise dans la chaîne (au-delà du simple BL).
+    // Sinon : verrou dès que le doc enfant direct existe.
+    var factureExists = chain && chain.facture && chain.facture.id !== d.id;
+    var directChildExists = chain && NEXT_TYPE[d.type] && chain[NEXT_TYPE[d.type]] && chain[NEXT_TYPE[d.type]].id !== d.id;
+    var childExists = d.type === "commande" ? factureExists : directChildExists;
+    var childDoc = d.type === "commande" ? factureExists ? chain.facture : null : directChildExists ? chain[NEXT_TYPE[d.type]] : null;
     var isTransformed = d.status === "transforme";
-    // Verrouillage dur si un doc enfant existe : interdit toute modif de statut
-    // (cohérence avec le doc enfant émis). Bouton "Débloquer" pour les cas où
-    // on doit corriger une incohérence (annulation enfant à gérer à la main).
+    // Verrouillage dur si un doc enfant pertinent existe : interdit toute
+    // modif de statut. Bouton "Débloquer" pour les cas exceptionnels.
     var isLocked = childExists || isTransformed;
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("select", {
       value: d.status,

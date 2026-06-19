@@ -1767,6 +1767,74 @@ var CommercialDocEditor = ({
       })) || []);
     } catch (e) {}
   }, []);
+
+  // Backfill : si on ouvre une commande client sans commande fournisseur
+  // liée (cascade ancienne ou hook échoué), on la crée silencieusement en
+  // miroir exact pour que la chaîne soit complète. Idempotent.
+  React.useEffect(() => {
+    if (!d || d.type !== "commande") return;
+    if (!chain || chain.commande_achat) return;
+    var cancelled = false;
+    (async () => {
+      try {
+        // Double-check côté BDD (au cas où chain serait obsolète)
+        var allCA = await window.api.commercialDocs.list({
+          type: "commande_achat"
+        });
+        var existing = (allCA || []).find(x => x && x.data && x.data.parent_commande_id === d.id);
+        if (existing || cancelled) return;
+        var fullCommande = await window.api.commercialDocs.getById(d.id);
+        if (!fullCommande || cancelled) return;
+        await window.api.commercialDocs.create({
+          type: "commande_achat",
+          status: fullCommande.status === "accepte" ? "accepte" : "brouillon",
+          client_name: fullCommande.client_name,
+          client_address: fullCommande.client_address,
+          client_cp: fullCommande.client_cp,
+          client_city: fullCommande.client_city,
+          client_siren: fullCommande.client_siren,
+          client_tva: fullCommande.client_tva,
+          contact_name: fullCommande.contact_name,
+          contact_email: fullCommande.contact_email,
+          project_id: fullCommande.project_id,
+          opportunity_id: fullCommande.opportunity_id,
+          title: fullCommande.title,
+          notes: fullCommande.notes,
+          payment_terms_id: fullCommande.payment_terms_id,
+          owner: fullCommande.owner,
+          doc_date: fullCommande.doc_date,
+          data: {
+            parent_commande_id: d.id,
+            created_from: "backfill_on_open"
+          },
+          lines: (fullCommande.lines || []).map(l => ({
+            article_id: l.article_id,
+            ref: l.ref,
+            designation: l.designation,
+            description: l.description,
+            quantity: l.quantity,
+            unit: l.unit,
+            unit_price_ht: l.unit_price_ht,
+            discount_pct: l.discount_pct,
+            tva_rate: l.tva_rate,
+            total_ht: l.total_ht,
+            total_tva: l.total_tva,
+            total_ttc: l.total_ttc,
+            is_text_only: l.is_text_only,
+            manufacturer_ref: l.manufacturer_ref || null,
+            purchase_price_indicative: l.purchase_price_indicative,
+            supplier: l.supplier || null
+          }))
+        });
+        if (!cancelled && onSaved) onSaved();
+      } catch (e) {
+        console.warn("[backfill cmd fournisseur]", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [d && d.id, d && d.type, chain && !!chain.commande_achat]);
   React.useEffect(() => {
     (async () => {
       try {
@@ -2265,26 +2333,76 @@ var CommercialDocEditor = ({
         await window.api.commercialDocs.update(commande.id, {
           status: "accepte"
         });
-        // 2. La commande fournisseur est auto-créée par le hook createPurchaseOrder
-        //    côté api.js. On la marque Acceptée ici une fois trouvée.
-        var cmdFournisseurId = null;
+        // 2. Recharge la commande avec ses lignes persistées
+        var fullCommande = await window.api.commercialDocs.getById(commande.id);
+        // 3. Recherche la commande fournisseur auto-créée par le hook
+        //    createPurchaseOrder côté api.js. Si le hook a échoué silencieusement,
+        //    on crée explicitement la commande fournisseur en miroir exact.
+        var cmdFournisseur = null;
         try {
-          var allRecent = await window.api.commercialDocs.list({
+          var allCA = await window.api.commercialDocs.list({
             type: "commande_achat"
           });
-          var ca = (allRecent || []).find(x => x && x.data && x.data.parent_commande_id === commande.id);
-          if (ca) {
-            await window.api.commercialDocs.update(ca.id, {
+          cmdFournisseur = (allCA || []).find(x => x && x.data && x.data.parent_commande_id === commande.id) || null;
+        } catch (e) {
+          console.warn("[cascade: lookup cmd fournisseur]", e);
+        }
+        if (!cmdFournisseur) {
+          try {
+            cmdFournisseur = await window.api.commercialDocs.create({
+              type: "commande_achat",
+              status: "accepte",
+              client_name: fullCommande.client_name,
+              client_address: fullCommande.client_address,
+              client_cp: fullCommande.client_cp,
+              client_city: fullCommande.client_city,
+              client_siren: fullCommande.client_siren,
+              client_tva: fullCommande.client_tva,
+              contact_name: fullCommande.contact_name,
+              contact_email: fullCommande.contact_email,
+              project_id: fullCommande.project_id,
+              opportunity_id: fullCommande.opportunity_id,
+              title: fullCommande.title,
+              notes: fullCommande.notes,
+              payment_terms_id: fullCommande.payment_terms_id,
+              owner: fullCommande.owner,
+              doc_date: fullCommande.doc_date,
+              data: {
+                parent_commande_id: commande.id,
+                created_from: "cascade_explicit"
+              },
+              lines: (fullCommande.lines || []).map(l => ({
+                article_id: l.article_id,
+                ref: l.ref,
+                designation: l.designation,
+                description: l.description,
+                quantity: l.quantity,
+                unit: l.unit,
+                unit_price_ht: l.unit_price_ht,
+                discount_pct: l.discount_pct,
+                tva_rate: l.tva_rate,
+                total_ht: l.total_ht,
+                total_tva: l.total_tva,
+                total_ttc: l.total_ttc,
+                is_text_only: l.is_text_only,
+                manufacturer_ref: l.manufacturer_ref || null,
+                purchase_price_indicative: l.purchase_price_indicative,
+                supplier: l.supplier || null
+              }))
+            });
+          } catch (e) {
+            console.warn("[cascade: create explicit cmd fournisseur]", e);
+          }
+        } else if (cmdFournisseur.status !== "accepte") {
+          try {
+            await window.api.commercialDocs.update(cmdFournisseur.id, {
               status: "accepte"
             });
-            cmdFournisseurId = ca.id;
-          }
-        } catch (e) {
-          console.warn("[cascade: status cmd fournisseur]", e);
+          } catch (e) {}
         }
-        // 3. Commande client → BL
+        // 4. Commande client → BL
         var bl = await window.api.commercialDocs.transform(commande.id, "bl");
-        var created = [commande.id, cmdFournisseurId, bl && bl.id].filter(Boolean);
+        var created = [commande.id, cmdFournisseur && cmdFournisseur.id, bl && bl.id].filter(Boolean);
         if (window.HubToast) window.HubToast.success("✓ Cascade OK : " + created.join(" + "));
         onSaved && onSaved();
         onClose && onClose();

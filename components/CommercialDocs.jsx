@@ -380,6 +380,7 @@ const CommercialDocs = () => {
           doc={editing}
           clients={clients}
           opps={opps}
+          chain={buildChainFromAny(editing)}
           onClose={closeEditor}
           onSaved={reload}
         />
@@ -392,7 +393,7 @@ const CommercialDocs = () => {
 // WorkflowBar — Visualisation du cycle Devis→Commande→BL→Facture
 //                avec étape courante + portes de validation
 // ─────────────────────────────────────────────────────────────────
-const WorkflowBar = ({ doc, canTransform }) => {
+const WorkflowBar = ({ doc, canTransform, chain }) => {
   const STEPS = [
     { k: "devis",    label: "Devis",    icon: "📄" },
     { k: "commande", label: "Commande", icon: "📋" },
@@ -401,6 +402,8 @@ const WorkflowBar = ({ doc, canTransform }) => {
   ];
   const curIdx = STEPS.findIndex((s) => s.k === doc.type);
   const isLocked = doc.status === "transforme";
+  // Étape "future" qui existe déjà en BDD (créée par cascade) → violet plein
+  const hasDescendant = (k) => !!(chain && chain[k]);
   return (
     <div style={{ background: "linear-gradient(135deg, #f0f9ff, #eef2ff)", border: "1px solid #c7d2fe", borderRadius: 10, padding: "12px 14px", marginBottom: 18 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -414,23 +417,31 @@ const WorkflowBar = ({ doc, canTransform }) => {
           const isCurrent = i === curIdx;
           const isPast = i < curIdx;
           const isFuture = i > curIdx;
+          const isCreated = isFuture && hasDescendant(s.k); // doc enfant déjà créé
+          const child = chain && chain[s.k];
           return (
             <React.Fragment key={s.k}>
-              <div style={{
-                flex: 1, padding: "8px 10px", borderRadius: 7,
-                background: isCurrent ? "#3730a3" : isPast ? "#dcfce7" : "#fff",
-                color: isCurrent ? "#fff" : isPast ? "#065f46" : "#94a3b8",
-                border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : "#e2e8f0"),
-                fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
-              }}>
+              <div
+                onClick={() => { if (isCreated && child && child.id !== doc.id && typeof window !== "undefined" && window.location) { window.location.hash = "#doc=" + child.id; } }}
+                title={isCreated && child ? "Ouvrir " + child.id : ""}
+                style={{
+                  flex: 1, padding: "8px 10px", borderRadius: 7,
+                  background: isCurrent ? "#3730a3" : isPast ? "#dcfce7" : isCreated ? "#7c3aed" : "#fff",
+                  color: isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
+                  border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
+                  boxShadow: isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
+                  cursor: isCreated ? "pointer" : "default",
+                  fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
+                }}>
                 <span style={{ fontSize: 14 }}>{s.icon}</span>
                 <span style={{ flex: 1 }}>{s.label}</span>
                 {isCurrent && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(255,255,255,0.25)", fontWeight: 700 }}>{(doc.status || "").toUpperCase()}</span>}
                 {isPast && <span style={{ fontSize: 12 }}>✓</span>}
+                {isCreated && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "rgba(255,255,255,0.25)", fontWeight: 700 }}>CRÉÉ</span>}
               </div>
               {i < STEPS.length - 1 && (
-                <div style={{ fontSize: 14, color: isPast ? "#10b981" : isCurrent && canTransform.ok ? "#10b981" : "#cbd5e1" }}>
-                  {isPast ? "→" : isCurrent && canTransform.ok ? "→" : "✕"}
+                <div style={{ fontSize: 14, color: isPast || isCreated ? "#10b981" : isCurrent && canTransform.ok ? "#10b981" : "#cbd5e1" }}>
+                  {isPast || isCreated ? "→" : isCurrent && canTransform.ok ? "→" : "✕"}
                 </div>
               )}
             </React.Fragment>
@@ -692,7 +703,7 @@ const KPI = ({ label, value, color }) => (
 // ─────────────────────────────────────────────────────────────────
 // EDITOR : édition d'un doc + ses lignes
 // ─────────────────────────────────────────────────────────────────
-const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
+const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) => {
   const [d, setD] = React.useState(doc);
   const [articles, setArticles] = React.useState([]);
   const [tvaRates, setTvaRates] = React.useState([]);
@@ -954,6 +965,28 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
     }
     const next = canTransform.nextType;
     const labels = { commande: "bon de commande", bl: "bon de livraison", facture: "facture" };
+    // Cascade pour un devis : devis → commande → BL en un seul clic
+    if (d.type === "devis") {
+      const confirmMsg = (!canTransform.ok && !canTransform.hard)
+        ? "Le devis est en « " + d.status + " ». Le passer en « Accepté » puis cascader en Commande et BL ?\n\n• Devis marqué Accepté\n• Commande créée et marquée Acceptée\n• BL créé\n• Commande d'achat fournisseur générée"
+        : "Cascader ce devis en Commande puis BL ?\n\n• Commande créée et marquée Acceptée\n• BL créé\n• Commande d'achat fournisseur générée";
+      if (!confirm(confirmMsg)) return;
+      try {
+        if (!canTransform.ok && !canTransform.hard) setField("status", canTransform.needStatus);
+        await save({ keepOpen: true });
+        if (d.status !== "accepte") await window.api.commercialDocs.update(d.id, { status: "accepte" });
+        const commande = await window.api.commercialDocs.transform(d.id, "commande");
+        if (!commande) throw new Error("Échec création commande");
+        await window.api.commercialDocs.update(commande.id, { status: "accepte" });
+        const bl = await window.api.commercialDocs.transform(commande.id, "bl");
+        if (window.HubToast) window.HubToast.success("✓ " + commande.id + " + " + (bl ? bl.id : "") + " créés");
+        onSaved && onSaved();
+        onClose && onClose();
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur cascade : " + (e.message || e));
+      }
+      return;
+    }
     // Cas "blocage doux" : on propose d'updater le statut et transformer
     if (!canTransform.ok && !canTransform.hard) {
       const ok = confirm("Le " + d.type + " est actuellement en « " + d.status + " ».\n\nPour le transformer en " + labels[next] + ", il doit d'abord être marqué « " + canTransform.needStatusLbl + " ».\n\n• Cliquer OK : on bascule le statut sur « " + canTransform.needStatusLbl + " » puis on crée le " + labels[next] + ".\n• Annuler : aucun changement.");
@@ -1023,34 +1056,8 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
                 </button>
               );
             })()}
-            {/* Bouton CASCADE : devis → commande → BL en chaîne (rejoue le hook
-                manuellement si l'auto-cascade côté opp n'a pas fonctionné) */}
-            {d.type === "devis" && d.status !== "transforme" && (
-              <button
-                onClick={async () => {
-                  if (!confirm("Cascader ce devis en Commande puis BL automatiquement ?\n\n• Le devis sera marqué Accepté\n• Une commande sera créée (transformation)\n• La commande sera marquée Acceptée\n• Un BL sera créé\n• Une commande d'achat fournisseur sera générée")) return;
-                  try {
-                    await save({ keepOpen: true });
-                    // 1. Marque devis accepte
-                    await window.api.commercialDocs.update(d.id, { status: "accepte" });
-                    // 2. Transforme en commande
-                    const commande = await window.api.commercialDocs.transform(d.id, "commande");
-                    if (!commande) throw new Error("Échec création commande");
-                    // 3. Marque commande accepte
-                    await window.api.commercialDocs.update(commande.id, { status: "accepte" });
-                    // 4. Transforme commande → BL
-                    const bl = await window.api.commercialDocs.transform(commande.id, "bl");
-                    if (window.HubToast) window.HubToast.success("✓ Cascade OK : " + commande.id + " + " + (bl ? bl.id : "") + " + commande d'achat");
-                    onSaved && onSaved();
-                    onClose && onClose();
-                  } catch (e) {
-                    if (window.HubToast) window.HubToast.error("Cascade : " + (e.message || e));
-                  }
-                }}
-                title="Bascule automatique en Commande + BL + génération commande d'achat"
-                style={{ ...cdStyles.ghostBtn, borderColor: "#a855f7", color: "#7e22ce", background: "#f5efff", fontWeight: 600 }}
-              >⚡ Cascade workflow</button>
-            )}
+            {/* Bouton CASCADE supprimé : la transformation depuis un devis cascade
+                automatiquement en Commande + BL via le bouton vert ci-dessus. */}
             <button onClick={save} disabled={saving} style={cdStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
             <button onClick={onClose} style={cdStyles.closeBtn}>×</button>
           </div>
@@ -1058,7 +1065,7 @@ const CommercialDocEditor = ({ doc, clients, opps, onClose, onSaved }) => {
 
         <div style={cdStyles.modalBody}>
           {/* WORKFLOW SAGE — fil de fer + validation gates */}
-          <WorkflowBar doc={d} canTransform={canTransform} />
+          <WorkflowBar doc={d} canTransform={canTransform} chain={chain} />
 
           {/* Bloc client + meta */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>

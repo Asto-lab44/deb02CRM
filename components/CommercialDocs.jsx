@@ -1506,9 +1506,20 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                   ? (factureExists ? chain.facture : null)
                   : (directChildExists ? chain[NEXT_TYPE[d.type]] : null);
                 const isTransformed = d.status === "transforme";
-                // Verrouillage dur si un doc enfant pertinent existe : interdit toute
-                // modif de statut. Bouton "Débloquer" pour les cas exceptionnels.
-                const isLocked = childExists || isTransformed;
+                // Verrou supplémentaire pour commande client / BL :
+                // dès qu'au moins un article de la commande est passé au statut
+                // "commande" (ou plus avancé : partielle / recu / en_stock) côté
+                // fournisseur, on fige le doc → cohérence avec la commande
+                // fournisseur déjà émise dans Stock & Catalogue.
+                const ORDERED_PURCHASE_STATES = new Set(["commande", "partielle", "recu", "en_stock"]);
+                const hasOrderedLine = (d.type === "commande" || d.type === "bl") &&
+                  (d.lines || []).some((l) => l && ORDERED_PURCHASE_STATES.has(String(l.purchase_status || "").trim()));
+                const orderedLine = hasOrderedLine
+                  ? (d.lines || []).find((l) => l && ORDERED_PURCHASE_STATES.has(String(l.purchase_status || "").trim()))
+                  : null;
+                // Verrouillage dur si un doc enfant pertinent existe OU
+                // si une ligne est passée en commande fournisseur.
+                const isLocked = childExists || isTransformed || hasOrderedLine;
                 return (
                   <div>
                     <select value={d.status}
@@ -1533,7 +1544,9 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                     {isLocked && (
                       <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 10.5, color: "#b45309", fontWeight: 600 }}>
-                          🔒 Verrouillé — {childExists ? NEXT_NAME[NEXT_TYPE[d.type]] + " " + childDoc.id + " déjà créé(e)" : "doc transformé"}
+                          🔒 Verrouillé — {childExists ? NEXT_NAME[NEXT_TYPE[d.type]] + " " + childDoc.id + " déjà créé(e)" :
+                                            hasOrderedLine ? "article(s) commandé(s) chez le fournisseur" + (orderedLine && orderedLine.designation ? " — " + orderedLine.designation : "") :
+                                            "doc transformé"}
                         </span>
                         <button onClick={() => {
                           const msg = childExists

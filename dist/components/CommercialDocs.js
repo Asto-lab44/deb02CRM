@@ -2548,9 +2548,17 @@ var CommercialDocEditor = ({
     var childExists = d.type === "commande" ? factureExists : directChildExists;
     var childDoc = d.type === "commande" ? factureExists ? chain.facture : null : directChildExists ? chain[NEXT_TYPE[d.type]] : null;
     var isTransformed = d.status === "transforme";
-    // Verrouillage dur si un doc enfant pertinent existe : interdit toute
-    // modif de statut. Bouton "Débloquer" pour les cas exceptionnels.
-    var isLocked = childExists || isTransformed;
+    // Verrou supplémentaire pour commande client / BL :
+    // dès qu'au moins un article de la commande est passé au statut
+    // "commande" (ou plus avancé : partielle / recu / en_stock) côté
+    // fournisseur, on fige le doc → cohérence avec la commande
+    // fournisseur déjà émise dans Stock & Catalogue.
+    var ORDERED_PURCHASE_STATES = new Set(["commande", "partielle", "recu", "en_stock"]);
+    var hasOrderedLine = (d.type === "commande" || d.type === "bl") && (d.lines || []).some(l => l && ORDERED_PURCHASE_STATES.has(String(l.purchase_status || "").trim()));
+    var orderedLine = hasOrderedLine ? (d.lines || []).find(l => l && ORDERED_PURCHASE_STATES.has(String(l.purchase_status || "").trim())) : null;
+    // Verrouillage dur si un doc enfant pertinent existe OU
+    // si une ligne est passée en commande fournisseur.
+    var isLocked = childExists || isTransformed || hasOrderedLine;
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("select", {
       value: d.status,
       disabled: isLocked,
@@ -2586,7 +2594,7 @@ var CommercialDocEditor = ({
         color: "#b45309",
         fontWeight: 600
       }
-    }, "\uD83D\uDD12 Verrouill\xE9 \u2014 ", childExists ? NEXT_NAME[NEXT_TYPE[d.type]] + " " + childDoc.id + " déjà créé(e)" : "doc transformé"), /*#__PURE__*/React.createElement("button", {
+    }, "\uD83D\uDD12 Verrouill\xE9 \u2014 ", childExists ? NEXT_NAME[NEXT_TYPE[d.type]] + " " + childDoc.id + " déjà créé(e)" : hasOrderedLine ? "article(s) commandé(s) chez le fournisseur" + (orderedLine && orderedLine.designation ? " — " + orderedLine.designation : "") : "doc transformé"), /*#__PURE__*/React.createElement("button", {
       onClick: () => {
         var msg = childExists ? "Débloquer le statut du " + d.type + " ?\n\nLe document enfant " + childDoc.id + " (" + NEXT_NAME[NEXT_TYPE[d.type]] + ") reste actif. À toi de gérer la cohérence (annulation manuelle si besoin)." : "Débloquer le statut « Transformé » et le repasser à « Accepté » ?";
         if (!confirm(msg)) return;

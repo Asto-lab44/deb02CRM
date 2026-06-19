@@ -933,6 +933,20 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
     setD((cur) => ({ ...cur, lines: cur.lines.filter((_, i) => i !== idx) }));
   };
 
+  // Déplace une ligne d'un cran (delta = -1 monter / +1 descendre).
+  // Met aussi à jour line.position pour cohérence avec la BDD ; la sauvegarde
+  // effective survient au prochain Save (ou au Cascade).
+  const moveLine = (idx, delta) => {
+    setD((cur) => {
+      const lines = [...(cur.lines || [])];
+      const j = idx + delta;
+      if (j < 0 || j >= lines.length) return cur;
+      [lines[idx], lines[j]] = [lines[j], lines[idx]];
+      lines.forEach((l, i) => { l.position = i + 1; });
+      return { ...cur, lines };
+    });
+  };
+
   // Totaux calculés à la volée
   const totals = React.useMemo(() => {
     let ht = 0, tva = 0;
@@ -1325,6 +1339,12 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                   <div style={{ minWidth: 130, textAlign: "right", padding: "8px 12px", background: "#f8fafc", border: "1px solid #eef1f5", borderRadius: 6 }}>
                     <div style={{ fontSize: 9.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4 }}>Total HT</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(l.total_ht)}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+                    <button onClick={() => moveLine(i, -1)} disabled={i === 0} title="Monter cette ligne"
+                            style={{ width: 32, height: 15, background: "#fff", border: "1px solid #e2e8f0", color: i === 0 ? "#cbd5e1" : "#475569", fontSize: 10, cursor: i === 0 ? "not-allowed" : "pointer", borderRadius: "6px 6px 0 0", padding: 0, lineHeight: 1, fontWeight: 700 }}>▲</button>
+                    <button onClick={() => moveLine(i, +1)} disabled={i === (d.lines || []).length - 1} title="Descendre cette ligne"
+                            style={{ width: 32, height: 15, background: "#fff", border: "1px solid #e2e8f0", borderTop: 0, color: i === (d.lines || []).length - 1 ? "#cbd5e1" : "#475569", fontSize: 10, cursor: i === (d.lines || []).length - 1 ? "not-allowed" : "pointer", borderRadius: "0 0 6px 6px", padding: 0, lineHeight: 1, fontWeight: 700 }}>▼</button>
                   </div>
                   <button onClick={() => removeLine(i)} title="Supprimer la ligne" style={{ width: 32, height: 32, background: "#fff", border: "1px solid #fecaca", color: "#dc2626", fontSize: 14, cursor: "pointer", borderRadius: 6, flexShrink: 0 }}>🗑</button>
                 </div>

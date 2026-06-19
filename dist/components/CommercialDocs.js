@@ -1687,6 +1687,25 @@ var CommercialDocEditor = ({
     }));
   };
 
+  // Déplace une ligne d'un cran (delta = -1 monter / +1 descendre).
+  // Met aussi à jour line.position pour cohérence avec la BDD ; la sauvegarde
+  // effective survient au prochain Save (ou au Cascade).
+  var moveLine = (idx, delta) => {
+    setD(cur => {
+      var lines = [...(cur.lines || [])];
+      var j = idx + delta;
+      if (j < 0 || j >= lines.length) return cur;
+      [lines[idx], lines[j]] = [lines[j], lines[idx]];
+      lines.forEach((l, i) => {
+        l.position = i + 1;
+      });
+      return {
+        ...cur,
+        lines
+      };
+    });
+  };
+
   // Totaux calculés à la volée
   var totals = React.useMemo(() => {
     var ht = 0,
@@ -2334,7 +2353,49 @@ var CommercialDocEditor = ({
       color: "#0f172a",
       fontFamily: "'JetBrains Mono', monospace"
     }
-  }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("button", {
+  }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 2,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => moveLine(i, -1),
+    disabled: i === 0,
+    title: "Monter cette ligne",
+    style: {
+      width: 32,
+      height: 15,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      color: i === 0 ? "#cbd5e1" : "#475569",
+      fontSize: 10,
+      cursor: i === 0 ? "not-allowed" : "pointer",
+      borderRadius: "6px 6px 0 0",
+      padding: 0,
+      lineHeight: 1,
+      fontWeight: 700
+    }
+  }, "\u25B2"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => moveLine(i, +1),
+    disabled: i === (d.lines || []).length - 1,
+    title: "Descendre cette ligne",
+    style: {
+      width: 32,
+      height: 15,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderTop: 0,
+      color: i === (d.lines || []).length - 1 ? "#cbd5e1" : "#475569",
+      fontSize: 10,
+      cursor: i === (d.lines || []).length - 1 ? "not-allowed" : "pointer",
+      borderRadius: "0 0 6px 6px",
+      padding: 0,
+      lineHeight: 1,
+      fontWeight: 700
+    }
+  }, "\u25BC")), /*#__PURE__*/React.createElement("button", {
     onClick: () => removeLine(i),
     title: "Supprimer la ligne",
     style: {

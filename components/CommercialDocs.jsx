@@ -443,14 +443,14 @@ const CommercialDocs = () => {
           <div style={cdStyles.docList}>
             <div style={cdStyles.tableHead}>
               <span style={{ flex: "0 0 130px" }}>Référence</span>
+              <span style={{ flex: "0 0 90px" }}>Code client</span>
+              <span style={{ flex: "0 0 170px" }}>Workflow</span>
+              <span style={{ flex: "0 0 100px" }}>Date</span>
               <span style={{ flex: 1 }}>Client / Titre</span>
               <span style={{ flex: "0 0 90px" }}>Type</span>
-              <span style={{ flex: "0 0 100px" }}>Date</span>
-              <span style={{ flex: "0 0 90px" }}>Code client</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant HT</span>
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant TTC</span>
               <span style={{ flex: "0 0 100px" }}>Statut</span>
-              <span style={{ flex: "0 0 170px" }}>Workflow</span>
               <span style={{ flex: "0 0 60px" }}></span>
             </div>
             {filtered.map((d) => (
@@ -647,6 +647,15 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
   return (
     <div onClick={() => onOpen(doc.id)} style={cdStyles.tableRow}>
       <span style={{ flex: "0 0 130px", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#3730a3", fontWeight: 600 }}>{doc.id}</span>
+      <span style={{ flex: "0 0 90px" }}>
+        {doc.client_name ? (
+          <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 5, background: "#eef2ff", color: "#3730a3", fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 0.5 }}>{computeClientCode(doc.client_name)}</span>
+        ) : <span style={{ fontSize: 11, color: "#cbd5e1" }}>—</span>}
+      </span>
+      <span style={{ flex: "0 0 170px" }}>
+        <WorkflowChain chain={chain} currentType={doc.type} />
+      </span>
+      <span style={{ flex: "0 0 100px", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{doc.doc_date}</span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.client_name || "— Client non renseigné —"}</div>
         <div style={{ fontSize: 11.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.title || "(sans titre)"}</div>
@@ -660,19 +669,10 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
           <span style={{ fontSize: 11, color: "#cbd5e1" }}>—</span>
         )}
       </span>
-      <span style={{ flex: "0 0 100px", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{doc.doc_date}</span>
-      <span style={{ flex: "0 0 90px" }}>
-        {doc.client_name ? (
-          <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 5, background: "#eef2ff", color: "#3730a3", fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 0.5 }}>{computeClientCode(doc.client_name)}</span>
-        ) : <span style={{ fontSize: 11, color: "#cbd5e1" }}>—</span>}
-      </span>
       <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(doc.total_ht)}</span>
       <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(doc.total_ttc)}</span>
       <span style={{ flex: "0 0 100px" }}>
         <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.color, fontSize: 11, fontWeight: 600 }}>{sm.label}</span>
-      </span>
-      <span style={{ flex: "0 0 170px" }}>
-        <WorkflowChain chain={chain} currentType={doc.type} />
       </span>
       <span style={{ flex: "0 0 60px", textAlign: "right" }}>
         <button ref={btnRef} onClick={(e) => {

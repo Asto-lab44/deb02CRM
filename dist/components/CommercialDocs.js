@@ -803,6 +803,18 @@ var CommercialDocs = () => {
     }
   }, "R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("span", {
     style: {
+      flex: "0 0 90px"
+    }
+  }, "Code client"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 170px"
+    }
+  }, "Workflow"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 100px"
+    }
+  }, "Date"), /*#__PURE__*/React.createElement("span", {
+    style: {
       flex: 1
     }
   }, "Client / Titre"), /*#__PURE__*/React.createElement("span", {
@@ -810,14 +822,6 @@ var CommercialDocs = () => {
       flex: "0 0 90px"
     }
   }, "Type"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 100px"
-    }
-  }, "Date"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 90px"
-    }
-  }, "Code client"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 120px",
       textAlign: "right"
@@ -832,10 +836,6 @@ var CommercialDocs = () => {
       flex: "0 0 100px"
     }
   }, "Statut"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 170px"
-    }
-  }, "Workflow"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px"
     }
@@ -1138,6 +1138,41 @@ var DocRow = ({
     }
   }, doc.id), /*#__PURE__*/React.createElement("span", {
     style: {
+      flex: "0 0 90px"
+    }
+  }, doc.client_name ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 7px",
+      borderRadius: 5,
+      background: "#eef2ff",
+      color: "#3730a3",
+      fontSize: 11,
+      fontWeight: 700,
+      fontFamily: "'JetBrains Mono', monospace",
+      letterSpacing: 0.5
+    }
+  }, computeClientCode(doc.client_name)) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#cbd5e1"
+    }
+  }, "\u2014")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 170px"
+    }
+  }, /*#__PURE__*/React.createElement(WorkflowChain, {
+    chain: chain,
+    currentType: doc.type
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 100px",
+      fontSize: 12,
+      color: "#475569",
+      fontFamily: "'JetBrains Mono', monospace"
+    }
+  }, doc.doc_date), /*#__PURE__*/React.createElement("span", {
+    style: {
       flex: 1,
       minWidth: 0
     }
@@ -1193,34 +1228,6 @@ var DocRow = ({
     }
   }, "\u2014")), /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: "0 0 100px",
-      fontSize: 12,
-      color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
-    }
-  }, doc.doc_date), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 90px"
-    }
-  }, doc.client_name ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-block",
-      padding: "2px 7px",
-      borderRadius: 5,
-      background: "#eef2ff",
-      color: "#3730a3",
-      fontSize: 11,
-      fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace",
-      letterSpacing: 0.5
-    }
-  }, computeClientCode(doc.client_name)) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#cbd5e1"
-    }
-  }, "\u2014")), /*#__PURE__*/React.createElement("span", {
-    style: {
       flex: "0 0 120px",
       textAlign: "right",
       fontSize: 13,
@@ -1252,13 +1259,6 @@ var DocRow = ({
       fontWeight: 600
     }
   }, sm.label)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 170px"
-    }
-  }, /*#__PURE__*/React.createElement(WorkflowChain, {
-    chain: chain,
-    currentType: doc.type
-  })), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px",
       textAlign: "right"

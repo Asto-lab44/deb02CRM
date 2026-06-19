@@ -1105,6 +1105,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
   const [suppliers, setSuppliers] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
   const [sendOpen, setSendOpen] = React.useState(false);
+  const [smartSearchOpen, setSmartSearchOpen] = React.useState(false);
 
   const reloadSuppliers = React.useCallback(async () => {
     try { setSuppliers(await window.api.suppliers.list({ active: true }) || []); } catch (e) {}
@@ -2046,11 +2047,24 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             ))}
             <div style={{ padding: "10px 8px", display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={() => addLine(null)} style={cdStyles.ghostBtn}>+ Ligne libre</button>
+              <button onClick={() => setSmartSearchOpen(true)}
+                      style={{ ...cdStyles.ghostBtn, color: "#3730a3", borderColor: "#c7d2fe", fontWeight: 600 }}
+                      title="Recherche intelligente : catalogue + suggestion IA si rien trouvé">
+                🔍 Rechercher un article…
+              </button>
               <select onChange={(e) => { if (e.target.value) { addLine(articles.find((a) => a.id === e.target.value)); e.target.value = ""; } }} style={{ ...cdStyles.input, flex: 1 }}>
                 <option value="">+ Ajouter article du catalogue…</option>
                 {articles.map((a) => <option key={a.id} value={a.id}>{a.ref} — {a.name} ({fmtEUR(a.price_ht)})</option>)}
               </select>
             </div>
+            {smartSearchOpen && (
+              <SmartArticleSearchModal
+                articles={articles}
+                onAdd={(art) => { addLine(art); setSmartSearchOpen(false); }}
+                onCreated={async () => { setSmartSearchOpen(false); try { setArticles(await window.api.commercialArticles.list({ active: true })); } catch (e) {} }}
+                onClose={() => setSmartSearchOpen(false)}
+              />
+            )}
           </div>
 
           {/* TOTAUX */}
@@ -2113,6 +2127,248 @@ const DocSendHistory = ({ docId }) => {
 // ─────────────────────────────────────────────────────────────────
 // Modal "Envoyer le doc par email" — log dans commercial_doc_sends
 // ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// SmartArticleSearchModal — recherche avancée d'article
+// 1) Filtre live dans le catalogue local (commercial_articles)
+// 2) Si aucun résultat → propose une recherche IA sur le web via
+//    window.HubAi (s'il est branché) ou fallback message
+// 3) L'utilisateur valide → ajoute la ligne, ou crée l'article en BDD
+// ─────────────────────────────────────────────────────────────────
+const SmartArticleSearchModal = ({ articles, onAdd, onCreated, onClose }) => {
+  const [q, setQ] = React.useState("");
+  const [aiSuggestion, setAiSuggestion] = React.useState(null);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [aiError, setAiError] = React.useState(null);
+  const [draft, setDraft] = React.useState(null);
+  const inputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    setTimeout(() => inputRef.current && inputRef.current.focus(), 50);
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Recherche locale avec scoring simple (tokens AND, désignation + ref)
+  const matches = React.useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return [];
+    const tokens = term.split(/\s+/).filter(Boolean);
+    const scored = (articles || []).map((a) => {
+      const haystack = [
+        a.ref || "", a.name || "", a.designation || "",
+        a.category || "", a.description || "",
+      ].join(" ").toLowerCase();
+      let score = 0;
+      let allMatched = true;
+      for (const tok of tokens) {
+        if (haystack.includes(tok)) { score += 1; if (haystack.startsWith(tok)) score += 0.5; }
+        else allMatched = false;
+      }
+      return { a, score, allMatched };
+    })
+    .filter((r) => r.score > 0)
+    .sort((x, y) => (y.allMatched - x.allMatched) || (y.score - x.score));
+    return scored.slice(0, 15);
+  }, [q, articles]);
+
+  const runAiSearch = async () => {
+    if (!q.trim()) return;
+    setAiLoading(true); setAiError(null); setAiSuggestion(null);
+    try {
+      let result = null;
+      if (window.HubAi && window.HubAi.suggestArticle) {
+        result = await window.HubAi.suggestArticle(q.trim());
+      } else if (window.api && window.api.ai && window.api.ai.searchArticle) {
+        result = await window.api.ai.searchArticle(q.trim());
+      } else {
+        throw new Error("Module IA non branché — créez l'article manuellement avec les champs ci-dessous.");
+      }
+      if (result && typeof result === "object") {
+        setAiSuggestion(result);
+        setDraft({
+          ref: result.ref || ("ART-" + Date.now().toString(36).slice(-5).toUpperCase()),
+          designation: result.designation || result.name || q,
+          category: result.category || "LOGICIEL",
+          description: result.description || "",
+          unit_price_ht: result.price_ht || result.unit_price_ht || 0,
+          tva_rate: result.tva_rate || 20,
+          unit: result.unit || "u",
+          supplier: result.supplier || "",
+          source_url: result.source_url || result.url || "",
+        });
+      }
+    } catch (e) {
+      setAiError(e.message || "Erreur IA");
+      // Fallback : pré-remplit un draft manuel basé sur la requête
+      setDraft({
+        ref: "ART-" + Date.now().toString(36).slice(-5).toUpperCase(),
+        designation: q,
+        category: "LOGICIEL",
+        description: "",
+        unit_price_ht: 0,
+        tva_rate: 20,
+        unit: "u",
+        supplier: "",
+      });
+    } finally { setAiLoading(false); }
+  };
+
+  const createArticle = async () => {
+    if (!draft || !draft.designation) return;
+    try {
+      const created = await window.api.commercialArticles.create({
+        ref: draft.ref,
+        name: draft.designation,
+        designation: draft.designation,
+        category: draft.category,
+        description: draft.description || null,
+        unit_price_ht: Number(draft.unit_price_ht) || 0,
+        price_ht: Number(draft.unit_price_ht) || 0,
+        tva_rate: Number(draft.tva_rate) || 20,
+        unit: draft.unit || "u",
+        supplier: draft.supplier || null,
+        active: true,
+      });
+      if (window.HubToast) window.HubToast.success("✓ Article " + (created.ref || draft.ref) + " créé");
+      // Ajoute aussi la ligne directement
+      onAdd({
+        id: created.id, ref: created.ref, name: created.name, designation: created.designation || created.name,
+        unit_price_ht: created.unit_price_ht || created.price_ht || 0, price_ht: created.price_ht || 0,
+        tva_rate: created.tva_rate || 20, unit: created.unit || "u",
+      });
+      onCreated && onCreated();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création échouée : " + (e.message || e));
+    }
+  };
+
+  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 10001, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 20px", overflowY: "auto" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 760, boxShadow: "0 20px 60px rgba(15,23,42,0.4)", overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 100px)" }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid #eef1f5", background: "linear-gradient(180deg, #fafbfc 0%, #fff 100%)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Recherche avancée</div>
+            <h2 style={{ margin: "2px 0 0", fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Trouver ou créer un article</h2>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, background: "#f1f5f9", border: 0, borderRadius: 8, color: "#475569", fontSize: 16, cursor: "pointer" }}>×</button>
+        </div>
+        <div style={{ padding: 22, overflowY: "auto" }}>
+          <div style={{ position: "relative", marginBottom: 14 }}>
+            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, color: "#94a3b8" }}>🔍</span>
+            <input ref={inputRef} value={q} onChange={(e) => { setQ(e.target.value); setAiSuggestion(null); setAiError(null); setDraft(null); }}
+                   onKeyDown={(e) => { if (e.key === "Enter" && matches.length === 0) runAiSearch(); }}
+                   placeholder="Ex. licence office 365, écran 24 pouces, switch ubiquiti…"
+                   style={{ width: "100%", padding: "12px 14px 12px 44px", border: "2px solid #c7d2fe", borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+          </div>
+
+          {/* Résultats catalogue */}
+          {matches.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#065f46", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                ✓ {matches.length} article{matches.length > 1 ? "s" : ""} trouvé{matches.length > 1 ? "s" : ""} dans le catalogue
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {matches.map((m) => (
+                  <button key={m.a.id} onClick={() => onAdd(m.a)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, cursor: "pointer", textAlign: "left", transition: "all 100ms" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.a.designation || m.a.name || "(sans désignation)"}</div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                        <span style={{ fontWeight: 600, color: "#3730a3" }}>{m.a.ref}</span>
+                        {m.a.category && <span> · {m.a.category}</span>}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{fmtEUR(m.a.unit_price_ht || m.a.price_ht)}</span>
+                    <span style={{ fontSize: 13, color: "#3730a3", marginLeft: 4 }}>+</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {q.trim() && matches.length === 0 && !aiSuggestion && !aiLoading && (
+            <div style={{ padding: 22, background: "#fef3c7", border: "1px solid #fbbf24", borderRadius: 10, textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: "#78350f", marginBottom: 12 }}>
+                Aucun article ne correspond à <strong>« {q} »</strong> dans le catalogue.
+              </div>
+              <button onClick={runAiSearch} style={{ padding: "10px 18px", background: "#3730a3", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                🤖 Rechercher sur le web (IA) et créer l'article
+              </button>
+            </div>
+          )}
+
+          {aiLoading && (
+            <div style={{ padding: 22, textAlign: "center", color: "#475569" }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🤖</div>
+              <div style={{ fontSize: 13 }}>L'IA recherche « {q} » sur le web…</div>
+            </div>
+          )}
+
+          {(aiSuggestion || (draft && aiError)) && draft && (
+            <div style={{ padding: 16, background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, marginTop: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#3730a3", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+                {aiError ? "⚠ Création manuelle" : "🤖 Proposition de l'IA"}
+              </div>
+              {aiError && <div style={{ fontSize: 11.5, color: "#9a3412", marginBottom: 10, fontStyle: "italic" }}>{aiError}</div>}
+              {aiSuggestion && aiSuggestion.source_url && (
+                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>
+                  Source : <a href={aiSuggestion.source_url} target="_blank" rel="noopener" style={{ color: "#3730a3" }}>{aiSuggestion.source_url}</a>
+                </div>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ fontSize: 10.5, fontWeight: 600, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Désignation</label>
+                  <input value={draft.designation} onChange={(e) => setDraft({ ...draft, designation: e.target.value })}
+                         style={{ width: "100%", padding: "8px 10px", border: "1px solid #c7d2fe", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10.5, fontWeight: 600, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Référence</label>
+                  <input value={draft.ref} onChange={(e) => setDraft({ ...draft, ref: e.target.value })}
+                         style={{ width: "100%", padding: "8px 10px", border: "1px solid #c7d2fe", borderRadius: 6, fontSize: 13, fontFamily: "inherit", marginTop: 4, boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10.5, fontWeight: 600, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Catégorie</label>
+                  <input value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                         style={{ width: "100%", padding: "8px 10px", border: "1px solid #c7d2fe", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10.5, fontWeight: 600, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Prix HT (€)</label>
+                  <input type="number" step="0.01" value={draft.unit_price_ht} onChange={(e) => setDraft({ ...draft, unit_price_ht: e.target.value })}
+                         style={{ width: "100%", padding: "8px 10px", border: "1px solid #c7d2fe", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10.5, fontWeight: 600, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Fournisseur</label>
+                  <input value={draft.supplier} onChange={(e) => setDraft({ ...draft, supplier: e.target.value })}
+                         style={{ width: "100%", padding: "8px 10px", border: "1px solid #c7d2fe", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box" }} />
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ fontSize: 10.5, fontWeight: 600, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4 }}>Description</label>
+                  <textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={2}
+                            style={{ width: "100%", padding: "8px 10px", border: "1px solid #c7d2fe", borderRadius: 6, fontSize: 12.5, marginTop: 4, boxSizing: "border-box", resize: "vertical" }} />
+                </div>
+              </div>
+              <button onClick={createArticle}
+                      style={{ marginTop: 14, padding: "10px 20px", background: "#3730a3", color: "#fff", border: 0, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                ✓ Créer l'article et l'ajouter à la ligne
+              </button>
+            </div>
+          )}
+
+          {!q.trim() && (
+            <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 12.5 }}>
+              💡 Tape un mot-clé pour rechercher dans le catalogue.<br/>
+              Si rien n'est trouvé, l'IA proposera de créer l'article.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DocSendModal = ({ doc, onSave, onClose }) => {
   const [recipientEmail, setRecipientEmail] = React.useState(doc.contact_email || "");
   const [recipientName, setRecipientName] = React.useState(doc.contact_name || doc.client_name || "");

@@ -3587,11 +3587,11 @@ var cdStyles = {
     gap: 10,
     background: "#f8fafc",
     borderBottom: "1px solid #eef1f5",
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: 700,
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    letterSpacing: 0.5
+    color: "#64748b",
+    textTransform: "none",
+    letterSpacing: 0.1
   },
   tableRow: {
     display: "flex",

@@ -1970,7 +1970,7 @@ const cdStyles = {
   empty: { padding: 60, background: "#fff", border: "1px dashed #cbd5e1", borderRadius: 12, textAlign: "center" },
 
   docList: { background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "hidden" },
-  tableHead: { display: "flex", alignItems: "center", padding: "10px 14px", gap: 10, background: "#f8fafc", borderBottom: "1px solid #eef1f5", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 },
+  tableHead: { display: "flex", alignItems: "center", padding: "10px 14px", gap: 10, background: "#f8fafc", borderBottom: "1px solid #eef1f5", fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "none", letterSpacing: 0.1 },
   tableRow: { display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.1s" },
 
   modalOverlay: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" },

@@ -1211,16 +1211,29 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
       const updatedLines = [];
       for (let i = 0; i < (d.lines || []).length; i++) {
         const line = d.lines[i];
+        // Totaux ligne recalculés ici aussi par sécurité (updateLine recalcule
+        // côté serveur via merge, mais on les inclut dans le patch pour qu'ils
+        // soient persistés même si la TVA ou la remise viennent de changer).
+        const lQty  = Number(line.quantity) || 0;
+        const lPu   = Number(line.unit_price_ht) || 0;
+        const lDisc = Number(line.discount_pct) || 0;
+        const lTva  = Number(line.tva_rate) || 0;
+        const lTotalHt  = Math.round(lQty * lPu * (1 - lDisc / 100) * 100) / 100;
+        const lTotalTva = Math.round(lTotalHt * lTva / 100 * 100) / 100;
+        const lTotalTtc = Math.round((lTotalHt + lTotalTva) * 100) / 100;
         const normalizedLine = {
           article_id: cleanFK(line.article_id),
           ref: line.ref || null,
           designation: line.designation || "",
           description: line.description || null,
-          quantity: Number(line.quantity) || 0,
+          quantity: lQty,
           unit: line.unit || "u",
-          unit_price_ht: Number(line.unit_price_ht) || 0,
-          discount_pct: Number(line.discount_pct) || 0,
-          tva_rate: Number(line.tva_rate) || 0,
+          unit_price_ht: lPu,
+          discount_pct: lDisc,
+          tva_rate: lTva,
+          total_ht: lTotalHt,
+          total_tva: lTotalTva,
+          total_ttc: lTotalTtc,
           is_text_only: !!line.is_text_only,
           position: i,
           // Champs internes (jamais sur PDF client)
@@ -1424,9 +1437,30 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             return (
               <div style={{ background: "linear-gradient(135deg, #fef3c7, #fed7aa)", border: "1px solid #fbbf24", borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 18 }}>🔒</span>
-                <span style={{ fontSize: 12.5, color: "#78350f", flex: 1 }}>
-                  <strong>Devis figé</strong> — statut « {d.status === "accepte" ? "Accepté" : "Transformé"} ». Toute modification doit se faire sur la {cmd ? <>commande&nbsp;</> : "commande "} {cmd && <button type="button" onClick={() => onOpenDoc && onOpenDoc(cmd.id)} style={{ border: 0, background: "transparent", color: "#7c2d12", fontWeight: 700, textDecoration: "underline", cursor: "pointer", padding: 0 }}>{cmd.id}</button>}
-                  {bl && <> ou le BL <button type="button" onClick={() => onOpenDoc && onOpenDoc(bl.id)} style={{ border: 0, background: "transparent", color: "#7c2d12", fontWeight: 700, textDecoration: "underline", cursor: "pointer", padding: 0 }}>{bl.id}</button></>}.
+                <span style={{ fontSize: 12.5, color: "#78350f", flex: 1, display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <strong>Devis figé</strong> — statut « {d.status === "accepte" ? "Accepté" : "Transformé"} ». Toute modification doit se faire sur :
+                  {cmd && (
+                    <button type="button" onClick={() => onOpenDoc && onOpenDoc(cmd.id)}
+                            title={"Ouvrir " + cmd.id}
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "3px 9px", border: "1px solid #a855f7",
+                              background: "#a855f7", color: "#fff",
+                              borderRadius: 999, fontSize: 11.5, fontWeight: 700,
+                              cursor: "pointer", boxShadow: "0 1px 3px rgba(168,85,247,0.35)",
+                            }}>📋 Commande {cmd.id} →</button>
+                  )}
+                  {bl && (
+                    <button type="button" onClick={() => onOpenDoc && onOpenDoc(bl.id)}
+                            title={"Ouvrir " + bl.id}
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "3px 9px", border: "1px solid #ea580c",
+                              background: "#ea580c", color: "#fff",
+                              borderRadius: 999, fontSize: 11.5, fontWeight: 700,
+                              cursor: "pointer", boxShadow: "0 1px 3px rgba(234,88,12,0.35)",
+                            }}>🚚 BL {bl.id} →</button>
+                  )}
                 </span>
               </div>
             );

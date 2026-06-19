@@ -2074,16 +2074,29 @@ var CommercialDocEditor = ({
       var updatedLines = [];
       for (var i = 0; i < (d.lines || []).length; i++) {
         var line = d.lines[i];
+        // Totaux ligne recalculés ici aussi par sécurité (updateLine recalcule
+        // côté serveur via merge, mais on les inclut dans le patch pour qu'ils
+        // soient persistés même si la TVA ou la remise viennent de changer).
+        var lQty = Number(line.quantity) || 0;
+        var lPu = Number(line.unit_price_ht) || 0;
+        var lDisc = Number(line.discount_pct) || 0;
+        var lTva = Number(line.tva_rate) || 0;
+        var lTotalHt = Math.round(lQty * lPu * (1 - lDisc / 100) * 100) / 100;
+        var lTotalTva = Math.round(lTotalHt * lTva / 100 * 100) / 100;
+        var lTotalTtc = Math.round((lTotalHt + lTotalTva) * 100) / 100;
         var normalizedLine = {
           article_id: cleanFK(line.article_id),
           ref: line.ref || null,
           designation: line.designation || "",
           description: line.description || null,
-          quantity: Number(line.quantity) || 0,
+          quantity: lQty,
           unit: line.unit || "u",
-          unit_price_ht: Number(line.unit_price_ht) || 0,
-          discount_pct: Number(line.discount_pct) || 0,
-          tva_rate: Number(line.tva_rate) || 0,
+          unit_price_ht: lPu,
+          discount_pct: lDisc,
+          tva_rate: lTva,
+          total_ht: lTotalHt,
+          total_tva: lTotalTva,
+          total_ttc: lTotalTtc,
           is_text_only: !!line.is_text_only,
           position: i,
           // Champs internes (jamais sur PDF client)
@@ -2408,33 +2421,49 @@ var CommercialDocEditor = ({
       style: {
         fontSize: 12.5,
         color: "#78350f",
-        flex: 1
+        flex: 1,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "wrap"
       }
-    }, /*#__PURE__*/React.createElement("strong", null, "Devis fig\xE9"), " \u2014 statut \xAB ", d.status === "accepte" ? "Accepté" : "Transformé", " \xBB. Toute modification doit se faire sur la ", cmd ? /*#__PURE__*/React.createElement(React.Fragment, null, "commande\xA0") : "commande ", " ", cmd && /*#__PURE__*/React.createElement("button", {
+    }, /*#__PURE__*/React.createElement("strong", null, "Devis fig\xE9"), " \u2014 statut \xAB ", d.status === "accepte" ? "Accepté" : "Transformé", " \xBB. Toute modification doit se faire sur :", cmd && /*#__PURE__*/React.createElement("button", {
       type: "button",
       onClick: () => onOpenDoc && onOpenDoc(cmd.id),
+      title: "Ouvrir " + cmd.id,
       style: {
-        border: 0,
-        background: "transparent",
-        color: "#7c2d12",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "3px 9px",
+        border: "1px solid #a855f7",
+        background: "#a855f7",
+        color: "#fff",
+        borderRadius: 999,
+        fontSize: 11.5,
         fontWeight: 700,
-        textDecoration: "underline",
         cursor: "pointer",
-        padding: 0
+        boxShadow: "0 1px 3px rgba(168,85,247,0.35)"
       }
-    }, cmd.id), bl && /*#__PURE__*/React.createElement(React.Fragment, null, " ou le BL ", /*#__PURE__*/React.createElement("button", {
+    }, "\uD83D\uDCCB Commande ", cmd.id, " \u2192"), bl && /*#__PURE__*/React.createElement("button", {
       type: "button",
       onClick: () => onOpenDoc && onOpenDoc(bl.id),
+      title: "Ouvrir " + bl.id,
       style: {
-        border: 0,
-        background: "transparent",
-        color: "#7c2d12",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "3px 9px",
+        border: "1px solid #ea580c",
+        background: "#ea580c",
+        color: "#fff",
+        borderRadius: 999,
+        fontSize: 11.5,
         fontWeight: 700,
-        textDecoration: "underline",
         cursor: "pointer",
-        padding: 0
+        boxShadow: "0 1px 3px rgba(234,88,12,0.35)"
       }
-    }, bl.id)), "."));
+    }, "\uD83D\uDE9A BL ", bl.id, " \u2192")));
   })(), /*#__PURE__*/React.createElement("fieldset", {
     disabled: d.type === "devis" && (d.status === "accepte" || d.status === "transforme"),
     style: {

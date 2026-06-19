@@ -1308,21 +1308,53 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
     }
     const next = canTransform.nextType;
     const labels = { commande: "bon de commande", bl: "bon de livraison", facture: "facture" };
-    // Cascade pour un devis : devis → commande → BL en un seul clic
+    // Cascade pour un devis : devis → commande client → cmd fournisseur → BL
+    // en un seul clic. Tous les docs intermédiaires sont marqués Accepté.
     if (d.type === "devis") {
-      const confirmMsg = (!canTransform.ok && !canTransform.hard)
-        ? "Le devis est en « " + d.status + " ». Le passer en « Accepté » puis cascader la chaîne complète ?\n\n• Devis marqué Accepté\n• Commande client créée et marquée Acceptée\n• Commande fournisseur générée automatiquement\n• BL créé"
-        : "Cascader ce devis en Commande client → Commande fournisseur → BL ?\n\n• Commande client créée et marquée Acceptée\n• Commande fournisseur générée automatiquement\n• BL créé";
-      if (!confirm(confirmMsg)) return;
+      const needAcceptFirst = !canTransform.ok && !canTransform.hard;
+      const steps = [
+        needAcceptFirst ? { ico: "📄", txt: "Devis marqué Accepté" } : null,
+        { ico: "📋", txt: "Commande client créée et marquée Acceptée" },
+        { ico: "🛒", txt: "Commande fournisseur générée et marquée Acceptée" },
+        { ico: "🚚", txt: "Bon de livraison créé" },
+      ].filter(Boolean);
+      const ok = window.HubModal
+        ? await window.HubModal.confirm({
+            title: "Cascader la chaîne Sage complète ?",
+            message: (needAcceptFirst ? "Le devis est en « " + d.status + " ». Il sera d'abord passé en Accepté.\n\n" : "") +
+                     "Les 3 documents aval seront générés en chaîne :\n\n" +
+                     steps.map((s) => "  " + s.ico + "  " + s.txt).join("\n"),
+            okLabel: "Lancer la cascade",
+            okStyle: "primary",
+            cancelLabel: "Annuler",
+          })
+        : confirm(steps.map((s) => "• " + s.txt).join("\n"));
+      if (!ok) return;
       try {
-        if (!canTransform.ok && !canTransform.hard) setField("status", canTransform.needStatus);
+        if (needAcceptFirst) setField("status", canTransform.needStatus);
         await save({ keepOpen: true });
         if (d.status !== "accepte") await window.api.commercialDocs.update(d.id, { status: "accepte" });
+        // 1. Devis → Commande client (Acceptée)
         const commande = await window.api.commercialDocs.transform(d.id, "commande");
         if (!commande) throw new Error("Échec création commande");
         await window.api.commercialDocs.update(commande.id, { status: "accepte" });
+        // 2. La commande fournisseur est auto-créée par le hook createPurchaseOrder
+        //    côté api.js. On la marque Acceptée ici une fois trouvée.
+        let cmdFournisseurId = null;
+        try {
+          const allRecent = await window.api.commercialDocs.list({ type: "commande_achat" });
+          const ca = (allRecent || []).find((x) =>
+            x && x.data && x.data.parent_commande_id === commande.id
+          );
+          if (ca) {
+            await window.api.commercialDocs.update(ca.id, { status: "accepte" });
+            cmdFournisseurId = ca.id;
+          }
+        } catch (e) { console.warn("[cascade: status cmd fournisseur]", e); }
+        // 3. Commande client → BL
         const bl = await window.api.commercialDocs.transform(commande.id, "bl");
-        if (window.HubToast) window.HubToast.success("✓ " + commande.id + " + " + (bl ? bl.id : "") + " créés");
+        const created = [commande.id, cmdFournisseurId, bl && bl.id].filter(Boolean);
+        if (window.HubToast) window.HubToast.success("✓ Cascade OK : " + created.join(" + "));
         onSaved && onSaved();
         onClose && onClose();
       } catch (e) {

@@ -2929,15 +2929,19 @@ var CommercialDocEditor = ({
     value: l.designation || "",
     onChange: e => updateLineField(i, "designation", e.target.value),
     placeholder: "D\xE9signation de la ligne (ex : Astorya Suite \u2014 Licence utilisateur)",
+    readOnly: !!l.article_id,
+    title: l.article_id ? "Désignation héritée du catalogue (réf : " + (l.ref || "—") + "). Pour la modifier, change l'article dans Catalogue & paramètres." : "",
     style: {
       flex: 1,
       padding: "8px 10px",
-      border: "1px solid #e2e8f0",
+      border: "1px solid " + (l.article_id ? "#e2e8f0" : "#e2e8f0"),
       borderRadius: 6,
       fontSize: 13,
       fontFamily: "inherit",
       fontWeight: 500,
-      color: "#0f172a"
+      color: l.article_id ? "#475569" : "#0f172a",
+      background: l.article_id ? "#fafbfc" : "#fff",
+      cursor: l.article_id ? "not-allowed" : "text"
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {

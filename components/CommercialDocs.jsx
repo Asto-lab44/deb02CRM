@@ -1351,32 +1351,55 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                   facture:  ["brouillon", "envoye", "paye", "annule"],
                 };
                 const STATUS_LABEL = { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", refuse: "Refusé", transforme: "Transformé (figé)", livre: "Livré", paye: "Payé", annule: "Annulé" };
+                const NEXT_TYPE = { devis: "commande", commande: "bl", bl: "facture" };
+                const NEXT_NAME = { commande: "commande", bl: "BL", facture: "facture" };
                 const allowed = STATUS_FLOW[d.type] || [];
-                const isLocked = d.status === "transforme";
+                const childExists = chain && NEXT_TYPE[d.type] && chain[NEXT_TYPE[d.type]] && chain[NEXT_TYPE[d.type]].id !== d.id;
+                const childDoc = childExists ? chain[NEXT_TYPE[d.type]] : null;
+                const isTransformed = d.status === "transforme";
+                // Verrouillage dur si un doc enfant existe : interdit toute modif de statut
+                // (cohérence avec le doc enfant émis). Bouton "Débloquer" pour les cas où
+                // on doit corriger une incohérence (annulation enfant à gérer à la main).
+                const isLocked = childExists || isTransformed;
                 return (
                   <div>
                     <select value={d.status}
+                            disabled={isLocked}
                             onChange={(e) => {
                               const next = e.target.value;
-                              // Garde-fou : avertit avant de quitter « Transformé »
-                              if (isLocked && next !== "transforme") {
-                                if (!confirm("⚠ Ce document a déjà été transformé en " + (d.type === "devis" ? "commande" : d.type === "commande" ? "BL" : "facture") + ".\n\nDébloquer son statut peut créer une incohérence avec le document enfant déjà émis.\n\nContinuer et passer au statut « " + (STATUS_LABEL[next] || next) + " » ?")) return;
+                              if (isLocked && next !== d.status) {
+                                if (!confirm("⚠ Ce document a déjà été transformé en " + NEXT_NAME[NEXT_TYPE[d.type]] + (childDoc ? " (" + childDoc.id + ")" : "") + ".\n\nLe statut est verrouillé pour préserver la cohérence avec le document enfant.\n\nUtilise le bouton « 🔓 Débloquer » si tu veux vraiment forcer un changement de statut.")) return;
                               }
                               setField("status", next);
                             }}
-                            style={{ ...cdStyles.input, background: isLocked ? "#fef3c7" : "#fff", borderColor: isLocked ? "#f59e0b" : "#cbd5e1", cursor: "pointer" }}>
+                            style={{
+                              ...cdStyles.input,
+                              background: isLocked ? "#fef3c7" : "#fff",
+                              borderColor: isLocked ? "#f59e0b" : "#cbd5e1",
+                              cursor: isLocked ? "not-allowed" : "pointer",
+                              color: isLocked ? "#78350f" : "#0f172a",
+                              fontWeight: isLocked ? 600 : 400,
+                            }}>
                       {allowed.map((st) => <option key={st} value={st}>{STATUS_LABEL[st] || st}</option>)}
                     </select>
                     {isLocked && (
-                      <button onClick={() => {
-                        if (!confirm("Débloquer le statut « Transformé » et le repasser à « Accepté » ?\n\nAttention : le document enfant (commande/BL/facture) déjà généré reste en place. À toi de gérer la cohérence.")) return;
-                        setField("status", "accepte");
-                      }}
-                      style={{ marginTop: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600,
-                               background: "transparent", color: "#b45309", border: "1px solid #fcd34d",
-                               borderRadius: 5, cursor: "pointer" }}>
-                        🔓 Débloquer le statut
-                      </button>
+                      <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 10.5, color: "#b45309", fontWeight: 600 }}>
+                          🔒 Verrouillé — {childExists ? NEXT_NAME[NEXT_TYPE[d.type]] + " " + childDoc.id + " déjà créé(e)" : "doc transformé"}
+                        </span>
+                        <button onClick={() => {
+                          const msg = childExists
+                            ? "Débloquer le statut du " + d.type + " ?\n\nLe document enfant " + childDoc.id + " (" + NEXT_NAME[NEXT_TYPE[d.type]] + ") reste actif. À toi de gérer la cohérence (annulation manuelle si besoin)."
+                            : "Débloquer le statut « Transformé » et le repasser à « Accepté » ?";
+                          if (!confirm(msg)) return;
+                          if (isTransformed && !childExists) setField("status", "accepte");
+                        }}
+                        style={{ padding: "3px 8px", fontSize: 10.5, fontWeight: 600,
+                                 background: "transparent", color: "#b45309", border: "1px solid #fcd34d",
+                                 borderRadius: 5, cursor: "pointer" }}>
+                          🔓 Débloquer
+                        </button>
+                      </div>
                     )}
                   </div>
                 );

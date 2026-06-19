@@ -2370,15 +2370,31 @@ var CommercialDocEditor = ({
       paye: "Payé",
       annule: "Annulé"
     };
+    var NEXT_TYPE = {
+      devis: "commande",
+      commande: "bl",
+      bl: "facture"
+    };
+    var NEXT_NAME = {
+      commande: "commande",
+      bl: "BL",
+      facture: "facture"
+    };
     var allowed = STATUS_FLOW[d.type] || [];
-    var isLocked = d.status === "transforme";
+    var childExists = chain && NEXT_TYPE[d.type] && chain[NEXT_TYPE[d.type]] && chain[NEXT_TYPE[d.type]].id !== d.id;
+    var childDoc = childExists ? chain[NEXT_TYPE[d.type]] : null;
+    var isTransformed = d.status === "transforme";
+    // Verrouillage dur si un doc enfant existe : interdit toute modif de statut
+    // (cohérence avec le doc enfant émis). Bouton "Débloquer" pour les cas où
+    // on doit corriger une incohérence (annulation enfant à gérer à la main).
+    var isLocked = childExists || isTransformed;
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("select", {
       value: d.status,
+      disabled: isLocked,
       onChange: e => {
         var next = e.target.value;
-        // Garde-fou : avertit avant de quitter « Transformé »
-        if (isLocked && next !== "transforme") {
-          if (!confirm("⚠ Ce document a déjà été transformé en " + (d.type === "devis" ? "commande" : d.type === "commande" ? "BL" : "facture") + ".\n\nDébloquer son statut peut créer une incohérence avec le document enfant déjà émis.\n\nContinuer et passer au statut « " + (STATUS_LABEL[next] || next) + " » ?")) return;
+        if (isLocked && next !== d.status) {
+          if (!confirm("⚠ Ce document a déjà été transformé en " + NEXT_NAME[NEXT_TYPE[d.type]] + (childDoc ? " (" + childDoc.id + ")" : "") + ".\n\nLe statut est verrouillé pour préserver la cohérence avec le document enfant.\n\nUtilise le bouton « 🔓 Débloquer » si tu veux vraiment forcer un changement de statut.")) return;
         }
         setField("status", next);
       },
@@ -2386,20 +2402,36 @@ var CommercialDocEditor = ({
         ...cdStyles.input,
         background: isLocked ? "#fef3c7" : "#fff",
         borderColor: isLocked ? "#f59e0b" : "#cbd5e1",
-        cursor: "pointer"
+        cursor: isLocked ? "not-allowed" : "pointer",
+        color: isLocked ? "#78350f" : "#0f172a",
+        fontWeight: isLocked ? 600 : 400
       }
     }, allowed.map(st => /*#__PURE__*/React.createElement("option", {
       key: st,
       value: st
-    }, STATUS_LABEL[st] || st))), isLocked && /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        if (!confirm("Débloquer le statut « Transformé » et le repasser à « Accepté » ?\n\nAttention : le document enfant (commande/BL/facture) déjà généré reste en place. À toi de gérer la cohérence.")) return;
-        setField("status", "accepte");
-      },
+    }, STATUS_LABEL[st] || st))), isLocked && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 4,
-        padding: "4px 10px",
-        fontSize: 11,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#b45309",
+        fontWeight: 600
+      }
+    }, "\uD83D\uDD12 Verrouill\xE9 \u2014 ", childExists ? NEXT_NAME[NEXT_TYPE[d.type]] + " " + childDoc.id + " déjà créé(e)" : "doc transformé"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var msg = childExists ? "Débloquer le statut du " + d.type + " ?\n\nLe document enfant " + childDoc.id + " (" + NEXT_NAME[NEXT_TYPE[d.type]] + ") reste actif. À toi de gérer la cohérence (annulation manuelle si besoin)." : "Débloquer le statut « Transformé » et le repasser à « Accepté » ?";
+        if (!confirm(msg)) return;
+        if (isTransformed && !childExists) setField("status", "accepte");
+      },
+      style: {
+        padding: "3px 8px",
+        fontSize: 10.5,
         fontWeight: 600,
         background: "transparent",
         color: "#b45309",
@@ -2407,7 +2439,7 @@ var CommercialDocEditor = ({
         borderRadius: 5,
         cursor: "pointer"
       }
-    }, "\uD83D\uDD13 D\xE9bloquer le statut"));
+    }, "\uD83D\uDD13 D\xE9bloquer")));
   })()), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.lbl
   }, "Conditions de paiement"), /*#__PURE__*/React.createElement("select", {

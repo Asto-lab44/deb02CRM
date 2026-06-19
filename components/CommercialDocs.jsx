@@ -192,6 +192,8 @@ const CommercialDocs = () => {
   const [search, setSearch] = React.useState("");
   const [clients, setClients] = React.useState([]);
   const [opps, setOpps] = React.useState([]);
+  const [previewDocId, setPreviewDocId] = React.useState(null);
+  const previewTimerRef = React.useRef(null);
   const [editing, setEditing] = React.useState(null); // null ou doc en cours d'édition
 
   const reload = React.useCallback(async () => {
@@ -540,25 +542,42 @@ const CommercialDocs = () => {
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Cliquez sur « + Nouveau » pour créer le premier.</div>
             <button onClick={newDoc} style={{ ...cdStyles.primaryBtn, marginTop: 14 }}>+ Créer le premier</button>
           </div>
-        ) : (
-          <div style={cdStyles.docList}>
+        ) : (() => {
+          // Le doc sélectionné pour le panneau de prévisualisation à droite.
+          // Hover sur une ligne (avec petit délai) → met à jour previewDocId.
+          const previewedDoc = (filtered || []).find((d) => d.id === previewDocId) || null;
+          return (
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+          <div style={{ ...cdStyles.docList, flex: previewedDoc ? "1 1 0%" : 1, minWidth: 0 }}>
             <div style={cdStyles.tableHead}>
               <span style={{ flex: "0 0 130px" }}>Référence de la pièce</span>
               <span style={{ flex: "0 0 90px" }}>Code raison sociale</span>
-              <span style={{ flex: "0 0 170px" }}>Workflow</span>
+              {!previewedDoc && <span style={{ flex: "0 0 170px" }}>Workflow</span>}
               <span style={{ flex: "0 0 110px", textAlign: "right" }}>Date de la pièce</span>
               <span style={{ flex: 1 }}>Nom de la raison sociale / Titre du devis</span>
-              <span style={{ flex: "0 0 90px" }}>Statut de la raison sociale</span>
+              {!previewedDoc && <span style={{ flex: "0 0 90px" }}>Statut de la raison sociale</span>}
               <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant HT</span>
-              <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant TTC</span>
+              {!previewedDoc && <span style={{ flex: "0 0 120px", textAlign: "right" }}>Montant TTC</span>}
               <span style={{ flex: "0 0 100px" }}>Statut de la pièce</span>
               <span style={{ flex: "0 0 60px" }}></span>
             </div>
             {filtered.map((d) => (
-              <DocRow key={d.id} doc={d} chain={buildChainFromAny(d)} statusMeta={STATUS_META} fmtEUR={fmtEUR} onOpen={openDoc} onReload={reload} kind={docKind(d)} />
+              <div key={d.id}
+                   onMouseEnter={() => {
+                     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+                     previewTimerRef.current = setTimeout(() => setPreviewDocId(d.id), 180);
+                   }}
+                   onMouseLeave={() => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); }}>
+                <DocRow doc={d} chain={buildChainFromAny(d)} statusMeta={STATUS_META} fmtEUR={fmtEUR} onOpen={openDoc} onReload={reload} kind={docKind(d)} compact={!!previewedDoc} />
+              </div>
             ))}
           </div>
-        )}
+          {previewedDoc && (
+            <DocPreviewPane doc={previewedDoc} chain={buildChainFromAny(previewedDoc)} fmtEUR={fmtEUR} onOpen={() => openDoc(previewedDoc.id)} onClose={() => setPreviewDocId(null)} kind={docKind(previewedDoc)} />
+          )}
+          </div>
+          );
+        })()}
       </main>
 
       {/* EDITOR MODAL */}
@@ -665,7 +684,136 @@ const WorkflowBar = ({ doc, canTransform, chain, onOpenDoc }) => {
 // ─────────────────────────────────────────────────────────────────
 // DocRow — Ligne de la liste avec menu d'actions rapides
 // ─────────────────────────────────────────────────────────────────
-const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
+// ─────────────────────────────────────────────────────────────────
+// DocPreviewPane — panneau de prévisualisation du doc survolé
+// Affiché à droite de la liste quand previewDocId est défini.
+// Charge les lignes via api.commercialDocs.getById (cache simple par id).
+// ─────────────────────────────────────────────────────────────────
+const DocPreviewPane = ({ doc, chain, fmtEUR, onOpen, onClose, kind }) => {
+  const [fullDoc, setFullDoc] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancel = false;
+    setLoading(true);
+    setFullDoc(null);
+    (async () => {
+      try {
+        const f = await window.api.commercialDocs.getById(doc.id);
+        if (!cancel) { setFullDoc(f); setLoading(false); }
+      } catch (e) { if (!cancel) setLoading(false); }
+    })();
+    return () => { cancel = true; };
+  }, [doc.id]);
+
+  const lines = (fullDoc && fullDoc.lines) || [];
+  const fmtDate = (s) => {
+    if (!s) return "—";
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+  };
+  const TYPE_LABEL = { devis: "Devis", commande: "Commande client", bl: "Bon de livraison", facture: "Facture", commande_achat: "Commande fournisseur" };
+
+  return (
+    <div style={{ flex: "0 0 420px", maxWidth: 420, background: "#fff", border: "1px solid #eef1f5",
+                  borderRadius: 12, padding: 0, position: "sticky", top: 16,
+                  maxHeight: "calc(100vh - 40px)", display: "flex", flexDirection: "column",
+                  boxShadow: "0 4px 16px rgba(15,23,42,0.06)" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "12px 16px", borderBottom: "1px solid #eef1f5",
+                    background: "linear-gradient(180deg, #fafbfc 0%, #fff 100%)" }}>
+        <div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>{TYPE_LABEL[doc.type] || doc.type}</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "#3730a3", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{doc.id}</div>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={onOpen} title="Ouvrir le doc en édition"
+                  style={{ padding: "6px 10px", background: "#3730a3", color: "#fff", border: 0, borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>Ouvrir</button>
+          <button onClick={onClose} title="Fermer l'aperçu"
+                  style={{ width: 26, height: 26, background: "#f1f5f9", border: 0, borderRadius: 6, color: "#475569", fontSize: 14, cursor: "pointer" }}>×</button>
+        </div>
+      </div>
+
+      {/* Bloc client */}
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Client</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.client_name || "— Non renseigné —"}</div>
+            {kind && (
+              <span style={{ display: "inline-block", marginTop: 4, padding: "1px 7px", borderRadius: 999,
+                             background: kind === "client" ? "#dcfce7" : "#fef3c7",
+                             color: kind === "client" ? "#065f46" : "#78350f",
+                             fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                {kind === "client" ? "Client" : "Prospect"}
+              </span>
+            )}
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Date</div>
+            <div style={{ fontSize: 12.5, color: "#475569", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{fmtDate(doc.doc_date)}</div>
+          </div>
+        </div>
+        {doc.title && <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 6, fontStyle: "italic" }}>{doc.title}</div>}
+      </div>
+
+      {/* Workflow */}
+      <div style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9", background: "#fafbfc" }}>
+        <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Workflow Sage</div>
+        <WorkflowChain chain={chain} currentType={doc.type} />
+      </div>
+
+      {/* Lignes */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 16px" }}>
+        <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
+          Lignes {lines.length > 0 && <span style={{ fontSize: 10, color: "#cbd5e1", marginLeft: 4 }}>({lines.length})</span>}
+        </div>
+        {loading ? (
+          <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", padding: "8px 0" }}>Chargement…</div>
+        ) : lines.length === 0 ? (
+          <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", padding: "8px 0" }}>Aucune ligne</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {lines.map((l, i) => (
+              <div key={l.id || i} style={{ padding: "6px 8px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                    {l.designation || "(sans désignation)"}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{fmtEUR(l.total_ht)}</span>
+                </div>
+                <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
+                  {l.ref && <span style={{ color: "#3730a3", fontWeight: 600 }}>{l.ref}</span>}
+                  {l.ref && " · "}
+                  {(Number(l.quantity) || 0)} {l.unit || "u"} × {fmtEUR(l.unit_price_ht)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Totaux */}
+      <div style={{ padding: "12px 16px", borderTop: "1px solid #eef1f5", background: "#fafbfc" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#475569" }}>
+          <span>Total HT</span>
+          <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtEUR(doc.total_ht)}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#475569", marginTop: 3 }}>
+          <span>TVA</span>
+          <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtEUR(doc.total_tva)}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, color: "#0f172a", marginTop: 6, paddingTop: 6, borderTop: "1px solid #e2e8f0" }}>
+          <span>Total TTC</span>
+          <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtEUR(doc.total_ttc)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind, compact }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [menuPos, setMenuPos] = React.useState({ top: 0, right: 0 });
   const menuRef = React.useRef(null);
@@ -782,14 +930,17 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
           <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 5, background: "#eef2ff", color: "#3730a3", fontSize: 11, fontWeight: 700, letterSpacing: 0.4 }}>{computeClientCode(doc.client_name)}</span>
         ) : <span style={{ fontSize: 11, color: "#cbd5e1" }}>—</span>}
       </span>
-      <span style={{ flex: "0 0 170px" }}>
-        <WorkflowChain chain={chain} currentType={doc.type} />
-      </span>
+      {!compact && (
+        <span style={{ flex: "0 0 170px" }}>
+          <WorkflowChain chain={chain} currentType={doc.type} />
+        </span>
+      )}
       <span style={{ flex: "0 0 110px", textAlign: "right", fontSize: 12.5, color: "#475569", letterSpacing: 0, ...numStyle }}>{fmtDate(doc.doc_date)}</span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.client_name || "— Client non renseigné —"}</div>
         <div style={{ fontSize: 11.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.title || "(sans titre)"}</div>
       </span>
+      {!compact && (
       <span style={{ flex: "0 0 90px" }}>
         {kind === "client" ? (
           <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 999, background: "#dcfce7", color: "#065f46", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Client</span>
@@ -799,8 +950,9 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
           <span style={{ fontSize: 11, color: "#cbd5e1" }}>—</span>
         )}
       </span>
+      )}
       <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 600, color: "#0f172a", ...numStyle }}>{fmtEUR(doc.total_ht)}</span>
-      <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", ...numStyle }}>{fmtEUR(doc.total_ttc)}</span>
+      {!compact && <span style={{ flex: "0 0 120px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", ...numStyle }}>{fmtEUR(doc.total_ttc)}</span>}
       <span style={{ flex: "0 0 100px" }}>
         {(() => {
           // Statut de la pièce = étape d'après dans le workflow Sage.

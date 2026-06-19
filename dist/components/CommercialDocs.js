@@ -358,6 +358,8 @@ var CommercialDocs = () => {
   var [search, setSearch] = React.useState("");
   var [clients, setClients] = React.useState([]);
   var [opps, setOpps] = React.useState([]);
+  var [previewDocId, setPreviewDocId] = React.useState(null);
+  var previewTimerRef = React.useRef(null);
   var [editing, setEditing] = React.useState(null); // null ou doc en cours d'édition
 
   var reload = React.useCallback(async () => {
@@ -941,63 +943,94 @@ var CommercialDocs = () => {
       ...cdStyles.primaryBtn,
       marginTop: 14
     }
-  }, "+ Cr\xE9er le premier")) : /*#__PURE__*/React.createElement("div", {
-    style: cdStyles.docList
-  }, /*#__PURE__*/React.createElement("div", {
-    style: cdStyles.tableHead
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 130px"
-    }
-  }, "R\xE9f\xE9rence de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 90px"
-    }
-  }, "Code raison sociale"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 170px"
-    }
-  }, "Workflow"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 110px",
-      textAlign: "right"
-    }
-  }, "Date de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "Nom de la raison sociale / Titre du devis"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 90px"
-    }
-  }, "Statut de la raison sociale"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 120px",
-      textAlign: "right"
-    }
-  }, "Montant HT"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 120px",
-      textAlign: "right"
-    }
-  }, "Montant TTC"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 100px"
-    }
-  }, "Statut de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 60px"
-    }
-  })), filtered.map(d => /*#__PURE__*/React.createElement(DocRow, {
-    key: d.id,
-    doc: d,
-    chain: buildChainFromAny(d),
-    statusMeta: STATUS_META,
-    fmtEUR: fmtEUR,
-    onOpen: openDoc,
-    onReload: reload,
-    kind: docKind(d)
-  })))), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
+  }, "+ Cr\xE9er le premier")) : (() => {
+    // Le doc sélectionné pour le panneau de prévisualisation à droite.
+    // Hover sur une ligne (avec petit délai) → met à jour previewDocId.
+    var previewedDoc = (filtered || []).find(d => d.id === previewDocId) || null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 14,
+        alignItems: "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...cdStyles.docList,
+        flex: previewedDoc ? "1 1 0%" : 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: cdStyles.tableHead
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 130px"
+      }
+    }, "R\xE9f\xE9rence de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 90px"
+      }
+    }, "Code raison sociale"), !previewedDoc && /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 170px"
+      }
+    }, "Workflow"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 110px",
+        textAlign: "right"
+      }
+    }, "Date de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, "Nom de la raison sociale / Titre du devis"), !previewedDoc && /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 90px"
+      }
+    }, "Statut de la raison sociale"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 120px",
+        textAlign: "right"
+      }
+    }, "Montant HT"), !previewedDoc && /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 120px",
+        textAlign: "right"
+      }
+    }, "Montant TTC"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 100px"
+      }
+    }, "Statut de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 60px"
+      }
+    })), filtered.map(d => /*#__PURE__*/React.createElement("div", {
+      key: d.id,
+      onMouseEnter: () => {
+        if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = setTimeout(() => setPreviewDocId(d.id), 180);
+      },
+      onMouseLeave: () => {
+        if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      }
+    }, /*#__PURE__*/React.createElement(DocRow, {
+      doc: d,
+      chain: buildChainFromAny(d),
+      statusMeta: STATUS_META,
+      fmtEUR: fmtEUR,
+      onOpen: openDoc,
+      onReload: reload,
+      kind: docKind(d),
+      compact: !!previewedDoc
+    })))), previewedDoc && /*#__PURE__*/React.createElement(DocPreviewPane, {
+      doc: previewedDoc,
+      chain: buildChainFromAny(previewedDoc),
+      fmtEUR: fmtEUR,
+      onOpen: () => openDoc(previewedDoc.id),
+      onClose: () => setPreviewDocId(null),
+      kind: docKind(previewedDoc)
+    }));
+  })()), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
     key: editing.id,
     doc: editing,
     clients: clients,
@@ -1162,6 +1195,348 @@ var WorkflowBar = ({
 // ─────────────────────────────────────────────────────────────────
 // DocRow — Ligne de la liste avec menu d'actions rapides
 // ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// DocPreviewPane — panneau de prévisualisation du doc survolé
+// Affiché à droite de la liste quand previewDocId est défini.
+// Charge les lignes via api.commercialDocs.getById (cache simple par id).
+// ─────────────────────────────────────────────────────────────────
+var DocPreviewPane = ({
+  doc,
+  chain,
+  fmtEUR,
+  onOpen,
+  onClose,
+  kind
+}) => {
+  var [fullDoc, setFullDoc] = React.useState(null);
+  var [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    var cancel = false;
+    setLoading(true);
+    setFullDoc(null);
+    (async () => {
+      try {
+        var f = await window.api.commercialDocs.getById(doc.id);
+        if (!cancel) {
+          setFullDoc(f);
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancel) setLoading(false);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [doc.id]);
+  var lines = fullDoc && fullDoc.lines || [];
+  var fmtDate = s => {
+    if (!s) return "—";
+    var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+  };
+  var TYPE_LABEL = {
+    devis: "Devis",
+    commande: "Commande client",
+    bl: "Bon de livraison",
+    facture: "Facture",
+    commande_achat: "Commande fournisseur"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "0 0 420px",
+      maxWidth: 420,
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 0,
+      position: "sticky",
+      top: 16,
+      maxHeight: "calc(100vh - 40px)",
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "0 4px 16px rgba(15,23,42,0.06)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "12px 16px",
+      borderBottom: "1px solid #eef1f5",
+      background: "linear-gradient(180deg, #fafbfc 0%, #fff 100%)"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, TYPE_LABEL[doc.type] || doc.type), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "#3730a3",
+      fontVariantNumeric: "tabular-nums",
+      marginTop: 2
+    }
+  }, doc.id)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onOpen,
+    title: "Ouvrir le doc en \xE9dition",
+    style: {
+      padding: "6px 10px",
+      background: "#3730a3",
+      color: "#fff",
+      border: 0,
+      borderRadius: 6,
+      fontSize: 11.5,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Ouvrir"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    title: "Fermer l'aper\xE7u",
+    style: {
+      width: 26,
+      height: 26,
+      background: "#f1f5f9",
+      border: 0,
+      borderRadius: 6,
+      color: "#475569",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, "Client"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a",
+      marginTop: 3,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, doc.client_name || "— Non renseigné —"), kind && /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      marginTop: 4,
+      padding: "1px 7px",
+      borderRadius: 999,
+      background: kind === "client" ? "#dcfce7" : "#fef3c7",
+      color: kind === "client" ? "#065f46" : "#78350f",
+      fontSize: 9.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, kind === "client" ? "Client" : "Prospect")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, "Date"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#475569",
+      marginTop: 3,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtDate(doc.doc_date)))), doc.title && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b",
+      marginTop: 6,
+      fontStyle: "italic"
+    }
+  }, doc.title)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 16px",
+      borderBottom: "1px solid #f1f5f9",
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 6
+    }
+  }, "Workflow Sage"), /*#__PURE__*/React.createElement(WorkflowChain, {
+    chain: chain,
+    currentType: doc.type
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      padding: "10px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 6
+    }
+  }, "Lignes ", lines.length > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#cbd5e1",
+      marginLeft: 4
+    }
+  }, "(", lines.length, ")")), loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#94a3b8",
+      fontStyle: "italic",
+      padding: "8px 0"
+    }
+  }, "Chargement\u2026") : lines.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#94a3b8",
+      fontStyle: "italic",
+      padding: "8px 0"
+    }
+  }, "Aucune ligne") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, lines.map((l, i) => /*#__PURE__*/React.createElement("div", {
+    key: l.id || i,
+    style: {
+      padding: "6px 8px",
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      flex: 1
+    }
+  }, l.designation || "(sans désignation)"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#0f172a",
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    }
+  }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, l.ref && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, l.ref), l.ref && " · ", Number(l.quantity) || 0, " ", l.unit || "u", " \xD7 ", fmtEUR(l.unit_price_ht)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      borderTop: "1px solid #eef1f5",
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12,
+      color: "#475569"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Total HT"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtEUR(doc.total_ht))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12,
+      color: "#475569",
+      marginTop: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "TVA"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtEUR(doc.total_tva))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#0f172a",
+      marginTop: 6,
+      paddingTop: 6,
+      borderTop: "1px solid #e2e8f0"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Total TTC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtEUR(doc.total_ttc)))));
+};
 var DocRow = ({
   doc,
   chain,
@@ -1169,7 +1544,8 @@ var DocRow = ({
   fmtEUR,
   onOpen,
   onReload,
-  kind
+  kind,
+  compact
 }) => {
   var [menuOpen, setMenuOpen] = React.useState(false);
   var [menuPos, setMenuPos] = React.useState({
@@ -1330,7 +1706,7 @@ var DocRow = ({
       fontSize: 11,
       color: "#cbd5e1"
     }
-  }, "\u2014")), /*#__PURE__*/React.createElement("span", {
+  }, "\u2014")), !compact && /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 170px"
     }
@@ -1368,7 +1744,7 @@ var DocRow = ({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, doc.title || "(sans titre)")), /*#__PURE__*/React.createElement("span", {
+  }, doc.title || "(sans titre)")), !compact && /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 90px"
     }
@@ -1410,7 +1786,7 @@ var DocRow = ({
       color: "#0f172a",
       ...numStyle
     }
-  }, fmtEUR(doc.total_ht)), /*#__PURE__*/React.createElement("span", {
+  }, fmtEUR(doc.total_ht)), !compact && /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 120px",
       textAlign: "right",

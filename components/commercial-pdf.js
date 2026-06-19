@@ -494,7 +494,11 @@
     } : null;
 
     // ─────────────────────────────────────────────────────────────────
-    // Assemblage final
+    // Assemblage final — body contient l'en-tête + lignes + totaux + signature.
+    // Le footer (contacts + réserve de propriété + n° de page) s'affiche
+    // automatiquement en bas de chaque page : c'est pdfmake qui gère le
+    // positionnement, donc le bandeau de bas de page suit toujours le
+    // contenu, quel que soit le nombre d'articles.
     // ─────────────────────────────────────────────────────────────────
     const content = [
       headerBand,
@@ -515,13 +519,16 @@
       notesBlock || { text: " " },
       isBL ? null : totalsBlock,
       signatureBlock,
-      contactsBlock,
-      reserveBlock,
     ].filter(Boolean);
+
+    // Hauteur réservée au footer : contacts (~70px) + réserve (~25px) + n°
+    // page (~10px) + marge interne ≈ 110px. pageMargins.bottom = 120 laisse
+    // 10px de respiration pour pdfmake.
+    const FOOTER_HEIGHT = 120;
 
     return {
       pageSize: "A4",
-      pageMargins: [28, 28, 28, 28],
+      pageMargins: [28, 28, 28, FOOTER_HEIGHT],
       defaultStyle: { font: "Roboto", fontSize: 9, color: "#0f172a" },
       content,
       styles: {
@@ -533,11 +540,61 @@
         tvaCell:      { fontSize: 8.5 },
       },
       footer: function (currentPage, pageCount) {
+        // Footer = contacts + réserve + pagination → rendu en bas de CHAQUE
+        // page. Quand un doc occupe plusieurs pages (multi-articles), le bas
+        // de page s'adapte automatiquement et reste collé en bas.
         return {
-          columns: [
-            { text: "", width: "*" },
-            { text: "Page " + currentPage + " / " + pageCount, fontSize: 7.5, color: "#888", alignment: "right", margin: [0, 0, 28, 8] },
-          ],
+          margin: [28, 0, 28, 8],
+          stack: [
+            // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
+            // gauche/droite, séparateur fin en haut)
+            {
+              table: {
+                widths: ["*", "*", "*"],
+                body: [
+                  [
+                    { text: "Service Commercial", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
+                    { text: "Administratif", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
+                    { text: "Comptabilité", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
+                  ],
+                  [
+                    { text: company.contact_commercial_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
+                    { text: company.contact_admin_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
+                    { text: company.contact_compta_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
+                  ],
+                  [
+                    { text: company.contact_commercial_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
+                    { text: company.contact_admin_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
+                    { text: company.contact_compta_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
+                  ],
+                  [
+                    { text: company.contact_commercial_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
+                    { text: company.contact_admin_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
+                    { text: company.contact_compta_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
+                  ],
+                ],
+              },
+              layout: {
+                paddingTop: () => 2, paddingBottom: () => 2,
+                paddingLeft: () => 4, paddingRight: () => 4,
+              },
+            },
+            // Mention réserve de propriété (chiquotée si présente)
+            company.mention_reserve_propriete ? {
+              text: company.mention_reserve_propriete,
+              fontSize: 6.5,
+              color: "#555",
+              italics: true,
+              margin: [0, 6, 0, 0],
+            } : null,
+            // Pagination
+            {
+              columns: [
+                { text: "", width: "*" },
+                { text: "Page " + currentPage + " / " + pageCount, fontSize: 7.5, color: "#888", alignment: "right", margin: [0, 4, 0, 0] },
+              ],
+            },
+          ].filter(Boolean),
         };
       },
       info: {

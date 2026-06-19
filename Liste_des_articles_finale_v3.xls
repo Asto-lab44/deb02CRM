@@ -165,7 +165,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-HEB-OFF2021</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hébergement licence Office 2021</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">6.99</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">8.39</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-4469</ss:Data></ss:Cell>
@@ -177,7 +177,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-HEB-TSE</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hébergement licence TSE</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">10.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3689</ss:Data></ss:Cell>
@@ -188,8 +188,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-WS-PSB-PC-3A</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure PSB Premium — PC 3 ans</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure PSB premium — PC 3 ans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">99</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">118.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3551</ss:Data></ss:Cell>
@@ -200,8 +200,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-OFF-2024</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Office 2024 — Home &amp; Business</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Office 2024 — Home &amp; business</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">259.89999999999998</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">311.88</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-1175</ss:Data></ss:Cell>
@@ -211,13 +211,13 @@
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">8</ss:Data></ss:Cell>
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-3CX</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">3cx — Licence d'utilisation</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">5.4</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">6.48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-747</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-132</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-150</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">615</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-3CX</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">3Cx — Licence d'utilisation</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">5.4</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">6.48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-747</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-132</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-150</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">615</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-GOUV</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 — Gouvernance</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">2.39</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-735</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-490</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-599</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">245</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-GOUV</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 — Gouvernance</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">2.39</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-735</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-490</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-599</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">245</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-VPN-ABO</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">VPN — Abonnement licence</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">10.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-603</ss:Data></ss:Cell>
@@ -227,13 +227,13 @@
     <ss:Cell ss:StyleID="s67" />
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-BIZ-STD</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 Business Standard</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">15.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">19.079999999999998</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-603</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-289</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-315</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">314</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-BIZ-STD</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 business standard</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">15.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">19.079999999999998</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-603</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-289</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-315</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">314</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS-EXCH-CAL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft Exchange Server 2019 — CAL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">49</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">58.8</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-388</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-217</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-217</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">171</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS-EXCH-CAL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft Exchange server 2019 — CAL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">49</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">58.8</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-388</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-217</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-217</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">171</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-TARGUS-SAC15</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Targus — Sacoche 15,6"</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">29.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">35.880000000000003</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-361</ss:Data></ss:Cell>
@@ -245,7 +245,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-MCL-RJ45-1M</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Mcl Samar — Câble RJ45 1 m</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.95</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">3.54</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-287</ss:Data></ss:Cell>
@@ -257,7 +257,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-TSE-LIC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft TSE — Licence</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">129.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">155.88</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-266</ss:Data></ss:Cell>
@@ -269,7 +269,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-TEAMS-VISIO</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Teams — Module visioconférence</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.76</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-258</ss:Data></ss:Cell>
@@ -280,8 +280,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-PFSENSE-APP</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Pfsense Appliance</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Pfsense appliance</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">389</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">466.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-250</ss:Data></ss:Cell>
@@ -292,8 +292,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-WIN2019-CAL</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows Server 2019 — CAL</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows server 2019 — CAL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">245</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">294</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-241</ss:Data></ss:Cell>
@@ -303,11 +303,11 @@
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">44</ss:Data></ss:Cell>
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MIB-ANTISPAM</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Mailinblack MIB Protect — Antispam</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">4.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">5.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MIB-ANTISPAM</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Mailinblack MIB protect — Antispam</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">4.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">5.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">HEB-PASSBOLT</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Passbolt — Abonnement Cloud</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HEBERGEMENT</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Passbolt — Abonnement cloud</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hebergement</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.99</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.99</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-187</ss:Data></ss:Cell>
@@ -317,11 +317,11 @@
     <ss:Cell ss:StyleID="s67" />
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-BIZ-PRE</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 Business Premium</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">20.6</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">24.72</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-178</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-111</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-113</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">67</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-BIZ-PRE</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 business premium</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">20.6</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">24.72</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-178</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-111</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-113</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">67</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-V7-RJ45-50CM-BL</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">V7 — Câble RJ45 50 cm blanc</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.75</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">3.3</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-176</ss:Data></ss:Cell>
@@ -332,8 +332,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-GOOG-WS-STD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Google Workspace Business Standard</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Google workspace business standard</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">13.6</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">16.32</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-174</ss:Data></ss:Cell>
@@ -344,8 +344,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-SRV2019-CAL</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Server 2019 — CAL</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft server 2019 — CAL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">49</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">58.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-161</ss:Data></ss:Cell>
@@ -355,11 +355,11 @@
     <ss:Cell ss:StyleID="s67" />
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-TEAMS</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 Teams</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">4.2</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">5.04</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-160.1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-133.1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-133.1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">27</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-TEAMS</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 Teams</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">4.2</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">5.04</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-160.1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-133.1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-133.1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">27</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-SSL-DOM-1A</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Certificat SSL Domaine unique — 1 an</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Certificat SSL domaine unique — 1 An</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">99</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">118.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-154.5</ss:Data></ss:Cell>
@@ -370,8 +370,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-WS-STD-SRV</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure Standard — Antivirus serveur</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure standard — Antivirus serveur</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">199</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">238.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-154</ss:Data></ss:Cell>
@@ -383,7 +383,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ECR-ACER-CB242Y</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer CB242Y — Écran 23,8"</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecrans</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">179</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">214.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-154</ss:Data></ss:Cell>
@@ -394,8 +394,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-VADE-VRC-3A</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Vade Secure VRC — Antivirus 3 ans</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Vade secure VRC — Antivirus 3 ans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66" />
     <ss:Cell ss:StyleID="s66" />
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-152</ss:Data></ss:Cell>
@@ -407,7 +407,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">MEM-4G-DDR4-2666</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Mémoire 4 Go DDR4 DIMM 2666 MHz</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MEMOIRES VIVES</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Memoires vives</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">39</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">46.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-148</ss:Data></ss:Cell>
@@ -417,11 +417,11 @@
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">20</ss:Data></ss:Cell>
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-EXCH-P1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 Exchange — Plan 1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">7.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">9.59</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-140</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-73</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">67</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-EXCH-P1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 Exchange — Plan 1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">7.99</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">9.59</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-140</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-73</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">67</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-YEA-T53</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Yealink T53 — Téléphone filaire</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-137</ss:Data></ss:Cell>
@@ -433,7 +433,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-YEA-T41S</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Yealink T41S — Téléphone filaire SIP</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">249</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">298.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-130</ss:Data></ss:Cell>
@@ -444,8 +444,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-ESET-EPP</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eset EndPoint Protection — Antivirus</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eset endpoint protection — Antivirus</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">59.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">71.88</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-128</ss:Data></ss:Cell>
@@ -456,8 +456,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-ESET-EPP-ENT</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eset EndPoint Protection Enterprise — Antivirus</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eset endpoint protection enterprise — Antivirus</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">20.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">25.08</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-113</ss:Data></ss:Cell>
@@ -469,7 +469,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">GAR-PFSENSE-3A</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Extension garantie 3 ans — Pfsense</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">GARANTIE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Garantie</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">89</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">106.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-113</ss:Data></ss:Cell>
@@ -480,8 +480,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-OFF2019-TSE</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Office 2019 Open — TSE</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Office 2019 open — TSE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">399</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">478.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-111</ss:Data></ss:Cell>
@@ -493,7 +493,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ECR-ACER-B227Q</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer B227Qbmiprx — Écran 21,5"</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecrans</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">159</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">190.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-105</ss:Data></ss:Cell>
@@ -505,7 +505,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-CASQ-WH62DT</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Casque sans fil mono WH62DT</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">189.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">227.88</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell>
@@ -517,7 +517,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-LOGI-M90</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logitech M90 — Souris filaire</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">14.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">17.88</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell>
@@ -529,7 +529,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">DD-TRANS-256-SSD</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Transcend — Disque dur 256 Go SSD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">DISQUES DURS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Disques durs</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">89</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">106.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-100</ss:Data></ss:Cell>
@@ -541,7 +541,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-UBI-BORNE-WIFI</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ubiquiti — Borne wifi</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-95</ss:Data></ss:Cell>
@@ -551,11 +551,11 @@
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">45</ss:Data></ss:Cell>
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">TEL-CARTE-SIM</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Carte SIM</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">9.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">11.88</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-94</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-80</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">28</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">TEL-CARTE-SIM</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Carte SIM</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">9.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">11.88</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-94</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-80</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">28</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-LOGI-MK235</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logitech MK235 — Clavier + souris sans fil</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">39.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">47.88</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-93</ss:Data></ss:Cell>
@@ -567,7 +567,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-YEA-W73P</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Yealink W73P — Téléphone sans fil</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">160</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">192</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-91</ss:Data></ss:Cell>
@@ -578,8 +578,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-HP-DOCK-G5</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp Dock G5 — Station d'accueil USB-C</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp dock G5 — Station d'accueil USB-C</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">249</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">298.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-90</ss:Data></ss:Cell>
@@ -591,7 +591,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-ITEC-DOCK</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">I-Tec — Station d'accueil</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">139</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">166.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-89</ss:Data></ss:Cell>
@@ -603,7 +603,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-YEA-T53W</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Yealink T53W — Téléphone filaire</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">269</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">322.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-89</ss:Data></ss:Cell>
@@ -615,7 +615,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ECR-ACER-V227Q</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer V227Qbip — Écran 21,5"</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecrans</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">169</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">202.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-88</ss:Data></ss:Cell>
@@ -627,7 +627,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ECR-FELL-SUP2</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Fellowes — Support 2 écrans</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecrans</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">129</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">154.80000000000001</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-83</ss:Data></ss:Cell>
@@ -639,7 +639,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">PRE-INST-NAS</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Prestation — Installation serveur NAS</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PRESTATIONS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Prestations</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">689</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">826.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-80</ss:Data></ss:Cell>
@@ -649,11 +649,11 @@
     <ss:Cell ss:StyleID="s67" />
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">TEL-CASQ-PLT-EP320</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Plantronics EncorePro 320 — Casque téléphonique</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">129</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">154.80000000000001</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-78</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-18</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-18</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">60</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">TEL-CASQ-PLT-EP320</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Plantronics EncorePro 320 — Casque téléphonique</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">129</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">154.80000000000001</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-78</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-18</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-18</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">60</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-STAR-HDMI-1M</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Startech — Câble HDMI/HDMI 1 m</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Startech — Câble hdmi/hdmi 1 m</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">15.5</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">18.600000000000001</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-77</ss:Data></ss:Cell>
@@ -665,7 +665,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-WS-PSB-RDR-SRV</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure PSB + RDR — Serveur</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">199</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">238.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-70</ss:Data></ss:Cell>
@@ -676,8 +676,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-WS-RADAR</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure Radar</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure radar</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.76</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-69</ss:Data></ss:Cell>
@@ -688,8 +688,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-EATON-ECO1200</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eaton Ellipse ECO 1200 — Onduleur FR</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eaton Ellipse eco 1200 — Onduleur FR</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">385</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">462</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell>
@@ -699,13 +699,13 @@
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">41</ss:Data></ss:Cell>
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-APPS</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 Apps for Business</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">10.8</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">12.96</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-26</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-26</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">40</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-APPS</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 apps for business</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">10.8</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">12.96</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-26</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-26</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">40</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-CERT-SMIME</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Certificat S/MIME — Signature mail</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.49</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.79</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-CERT-SMIME</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Certificat S/MIME — Signature mail</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.49</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.79</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-FOXIT-PERP</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Foxit — Licence perpétuelle</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">189</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">226.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
@@ -715,11 +715,11 @@
     <ss:Cell ss:StyleID="s67" />
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-NCE-BIZ-BAS</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 NCE — Business Basic</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">71.900000000000006</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">86.28</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-NCE-BIZ-BAS</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 NCE — Business basic</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">71.900000000000006</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">86.28</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-V7-RJ45-50CM-VE</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">V7 — Câble RJ45 50 cm vert</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1.99</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.39</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
@@ -730,8 +730,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-YEA-W60-PACK</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Yealink W60 Pack — Téléphone sans fil</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Yealink W60 pack — Téléphone sans fil</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">160</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">192</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
@@ -743,7 +743,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">DD-HP-960-SRV</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp — Disque dur serveur 960 Go</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">DISQUES DURS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Disques durs</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">889</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1066.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-61</ss:Data></ss:Cell>
@@ -755,7 +755,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ECR-SAMSUNG-S27R</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Samsung S27R650FDU — Écran 27"</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecrans</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">259</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">310.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-59</ss:Data></ss:Cell>
@@ -767,7 +767,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-HP-LINK5</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp Link-5 — Clavier sans fil</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">39</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">46.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-57</ss:Data></ss:Cell>
@@ -779,7 +779,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-LOGI-K120</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logitech K120 — Clavier filaire</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">19.899999999999999</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">23.88</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-57</ss:Data></ss:Cell>
@@ -791,7 +791,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">PC-HP-255-G7</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp 255 G7 — Portable 15" 8 Go / 256 SSD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC portable / tablette / surface</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">719</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">862.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
@@ -801,11 +801,11 @@
     <ss:Cell ss:StyleID="s67" />
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-NCE-EXCH-P1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 NCE — Exchange Plan 1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">52.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">63.48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-NCE-EXCH-P1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 NCE — Exchange plan 1</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">52.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">63.48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-WIN10-PRO</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows 10 Pro</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows 10 pro</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">159</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">190.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
@@ -817,7 +817,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-CASQ-WH66</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Casque sans fil WH66</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">239</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">286.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-55</ss:Data></ss:Cell>
@@ -829,7 +829,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-FRAIS-PORTA</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Frais portabilité numéro</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">120</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">144</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-53</ss:Data></ss:Cell>
@@ -841,7 +841,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-PERIXX-ERGO</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Perixx — Souris ergonomique</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">49</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">58.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-53</ss:Data></ss:Cell>
@@ -853,7 +853,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">PC-HP-PB455-G8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp ProBook 455 G8 — Portable 15" 16 Go / 512 SSD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC portable / tablette / surface</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">909</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1090.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
@@ -865,7 +865,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-V7-RJ45-1M-VE</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">V7 — Câble RJ45 1 m vert</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.95</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">3.54</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
@@ -877,7 +877,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-VM-PFSENSE</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">VM Pfsense</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">19</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">22.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
@@ -889,7 +889,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">PC-HP-290-G9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp 290 G9 — Micro tower</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC FIXE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC fixe</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">619</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">742.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-50</ss:Data></ss:Cell>
@@ -899,11 +899,11 @@
     <ss:Cell ss:StyleID="s67" />
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-MIG-EXCH</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 — Migration Exchange</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">158</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">189.6</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-49.5</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-49.5</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.5</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-MIG-EXCH</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 — Migration Exchange</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">158</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">189.6</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-49.5</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-49.5</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">1.5</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">PC-ACER-ASP5-17</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer Aspire 5 — Portable 17" 16 Go / 512 SSD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer aspire 5 — Portable 17" 16 Go / 512 SSD</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC portable / tablette / surface</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1049</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1258.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-48</ss:Data></ss:Cell>
@@ -914,8 +914,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-WIN2019-ESS</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows Server 2019 — Essentials</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows server 2019 — Essentials</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">549</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">658.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-46</ss:Data></ss:Cell>
@@ -927,7 +927,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ACC-CHERRY-MW4500</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Cherry MW-4500 — Souris sans fil</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Accessoires PC</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">35.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">43.08</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
@@ -939,7 +939,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ECR-ACER-V247Y</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer V247Ybip — Écran 23,8"</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecrans</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
@@ -949,11 +949,11 @@
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">4</ss:Data></ss:Cell>
    </ss:Row>
    <ss:Row>
-    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-NCE-BIZ-STD</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 NCE — Business Standard / an</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">152.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">183.48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">2</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
+    <ss:Cell><ss:Data ss:Type="String">LOG-MS365-NCE-BIZ-STD</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Microsoft 365 NCE — Business standard / an</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">152.9</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">183.48</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="Number">2</ss:Data></ss:Cell><ss:Cell><ss:Data ss:Type="String" /></ss:Cell></ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-ESET-IS-2A</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eset Internet Security — 2 ans</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eset internet security — 2 Ans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">59.98</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">71.98</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
@@ -964,8 +964,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">RES-EATON-ECO500</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eaton Ellipse ECO 500 — Onduleur FR</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Eaton Ellipse eco 500 — Onduleur FR</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Materiels reseau</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
@@ -976,8 +976,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-WIN-SRV22</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows Server 2022</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows server 2022</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">849</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1018.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
@@ -989,7 +989,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ECR-ACER-V247YM</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer V247Ybmipx — Écran 23,8"</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecrans</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">155.5</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">186.6</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
@@ -1000,8 +1000,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-WS-PRO-PC-3A</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure Professionnel — PC 3 ans</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">WithSecure professionnel — PC 3 ans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">57.9</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">69.48</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
@@ -1012,8 +1012,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-MS-WIN2019-LIC</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows Server 2019 — Licence</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows server 2019 — Licence</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66" />
     <ss:Cell ss:StyleID="s66" />
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
@@ -1025,7 +1025,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">SRV-SYNO-DS420J</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Synology DiskStation DS420j — Serveur NAS</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">SERVEUR</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Serveur</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">499</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">598.79999999999995</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
@@ -1037,7 +1037,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">MEM-16G-DDR4-2933</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Mémoire 16 Go DDR4 DIMM 2933 MHz</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MEMOIRES VIVES</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Memoires vives</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">349</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">418.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
@@ -1049,7 +1049,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-WEB-MODULE</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Module site internet</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66" />
     <ss:Cell ss:StyleID="s66" />
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
@@ -1061,7 +1061,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">TEL-YEA-T46S</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Yealink T46S — Téléphone filaire</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Telephone</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">279</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">334.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
@@ -1073,7 +1073,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">PC-HP-250-G8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hp 250 G8 — Portable 8 Go / 256 SSD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC portable / tablette / surface</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">669</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">802.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-40</ss:Data></ss:Cell>
@@ -1085,7 +1085,7 @@
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">PC-ASUS-EXPB-15</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Asus ExpertBook — Portable 15" 8 Go / 256 SSD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC portable / tablette / surface</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">789</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">946.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
@@ -1096,8 +1096,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-SSL-WILDCARD</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Certificat SSL Wildcard — 1 an</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Certificat SSL wildcard — 1 An</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">239</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">286.8</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
@@ -1108,8 +1108,8 @@
    </ss:Row>
    <ss:Row>
     <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">LOG-VEEAM-BACKUP</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Veeam Backup</ss:Data></ss:Cell>
-    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Veeam backup</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">435</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">522</ss:Data></ss:Cell>
     <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>

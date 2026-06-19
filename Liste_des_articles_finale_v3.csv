@@ -1,94 +1,94 @@
 ﻿Code;Désignation courte;Famille;Prix de Vte HT;Prix de Vte TTC;Stock théor.;Stock réel;Stock disponible;Quantité en cde client;Quantité en cde fournisseur
-LOG-HEB-OFF2021;Hébergement licence Office 2021;LOGICIEL;6.99;8.39;-4469;-4368;-4381;101;
-LOG-HEB-TSE;Hébergement licence TSE;LOGICIEL;9;10.8;-3689;-3291;-3317;399;1
-LOG-WS-PSB-PC-3A;WithSecure PSB Premium — PC 3 ans;LOGICIEL;99;118.8;-3551;-3132;-3318;419;
-LOG-MS-OFF-2024;Microsoft Office 2024 — Home & Business;LOGICIEL;259.89999999999998;311.88;-1175;-1093;-1137;90;8
-LOG-3CX;3cx — Licence d'utilisation;LOGICIEL;5.4;6.48;-747;-132;-150;615;
-LOG-MS365-GOUV;Microsoft 365 — Gouvernance;LOGICIEL;1.99;2.39;-735;-490;-599;245;
-LOG-VPN-ABO;VPN — Abonnement licence;LOGICIEL;9;10.8;-603;-600;-601;3;
-LOG-MS365-BIZ-STD;Microsoft 365 Business Standard;LOGICIEL;15.9;19.079999999999998;-603;-289;-315;314;
-LOG-MS-EXCH-CAL;Microsoft Exchange Server 2019 — CAL;LOGICIEL;49;58.8;-388;-217;-217;171;
-ACC-TARGUS-SAC15;"Targus — Sacoche 15,6""";ACCESSOIRES PC;29.9;35.880000000000003;-361;-333;-365;28;
-RES-MCL-RJ45-1M;Mcl Samar — Câble RJ45 1 m;MATERIELS RESEAU;2.95;3.54;-287;-347;-331;20;80
-LOG-MS-TSE-LIC;Microsoft TSE — Licence;LOGICIEL;129.9;155.88;-266;-240;-240;26;
-LOG-MS-TEAMS-VISIO;Microsoft Teams — Module visioconférence;LOGICIEL;4.8;5.76;-258;-220;-223;38;
-RES-PFSENSE-APP;Pfsense Appliance;MATERIELS RESEAU;389;466.8;-250;-228;-234;22;
-LOG-MS-WIN2019-CAL;Microsoft Windows Server 2019 — CAL;LOGICIEL;245;294;-241;-228;-228;57;44
-LOG-MIB-ANTISPAM;Mailinblack MIB Protect — Antispam;LOGICIEL;4.99;5.99;-213;-213;-213;;
-HEB-PASSBOLT;Passbolt — Abonnement Cloud;HEBERGEMENT;4.99;5.99;-187;-57;-161;130;
-LOG-MS365-BIZ-PRE;Microsoft 365 Business Premium;LOGICIEL;20.6;24.72;-178;-111;-113;67;
-RES-V7-RJ45-50CM-BL;V7 — Câble RJ45 50 cm blanc;MATERIELS RESEAU;2.75;3.3;-176;-178;-178;18;20
-LOG-GOOG-WS-STD;Google Workspace Business Standard;LOGICIEL;13.6;16.32;-174;-74;-158;100;
-LOG-MS-SRV2019-CAL;Microsoft Server 2019 — CAL;LOGICIEL;49;58.8;-161;-136;-136;25;
-LOG-MS365-TEAMS;Microsoft 365 Teams;LOGICIEL;4.2;5.04;-160.1;-133.1;-133.1;27;
-LOG-SSL-DOM-1A;Certificat SSL Domaine unique — 1 an;LOGICIEL;99;118.8;-154.5;-146.5;-150.5;8;
-LOG-WS-STD-SRV;WithSecure Standard — Antivirus serveur;LOGICIEL;199;238.8;-154;-135;-136;19;
-ECR-ACER-CB242Y;"Acer CB242Y — Écran 23,8""";ECRANS;179;214.8;-154;-78;-154;77;1
-LOG-VADE-VRC-3A;Vade Secure VRC — Antivirus 3 ans;LOGICIEL;;;-152;-128;-152;24;
-MEM-4G-DDR4-2666;Mémoire 4 Go DDR4 DIMM 2666 MHz;MEMOIRES VIVES;39;46.8;-148;-142;-143;26;20
-LOG-MS365-EXCH-P1;Microsoft 365 Exchange — Plan 1;LOGICIEL;7.99;9.59;-140;-73;-104;67;
-TEL-YEA-T53;Yealink T53 — Téléphone filaire;TELEPHONE;149;178.8;-137;-130;-130;22;15
-TEL-YEA-T41S;Yealink T41S — Téléphone filaire SIP;TELEPHONE;249;298.8;-130;-142;-140;10;22
-LOG-ESET-EPP;Eset EndPoint Protection — Antivirus;LOGICIEL;59.9;71.88;-128;-127;-127;1;
-LOG-ESET-EPP-ENT;Eset EndPoint Protection Enterprise — Antivirus;LOGICIEL;20.9;25.08;-113;-109;-111;4;
-GAR-PFSENSE-3A;Extension garantie 3 ans — Pfsense;GARANTIE;89;106.8;-113;-105;-107;8;
-LOG-MS-OFF2019-TSE;Microsoft Office 2019 Open — TSE;LOGICIEL;399;478.8;-111;-86;-86;25;
-ECR-ACER-B227Q;"Acer B227Qbmiprx — Écran 21,5""";ECRANS;159;190.8;-105;-123;-123;;18
-TEL-CASQ-WH62DT;Casque sans fil mono WH62DT;TELEPHONE;189.9;227.88;-104;-102;-102;2;
-ACC-LOGI-M90;Logitech M90 — Souris filaire;ACCESSOIRES PC;14.9;17.88;-104;-121;-121;27;44
-DD-TRANS-256-SSD;Transcend — Disque dur 256 Go SSD;DISQUES DURS;89;106.8;-100;-120;-119;20;40
-RES-UBI-BORNE-WIFI;Ubiquiti — Borne wifi;MATERIELS RESEAU;149;178.8;-95;-117;-125;23;45
-TEL-CARTE-SIM;Carte SIM;TELEPHONE;9.9;11.88;-94;-66;-80;28;
-ACC-LOGI-MK235;Logitech MK235 — Clavier + souris sans fil;ACCESSOIRES PC;39.9;47.88;-93;-104;-118;14;25
-TEL-YEA-W73P;Yealink W73P — Téléphone sans fil;TELEPHONE;160;192;-91;-104;-110;3;16
-ACC-HP-DOCK-G5;Hp Dock G5 — Station d'accueil USB-C;ACCESSOIRES PC;249;298.8;-90;-95;-95;2;7
-ACC-ITEC-DOCK;I-Tec — Station d'accueil;ACCESSOIRES PC;139;166.8;-89;-75;-89;14;
-TEL-YEA-T53W;Yealink T53W — Téléphone filaire;TELEPHONE;269;322.8;-89;-84;-84;5;
-ECR-ACER-V227Q;"Acer V227Qbip — Écran 21,5""";ECRANS;169;202.8;-88;-88;-88;2;2
-ECR-FELL-SUP2;Fellowes — Support 2 écrans;ECRANS;129;154.80000000000001;-83;-68;-81;18;3
-PRE-INST-NAS;Prestation — Installation serveur NAS;PRESTATIONS;689;826.8;-80;-74;-79;6;
-TEL-CASQ-PLT-EP320;Plantronics EncorePro 320 — Casque téléphonique;TELEPHONE;129;154.80000000000001;-78;-18;-18;60;
-ACC-STAR-HDMI-1M;Startech — Câble HDMI/HDMI 1 m;ACCESSOIRES PC;15.5;18.600000000000001;-77;-100;-95;24;47
-LOG-WS-PSB-RDR-SRV;WithSecure PSB + RDR — Serveur;LOGICIEL;199;238.8;-70;-64;-67;6;
-LOG-WS-RADAR;WithSecure Radar;LOGICIEL;4.8;5.76;-69;-36;-69;33;
-RES-EATON-ECO1200;Eaton Ellipse ECO 1200 — Onduleur FR;MATERIELS RESEAU;385;462;-66;-97;-98;10;41
-LOG-MS365-APPS;Microsoft 365 Apps for Business;LOGICIEL;10.8;12.96;-66;-26;-26;40;
-LOG-CERT-SMIME;Certificat S/MIME — Signature mail;LOGICIEL;1.49;1.79;-64;;-64;64;
-LOG-FOXIT-PERP;Foxit — Licence perpétuelle;LOGICIEL;189;226.8;-63;-63;-63;;
-LOG-MS365-NCE-BIZ-BAS;Microsoft 365 NCE — Business Basic;LOGICIEL;71.900000000000006;86.28;-63;-63;-64;;
-RES-V7-RJ45-50CM-VE;V7 — Câble RJ45 50 cm vert;MATERIELS RESEAU;1.99;2.39;-63;-83;-83;;20
-TEL-YEA-W60-PACK;Yealink W60 Pack — Téléphone sans fil;TELEPHONE;160;192;-63;-55;-55;8;
-DD-HP-960-SRV;Hp — Disque dur serveur 960 Go;DISQUES DURS;889;1066.8;-61;-60;-60;1;
-ECR-SAMSUNG-S27R;"Samsung S27R650FDU — Écran 27""";ECRANS;259;310.8;-59;-59;-59;;
-ACC-HP-LINK5;Hp Link-5 — Clavier sans fil;ACCESSOIRES PC;39;46.8;-57;-56;-56;1;
-ACC-LOGI-K120;Logitech K120 — Clavier filaire;ACCESSOIRES PC;19.899999999999999;23.88;-57;-46;-46;18;7
-PC-HP-255-G7;"Hp 255 G7 — Portable 15"" 8 Go / 256 SSD";PC PORTABLE / TABLETTE / SURFACE;719;862.8;-56;-51;-55;5;
-LOG-MS365-NCE-EXCH-P1;Microsoft 365 NCE — Exchange Plan 1;LOGICIEL;52.9;63.48;-56;-56;-56;;
-LOG-MS-WIN10-PRO;Microsoft Windows 10 Pro;LOGICIEL;159;190.8;-56;-52;-52;4;
-TEL-CASQ-WH66;Casque sans fil WH66;TELEPHONE;239;286.8;-55;-54;-59;1;
-TEL-FRAIS-PORTA;Frais portabilité numéro;TELEPHONE;120;144;-53;-49;-55;4;
-ACC-PERIXX-ERGO;Perixx — Souris ergonomique;ACCESSOIRES PC;49;58.8;-53;-36;-36;17;
-PC-HP-PB455-G8;"Hp ProBook 455 G8 — Portable 15"" 16 Go / 512 SSD";PC PORTABLE / TABLETTE / SURFACE;909;1090.8;-52;-41;-50;11;
-RES-V7-RJ45-1M-VE;V7 — Câble RJ45 1 m vert;MATERIELS RESEAU;2.95;3.54;-52;-72;-72;;20
-LOG-VM-PFSENSE;VM Pfsense;LOGICIEL;19;22.8;-52;-47;-52;5;
-PC-HP-290-G9;Hp 290 G9 — Micro tower;PC FIXE;619;742.8;-50;-42;-42;8;
-LOG-MS365-MIG-EXCH;Microsoft 365 — Migration Exchange;LOGICIEL;158;189.6;-49.5;-48;-49.5;1.5;
-PC-ACER-ASP5-17;"Acer Aspire 5 — Portable 17"" 16 Go / 512 SSD";PC PORTABLE / TABLETTE / SURFACE;1049;1258.8;-48;-47;-52;1;
-LOG-MS-WIN2019-ESS;Microsoft Windows Server 2019 — Essentials;LOGICIEL;549;658.8;-46;-45;-45;1;
-ACC-CHERRY-MW4500;Cherry MW-4500 — Souris sans fil;ACCESSOIRES PC;35.9;43.08;-45;-47;-46;;2
-ECR-ACER-V247Y;"Acer V247Ybip — Écran 23,8""";ECRANS;149;178.8;-45;-44;-44;5;4
-LOG-MS365-NCE-BIZ-STD;Microsoft 365 NCE — Business Standard / an;LOGICIEL;152.9;183.48;-45;-43;-43;2;
-LOG-ESET-IS-2A;Eset Internet Security — 2 ans;LOGICIEL;59.98;71.98;-44;-43;-44;1;
-RES-EATON-ECO500;Eaton Ellipse ECO 500 — Onduleur FR;MATERIELS RESEAU;149;178.8;-44;-44;-45;10;10
-LOG-MS-WIN-SRV22;Microsoft Windows Server 2022;LOGICIEL;849;1018.8;-44;-44;-44;;
-ECR-ACER-V247YM;"Acer V247Ybmipx — Écran 23,8""";ECRANS;155.5;186.6;-42;-52;-52;2;12
-LOG-WS-PRO-PC-3A;WithSecure Professionnel — PC 3 ans;LOGICIEL;57.9;69.48;-42;-38;-40;4;
-LOG-MS-WIN2019-LIC;Microsoft Windows Server 2019 — Licence;LOGICIEL;;;-42;-41;-41;1;
-SRV-SYNO-DS420J;Synology DiskStation DS420j — Serveur NAS;SERVEUR;499;598.79999999999995;-42;-33;-35;9;
-MEM-16G-DDR4-2933;Mémoire 16 Go DDR4 DIMM 2933 MHz;MEMOIRES VIVES;349;418.8;-41;-45;-45;;4
-LOG-WEB-MODULE;Module site internet;LOGICIEL;;;-41;-41;-41;;
-TEL-YEA-T46S;Yealink T46S — Téléphone filaire;TELEPHONE;279;334.8;-41;-43;-43;1;3
-PC-HP-250-G8;Hp 250 G8 — Portable 8 Go / 256 SSD;PC PORTABLE / TABLETTE / SURFACE;669;802.8;-40;-40;-40;;
-PC-ASUS-EXPB-15;"Asus ExpertBook — Portable 15"" 8 Go / 256 SSD";PC PORTABLE / TABLETTE / SURFACE;789;946.8;-39;-39;-39;;
-LOG-SSL-WILDCARD;Certificat SSL Wildcard — 1 an;LOGICIEL;239;286.8;-39;-39;-40;;
-LOG-VEEAM-BACKUP;Veeam Backup;LOGICIEL;435;522;-39;-37;-38;2;
+LOG-HEB-OFF2021;Hébergement licence Office 2021;Logiciel;6.99;8.39;-4469;-4368;-4381;101;
+LOG-HEB-TSE;Hébergement licence TSE;Logiciel;9;10.8;-3689;-3291;-3317;399;1
+LOG-WS-PSB-PC-3A;WithSecure PSB premium — PC 3 ans;Logiciel;99;118.8;-3551;-3132;-3318;419;
+LOG-MS-OFF-2024;Microsoft Office 2024 — Home & business;Logiciel;259.89999999999998;311.88;-1175;-1093;-1137;90;8
+LOG-3CX;3Cx — Licence d'utilisation;Logiciel;5.4;6.48;-747;-132;-150;615;
+LOG-MS365-GOUV;Microsoft 365 — Gouvernance;Logiciel;1.99;2.39;-735;-490;-599;245;
+LOG-VPN-ABO;VPN — Abonnement licence;Logiciel;9;10.8;-603;-600;-601;3;
+LOG-MS365-BIZ-STD;Microsoft 365 business standard;Logiciel;15.9;19.079999999999998;-603;-289;-315;314;
+LOG-MS-EXCH-CAL;Microsoft Exchange server 2019 — CAL;Logiciel;49;58.8;-388;-217;-217;171;
+ACC-TARGUS-SAC15;"Targus — Sacoche 15,6""";Accessoires PC;29.9;35.880000000000003;-361;-333;-365;28;
+RES-MCL-RJ45-1M;Mcl Samar — Câble RJ45 1 m;Materiels reseau;2.95;3.54;-287;-347;-331;20;80
+LOG-MS-TSE-LIC;Microsoft TSE — Licence;Logiciel;129.9;155.88;-266;-240;-240;26;
+LOG-MS-TEAMS-VISIO;Microsoft Teams — Module visioconférence;Logiciel;4.8;5.76;-258;-220;-223;38;
+RES-PFSENSE-APP;Pfsense appliance;Materiels reseau;389;466.8;-250;-228;-234;22;
+LOG-MS-WIN2019-CAL;Microsoft Windows server 2019 — CAL;Logiciel;245;294;-241;-228;-228;57;44
+LOG-MIB-ANTISPAM;Mailinblack MIB protect — Antispam;Logiciel;4.99;5.99;-213;-213;-213;;
+HEB-PASSBOLT;Passbolt — Abonnement cloud;Hebergement;4.99;5.99;-187;-57;-161;130;
+LOG-MS365-BIZ-PRE;Microsoft 365 business premium;Logiciel;20.6;24.72;-178;-111;-113;67;
+RES-V7-RJ45-50CM-BL;V7 — Câble RJ45 50 cm blanc;Materiels reseau;2.75;3.3;-176;-178;-178;18;20
+LOG-GOOG-WS-STD;Google workspace business standard;Logiciel;13.6;16.32;-174;-74;-158;100;
+LOG-MS-SRV2019-CAL;Microsoft server 2019 — CAL;Logiciel;49;58.8;-161;-136;-136;25;
+LOG-MS365-TEAMS;Microsoft 365 Teams;Logiciel;4.2;5.04;-160.1;-133.1;-133.1;27;
+LOG-SSL-DOM-1A;Certificat SSL domaine unique — 1 An;Logiciel;99;118.8;-154.5;-146.5;-150.5;8;
+LOG-WS-STD-SRV;WithSecure standard — Antivirus serveur;Logiciel;199;238.8;-154;-135;-136;19;
+ECR-ACER-CB242Y;"Acer CB242Y — Écran 23,8""";Ecrans;179;214.8;-154;-78;-154;77;1
+LOG-VADE-VRC-3A;Vade secure VRC — Antivirus 3 ans;Logiciel;;;-152;-128;-152;24;
+MEM-4G-DDR4-2666;Mémoire 4 Go DDR4 DIMM 2666 MHz;Memoires vives;39;46.8;-148;-142;-143;26;20
+LOG-MS365-EXCH-P1;Microsoft 365 Exchange — Plan 1;Logiciel;7.99;9.59;-140;-73;-104;67;
+TEL-YEA-T53;Yealink T53 — Téléphone filaire;Telephone;149;178.8;-137;-130;-130;22;15
+TEL-YEA-T41S;Yealink T41S — Téléphone filaire SIP;Telephone;249;298.8;-130;-142;-140;10;22
+LOG-ESET-EPP;Eset endpoint protection — Antivirus;Logiciel;59.9;71.88;-128;-127;-127;1;
+LOG-ESET-EPP-ENT;Eset endpoint protection enterprise — Antivirus;Logiciel;20.9;25.08;-113;-109;-111;4;
+GAR-PFSENSE-3A;Extension garantie 3 ans — Pfsense;Garantie;89;106.8;-113;-105;-107;8;
+LOG-MS-OFF2019-TSE;Microsoft Office 2019 open — TSE;Logiciel;399;478.8;-111;-86;-86;25;
+ECR-ACER-B227Q;"Acer B227Qbmiprx — Écran 21,5""";Ecrans;159;190.8;-105;-123;-123;;18
+TEL-CASQ-WH62DT;Casque sans fil mono WH62DT;Telephone;189.9;227.88;-104;-102;-102;2;
+ACC-LOGI-M90;Logitech M90 — Souris filaire;Accessoires PC;14.9;17.88;-104;-121;-121;27;44
+DD-TRANS-256-SSD;Transcend — Disque dur 256 Go SSD;Disques durs;89;106.8;-100;-120;-119;20;40
+RES-UBI-BORNE-WIFI;Ubiquiti — Borne wifi;Materiels reseau;149;178.8;-95;-117;-125;23;45
+TEL-CARTE-SIM;Carte SIM;Telephone;9.9;11.88;-94;-66;-80;28;
+ACC-LOGI-MK235;Logitech MK235 — Clavier + souris sans fil;Accessoires PC;39.9;47.88;-93;-104;-118;14;25
+TEL-YEA-W73P;Yealink W73P — Téléphone sans fil;Telephone;160;192;-91;-104;-110;3;16
+ACC-HP-DOCK-G5;Hp dock G5 — Station d'accueil USB-C;Accessoires PC;249;298.8;-90;-95;-95;2;7
+ACC-ITEC-DOCK;I-Tec — Station d'accueil;Accessoires PC;139;166.8;-89;-75;-89;14;
+TEL-YEA-T53W;Yealink T53W — Téléphone filaire;Telephone;269;322.8;-89;-84;-84;5;
+ECR-ACER-V227Q;"Acer V227Qbip — Écran 21,5""";Ecrans;169;202.8;-88;-88;-88;2;2
+ECR-FELL-SUP2;Fellowes — Support 2 écrans;Ecrans;129;154.80000000000001;-83;-68;-81;18;3
+PRE-INST-NAS;Prestation — Installation serveur NAS;Prestations;689;826.8;-80;-74;-79;6;
+TEL-CASQ-PLT-EP320;Plantronics EncorePro 320 — Casque téléphonique;Telephone;129;154.80000000000001;-78;-18;-18;60;
+ACC-STAR-HDMI-1M;Startech — Câble hdmi/hdmi 1 m;Accessoires PC;15.5;18.600000000000001;-77;-100;-95;24;47
+LOG-WS-PSB-RDR-SRV;WithSecure PSB + RDR — Serveur;Logiciel;199;238.8;-70;-64;-67;6;
+LOG-WS-RADAR;WithSecure radar;Logiciel;4.8;5.76;-69;-36;-69;33;
+RES-EATON-ECO1200;Eaton Ellipse eco 1200 — Onduleur FR;Materiels reseau;385;462;-66;-97;-98;10;41
+LOG-MS365-APPS;Microsoft 365 apps for business;Logiciel;10.8;12.96;-66;-26;-26;40;
+LOG-CERT-SMIME;Certificat S/MIME — Signature mail;Logiciel;1.49;1.79;-64;;-64;64;
+LOG-FOXIT-PERP;Foxit — Licence perpétuelle;Logiciel;189;226.8;-63;-63;-63;;
+LOG-MS365-NCE-BIZ-BAS;Microsoft 365 NCE — Business basic;Logiciel;71.900000000000006;86.28;-63;-63;-64;;
+RES-V7-RJ45-50CM-VE;V7 — Câble RJ45 50 cm vert;Materiels reseau;1.99;2.39;-63;-83;-83;;20
+TEL-YEA-W60-PACK;Yealink W60 pack — Téléphone sans fil;Telephone;160;192;-63;-55;-55;8;
+DD-HP-960-SRV;Hp — Disque dur serveur 960 Go;Disques durs;889;1066.8;-61;-60;-60;1;
+ECR-SAMSUNG-S27R;"Samsung S27R650FDU — Écran 27""";Ecrans;259;310.8;-59;-59;-59;;
+ACC-HP-LINK5;Hp Link-5 — Clavier sans fil;Accessoires PC;39;46.8;-57;-56;-56;1;
+ACC-LOGI-K120;Logitech K120 — Clavier filaire;Accessoires PC;19.899999999999999;23.88;-57;-46;-46;18;7
+PC-HP-255-G7;"Hp 255 G7 — Portable 15"" 8 Go / 256 SSD";PC portable / tablette / surface;719;862.8;-56;-51;-55;5;
+LOG-MS365-NCE-EXCH-P1;Microsoft 365 NCE — Exchange plan 1;Logiciel;52.9;63.48;-56;-56;-56;;
+LOG-MS-WIN10-PRO;Microsoft Windows 10 pro;Logiciel;159;190.8;-56;-52;-52;4;
+TEL-CASQ-WH66;Casque sans fil WH66;Telephone;239;286.8;-55;-54;-59;1;
+TEL-FRAIS-PORTA;Frais portabilité numéro;Telephone;120;144;-53;-49;-55;4;
+ACC-PERIXX-ERGO;Perixx — Souris ergonomique;Accessoires PC;49;58.8;-53;-36;-36;17;
+PC-HP-PB455-G8;"Hp ProBook 455 G8 — Portable 15"" 16 Go / 512 SSD";PC portable / tablette / surface;909;1090.8;-52;-41;-50;11;
+RES-V7-RJ45-1M-VE;V7 — Câble RJ45 1 m vert;Materiels reseau;2.95;3.54;-52;-72;-72;;20
+LOG-VM-PFSENSE;VM Pfsense;Logiciel;19;22.8;-52;-47;-52;5;
+PC-HP-290-G9;Hp 290 G9 — Micro tower;PC fixe;619;742.8;-50;-42;-42;8;
+LOG-MS365-MIG-EXCH;Microsoft 365 — Migration Exchange;Logiciel;158;189.6;-49.5;-48;-49.5;1.5;
+PC-ACER-ASP5-17;"Acer aspire 5 — Portable 17"" 16 Go / 512 SSD";PC portable / tablette / surface;1049;1258.8;-48;-47;-52;1;
+LOG-MS-WIN2019-ESS;Microsoft Windows server 2019 — Essentials;Logiciel;549;658.8;-46;-45;-45;1;
+ACC-CHERRY-MW4500;Cherry MW-4500 — Souris sans fil;Accessoires PC;35.9;43.08;-45;-47;-46;;2
+ECR-ACER-V247Y;"Acer V247Ybip — Écran 23,8""";Ecrans;149;178.8;-45;-44;-44;5;4
+LOG-MS365-NCE-BIZ-STD;Microsoft 365 NCE — Business standard / an;Logiciel;152.9;183.48;-45;-43;-43;2;
+LOG-ESET-IS-2A;Eset internet security — 2 Ans;Logiciel;59.98;71.98;-44;-43;-44;1;
+RES-EATON-ECO500;Eaton Ellipse eco 500 — Onduleur FR;Materiels reseau;149;178.8;-44;-44;-45;10;10
+LOG-MS-WIN-SRV22;Microsoft Windows server 2022;Logiciel;849;1018.8;-44;-44;-44;;
+ECR-ACER-V247YM;"Acer V247Ybmipx — Écran 23,8""";Ecrans;155.5;186.6;-42;-52;-52;2;12
+LOG-WS-PRO-PC-3A;WithSecure professionnel — PC 3 ans;Logiciel;57.9;69.48;-42;-38;-40;4;
+LOG-MS-WIN2019-LIC;Microsoft Windows server 2019 — Licence;Logiciel;;;-42;-41;-41;1;
+SRV-SYNO-DS420J;Synology DiskStation DS420j — Serveur NAS;Serveur;499;598.79999999999995;-42;-33;-35;9;
+MEM-16G-DDR4-2933;Mémoire 16 Go DDR4 DIMM 2933 MHz;Memoires vives;349;418.8;-41;-45;-45;;4
+LOG-WEB-MODULE;Module site internet;Logiciel;;;-41;-41;-41;;
+TEL-YEA-T46S;Yealink T46S — Téléphone filaire;Telephone;279;334.8;-41;-43;-43;1;3
+PC-HP-250-G8;Hp 250 G8 — Portable 8 Go / 256 SSD;PC portable / tablette / surface;669;802.8;-40;-40;-40;;
+PC-ASUS-EXPB-15;"Asus ExpertBook — Portable 15"" 8 Go / 256 SSD";PC portable / tablette / surface;789;946.8;-39;-39;-39;;
+LOG-SSL-WILDCARD;Certificat SSL wildcard — 1 An;Logiciel;239;286.8;-39;-39;-40;;
+LOG-VEEAM-BACKUP;Veeam backup;Logiciel;435;522;-39;-37;-38;2;

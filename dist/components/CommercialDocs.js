@@ -2234,6 +2234,34 @@ var CommercialDocEditor = ({
       bl: "bon de livraison",
       facture: "facture"
     };
+    // Garde-fou : si le doc cible existe déjà dans la chaîne, on prévient
+    // l'utilisateur au lieu de re-cascader (sinon doublons + données écrasées).
+    var NEXT_LABEL_FR = {
+      commande: "commande client",
+      bl: "bon de livraison",
+      facture: "facture"
+    };
+    if (chain && next && chain[next]) {
+      var existingNext = chain[next];
+      var existingBl = chain.bl;
+      var message = d.type === "devis" && existingNext && existingBl && existingNext.id !== existingBl.id ? "La commande client " + existingNext.id + " et le BL " + existingBl.id + " ont déjà été créés à partir de ce devis.\n\nIls sont accessibles depuis le bandeau « Devis figé » en haut de la fenêtre, ou via la chaîne du workflow Sage.\n\nAucune nouvelle pièce ne sera créée." : "Le " + NEXT_LABEL_FR[next] + " " + existingNext.id + " a déjà été créé à partir de ce document.\n\nIl est accessible depuis la pastille violette « CRÉÉ » du workflow Sage ou via le bandeau en haut.\n\nAucune nouvelle pièce ne sera créée.";
+      if (window.HubModal) {
+        await window.HubModal.confirm({
+          title: "Transformation déjà effectuée",
+          message,
+          okLabel: "Ouvrir " + existingNext.id,
+          okStyle: "primary",
+          cancelLabel: "Fermer"
+        }).then(ok => {
+          if (ok && onOpenDoc) onOpenDoc(existingNext.id);
+        });
+      } else {
+        if (confirm(message + "\n\nOuvrir " + existingNext.id + " ?")) {
+          if (onOpenDoc) onOpenDoc(existingNext.id);
+        }
+      }
+      return;
+    }
     // Cascade pour un devis : devis → commande client → BL en un seul clic.
     // Tous les docs intermédiaires sont marqués Accepté.
     if (d.type === "devis") {

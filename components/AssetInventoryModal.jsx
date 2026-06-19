@@ -246,8 +246,8 @@ const AssetInventoryModal = ({ open, client, onClose }) => {
                       </div>
                     </td>
                     <td style={S.td}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{a.host}</div>
-                      <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{a.id} · {a.serial}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{a.host}</div>
+                      <div style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{a.id} · {a.serial}</div>
                     </td>
                     <td style={S.td}><span style={{ fontSize: 12.5 }}>{a.model}</span></td>
                     <td style={S.td}><span style={{ fontSize: 12 }}>{a.assigned}</span></td>

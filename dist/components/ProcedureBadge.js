@@ -284,7 +284,7 @@ var ProcedureBadge = ({
   }, "Capital"), /*#__PURE__*/React.createElement("td", {
     style: {
       padding: "3px 0",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, Number(result.company.capital).toLocaleString("fr-FR"), " \u20AC")), result.company.effectif && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
     style: {

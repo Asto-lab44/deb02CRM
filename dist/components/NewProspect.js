@@ -618,7 +618,7 @@ var NewProspect = () => {
       fontSize: 12,
       fontWeight: 700,
       color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, completionPct, " %")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -745,7 +745,7 @@ var NewProspect = () => {
       }
     }, "SIREN ", /*#__PURE__*/React.createElement("span", {
       style: {
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, formatSiren(e.siren)), siege.libelle_commune && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 ", siege.libelle_commune), e.activite_principale && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 NAF ", e.activite_principale))), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -765,7 +765,7 @@ var NewProspect = () => {
     }, /*#__PURE__*/React.createElement("input", {
       style: {
         ...npStyles.input,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         ...(sirenErr ? V.errorStyle(sirenErr) : {})
       },
       value: companySiren,
@@ -791,7 +791,7 @@ var NewProspect = () => {
     }, /*#__PURE__*/React.createElement("input", {
       style: {
         ...npStyles.input,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       },
       value: companyNaf,
       onChange: e => setCompanyNaf(e.target.value)
@@ -800,7 +800,7 @@ var NewProspect = () => {
     }, /*#__PURE__*/React.createElement("input", {
       style: {
         ...npStyles.input,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         ...(V && V.tva(companyTva) ? V.errorStyle(V.tva(companyTva)) : {})
       },
       value: companyTva,
@@ -891,7 +891,7 @@ var NewProspect = () => {
       ...npStyles.input,
       border: "none",
       padding: 0,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12.5
     },
     value: companyWeb,
@@ -921,7 +921,7 @@ var NewProspect = () => {
       ...npStyles.input,
       border: "none",
       padding: 0,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12.5
     },
     value: companyLi,
@@ -1134,7 +1134,7 @@ var NewProspect = () => {
         ...npStyles.input,
         border: "none",
         padding: 0,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontSize: 12.5
       },
       value: contactEmail,
@@ -1164,7 +1164,7 @@ var NewProspect = () => {
         ...npStyles.input,
         border: "none",
         padding: 0,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontSize: 12.5
       },
       value: contactPhone,
@@ -1210,7 +1210,7 @@ var NewProspect = () => {
       ...npStyles.input,
       border: "none",
       padding: 0,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12.5
     },
     value: contactLi,
@@ -1629,7 +1629,7 @@ var SectionHead = ({
       justifyContent: "center",
       fontSize: 11,
       fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       flexShrink: 0
     }
   }, s.icon), /*#__PURE__*/React.createElement("div", {
@@ -1704,7 +1704,7 @@ var npStyles = {
     justifyContent: "space-between"
   },
   refMono: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11,
     color: "#94a3b8",
     padding: "1px 6px",

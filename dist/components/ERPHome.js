@@ -1285,7 +1285,7 @@ var ERPHome = () => {
         fontSize: 11,
         color: overdue ? "#dc2626" : "#64748b",
         fontWeight: overdue ? 600 : 500,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, overdue ? "⏰ " : "", a.due_text || (dueIso ? new Date(dueIso).toLocaleDateString("fr-FR") : "—")));
   })))));
@@ -1391,7 +1391,7 @@ var erpStyles = {
     background: "#fff",
     border: "1px solid #e2e8f0",
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -1427,7 +1427,7 @@ var erpStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   bullet: {
     width: 14,
@@ -1464,7 +1464,7 @@ var erpStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   iconBtn: {
     width: 30,
@@ -1692,7 +1692,7 @@ var erpStyles = {
   catCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   tiles: {
     display: "grid",
@@ -1847,7 +1847,7 @@ var erpStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600
   },
   smBtn: {

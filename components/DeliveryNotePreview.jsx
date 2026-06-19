@@ -101,7 +101,7 @@ const DeliveryNotePreview = ({ bl, project, client, onClose }) => {
                   {itemsReceived.map((it) => (
                     <tr key={it.id}>
                       <td style={S.td}>{it.designation}</td>
-                      <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
+                      <td style={{ ...S.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
                       <td style={{ ...S.td, fontSize: 11, color: "#475569" }}>{it.serial_numbers && it.serial_numbers.length ? it.serial_numbers.join(", ") : "—"}</td>
                     </tr>
                   ))}
@@ -125,7 +125,7 @@ const DeliveryNotePreview = ({ bl, project, client, onClose }) => {
                   {itemsMissing.map((it) => (
                     <tr key={it.id} style={{ background: "#fef2f2" }}>
                       <td style={S.td}>{it.designation}</td>
-                      <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
+                      <td style={{ ...S.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -206,7 +206,7 @@ const S = {
   companyInfo: { fontSize: 10, color: "#64748b", marginTop: 10, lineHeight: 1.5 },
   metaBox: { textAlign: "right", fontSize: 10.5, minWidth: 160 },
   metaLabel: { color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, fontSize: 9, fontWeight: 700, marginTop: 6 },
-  metaValue: { color: "#0f172a", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4, fontWeight: 700, fontSize: 12 },
+  metaValue: { color: "#0f172a", fontVariantNumeric: "tabular-nums", marginBottom: 4, fontWeight: 700, fontSize: 12 },
 
   h1: { fontSize: 22, fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.3 },
   subtitle: { fontSize: 11.5, color: "#64748b", marginBottom: 24, fontStyle: "italic" },

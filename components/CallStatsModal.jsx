@@ -216,7 +216,7 @@ const S = {
   chartCard: { margin: "12px 24px 0", padding: "20px 16px 12px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10 },
   chartGrid: { display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 6, height: 220, alignItems: "flex-end" },
   barCol: { display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "flex-end", gap: 4 },
-  barTotal: { fontSize: 11, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" },
+  barTotal: { fontSize: 11, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" },
   barTrack: { width: "100%", maxWidth: 40, display: "flex", flexDirection: "column-reverse", height: "100%", alignItems: "stretch", gap: 1 },
   barLabel: { fontSize: 10, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" },
 

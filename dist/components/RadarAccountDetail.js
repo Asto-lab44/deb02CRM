@@ -223,7 +223,7 @@ var RadarAccountDetail = () => {
       fontWeight: 700,
       color: "#dc2626",
       marginTop: 2,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "12 juin 2026"), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -395,7 +395,7 @@ var RadarAccountDetail = () => {
     style: {
       fontSize: 11,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, s.date)), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -510,7 +510,7 @@ var RadarAccountDetail = () => {
     }
   }, "\xB7"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#94a3b8"
     }
   }, s.when)))))))), /*#__PURE__*/React.createElement("aside", {
@@ -675,7 +675,7 @@ var RadarAccountDetail = () => {
   }, b.k), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 600,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#0f172a"
     }
   }, b.v, "/", b.max)), /*#__PURE__*/React.createElement("div", {
@@ -750,7 +750,7 @@ var RadarAccountDetail = () => {
       fontSize: 13,
       fontWeight: 700,
       color: "#10b981",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "~110 k\u20AC/an"))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -789,7 +789,7 @@ var radStyles = {
     justifyContent: "space-between"
   },
   refMono: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11,
     color: "#94a3b8",
     padding: "1px 6px",
@@ -990,7 +990,7 @@ var radStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600
   },
   filterPill: {
@@ -1088,7 +1088,7 @@ var radStyles = {
     justifyContent: "center",
     fontSize: 12,
     fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     flexShrink: 0
   },
   nowTag: {
@@ -1122,7 +1122,7 @@ var radStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   sideContact: {
     display: "flex",

@@ -573,7 +573,7 @@ var S = {
     fontSize: 11,
     fontWeight: 700,
     color: "#0f172a",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   barTrack: {
     width: "100%",

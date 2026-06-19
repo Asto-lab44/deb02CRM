@@ -332,7 +332,7 @@ var M = {
     background: "#fef3c7",
     padding: "1px 6px",
     borderRadius: 4,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11.5,
     fontWeight: 600
   },

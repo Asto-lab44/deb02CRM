@@ -710,7 +710,7 @@ var ProjectQuickView = ({
     style: {
       fontSize: 10.5,
       color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, Object.keys(workflowDone).filter(k => k.startsWith(wfFamily + "/" + wfCategory + "::")).length, "/", workflowSteps.length, " \xE9tapes")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -922,7 +922,7 @@ var ProjectQuickView = ({
         padding: "1px 6px",
         borderRadius: 3,
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "\u2713 Fait le ", doneAt), !isDone && scheduledLabel && /*#__PURE__*/React.createElement("span", {
       style: {
@@ -933,7 +933,7 @@ var ProjectQuickView = ({
         padding: "1px 6px",
         borderRadius: 3,
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "\uD83D\uDCC5 Pr\xE9vu ", scheduledLabel), step.validation && step.validation !== "—" && /*#__PURE__*/React.createElement("span", {
       style: {
@@ -950,7 +950,7 @@ var ProjectQuickView = ({
         background: "#e0e7ff",
         padding: "1px 6px",
         borderRadius: 3,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "\uD83D\uDCCB ", step.board), step.automation && step.automation !== "—" && /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1216,7 +1216,7 @@ var InfoRow = ({
     fontSize: 12.5,
     color: "#0f172a",
     fontWeight: bold ? 700 : 500,
-    fontFamily: mono ? "'JetBrains Mono', monospace" : "inherit",
+    fontVariantNumeric: mono ? "tabular-nums" : "normal",
     overflow: "hidden",
     textOverflow: "ellipsis"
   }
@@ -1430,7 +1430,7 @@ var EditText = ({
     style: {
       ...inputStyle,
       fontWeight: bold ? 700 : 500,
-      fontFamily: mono ? "'JetBrains Mono', monospace" : "inherit",
+      fontVariantNumeric: mono ? "tabular-nums" : "normal",
       borderColor: dirty ? "#f59e0b" : "#e2e8f0",
       background: dirty ? "#fffbeb" : "#fff"
     }
@@ -1483,7 +1483,7 @@ var EditNumber = ({
     style: {
       ...inputStyle,
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 600,
       borderColor: dirty ? "#f59e0b" : "#e2e8f0",
       background: dirty ? "#fffbeb" : "#fff"
@@ -1515,7 +1515,7 @@ var EditDate = ({
     onChange: e => onSave(e.target.value || null),
     style: {
       ...inputStyle,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }));
 };

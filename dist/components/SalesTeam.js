@@ -469,7 +469,7 @@ var SalesTeam = () => {
       fontSize: 11,
       color: "rgba(255,255,255,0.55)",
       marginTop: 6,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, team.totalQuota > 0 ? `Reste ${fmt(team.totalQuota - team.totalDone)}` : "Objectif équipe non défini")), /*#__PURE__*/React.createElement("div", {
     style: teamStyles.kpi
@@ -626,7 +626,7 @@ var SalesTeam = () => {
       style: {
         fontSize: 11,
         color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmt(r.quotaDone), " / ", fmt(r.quotaTarget))), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -858,7 +858,7 @@ var ActBar = ({
       fontSize: 11,
       color: "#0f172a",
       fontWeight: 600,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       width: 26,
       textAlign: "right"
     }
@@ -923,7 +923,7 @@ var teamStyles = {
     borderRadius: 4,
     background: "rgba(255,255,255,0.12)",
     color: "#cbd5e1",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -956,7 +956,7 @@ var teamStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   bullet: {
     width: 14,
@@ -993,7 +993,7 @@ var teamStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   search: {
     display: "flex",
@@ -1020,7 +1020,7 @@ var teamStyles = {
     background: "#fff",
     border: "1px solid #e2e8f0",
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   iconBtn: {
     width: 30,
@@ -1224,7 +1224,7 @@ var teamStyles = {
     justifyContent: "center",
     fontSize: 13,
     fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     flexShrink: 0
   },
   statusDot: {

@@ -481,7 +481,7 @@ var CRMAccount = () => {
     style: {
       fontSize: 10,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       marginTop: 1
     }
   }, s.days)), i < arr.length - 1 && /*#__PURE__*/React.createElement("div", {
@@ -549,7 +549,7 @@ var CRMAccount = () => {
       fontSize: 10.5,
       color: t.active ? "#4f46e5" : "#94a3b8",
       marginLeft: 4,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, t.c))), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -765,7 +765,7 @@ var CRMAccount = () => {
         style: {
           fontSize: 10.5,
           color: "#94a3b8",
-          fontFamily: "'JetBrains Mono', monospace"
+          fontVariantNumeric: "tabular-nums"
         }
       }, at.size)))))));
     }
@@ -973,7 +973,7 @@ var CRMAccount = () => {
           fontSize: 11,
           color: "#4f46e5",
           fontWeight: 600,
-          fontFamily: "'JetBrains Mono', monospace"
+          fontVariantNumeric: "tabular-nums"
         }
       }, a.at)), a.meta && /*#__PURE__*/React.createElement("div", {
         style: {
@@ -1152,7 +1152,7 @@ var CRMAccount = () => {
         fontSize: 12.5,
         fontWeight: 600,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "15 juin 2026")
   }), /*#__PURE__*/React.createElement(Field, {
@@ -1291,7 +1291,7 @@ var accStyles = {
     borderRadius: 4,
     background: "rgba(255,255,255,0.12)",
     color: "#cbd5e1",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -1324,7 +1324,7 @@ var accStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   bullet: {
     width: 14,
@@ -1366,7 +1366,7 @@ var accStyles = {
     justifyContent: "space-between"
   },
   refMono: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11,
     color: "#94a3b8",
     padding: "1px 6px",
@@ -1707,7 +1707,7 @@ var accStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600
   },
   contactRow: {

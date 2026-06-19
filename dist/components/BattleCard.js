@@ -258,7 +258,7 @@ var BattleCard = () => {
       color: "#dc2626",
       fontWeight: 700,
       fontSize: 11,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       flexShrink: 0
     }
   }, "SF \u2192"), /*#__PURE__*/React.createElement("span", {
@@ -275,7 +275,7 @@ var BattleCard = () => {
       color: "#4f46e5",
       fontWeight: 700,
       fontSize: 11,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       flexShrink: 0
     }
   }, "HUB \u2190"), /*#__PURE__*/React.createElement("span", {
@@ -575,7 +575,7 @@ var BattleCard = () => {
       color: p.color,
       marginTop: 4,
       fontWeight: 600,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "\u23F1 ", p.time)))))), /*#__PURE__*/React.createElement("div", {
     style: bcStyles.panel
@@ -735,7 +735,7 @@ var BarRow = ({
     fontSize: 11,
     color: "#0f172a",
     fontWeight: 600,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     width: 28,
     textAlign: "right"
   }
@@ -963,7 +963,7 @@ var bcStyles = {
   },
   priceVal: {
     fontSize: 12.5,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600,
     textAlign: "right"
   },

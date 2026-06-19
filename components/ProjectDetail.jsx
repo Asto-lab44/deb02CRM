@@ -269,7 +269,7 @@ const ProjectDetail = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <a href="/projets" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>Projets</a>
             <span style={{ color: "#cbd5e1" }}>›</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{project.sage_ref || project.id}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{project.sage_ref || project.id}</span>
             <span style={{ ...S.stageBadge, background: stage.color + "15", color: stage.color, border: "1px solid " + stage.color + "30" }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: stage.color }} />
               {stage.label}
@@ -340,7 +340,7 @@ const ProjectDetail = () => {
                       BL généré automatiquement
                     </div>
                     <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                      Doc commercial : <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{project.data.bl_doc_id || "—"}</span>
+                      Doc commercial : <span style={{ fontVariantNumeric: "tabular-nums", color: "#3730a3" }}>{project.data.bl_doc_id || "—"}</span>
                       {project.data.bl_pdf_uploaded_at && (
                         <> · Mis à jour le {new Date(project.data.bl_pdf_uploaded_at).toLocaleString("fr-FR")}</>
                       )}
@@ -397,7 +397,7 @@ const ProjectDetail = () => {
                       const sm = statusMap[bl.status] || statusMap.draft;
                       return (
                         <tr key={bl.id}>
-                          <td style={{ ...S.td, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{bl.number}</td>
+                          <td style={{ ...S.td, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{bl.number}</td>
                           <td style={S.td}>{fmtDate(bl.delivery_date)}</td>
                           <td style={S.td}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.c, fontWeight: 700, letterSpacing: 0.3 }}>{sm.l}</span></td>
                           <td style={{ ...S.td, fontSize: 12 }}>
@@ -677,10 +677,10 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
                   <tr key={it.id} style={{ background: "#fafbfc" }}>
                     <td style={S.td}>
                       <input value={draft.designation || ""} onChange={(e) => setDraft({ ...draft, designation: e.target.value })} style={cellInput} placeholder="Désignation" />
-                      <input value={draft.ref_produit || ""} onChange={(e) => setDraft({ ...draft, ref_produit: e.target.value })} style={{ ...cellInput, marginTop: 4, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} placeholder="Ref produit (optionnel)" />
+                      <input value={draft.ref_produit || ""} onChange={(e) => setDraft({ ...draft, ref_produit: e.target.value })} style={{ ...cellInput, marginTop: 4, fontSize: 11, fontVariantNumeric: "tabular-nums" }} placeholder="Ref produit (optionnel)" />
                     </td>
                     <td style={{ ...S.td, textAlign: "right" }}>
-                      <input type="number" value={draft.quantity || 0} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }} />
+                      <input type="number" value={draft.quantity || 0} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} style={{ ...cellInput, textAlign: "right", fontVariantNumeric: "tabular-nums" }} />
                     </td>
                     <td style={S.td}>
                       <select value={draft.status || "todo"} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={cellInput}>
@@ -705,10 +705,10 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
                 <tr key={it.id} onDoubleClick={() => startEdit(it)} title="Double-clique pour éditer">
                   <td style={S.td}>
                     <div style={{ fontWeight: 600 }}>{it.designation}</div>
-                    {it.ref_produit && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{it.ref_produit}</div>}
+                    {it.ref_produit && <div style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{it.ref_produit}</div>}
                     {it.serial_numbers && it.serial_numbers.length > 0 && <div style={{ fontSize: 10.5, color: "#0e7a55", marginTop: 2 }}>SN : {it.serial_numbers.join(", ")}</div>}
                   </td>
-                  <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
+                  <td style={{ ...S.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
                   <td style={S.td}><ItemStatusBadge status={it.status} /></td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 4 }}>
@@ -729,7 +729,7 @@ const ItemsBlock = ({ project, reload, fmtEUR, S }) => {
 const Meta = ({ label, val, strong, editable, onClick }) => (
   <div style={{ padding: 10, background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, cursor: editable ? "pointer" : "default" }} onClick={onClick}>
     <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</div>
-    <div style={{ fontSize: strong ? 16 : 13.5, fontWeight: strong ? 700 : 600, color: "#0f172a", marginTop: 3, fontFamily: strong ? "'JetBrains Mono', monospace" : "inherit" }}>{val}{editable && <span style={{ color: "#94a3b8", marginLeft: 6, fontSize: 11 }}>✎</span>}</div>
+    <div style={{ fontSize: strong ? 16 : 13.5, fontWeight: strong ? 700 : 600, color: "#0f172a", marginTop: 3, fontVariantNumeric: strong ? "tabular-nums" : "normal" }}>{val}{editable && <span style={{ color: "#94a3b8", marginLeft: 6, fontSize: 11 }}>✎</span>}</div>
   </div>
 );
 

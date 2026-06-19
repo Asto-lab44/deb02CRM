@@ -576,7 +576,7 @@ const UserManagement = () => {
               <div style={{ fontSize: 36, marginBottom: 12 }}>📜</div>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 6px" }}>Journal d'audit</h2>
               <p style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 8px" }}>Le journal d'audit (connexions, modifications de groupes, suppressions) nécessite une table dédiée dans Supabase.</p>
-              <p style={{ fontSize: 11.5, color: "#94a3b8", margin: 0, fontFamily: "'JetBrains Mono', monospace" }}>À venir : audit_logs (auth.users, action, target, timestamp)</p>
+              <p style={{ fontSize: 11.5, color: "#94a3b8", margin: 0, fontVariantNumeric: "tabular-nums" }}>À venir : audit_logs (auth.users, action, target, timestamp)</p>
             </div>
           </section>
         )}
@@ -672,7 +672,7 @@ const UserManagement = () => {
                         if (error) { if (window.HubToast) window.HubToast.error("Erreur : " + error.message); }
                         else { if (window.HubToast) window.HubToast.success(v ? `Extension ${v} liée à ${u.name}` : "Extension retirée"); u.extension = v; }
                       }}
-                      style={{ width: 80, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", outline: "none", textAlign: "center" }}
+                      style={{ width: 80, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontVariantNumeric: "tabular-nums", outline: "none", textAlign: "center" }}
                     />
                   </td>
                   <td style={S.td}>
@@ -824,7 +824,7 @@ const InviteUserModal = ({ groups, onClose, onInvited }) => {
             </label>
             <label style={IM.field}>
               <span style={IM.label}>Extension 3CX</span>
-              <input type="text" value={extension} onChange={(e) => setExtension(e.target.value)} placeholder="Ex : 705" style={{ ...IM.input, fontFamily: "'JetBrains Mono', monospace" }} maxLength={6} />
+              <input type="text" value={extension} onChange={(e) => setExtension(e.target.value)} placeholder="Ex : 705" style={{ ...IM.input, fontVariantNumeric: "tabular-nums" }} maxLength={6} />
             </label>
           </div>
           <div>
@@ -887,7 +887,7 @@ const S = {
   logo: { width: 30, height: 30, borderRadius: 8, background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 },
   logoMark: { fontSize: 14, letterSpacing: -0.5 },
   newBtn: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: "#0f172a", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
-  kbd: { background: "rgba(255,255,255,.15)", padding: "1px 6px", borderRadius: 4, fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { background: "rgba(255,255,255,.15)", padding: "1px 6px", borderRadius: 4, fontSize: 10.5, fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
@@ -1188,7 +1188,7 @@ const IntegrationsPanel = () => {
           placeholder="Colle ton token ici (ex : 1a2b3c4d-5e6f-7890-abcd-ef1234567890)"
           spellCheck={false}
           autoComplete="off"
-          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
+          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontVariantNumeric: "tabular-nums", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
         />
 
         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
@@ -1260,7 +1260,7 @@ const IntegrationsPanel = () => {
           placeholder="https://outlook.office.com/webhook/..."
           spellCheck={false}
           autoComplete="off"
-          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
+          style={{ width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontVariantNumeric: "tabular-nums", color: "#0f172a", outline: "none", boxSizing: "border-box" }}
         />
 
         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
@@ -1314,7 +1314,7 @@ const IntegrationsPanel = () => {
         <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
           <input
             type="text" readOnly value={WEBHOOK_URL}
-            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fafbfc", outline: "none" }}
+            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontVariantNumeric: "tabular-nums", color: "#0f172a", background: "#fafbfc", outline: "none" }}
             onFocus={(e) => e.target.select()}
           />
           <button onClick={() => copyToClip(WEBHOOK_URL, "URL copiée")} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>📋 Copier</button>
@@ -1324,7 +1324,7 @@ const IntegrationsPanel = () => {
         <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
           <input
             type="text" readOnly value={tcxSecret || "— Non configuré (lance d'abord supabase/3cx-integration.sql) —"}
-            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", color: tcxSecret ? "#0f172a" : "#94a3b8", background: "#fafbfc", outline: "none" }}
+            style={{ flex: 1, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11.5, fontVariantNumeric: "tabular-nums", color: tcxSecret ? "#0f172a" : "#94a3b8", background: "#fafbfc", outline: "none" }}
             onFocus={(e) => e.target.select()}
           />
           <button onClick={() => copyToClip(tcxSecret, "Secret copié")} disabled={!tcxSecret} style={{ padding: "8px 14px", background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: tcxSecret ? "pointer" : "not-allowed", opacity: tcxSecret ? 1 : 0.5, whiteSpace: "nowrap" }}>📋 Copier</button>
@@ -1338,7 +1338,7 @@ const IntegrationsPanel = () => {
               type="text" value={tcxSimPhone}
               onChange={(e) => setTcxSimPhone(e.target.value)}
               placeholder="Numéro à simuler (ex : +33 6 12 34 56 78)"
-              style={{ flex: 1, padding: "8px 12px", border: "1px solid #bfdbfe", borderRadius: 7, fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fff", outline: "none" }}
+              style={{ flex: 1, padding: "8px 12px", border: "1px solid #bfdbfe", borderRadius: 7, fontSize: 12.5, fontVariantNumeric: "tabular-nums", color: "#0f172a", background: "#fff", outline: "none" }}
             />
             <button onClick={simulateCall} style={{ padding: "8px 14px", background: "#1d4ed8", color: "#fff", border: 0, borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>📞 Simuler appel</button>
           </div>
@@ -1374,15 +1374,15 @@ const IntegrationsPanel = () => {
 
           <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>URL serveur 3CX</label>
           <input type="text" value={tcxServerUrl} onChange={(e) => setTcxServerUrl(e.target.value)} placeholder="https://telcomastorya.my3cx.fr:5001"
-            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", marginBottom: 10, boxSizing: "border-box" }} />
+            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontVariantNumeric: "tabular-nums", marginBottom: 10, boxSizing: "border-box" }} />
 
           <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>Client ID</label>
           <input type="text" value={tcxClientId} onChange={(e) => setTcxClientId(e.target.value)} placeholder="ID généré par 3CX"
-            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", marginBottom: 10, boxSizing: "border-box" }} />
+            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontVariantNumeric: "tabular-nums", marginBottom: 10, boxSizing: "border-box" }} />
 
           <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>Client Secret</label>
           <input type="password" value={tcxClientSecret} onChange={(e) => setTcxClientSecret(e.target.value)} placeholder="Secret généré par 3CX"
-            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", marginBottom: 12, boxSizing: "border-box" }} />
+            style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12, fontVariantNumeric: "tabular-nums", marginBottom: 12, boxSizing: "border-box" }} />
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={saveTcxCC}
@@ -1573,8 +1573,8 @@ const ContractTemplatesPanel = () => {
                     </div>
                   </div>
                 </td>
-                <td style={{ padding: "12px", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{t.version}</td>
-                <td style={{ padding: "12px", textAlign: "right", fontSize: 12, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{t.pdf_size_kb ? t.pdf_size_kb + " Ko" : "—"}</td>
+                <td style={{ padding: "12px", fontSize: 12, color: "#475569", fontVariantNumeric: "tabular-nums" }}>{t.version}</td>
+                <td style={{ padding: "12px", textAlign: "right", fontSize: 12, color: "#475569", fontVariantNumeric: "tabular-nums" }}>{t.pdf_size_kb ? t.pdf_size_kb + " Ko" : "—"}</td>
                 <td style={{ padding: "12px", fontSize: 12, color: "#64748b" }}>{t.created_at ? new Date(t.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
                 <td style={{ padding: "12px", textAlign: "right" }}>
                   <div style={{ display: "inline-flex", gap: 6 }}>

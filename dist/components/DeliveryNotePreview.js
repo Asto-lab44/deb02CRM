@@ -142,7 +142,7 @@ var DeliveryNotePreview = ({
     style: {
       ...S.td,
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, Number(it.quantity).toFixed(0), " ", it.unit), /*#__PURE__*/React.createElement("td", {
     style: {
@@ -181,7 +181,7 @@ var DeliveryNotePreview = ({
     style: {
       ...S.td,
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, Number(it.quantity).toFixed(0), " ", it.unit))))), /*#__PURE__*/React.createElement("p", {
     style: {
@@ -364,7 +364,7 @@ var S = {
   },
   metaValue: {
     color: "#0f172a",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     marginBottom: 4,
     fontWeight: 700,
     fontSize: 12

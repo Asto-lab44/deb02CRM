@@ -347,7 +347,7 @@ var ProjectsTable = () => {
     }, "\u2014"))), /*#__PURE__*/React.createElement("td", {
       style: {
         ...S.td,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontSize: 11.5,
         color: overdue ? "#dc2626" : "#0f172a",
         fontWeight: overdue ? 700 : 500
@@ -355,14 +355,14 @@ var ProjectsTable = () => {
     }, fmtDate(p.delivery_due)), /*#__PURE__*/React.createElement("td", {
       style: {
         ...S.td,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontSize: 11.5,
         color: "#475569"
       }
     }, fmtDate(p.delivered_at)), /*#__PURE__*/React.createElement("td", {
       style: {
         ...S.td,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontSize: 11,
         color: "#475569"
       }

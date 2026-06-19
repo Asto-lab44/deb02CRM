@@ -812,7 +812,7 @@ var CRMPipeline = () => {
       color: "#3730a3",
       borderRadius: 4,
       fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, o.id), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1021,7 +1021,7 @@ var CRMPipeline = () => {
     style: {
       fontSize: 11.5,
       color: "#64748b",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 500
     }
   }, col.total)), /*#__PURE__*/React.createElement("div", {
@@ -1160,7 +1160,7 @@ var CRMPipeline = () => {
         fontSize: 11,
         color: "#0f172a",
         fontWeight: 600,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, c.proba, "%")), /*#__PURE__*/React.createElement("div", {
       style: crmStyles.probaBar
@@ -1278,7 +1278,7 @@ var crmStyles = {
     borderRadius: 4,
     background: "rgba(255,255,255,0.12)",
     color: "#cbd5e1",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -1311,7 +1311,7 @@ var crmStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   userRow: {
     display: "flex",
@@ -1351,7 +1351,7 @@ var crmStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   search: {
     display: "flex",
@@ -1380,7 +1380,7 @@ var crmStyles = {
     background: "#fff",
     border: "1px solid #e2e8f0",
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   iconBtn: {
     width: 30,
@@ -1495,7 +1495,7 @@ var crmStyles = {
     borderRadius: 4,
     background: "#eef1f5",
     color: "#64748b",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   tabCountActive: {
     background: "rgba(255,255,255,0.15)",
@@ -1547,7 +1547,7 @@ var crmStyles = {
     borderRadius: 999,
     background: "#fff",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     border: "1px solid #e2e8f0"
   },
   colBar: {
@@ -1875,7 +1875,7 @@ var CRMAccountsList = () => {
         fontSize: 11,
         color: "#94a3b8",
         marginTop: 2,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "SIREN ", c.siren)), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -2302,7 +2302,7 @@ var CRMActionsList = () => {
         color: "#3730a3",
         borderRadius: 4,
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, a.tag), /*#__PURE__*/React.createElement("button", {
       onClick: async () => {

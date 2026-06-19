@@ -473,7 +473,7 @@ var KPI = ({
     fontWeight: 700,
     color: color || "#0f172a",
     marginTop: 4,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   }
 }, value), sub && /*#__PURE__*/React.createElement("div", {
   style: {
@@ -537,7 +537,7 @@ var MatrixView = ({
         left: 0,
         background: "#fff",
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, week), matrix.suppliers.map(sup => {
       var cell = rowData[sup];
@@ -559,7 +559,7 @@ var MatrixView = ({
           fontSize: 12.5,
           fontWeight: 700,
           color: "#0f172a",
-          fontFamily: "'JetBrains Mono', monospace"
+          fontVariantNumeric: "tabular-nums"
         }
       }, fmtEUR(cell.total_purchase)), /*#__PURE__*/React.createElement("div", {
         style: {
@@ -573,7 +573,7 @@ var MatrixView = ({
         ...scStyles.matrixCell,
         fontWeight: 700,
         background: "#f8fafc",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmtEUR(weekTotal)));
   }))));
@@ -1001,7 +1001,7 @@ var EditableRow = ({
   }, r.client_name || "—"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#3730a3"
     }
   }, r.doc_ref)), /*#__PURE__*/React.createElement("td", {
@@ -1016,13 +1016,13 @@ var EditableRow = ({
     style: {
       fontSize: 10.5,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, r.ref)), /*#__PURE__*/React.createElement("td", {
     style: {
       ...scStyles.td,
       textAlign: "center",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 600
     }
   }, r.quantity), /*#__PURE__*/React.createElement("td", {
@@ -1044,7 +1044,7 @@ var EditableRow = ({
     style: {
       ...cellInput,
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 600,
       borderColor: !local.purchase_price_ht ? "#fca5a5" : dirtyRef.current.has("purchase_price_ht") ? "#f59e0b" : "#e2e8f0",
       background: !local.purchase_price_ht ? "#fef2f2" : dirtyRef.current.has("purchase_price_ht") ? "#fffbeb" : "#fff"
@@ -1067,7 +1067,7 @@ var EditableRow = ({
     style: {
       ...scStyles.td,
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 600,
       color: "#10b981"
     }
@@ -1078,7 +1078,7 @@ var EditableRow = ({
     }
   }, marginPct != null ? /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 700,
       color: marginPct >= 20 ? "#10b981" : marginPct >= 10 ? "#f59e0b" : "#dc2626"
     }
@@ -1213,7 +1213,7 @@ var GroupDateCell = ({
     border: "1px solid #e2e8f0",
     borderRadius: 6,
     fontSize: 12,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     color: "#0f172a",
     background: "#fff",
     boxSizing: "border-box",
@@ -1683,7 +1683,7 @@ var ListView = ({
       style: {
         fontSize: 12,
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         color: "#0f172a"
       }
     }, g.doc_number || g.doc_ref.slice(0, 8))), g.doc_title && /*#__PURE__*/React.createElement("div", {
@@ -1696,7 +1696,7 @@ var ListView = ({
       style: {
         fontSize: 10.5,
         color: "#94a3b8",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "\uD83D\uDCC5 ", String(g.doc_date).slice(0, 10))), /*#__PURE__*/React.createElement("td", {
       style: scStyles.td
@@ -1710,7 +1710,7 @@ var ListView = ({
       style: {
         ...scStyles.td,
         textAlign: "center",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 700,
         color: "#0f172a"
       }
@@ -1729,7 +1729,7 @@ var ListView = ({
       style: {
         ...scStyles.td,
         textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 600,
         color: "#dc2626"
       }
@@ -1737,7 +1737,7 @@ var ListView = ({
       style: {
         ...scStyles.td,
         textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 600,
         color: "#10b981"
       }
@@ -1748,7 +1748,7 @@ var ListView = ({
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 700,
         color: marge >= 0 ? "#10b981" : "#dc2626"
       }
@@ -1756,7 +1756,7 @@ var ListView = ({
       style: {
         fontSize: 10.5,
         color: margePct >= 20 ? "#10b981" : margePct >= 10 ? "#f59e0b" : "#dc2626",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, margePct.toFixed(1), " %")), /*#__PURE__*/React.createElement("td", {
       style: scStyles.td
@@ -1927,21 +1927,21 @@ var EditLineModal = ({
     style: scStyles.miniLbl
   }, "Doc"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#3730a3"
     }
   }, row.doc_ref)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
     style: scStyles.miniLbl
   }, "Quantit\xE9"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 700
     }
   }, row.quantity, " ", row.unit || "u")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
     style: scStyles.miniLbl
   }, "Prix de vente HT"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 700,
       color: "#10b981"
     }
@@ -2133,14 +2133,14 @@ var CellDetailModal = ({
   style: {
     fontSize: 13,
     fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     color: "#dc2626"
   }
 }, fmtEUR(r.total_purchase_ht)), /*#__PURE__*/React.createElement("div", {
   style: {
     fontSize: 10.5,
     color: "#10b981",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   }
 }, "vente ", fmtEUR(r.total_sell_ht))))))));
 
@@ -2405,7 +2405,7 @@ var StockInternView = ({
       style: {
         fontSize: 11,
         color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         marginTop: 2
       }
     }, a.article_ref)), /*#__PURE__*/React.createElement("span", {
@@ -2430,7 +2430,7 @@ var StockInternView = ({
       }
     }, "SN :"), " ", /*#__PURE__*/React.createElement("span", {
       style: {
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         color: "#0f172a",
         fontWeight: 600
       }
@@ -2639,7 +2639,7 @@ var AssetEditModal = ({
     onChange: e => set("serial_number", e.target.value),
     style: {
       ...scStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: scStyles.lbl
@@ -2929,7 +2929,7 @@ var CatalogueProduitsView = ({
       style: {
         fontSize: 11,
         color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         marginTop: 2
       }
     }, a.ref)), a.category && /*#__PURE__*/React.createElement("span", {
@@ -2961,7 +2961,7 @@ var CatalogueProduitsView = ({
         color: "#065f46",
         fontWeight: 700,
         fontSize: 16,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, inStock), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2981,7 +2981,7 @@ var CatalogueProduitsView = ({
         color: "#92400e",
         fontWeight: 700,
         fontSize: 16,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, reserved), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -3001,7 +3001,7 @@ var CatalogueProduitsView = ({
         color: "#1e40af",
         fontWeight: 700,
         fontSize: 16,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, sold), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -3021,7 +3021,7 @@ var CatalogueProduitsView = ({
         color: "#991b1b",
         fontWeight: 700,
         fontSize: 16,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, sav), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -3042,7 +3042,7 @@ var CatalogueProduitsView = ({
       style: {
         color: "#0f172a",
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmtEUR(a.unit_price_ht))), /*#__PURE__*/React.createElement("button", {
       onClick: () => onSwitchToStock && onSwitchToStock(a.id),
@@ -3116,7 +3116,7 @@ var scStyles = {
   navCount: {
     fontSize: 10.5,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   main: {
     flex: 1,

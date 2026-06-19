@@ -688,7 +688,7 @@ var NewOpportunity = () => {
   }, c.sector || "—", c.city && ` · ${c.city}`, c.siren && /*#__PURE__*/React.createElement("span", {
     style: {
       marginLeft: 6,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, c.siren))), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -960,7 +960,7 @@ var NewOpportunity = () => {
     style: {
       fontSize: 11,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, oppNotes.length, " / 2 000"))))), /*#__PURE__*/React.createElement("section", {
     style: noStyles.section
@@ -1020,7 +1020,7 @@ var NewOpportunity = () => {
       ...noStyles.input,
       border: "none",
       padding: 0,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     },
     value: oppProjectDate,
     onChange: e => setOppProjectDate(e.target.value)
@@ -1148,7 +1148,7 @@ var NewOpportunity = () => {
         color: s.color,
         fontWeight: 700,
         marginLeft: 6,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, s.proba, "%"));
   }))), /*#__PURE__*/React.createElement("div", {
@@ -1186,7 +1186,7 @@ var NewOpportunity = () => {
       color: "#0f172a",
       width: 44,
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, proba, "%")), /*#__PURE__*/React.createElement("div", {
     style: noStyles.inputHelp
@@ -1205,7 +1205,7 @@ var NewOpportunity = () => {
       ...noStyles.input,
       border: "none",
       padding: 0,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     },
     value: oppDate,
     onChange: e => setOppDate(e.target.value)
@@ -1541,7 +1541,7 @@ var NewOpportunity = () => {
       fontSize: 11,
       color: "#0f172a",
       fontWeight: 600,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, proba, "%")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1808,7 +1808,7 @@ var NewOpportunity = () => {
         fontSize: 12,
         fontWeight: 700,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, doneCount, " / ", checks.length)), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1857,7 +1857,7 @@ var SectionHead = ({
     justifyContent: "center",
     fontSize: 11,
     fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     flexShrink: 0
   }
 }, done ? "✓" : num), /*#__PURE__*/React.createElement("div", {
@@ -2077,7 +2077,7 @@ var noStyles = {
     fontWeight: 700
   },
   refMono: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11,
     color: "#94a3b8",
     padding: "1px 6px",
@@ -2128,7 +2128,7 @@ var noStyles = {
     justifyContent: "center",
     fontSize: 11,
     fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     flexShrink: 0
   },
   stepLine: {

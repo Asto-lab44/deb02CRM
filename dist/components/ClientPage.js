@@ -1621,14 +1621,14 @@ var ClientPage = () => {
         background: "#fff",
         color: "#64748b",
         border: "1px solid #e2e8f0",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 600
       }
     }, opps.length)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10.5,
         color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 500
       }
     }, opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €")), opps.length === 0 && /*#__PURE__*/React.createElement("div", {
@@ -1765,7 +1765,7 @@ var ClientPage = () => {
           fontSize: 11,
           color: "#0f172a",
           fontWeight: 600,
-          fontFamily: "'JetBrains Mono', monospace"
+          fontVariantNumeric: "tabular-nums"
         }
       }, proba, "%")), /*#__PURE__*/React.createElement("div", {
         style: {
@@ -1934,7 +1934,7 @@ var ClientPage = () => {
       style: {
         fontSize: 11,
         fontWeight: 600,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         color: stage.color
       }
     }, o.proba, "%")), /*#__PURE__*/React.createElement("div", {
@@ -2227,7 +2227,7 @@ var ClientPage = () => {
         fontSize: 11,
         fontWeight: 600,
         color: a.overdue ? "#dc2626" : a.priority === "ai" ? "#94a3b8" : "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "\u23F1 ", a.due), a.assigned && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.dot
@@ -2408,7 +2408,7 @@ var ClientPage = () => {
     style: {
       fontSize: 10.5,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       whiteSpace: "nowrap"
     }
   }, a.at)), /*#__PURE__*/React.createElement("div", {
@@ -2582,7 +2582,7 @@ var ClientPage = () => {
       fontSize: 11,
       color: "#475569",
       marginTop: 6,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       textDecoration: "none",
       display: "inline-flex",
       alignItems: "center",
@@ -2620,7 +2620,7 @@ var ClientPage = () => {
     style: {
       fontSize: 11,
       color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       textDecoration: "none",
       display: "flex",
       alignItems: "center",
@@ -2750,7 +2750,7 @@ var ClientPage = () => {
       }
     }, children);
     var monoTxt = {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12,
       color: "#475569"
     };
@@ -3102,7 +3102,7 @@ var ClientPage = () => {
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontSize: 11.5,
         color: "#475569",
         fontWeight: 600
@@ -3135,14 +3135,14 @@ var ClientPage = () => {
         fontSize: 13,
         fontWeight: 700,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, ct.amount), /*#__PURE__*/React.createElement("td", {
       style: {
         padding: "10px 12px",
         fontSize: 11.5,
         color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, ct.start, /*#__PURE__*/React.createElement("br", null), "\u2192 ", ct.end), /*#__PURE__*/React.createElement("td", {
       style: {
@@ -3340,7 +3340,7 @@ var ClientPage = () => {
     }, /*#__PURE__*/React.createElement("td", {
       style: {
         padding: "10px",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontSize: 11.5,
         color: "#475569"
       }
@@ -3880,7 +3880,7 @@ var ClientPage = () => {
       placeholder: "14 chiffres",
       style: {
         ...editInput,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }))), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -4592,7 +4592,7 @@ var cliStyles = {
     borderRadius: 4,
     background: "rgba(255,255,255,0.12)",
     color: "#cbd5e1",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -4625,7 +4625,7 @@ var cliStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   bullet: {
     width: 14,
@@ -4668,7 +4668,7 @@ var cliStyles = {
     flexShrink: 0
   },
   refMono: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11,
     color: "#94a3b8",
     padding: "1px 6px",
@@ -4873,7 +4873,7 @@ var cliStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600,
     marginLeft: 2
   },
@@ -4914,7 +4914,7 @@ var cliStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600,
     marginLeft: "auto"
   },
@@ -4961,7 +4961,7 @@ var cliStyles = {
     letterSpacing: 0.4
   },
   oppRef: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 10.5,
     color: "#94a3b8",
     fontWeight: 500
@@ -5083,7 +5083,7 @@ var cliStyles = {
     letterSpacing: 0.4
   },
   linkRef: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 9.5,
     padding: "1px 5px",
     borderRadius: 3,
@@ -5654,7 +5654,7 @@ var TechModule = ({
     style: {
       fontSize: 11,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, secFilled, "/", sec.fields.length)), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5842,7 +5842,7 @@ var ContactEditModal = ({
     placeholder: "+33 6 12 34 56 78",
     style: {
       ...CE.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }))), /*#__PURE__*/React.createElement("label", {
     style: CE.field
@@ -5858,7 +5858,7 @@ var ContactEditModal = ({
     placeholder: "linkedin.com/in/prenom-nom",
     style: {
       ...CE.input,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12
     }
   })), /*#__PURE__*/React.createElement("div", {

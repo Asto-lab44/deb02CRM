@@ -455,7 +455,7 @@ const CommercialDocs = () => {
                             cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
                           }}>
                     {s.label}
-                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", opacity: 0.85 }}>{count}</span>
+                    <span style={{ fontSize: 10, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>{count}</span>
                   </button>
                 );
               })}
@@ -854,7 +854,7 @@ const WorkflowChain = ({ chain, currentType }) => {
                 width: 24, height: 24, borderRadius: 6,
                 background: bg, color, border,
                 fontSize: 10, fontWeight: 700,
-                fontFamily: "'JetBrains Mono', monospace",
+                fontVariantNumeric: "tabular-nums",
               }}
             >{s.label}</span>
             {i < STEPS.length - 1 && (
@@ -885,7 +885,7 @@ const MenuDivider = () => <div style={{ height: 1, background: "#eef1f5", margin
 const KPI = ({ label, value, color }) => (
   <div style={{ flex: 1, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: "12px 14px" }}>
     <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
-    <div style={{ fontSize: 18, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+    <div style={{ fontSize: 18, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{value}</div>
   </div>
 );
 
@@ -1241,7 +1241,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
         <header style={cdStyles.modalHead}>
           <div>
             <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase" }}>{d.type}</div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{d.id}</h2>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{d.id}</h2>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id); } catch (e) {} }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
@@ -1452,7 +1452,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                     placeholder="N° Article"
                     title="Numéro / référence article — apparaît dans la colonne « Article » du PDF"
                     style={{ width: 140, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6,
-                             fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+                             fontSize: 12, fontVariantNumeric: "tabular-nums", fontWeight: 600,
                              color: "#3730a3", textTransform: "uppercase", flexShrink: 0,
                              background: l.ref ? "#eef2ff" : "#fff" }}
                   />
@@ -1464,7 +1464,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                   />
                   <div style={{ minWidth: 130, textAlign: "right", padding: "8px 12px", background: "#f8fafc", border: "1px solid #eef1f5", borderRadius: 6 }}>
                     <div style={{ fontSize: 9.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4 }}>Total HT</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(l.total_ht)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{fmtEUR(l.total_ht)}</div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
                     <button onClick={() => moveLine(i, -1)} disabled={i === 0} title="Monter cette ligne"
@@ -1536,7 +1536,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                     <input type="text" value={l.manufacturer_ref || ""}
                            onChange={(e) => updateLineField(i, "manufacturer_ref", e.target.value)}
                            placeholder="ex. HP-EB840-G11-A26S0EA"
-                           style={{ ...cdStyles.miniInput, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }} />
+                           style={{ ...cdStyles.miniInput, fontVariantNumeric: "tabular-nums", fontSize: 11.5 }} />
                   </div>
                   <div>
                     <label style={{ ...cdStyles.miniLbl, color: "#94a3b8" }}>
@@ -1567,7 +1567,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                              value={l.purchase_price_indicative == null ? "" : l.purchase_price_indicative}
                              onChange={(e) => updateLineField(i, "purchase_price_indicative", e.target.value === "" ? null : Number(e.target.value))}
                              placeholder="ex. 850.00"
-                             style={{ ...cdStyles.miniInput, paddingRight: 26, fontFamily: "'JetBrains Mono', monospace" }} />
+                             style={{ ...cdStyles.miniInput, paddingRight: 26, fontVariantNumeric: "tabular-nums" }} />
                       <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>€</span>
                     </div>
                   </div>
@@ -1588,15 +1588,15 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
             <div style={{ background: "#f8fafc", border: "1px solid #eef1f5", borderRadius: 10, padding: 14, minWidth: 280 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#475569", marginBottom: 4 }}>
                 <span>Total HT</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{fmtEUR(totals.ht)}</span>
+                <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{fmtEUR(totals.ht)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#475569", marginBottom: 4 }}>
                 <span>TVA</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{fmtEUR(totals.tva)}</span>
+                <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{fmtEUR(totals.tva)}</span>
               </div>
               <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 6, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 14, color: "#0f172a", fontWeight: 700 }}>
                 <span>Total TTC</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(totals.ttc)}</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtEUR(totals.ttc)}</span>
               </div>
             </div>
           </div>
@@ -1628,7 +1628,7 @@ const DocSendHistory = ({ docId }) => {
       {list.map((s) => (
         <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", fontSize: 12, borderBottom: "1px solid #f1f5f9" }}>
           <span style={{ width: 12, height: 12, borderRadius: 999, background: s.status === "sent" ? "#10b981" : s.status === "failed" ? "#dc2626" : "#94a3b8" }} />
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#64748b" }}>{new Date(s.sent_at).toLocaleString("fr-FR")}</span>
+          <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#64748b" }}>{new Date(s.sent_at).toLocaleString("fr-FR")}</span>
           <span style={{ flex: 1, color: "#0f172a" }}>{s.channel === "email" ? "✉ " + (s.recipient_email || "—") : s.channel === "download" ? "⇩ Téléchargement" : s.channel}</span>
           <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: s.status === "sent" ? "#dcfce7" : "#f1f5f9", color: s.status === "sent" ? "#065f46" : "#475569", fontWeight: 600 }}>{s.status}</span>
           <span style={{ fontSize: 10, color: "#94a3b8" }}>par {s.sent_by_name || "—"}</span>
@@ -1816,7 +1816,7 @@ const cdStyles = {
   navLabel: { fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 12, marginBottom: 4, padding: "0 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 7, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
 
   main: { flex: 1, padding: "20px 28px", overflow: "auto" },
   topbar: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, gap: 12 },

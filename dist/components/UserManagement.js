@@ -1284,7 +1284,7 @@ var UserManagement = () => {
       fontSize: 11.5,
       color: "#94a3b8",
       margin: 0,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "\xC0 venir : audit_logs (auth.users, action, target, timestamp)"))), (activeTab === "groups" || activeTab === "users") && /*#__PURE__*/React.createElement("section", {
     style: S.usersCard
@@ -1457,7 +1457,7 @@ var UserManagement = () => {
         border: "1px solid #e2e8f0",
         borderRadius: 6,
         fontSize: 12,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         outline: "none",
         textAlign: "center"
       }
@@ -1717,7 +1717,7 @@ var InviteUserModal = ({
     placeholder: "Ex : 705",
     style: {
       ...IM.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     },
     maxLength: 6
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -1993,7 +1993,7 @@ var S = {
     padding: "1px 6px",
     borderRadius: 4,
     fontSize: 10.5,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -2722,7 +2722,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 8,
       fontSize: 13,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#0f172a",
       outline: "none",
       boxSizing: "border-box"
@@ -2922,7 +2922,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 8,
       fontSize: 12,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#0f172a",
       outline: "none",
       boxSizing: "border-box"
@@ -3097,7 +3097,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 8,
       fontSize: 11.5,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#0f172a",
       background: "#fafbfc",
       outline: "none"
@@ -3142,7 +3142,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 8,
       fontSize: 11.5,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: tcxSecret ? "#0f172a" : "#94a3b8",
       background: "#fafbfc",
       outline: "none"
@@ -3207,7 +3207,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #bfdbfe",
       borderRadius: 7,
       fontSize: 12.5,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#0f172a",
       background: "#fff",
       outline: "none"
@@ -3311,7 +3311,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 7,
       fontSize: 12,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       marginBottom: 10,
       boxSizing: "border-box"
     }
@@ -3336,7 +3336,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 7,
       fontSize: 12,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       marginBottom: 10,
       boxSizing: "border-box"
     }
@@ -3361,7 +3361,7 @@ var IntegrationsPanel = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 7,
       fontSize: 12,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       marginBottom: 12,
       boxSizing: "border-box"
     }
@@ -3797,7 +3797,7 @@ var ContractTemplatesPanel = () => {
       padding: "12px",
       fontSize: 12,
       color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, t.version), /*#__PURE__*/React.createElement("td", {
     style: {
@@ -3805,7 +3805,7 @@ var ContractTemplatesPanel = () => {
       textAlign: "right",
       fontSize: 12,
       color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, t.pdf_size_kb ? t.pdf_size_kb + " Ko" : "—"), /*#__PURE__*/React.createElement("td", {
     style: {

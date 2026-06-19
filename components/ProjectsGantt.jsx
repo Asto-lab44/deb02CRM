@@ -143,7 +143,7 @@ const ProjectsGantt = () => {
               {visibleProjects.map((p) => (
                 <a key={p.id} href={"/projet?id=" + encodeURIComponent(p.id)} style={S.leftRow}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                  <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{p.sage_ref || p.id.slice(0, 12)}</div>
+                  <div style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{p.sage_ref || p.id.slice(0, 12)}</div>
                 </a>
               ))}
             </div>

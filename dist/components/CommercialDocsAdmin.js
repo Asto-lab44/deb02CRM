@@ -276,7 +276,7 @@ var CompanyTab = () => {
     onChange: e => setField("iban", e.target.value),
     style: {
       ...cdaStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdaStyles.lbl
@@ -285,7 +285,7 @@ var CompanyTab = () => {
     onChange: e => setField("bic", e.target.value),
     style: {
       ...cdaStyles.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdaStyles.lbl
@@ -467,13 +467,13 @@ var SendsTab = () => {
     style: {
       flex: "0 0 140px",
       fontSize: 11,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#475569"
     }
   }, new Date(s.sent_at).toLocaleString("fr-FR")), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 110px",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 11,
       color: "#3730a3",
       fontWeight: 600
@@ -647,7 +647,7 @@ var ArticlesTab = () => {
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 140px",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12,
       color: "#3730a3",
       fontWeight: 600
@@ -684,7 +684,7 @@ var ArticlesTab = () => {
     style: {
       flex: "0 0 110px",
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 13,
       fontWeight: 600
     }
@@ -928,7 +928,7 @@ var TvaTab = () => {
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 100px",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 700,
       fontSize: 14,
       color: "#3730a3"
@@ -974,7 +974,7 @@ var PaymentTab = () => {
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 120px",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12,
       color: "#3730a3"
     }
@@ -987,7 +987,7 @@ var PaymentTab = () => {
     style: {
       flex: "0 0 100px",
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, p.days || 0)))));
 };
@@ -1017,7 +1017,7 @@ var CountersTab = () => {
       background: "#f1f5f9",
       padding: "1px 6px",
       borderRadius: 4,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 11
     }
   }, "commercial_doc_counters"), " : un compteur s\xE9par\xE9 par type (devis/commande/bl/facture) et par ann\xE9e."), /*#__PURE__*/React.createElement("div", {
@@ -1067,7 +1067,7 @@ var CountersTab = () => {
       fontSize: 16,
       fontWeight: 700,
       color: t.color,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       marginTop: 4
     }
   }, t.prefix, "-", new Date().getFullYear(), "-XXXX"))))));

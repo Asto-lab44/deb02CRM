@@ -156,7 +156,7 @@ const CRMAccount = () => {
                         color: "#fff",
                       }}>{s.done ? "✓" : s.active ? <span style={{ width: 6, height: 6, borderRadius: 999, background: "#fff" }} /> : ""}</div>
                       <div style={{ fontSize: 11, fontWeight: s.active ? 700 : 600, color: s.done || s.active ? "#0f172a" : "#94a3b8", marginTop: 6 }}>{s.label}</div>
-                      {s.days && <div style={{ fontSize: 10, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>{s.days}</div>}
+                      {s.days && <div style={{ fontSize: 10, color: "#94a3b8", fontVariantNumeric: "tabular-nums", marginTop: 1 }}>{s.days}</div>}
                     </div>
                     {i < arr.length - 1 && (
                       <div style={{ flex: 1, height: 2, background: s.done ? "#10b981" : "#eef1f5", borderRadius: 999, alignSelf: "flex-start", marginTop: 11 }} />
@@ -188,7 +188,7 @@ const CRMAccount = () => {
                 { k: "tasks", label: "Tâches", c: 4 },
               ].map((t) => (
                 <button key={t.k} style={{ ...accStyles.subTab, ...(t.active ? accStyles.subTabActive : {}) }}>
-                  {t.label} <span style={{ fontSize: 10.5, color: t.active ? "#4f46e5" : "#94a3b8", marginLeft: 4, fontFamily: "'JetBrains Mono', monospace" }}>{t.c}</span>
+                  {t.label} <span style={{ fontSize: 10.5, color: t.active ? "#4f46e5" : "#94a3b8", marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>{t.c}</span>
                 </button>
               ))}
               <span style={{ flex: 1 }} />
@@ -264,7 +264,7 @@ const CRMAccount = () => {
                                 <span style={{ color: "#94a3b8" }}>📎</span>
                                 <div>
                                   <div style={{ fontSize: 12, fontWeight: 500, color: "#0f172a" }}>{at.name}</div>
-                                  <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{at.size}</div>
+                                  <div style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{at.size}</div>
                                 </div>
                               </div>
                             ))}
@@ -332,7 +332,7 @@ const CRMAccount = () => {
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{a.title}</span>
                           <span style={{ ...accStyles.roleTag, background: "#eef2ff", color: "#4f46e5", borderColor: "#c7d2fe" }}>À venir</span>
                           <span style={{ flex: 1 }} />
-                          <span style={{ fontSize: 11, color: "#4f46e5", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{a.at}</span>
+                          <span style={{ fontSize: 11, color: "#4f46e5", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{a.at}</span>
                         </div>
                         {a.meta && <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4 }}>{a.meta}</div>}
                         {a.attendees && (
@@ -398,7 +398,7 @@ const CRMAccount = () => {
                 <Field label="Source" value={<span style={accStyles.fieldChip}>Salon Finovate Paris</span>} />
                 <Field label="Produit" value={<span style={{ ...accStyles.fieldChip, background: "#f5efff", color: "#7e22ce" }}>Astorya Suite</span>} />
                 <Field label="Concurrent" value={<span style={{ fontSize: 12.5, color: "#475569" }}>Salesforce · Pega</span>} />
-                <Field label="Close date" value={<span style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>15 juin 2026</span>} />
+                <Field label="Close date" value={<span style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>15 juin 2026</span>} />
                 <Field label="Création" value={<span style={{ fontSize: 12, color: "#64748b" }}>14 avril · il y a 42 j</span>} />
               </section>
 
@@ -448,19 +448,19 @@ const accStyles = {
   logo: { width: 28, height: 28, borderRadius: 7, background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)", display: "flex", alignItems: "center", justifyContent: "center" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 13 },
   newBtn: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
-  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   bullet: { width: 14, color: "#94a3b8", fontSize: 11 },
   miniLogo: { width: 22, height: 22, borderRadius: 5, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "8px 6px", borderTop: "1px solid #eef1f5", marginTop: 4 },
 
   main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar: { height: 48, padding: "0 20px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
-  refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 6 },
+  refMono: { fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 6 },
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", fontSize: 13 },
   ghostBtn: { padding: "6px 12px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   primaryBtn: { padding: "7px 14px", border: "none", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, cursor: "pointer", fontWeight: 500, boxShadow: "0 1px 2px rgba(79,70,229,0.3)" },
@@ -511,7 +511,7 @@ const accStyles = {
   // Side
   side: { width: 320, background: "#fff", overflowY: "auto", flexShrink: 0 },
   sideHead: { fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between" },
-  sideCount: { fontSize: 10, padding: "0 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 },
+  sideCount: { fontSize: 10, padding: "0 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums", fontWeight: 600 },
   contactRow: { display: "flex", alignItems: "center", gap: 9, padding: "7px 4px", borderBottom: "1px solid #f1f5f9" },
   championPill: { fontSize: 9.5, padding: "0px 5px", borderRadius: 3, background: "#fffbeb", color: "#a65f00", fontWeight: 700, border: "1px solid #fde68a" },
   coldPill: { fontSize: 9.5, padding: "0px 5px", borderRadius: 3, background: "#eff6ff", color: "#1e40af", fontWeight: 600 },

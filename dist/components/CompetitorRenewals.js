@@ -836,7 +836,7 @@ var CompetitorRenewals = () => {
       style: {
         fontSize: 10.5,
         color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, items.length, " \xB7 ", sum, " k\u20AC")), /*#__PURE__*/React.createElement("div", {
       style: crStyles.tlBubbles
@@ -1044,7 +1044,7 @@ var CompetitorRenewals = () => {
         fontSize: 12.5,
         fontWeight: 700,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         marginLeft: 2
       }
     }, r.value, " k\u20AC/an")), /*#__PURE__*/React.createElement("div", {
@@ -1079,7 +1079,7 @@ var CompetitorRenewals = () => {
         fontSize: 13,
         fontWeight: 700,
         color: isUrgent ? "#dc2626" : "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         letterSpacing: -0.2
       }
     }, r.endDate), /*#__PURE__*/React.createElement("div", {
@@ -1116,7 +1116,7 @@ var CompetitorRenewals = () => {
         fontSize: 10.5,
         color: "#94a3b8",
         marginTop: 4,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, r.noticeDeadline), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1354,7 +1354,7 @@ var crStyles = {
     borderRadius: 4,
     background: "rgba(255,255,255,0.12)",
     color: "#cbd5e1",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -1387,7 +1387,7 @@ var crStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   bullet: {
     width: 14,
@@ -1467,7 +1467,7 @@ var crStyles = {
     background: "#fff",
     border: "1px solid #e2e8f0",
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   iconBtn: {
     width: 30,
@@ -1607,7 +1607,7 @@ var crStyles = {
     borderRadius: 4,
     background: "#eef1f5",
     color: "#64748b",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   tabCountActive: {
     background: "rgba(255,255,255,0.15)",

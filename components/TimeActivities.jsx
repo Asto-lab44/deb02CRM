@@ -166,7 +166,7 @@ const TimeActivities = () => {
                       </div>
                       <div style={{ textAlign: "right", fontSize: 11, color: "#64748b" }}>
                         <div>Dernière activité</div>
-                        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#0f172a" }}>{fmtTime(u.last_activity)}</div>
+                        <div style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#0f172a" }}>{fmtTime(u.last_activity)}</div>
                       </div>
                     </div>
                   );
@@ -191,7 +191,7 @@ const TimeActivities = () => {
                       <div style={{ fontSize: 11, color: "#64748b" }}>{p.client_name || "—"} · {p.pm_name || "Sans chef projet"}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: p.days_stalled >= 30 ? "#991b1b" : p.days_stalled >= 14 ? "#92400e" : "#475569", fontFamily: "'JetBrains Mono', monospace" }}>{p.days_stalled} j</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: p.days_stalled >= 30 ? "#991b1b" : p.days_stalled >= 14 ? "#92400e" : "#475569", fontVariantNumeric: "tabular-nums" }}>{p.days_stalled} j</div>
                       <div style={{ fontSize: 10, color: "#94a3b8" }}>sans activité</div>
                     </div>
                   </a>
@@ -240,7 +240,7 @@ const TimeActivities = () => {
                 return (
                   <div key={s.id} style={taStyles.tableRow}>
                     <span style={{ flex: "0 0 150px", fontSize: 12.5, fontWeight: 600 }}>{s.user_name || s.user_email || "—"}</span>
-                    <span style={{ flex: "0 0 140px", fontSize: 11.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{fmtDateTime(s.started_at)}</span>
+                    <span style={{ flex: "0 0 140px", fontSize: 11.5, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>{fmtDateTime(s.started_at)}</span>
                     <span style={{ flex: "0 0 100px", fontSize: 12, fontWeight: 600 }}>{fmtDuration(sessionMs)}</span>
                     <span style={{ flex: "0 0 90px", fontSize: 11 }}>{lockedMs > 0 ? fmtDuration(lockedMs) : "—"}</span>
                     <span style={{ flex: "0 0 110px", fontSize: 11, color: "#64748b" }}>{(s.platform || "?")} · {s.browser || "?"}</span>
@@ -266,7 +266,7 @@ const TimeActivities = () => {
 const KPI = ({ label, value, color }) => (
   <div style={{ flex: 1, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: "12px 14px" }}>
     <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600 }}>{label}</div>
-    <div style={{ fontSize: 22, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+    <div style={{ fontSize: 22, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{value}</div>
   </div>
 );
 
@@ -293,10 +293,10 @@ const EventRow = ({ event, fmtDateTime }) => {
           <span style={{ fontSize: 12, color: "#475569" }}>{event.user_name || event.user_email || "—"}</span>
           {event.path && <>
             <span style={{ fontSize: 11, color: "#94a3b8" }}>·</span>
-            <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{event.path}</span>
+            <span style={{ fontSize: 11, fontVariantNumeric: "tabular-nums", color: "#3730a3" }}>{event.path}</span>
           </>}
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{fmtDateTime(event.occurred_at)}</span>
+          <span style={{ fontSize: 11, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>{fmtDateTime(event.occurred_at)}</span>
         </div>
         {event.message && (
           <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{event.message}</div>
@@ -307,7 +307,7 @@ const EventRow = ({ event, fmtDateTime }) => {
           </button>
         )}
         {open && hasDetails && (
-          <pre style={{ margin: "6px 0 0", padding: 10, background: "#0f172a", color: "#fca5a5", fontSize: 10, fontFamily: "'JetBrains Mono', monospace", borderRadius: 6, overflow: "auto", maxHeight: 200 }}>
+          <pre style={{ margin: "6px 0 0", padding: 10, background: "#0f172a", color: "#fca5a5", fontSize: 10, fontVariantNumeric: "tabular-nums", borderRadius: 6, overflow: "auto", maxHeight: 200 }}>
             {event.error_url && <span style={{ color: "#fbbf24" }}>{event.error_url}:{event.error_line || "?"}{"\n"}</span>}
             {event.error_stack || "(pas de stack)"}
           </pre>

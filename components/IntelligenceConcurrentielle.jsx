@@ -237,8 +237,8 @@ const IntelligenceConcurrentielle = () => {
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 16 }}>
                     <div style={{ fontSize: 11, color: "#64748b" }}>Échéance</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtDate(t.date_echeance)}</div>
-                    <div style={{ display: "inline-block", marginTop: 4, padding: "2px 10px", borderRadius: 999, background: urgencyBg, color: urgencyColor, fontSize: 12, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{fmtDate(t.date_echeance)}</div>
+                    <div style={{ display: "inline-block", marginTop: 4, padding: "2px 10px", borderRadius: 999, background: urgencyBg, color: urgencyColor, fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                       J{t.days_left >= 0 ? "−" : "+"}{Math.abs(t.days_left)}
                     </div>
                   </div>
@@ -258,7 +258,7 @@ const IntelligenceConcurrentielle = () => {
 const KPI = ({ label, value, color, big }) => (
   <div style={{ flex: 1, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: "12px 14px" }}>
     <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{label}</div>
-    <div style={{ fontSize: big ? 26 : 22, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+    <div style={{ fontSize: big ? 26 : 22, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{value}</div>
   </div>
 );
 
@@ -429,7 +429,7 @@ const icStyles = {
   navLabel: { fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 12, marginBottom: 4, padding: "0 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 7, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#fef2f2", color: "#991b1b", fontWeight: 600 },
-  navCount: { fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
 
   main: { flex: 1, padding: "20px 28px", overflow: "auto" },
   topbar: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },

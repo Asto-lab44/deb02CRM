@@ -19,7 +19,7 @@ const NCSectionHead = ({ num, title, subtitle, status }) => {
   const s = statusMeta[status] || statusMeta.todo;
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #eef1f5" }}>
-      <div style={{ width: 30, height: 30, borderRadius: 8, background: s.bg, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>{s.icon}</div>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: s.bg, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.icon}</div>
       <div style={{ flex: 1 }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.2 }}>{title}</h2>
         <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{subtitle}</div>
@@ -49,7 +49,7 @@ const NCCondRow = ({ label, value }) => (
 const NCTotalRow = ({ label, v, color, strong, strongLarge }) => (
   <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: strong || strongLarge ? "2px solid #eef1f5" : "1px solid #f1f5f9", marginTop: strongLarge ? 4 : 0 }}>
     <span style={{ fontSize: strongLarge ? 13 : 11.5, color: strong || strongLarge ? "#0f172a" : "#64748b", fontWeight: strong || strongLarge ? 700 : 500 }}>{label}</span>
-    <span style={{ fontSize: strongLarge ? 14 : strong ? 13 : 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: strong || strongLarge ? 700 : 600, color: color || "#0f172a" }}>{v}</span>
+    <span style={{ fontSize: strongLarge ? 14 : strong ? 13 : 12, fontVariantNumeric: "tabular-nums", fontWeight: strong || strongLarge ? 700 : 600, color: color || "#0f172a" }}>{v}</span>
   </div>
 );
 
@@ -62,7 +62,7 @@ const NCLifecycleItem = ({ date, label, active, warn, final }) => (
       flexShrink: 0,
     }} />
     <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", fontWeight: 600 }}>{date}</div>
+      <div style={{ fontSize: 11, fontVariantNumeric: "tabular-nums", color: "#0f172a", fontWeight: 600 }}>{date}</div>
       <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{label}</div>
     </div>
   </div>
@@ -548,7 +548,7 @@ const NewContract = () => {
                     <div style={{ width: 30, height: 30, borderRadius: 6, background: "#1e40af", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700 }}>{clientInitials}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600 }}>{clientName}</div>
-                      <div style={{ fontSize: 10.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>SIREN {clientSiren}</div>
+                      <div style={{ fontSize: 10.5, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>SIREN {clientSiren}</div>
                     </div>
                   </div>
                 </NCFormRow>
@@ -692,7 +692,7 @@ const NewContract = () => {
                         />
                       </div>
                       <div style={{ width: 110, textAlign: "right" }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(net)}</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{fmtEUR(net)}</div>
                         <div style={{ fontSize: 10, color: "#94a3b8" }}>{p.periodicity === "oneshot" ? "one-shot" : "annuel"}</div>
                       </div>
                       <div style={{ width: 32 }}>
@@ -806,7 +806,7 @@ const NewContract = () => {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        style={{ ...ncStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(dateErr ? V.errorStyle(dateErr) : {}) }}
+                        style={{ ...ncStyles.input, fontVariantNumeric: "tabular-nums", ...(dateErr ? V.errorStyle(dateErr) : {}) }}
                       />
                       {dateErr && <div style={V.errorMsgStyle(dateErr)}>{dateErr.message}</div>}
                     </>;
@@ -817,14 +817,14 @@ const NewContract = () => {
                     type="date"
                     value={endDate}
                     readOnly
-                    style={{ ...ncStyles.input, fontFamily: "'JetBrains Mono', monospace", background: "#fafbfc" }}
+                    style={{ ...ncStyles.input, fontVariantNumeric: "tabular-nums", background: "#fafbfc" }}
                   />
                   <div style={ncStyles.inputHelp}>Auto-calculé selon durée d'engagement</div>
                 </NCFormRow>
                 <NCFormRow label="Devise">
                   <input value="EUR (€)" readOnly disabled
                          title="Devise verrouillée"
-                         style={{ ...ncStyles.input, fontFamily: "'JetBrains Mono', monospace", background: "#fafbfc", color: "#475569", cursor: "not-allowed" }} />
+                         style={{ ...ncStyles.input, fontVariantNumeric: "tabular-nums", background: "#fafbfc", color: "#475569", cursor: "not-allowed" }} />
                 </NCFormRow>
               </div>
 
@@ -955,7 +955,7 @@ const NewContract = () => {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 7.5, color: "#94a3b8", fontWeight: 600 }}>CONTRAT N°</div>
-                    <div style={{ fontSize: 9, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>CTR-{new Date().getFullYear()}-DRAFT</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>CTR-{new Date().getFullYear()}-DRAFT</div>
                   </div>
                 </div>
 
@@ -980,13 +980,13 @@ const NewContract = () => {
                       <div key={p.id} style={ncStyles.pdfLine}>
                         <span style={{ flex: 1, color: "#0f172a", fontWeight: 600 }}>{p.name}</span>
                         <span style={{ width: 24, textAlign: "center" }}>{p.qty}</span>
-                        <span style={{ width: 60, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(net)}</span>
+                        <span style={{ width: 60, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtEUR(net)}</span>
                       </div>
                     );
                   })}
                   <div style={{ ...ncStyles.pdfLine, background: "#0f172a", color: "#fff", padding: "5px 8px", marginTop: 4 }}>
                     <span style={{ flex: 1, fontWeight: 700 }}>TOTAL HT ANNÉE 1</span>
-                    <span style={{ width: 60, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{fmtEUR(sums.totalY1HT)}</span>
+                    <span style={{ width: 60, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{fmtEUR(sums.totalY1HT)}</span>
                   </div>
 
                   <div style={{ marginTop: 12, padding: "5px 8px", background: "#eef2ff", borderRadius: 4, fontSize: 7, color: "#3730a3", textAlign: "center" }}>
@@ -1064,7 +1064,7 @@ const ncStyles = {
   frame: { width: "100%", minHeight: "100vh", background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", display: "flex", flexDirection: "column" },
 
   topbar: { padding: "14px 28px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 },
-  refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 4 },
+  refMono: { fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 4 },
   ghostBtn: { padding: "7px 13px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   primaryBtn: { padding: "7px 16px", border: "none", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, cursor: "pointer", fontWeight: 600, boxShadow: "0 1px 2px rgba(79,70,229,0.3)" },
 
@@ -1078,7 +1078,7 @@ const ncStyles = {
 
   stepper: { display: "flex", alignItems: "center", padding: "14px 28px", borderBottom: "1px solid #eef1f5", background: "#fafbfc", gap: 8, flexWrap: "wrap" },
   stepItem: { display: "flex", alignItems: "center", gap: 8 },
-  stepDot: { width: 24, height: 24, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
+  stepDot: { width: 24, height: 24, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0 },
   stepLine: { flex: 1, height: 2, borderRadius: 999, maxWidth: 100, minWidth: 20 },
 
   body: { padding: 20 },
@@ -1092,8 +1092,8 @@ const ncStyles = {
   input: { width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontFamily: "inherit", color: "#0f172a", outline: "none", boxSizing: "border-box" },
   inputHelp: { fontSize: 11, color: "#94a3b8", marginTop: 4 },
   select100: { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12.5, background: "#fff", cursor: "pointer", fontFamily: "inherit", color: "#0f172a" },
-  numInput: { width: 50, padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", textAlign: "center" },
-  qtyInput: { width: 50, padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", textAlign: "center", fontWeight: 600 },
+  numInput: { width: 50, padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12.5, fontVariantNumeric: "tabular-nums", textAlign: "center" },
+  qtyInput: { width: 50, padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12.5, fontVariantNumeric: "tabular-nums", textAlign: "center", fontWeight: 600 },
   formGrid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
   formGrid3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 },
 
@@ -1117,7 +1117,7 @@ const ncStyles = {
   table: { border: "1px solid #eef1f5", borderRadius: 10, overflow: "hidden", marginBottom: 14 },
   tableHead: { display: "flex", alignItems: "center", padding: "10px 14px", background: "#fafbfc", borderBottom: "1px solid #eef1f5", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 },
   tableRow: { display: "flex", alignItems: "center", padding: "12px 14px", borderBottom: "1px solid #f1f5f9", background: "#fff" },
-  skuChip: { fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 },
+  skuChip: { fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums", fontWeight: 600 },
   rowMenu: { width: 24, height: 24, border: "none", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 16 },
   addLine: { width: "100%", padding: "12px", border: "none", borderTop: "1px dashed #cbd5e1", background: "#fafbfc", fontSize: 12, color: "#4f46e5", cursor: "pointer", fontWeight: 600, textAlign: "left", paddingLeft: 14 },
 

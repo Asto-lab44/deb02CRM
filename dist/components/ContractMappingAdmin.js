@@ -253,7 +253,7 @@ var ContractMappingAdmin = () => {
       ...S.input,
       width: "100%",
       minHeight: 80,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 12
     }
   }), /*#__PURE__*/React.createElement("button", {
@@ -360,7 +360,7 @@ var S = {
     color: "#fff",
     fontSize: 9.5,
     fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     letterSpacing: 0.5
   },
   kindLabel: {
@@ -388,7 +388,7 @@ var S = {
     background: "#e0e7ff",
     color: "#3730a3",
     fontSize: 10,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   addRow: {
     display: "flex",

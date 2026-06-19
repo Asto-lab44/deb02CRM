@@ -191,7 +191,7 @@ var ContractPreview = ({
       style: {
         ...S.td,
         textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmt(p.unit)), /*#__PURE__*/React.createElement("td", {
       style: {
@@ -203,7 +203,7 @@ var ContractPreview = ({
       style: {
         ...S.td,
         textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 700
       }
     }, fmt(lineHT)));
@@ -495,7 +495,7 @@ var S = {
   },
   metaValue: {
     color: "#0f172a",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     marginBottom: 6,
     fontWeight: 700,
     fontSize: 12
@@ -618,7 +618,7 @@ var S = {
     fontSize: 13
   },
   totalVal: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 700
   },
   list: {

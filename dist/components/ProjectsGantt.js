@@ -253,7 +253,7 @@ var ProjectsGantt = () => {
     style: {
       fontSize: 10.5,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       marginTop: 2
     }
   }, p.sage_ref || p.id.slice(0, 12))))), /*#__PURE__*/React.createElement("div", {

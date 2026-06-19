@@ -422,7 +422,7 @@ var ProjectsKanban = () => {
         fontSize: 11,
         color: "#0f172a",
         fontWeight: 600,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, progress, "%")), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1002,7 +1002,7 @@ var S = {
     color: "#64748b",
     borderRadius: 999,
     fontWeight: 600,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     border: "1px solid #e2e8f0"
   },
   colBody: {

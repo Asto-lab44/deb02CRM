@@ -156,7 +156,7 @@ const M = {
   error: { padding: "8px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#dc2626", fontSize: 12.5, fontWeight: 500 },
   submit: { padding: "10px 16px", background: "#3730a3", color: "#fff", border: 0, borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: "pointer", marginTop: 4 },
   demoNote: { padding: "10px 12px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, fontSize: 12, color: "#78350f", lineHeight: 1.5 },
-  kbd: { background: "#fef3c7", padding: "1px 6px", borderRadius: 4, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, fontWeight: 600 },
+  kbd: { background: "#fef3c7", padding: "1px 6px", borderRadius: 4, fontVariantNumeric: "tabular-nums", fontSize: 11.5, fontWeight: 600 },
   quickHead: { fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, padding: "12px 24px 8px", borderTop: "1px solid #f1f5f9" },
   quickList: { display: "flex", flexDirection: "column", gap: 4, padding: "0 12px 16px" },
   quickItem: { display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: "transparent", border: "1px solid transparent", cursor: "pointer", textAlign: "left" },

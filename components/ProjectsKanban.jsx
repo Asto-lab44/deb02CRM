@@ -272,7 +272,7 @@ const ProjectsKanban = () => {
         <div style={{ marginTop: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
             <span style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Progression</span>
-            <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{progress}%</span>
+            <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{progress}%</span>
           </div>
           <div style={{ width: "100%", height: 3, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
             <div style={{ width: progress + "%", height: "100%", background: stageMeta.color, borderRadius: 999 }} />
@@ -478,7 +478,7 @@ const S = {
   kanban: { display: "flex", gap: 12, padding: 20, overflowX: "auto", flex: 1, alignItems: "flex-start" },
   col: { width: 290, flexShrink: 0, background: "#f8fafc", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column" },
   colHead: { display: "flex", alignItems: "center", gap: 8, paddingBottom: 10, borderBottom: "1px solid #eef1f5", marginBottom: 10 },
-  colCount: { fontSize: 10, padding: "0 6px", background: "#fff", color: "#64748b", borderRadius: 999, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", border: "1px solid #e2e8f0" },
+  colCount: { fontSize: 10, padding: "0 6px", background: "#fff", color: "#64748b", borderRadius: 999, fontWeight: 600, fontVariantNumeric: "tabular-nums", border: "1px solid #e2e8f0" },
   colBody: { minHeight: 100, flex: 1 },
   colEmpty: { padding: "16px 8px", textAlign: "center", fontSize: 11, color: "#cbd5e1", fontStyle: "italic", border: "1px dashed #e2e8f0", borderRadius: 6, background: "#fff" },
 };

@@ -965,9 +965,9 @@ const ClientPage = () => {
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ width: 7, height: 7, borderRadius: 2, background: s.color }} />
                           <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a" }}>{s.label}</span>
-                          <span style={{ fontSize: 10, padding: "0 6px", borderRadius: 999, background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{opps.length}</span>
+                          <span style={{ fontSize: 10, padding: "0 6px", borderRadius: 999, background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{opps.length}</span>
                         </div>
-                        <span style={{ fontSize: 10.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>
+                        <span style={{ fontSize: 10.5, color: "#64748b", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
                           {opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €"}
                         </span>
                       </div>
@@ -1009,7 +1009,7 @@ const ClientPage = () => {
                             <div>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                                 <span style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Probabilité</span>
-                                <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{proba}%</span>
+                                <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{proba}%</span>
                               </div>
                               <div style={{ width: "100%", height: 3, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
                                 <div style={{ width: proba + "%", height: "100%", background: stageColor, borderRadius: 999 }} />
@@ -1086,7 +1086,7 @@ const ClientPage = () => {
                     <div style={{ marginTop: 6 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                         <span style={{ fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Probabilité</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: stage.color }}>{o.proba}%</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: stage.color }}>{o.proba}%</span>
                       </div>
                       <div style={cliStyles.probaBar}>
                         <div style={{ width: `${o.proba}%`, height: "100%", background: stage.color, borderRadius: 999 }} />
@@ -1308,7 +1308,7 @@ const ClientPage = () => {
                               fontSize: 11,
                               fontWeight: 600,
                               color: a.overdue ? "#dc2626" : a.priority === "ai" ? "#94a3b8" : "#0f172a",
-                              fontFamily: "'JetBrains Mono', monospace",
+                              fontVariantNumeric: "tabular-nums",
                             }}>⏱ {a.due}</span>
                             {a.assigned && (
                               <>
@@ -1420,7 +1420,7 @@ const ClientPage = () => {
                       <div style={cliStyles.pastContent}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", flex: 1 }}>{a.title}</span>
-                          <span style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap" }}>{a.at}</span>
+                          <span style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{a.at}</span>
                         </div>
                         <div style={{ fontSize: 11.5, color: "#64748b" }}>{a.who}</div>
                         {a.meta && <div style={{ fontSize: 11.5, color: "#475569", marginTop: 4, padding: "5px 8px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 5, lineHeight: 1.45 }}>{a.meta}</div>}
@@ -1507,7 +1507,7 @@ const ClientPage = () => {
                           )}
                           {p.email && (
                             <a href={"mailto:" + p.email}
-                               style={{ fontSize: 11, color: "#475569", marginTop: 6, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
+                               style={{ fontSize: 11, color: "#475569", marginTop: 6, fontVariantNumeric: "tabular-nums", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
                                onMouseEnter={(e) => e.currentTarget.style.color = "#3730a3"}
                                onMouseLeave={(e) => e.currentTarget.style.color = "#475569"}
                                title={"Envoyer un email à " + p.name}>
@@ -1534,7 +1534,7 @@ const ClientPage = () => {
                                      .catch(() => launch(null));
                                  } else { launch(null); }
                                }}
-                               style={{ fontSize: 11, color: "#475569", fontFamily: "'JetBrains Mono', monospace", textDecoration: "none", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
+                               style={{ fontSize: 11, color: "#475569", fontVariantNumeric: "tabular-nums", textDecoration: "none", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
                                onMouseEnter={(e) => e.currentTarget.style.color = "#10b981"}
                                onMouseLeave={(e) => e.currentTarget.style.color = "#475569"}
                                title={"Appeler " + p.name + " via 3CX (" + p.phone + ")"}>
@@ -1585,7 +1585,7 @@ const ClientPage = () => {
                   const SectionTitle = ({ children }) => (
                     <div style={{ gridColumn: "1 / -1", fontSize: 10.5, fontWeight: 700, color: "#3730a3", textTransform: "uppercase", letterSpacing: 0.6, padding: "4px 4px 0" }}>{children}</div>
                   );
-                  const monoTxt = { fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#475569" };
+                  const monoTxt = { fontVariantNumeric: "tabular-nums", fontSize: 12, color: "#475569" };
                   const actionLabel = ({ email: "📧 Email d'intro", call: "📞 Cold call", in: "in LinkedIn", wait: "⏸ Attendre" })[display.action] || display.action;
                   return (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, padding: 4 }}>
@@ -1699,11 +1699,11 @@ const ClientPage = () => {
                       const statusMeta = { active: { label: "● Actif", bg: "#dcfce7", color: "#065f46" }, expiring: { label: "● Expire bientôt", bg: "#fef3c7", color: "#78350f" }, expired: { label: "● Expiré", bg: "#fee2e2", color: "#991b1b" }, draft: { label: "○ Brouillon", bg: "#f1f5f9", color: "#475569" } }[ct.status] || { label: ct.status, bg: "#f1f5f9", color: "#475569" };
                       return (
                         <tr key={ct.id} style={{ borderTop: i === 0 ? 0 : "1px solid #f1f5f9" }}>
-                          <td style={{ padding: "10px 12px" }}><span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#475569", fontWeight: 600 }}>{ct.id}</span></td>
+                          <td style={{ padding: "10px 12px" }}><span style={{ fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: "#475569", fontWeight: 600 }}>{ct.id}</span></td>
                           <td style={{ padding: "10px 12px" }}><div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{ct.name}</div>{ct.product && <div style={{ fontSize: 11, color: "#94a3b8" }}>{ct.product}</div>}</td>
                           <td style={{ padding: "10px 12px", fontSize: 12, color: "#475569" }}>{ct.type}</td>
-                          <td style={{ padding: "10px 12px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{ct.amount}</td>
-                          <td style={{ padding: "10px 12px", fontSize: 11.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{ct.start}<br/>→ {ct.end}</td>
+                          <td style={{ padding: "10px 12px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{ct.amount}</td>
+                          <td style={{ padding: "10px 12px", fontSize: 11.5, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>{ct.start}<br/>→ {ct.end}</td>
                           <td style={{ padding: "10px 12px" }}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: statusMeta.bg, color: statusMeta.color, fontWeight: 700 }}>{statusMeta.label}</span></td>
                           <td style={{ padding: "10px 12px", textAlign: "right" }}>
                             <button
@@ -1786,7 +1786,7 @@ const ClientPage = () => {
                       const pCol = { critique: "#dc2626", haute: "#ea580c", normale: "#64748b", basse: "#94a3b8" }[t.priority] || "#64748b";
                       return (
                         <tr key={t.id} onClick={() => window.location.href = "/ticketing?id=" + encodeURIComponent(t.id)} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}>
-                          <td style={{ padding: "10px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#475569" }}>{t.id}</td>
+                          <td style={{ padding: "10px", fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: "#475569" }}>{t.id}</td>
                           <td style={{ padding: "10px", fontWeight: 500, color: "#0f172a" }}>{t.title}</td>
                           <td style={{ padding: "10px" }}><span style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4, background: sCol + "20", color: sCol, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{t.status}</span></td>
                           <td style={{ padding: "10px" }}><span style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4, background: pCol + "20", color: pCol, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{t.priority}</span></td>
@@ -2026,7 +2026,7 @@ const ClientPage = () => {
                               <div>
                                 <label style={editLabel}>SIRET (optionnel)</label>
                                 <input value={es.siret || ""} onChange={(e) => update(i, { siret: e.target.value })}
-                                       placeholder="14 chiffres" style={{ ...editInput, fontFamily: "'JetBrains Mono', monospace" }} />
+                                       placeholder="14 chiffres" style={{ ...editInput, fontVariantNumeric: "tabular-nums" }} />
                               </div>
                             </div>
                             <div style={{ marginBottom: 8 }}>
@@ -2346,19 +2346,19 @@ const cliStyles = {
   logo: { width: 28, height: 28, borderRadius: 7, background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)", display: "flex", alignItems: "center", justifyContent: "center" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 13 },
   newBtn: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
-  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   bullet: { width: 14, color: "#94a3b8", fontSize: 11 },
   miniLogo: { width: 22, height: 22, borderRadius: 5, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "8px 6px", borderTop: "1px solid #eef1f5", marginTop: 4 },
 
   main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar: { height: 48, padding: "0 24px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 },
-  refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 6 },
+  refMono: { fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 6 },
   healthChip: { fontSize: 11, padding: "1px 8px", borderRadius: 999, background: "#e8f8f1", color: "#0e7a55", fontWeight: 600, marginLeft: 6 },
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", fontSize: 13 },
   ghostBtn: { padding: "6px 12px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
@@ -2389,14 +2389,14 @@ const cliStyles = {
   blockHead: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 14, gap: 12 },
   h2: { fontSize: 16, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.3, display: "flex", alignItems: "center", gap: 6 },
   h2sub: { fontSize: 12, color: "#64748b", margin: "3px 0 0" },
-  blockCount: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, marginLeft: 2 },
+  blockCount: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums", fontWeight: 600, marginLeft: 2 },
   filterPill: { padding: "4px 10px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
 
   // Pipe
   stagesStrip: { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, marginBottom: 14, padding: 12, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10 },
   stageCol: { display: "flex", flexDirection: "column", gap: 4 },
   stageColHead: { display: "flex", alignItems: "center", gap: 6 },
-  stageCount: { fontSize: 10.5, padding: "0 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, marginLeft: "auto" },
+  stageCount: { fontSize: 10.5, padding: "0 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums", fontWeight: 600, marginLeft: "auto" },
   stageColBar: { height: 3, background: "#eef1f5", borderRadius: 999, overflow: "hidden", marginTop: 2 },
 
   oppGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 },
@@ -2404,7 +2404,7 @@ const cliStyles = {
   oppCardHot: { borderColor: "#fed7aa", boxShadow: "0 0 0 1px #fed7aa" },
   oppCardWon: { background: "linear-gradient(180deg, #fff, #f0fdf6)", borderColor: "#bbf7d0" },
   newRibbon: { position: "absolute", top: -7, right: 12, padding: "1px 7px", background: "#4f46e5", color: "#fff", fontSize: 9.5, fontWeight: 700, borderRadius: 999, letterSpacing: 0.4 },
-  oppRef: { fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: "#94a3b8", fontWeight: 500 },
+  oppRef: { fontVariantNumeric: "tabular-nums", fontSize: 10.5, color: "#94a3b8", fontWeight: 500 },
   stagePill: { display: "inline-flex", alignItems: "center", gap: 5, padding: "1px 7px", borderRadius: 999, fontSize: 10.5, fontWeight: 600 },
   hotPill: { fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "#fff1d6", color: "#a65f00", fontWeight: 700 },
   wonPill: { fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "#e8f8f1", color: "#0e7a55", fontWeight: 700 },
@@ -2425,7 +2425,7 @@ const cliStyles = {
   checkbox: { marginTop: 4, accentColor: "#4f46e5" },
   actionIcon: { width: 30, height: 30, borderRadius: 7, border: "1.5px solid #eef1f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 },
   prioPill: { fontSize: 9.5, padding: "1px 6px", borderRadius: 3, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 },
-  linkRef: { fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, padding: "1px 5px", borderRadius: 3, border: "1px solid", fontWeight: 600 },
+  linkRef: { fontVariantNumeric: "tabular-nums", fontSize: 9.5, padding: "1px 5px", borderRadius: 3, border: "1px solid", fontWeight: 600 },
   overdueChip: { fontSize: 9.5, padding: "1px 6px", borderRadius: 3, background: "#dc2626", color: "#fff", fontWeight: 700, letterSpacing: 0.3 },
   actionMenu: { width: 24, height: 24, border: "none", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 14, borderRadius: 4 },
   menuItem: { display: "block", width: "100%", padding: "8px 12px", border: "none", background: "transparent", color: "#0f172a", fontSize: 12.5, fontWeight: 500, textAlign: "left", cursor: "pointer", borderRadius: 5 },
@@ -2619,7 +2619,7 @@ const TechModule = ({ clientId, value, onChange }) => {
             <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{sec.title}</span>
             <span style={{ fontSize: 11, fontWeight: 600, color: sec.color, padding: "2px 8px", background: sec.color + "15", borderRadius: 999 }}>{secPct}% complété</span>
           </div>
-          <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{secFilled}/{sec.fields.length}</span>
+          <span style={{ fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{secFilled}/{sec.fields.length}</span>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
@@ -2720,12 +2720,12 @@ const ContactEditModal = ({ contact, onClose, onSave }) => {
             </label>
             <label style={CE.field}>
               <span style={CE.label}>Téléphone</span>
-              <input type="tel" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+33 6 12 34 56 78" style={{ ...CE.input, fontFamily: "'JetBrains Mono', monospace" }} />
+              <input type="tel" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+33 6 12 34 56 78" style={{ ...CE.input, fontVariantNumeric: "tabular-nums" }} />
             </label>
           </div>
           <label style={CE.field}>
             <span style={CE.label}>LinkedIn</span>
-            <input type="text" value={form.linkedin || ""} onChange={(e) => setForm({ ...form, linkedin: e.target.value })} placeholder="linkedin.com/in/prenom-nom" style={{ ...CE.input, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }} />
+            <input type="text" value={form.linkedin || ""} onChange={(e) => setForm({ ...form, linkedin: e.target.value })} placeholder="linkedin.com/in/prenom-nom" style={{ ...CE.input, fontVariantNumeric: "tabular-nums", fontSize: 12 }} />
           </label>
           <div style={CE.foot}>
             <button type="button" onClick={onClose} style={CE.btnGhost}>Annuler</button>

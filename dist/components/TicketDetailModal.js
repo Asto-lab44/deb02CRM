@@ -215,7 +215,7 @@ var TicketDetailModal = ({
   }, "/"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12.5,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#0f172a",
       fontWeight: 700
     }
@@ -512,7 +512,7 @@ var TicketDetailModal = ({
   }, "R\xE9f."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 700,
       color: "#0f172a"
     }

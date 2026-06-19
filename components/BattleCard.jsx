@@ -124,11 +124,11 @@ const BattleCard = () => {
           ].map((o, i) => (
             <div key={i} style={bcStyles.obj}>
               <div style={bcStyles.objQ}>
-                <span style={{ color: "#dc2626", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>SF →</span>
+                <span style={{ color: "#dc2626", fontWeight: 700, fontSize: 11, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>SF →</span>
                 <span style={{ fontSize: 13, color: "#0f172a", fontWeight: 600, fontStyle: "italic" }}>{o.q}</span>
               </div>
               <div style={bcStyles.objA}>
-                <span style={{ color: "#4f46e5", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>HUB ←</span>
+                <span style={{ color: "#4f46e5", fontWeight: 700, fontSize: 11, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>HUB ←</span>
                 <span style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.55 }}>{o.a}</span>
               </div>
             </div>
@@ -223,7 +223,7 @@ const BattleCard = () => {
                   {p.urgent && <span style={bcStyles.urgentBadge}>⚡ Priorité</span>}
                 </div>
                 <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 3, lineHeight: 1.4 }}>{p.desc}</div>
-                <div style={{ fontSize: 10.5, color: p.color, marginTop: 4, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>⏱ {p.time}</div>
+                <div style={{ fontSize: 10.5, color: p.color, marginTop: 4, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>⏱ {p.time}</div>
               </div>
             </div>
           ))}
@@ -279,7 +279,7 @@ const BarRow = ({ label, value, max, color }) => (
     <div style={{ flex: 1, height: 4, background: "#f1f3f6", borderRadius: 999, overflow: "hidden" }}>
       <div style={{ width: `${value}%`, height: "100%", background: color, opacity: 0.7, borderRadius: 999 }} />
     </div>
-    <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", width: 28, textAlign: "right" }}>{value}%</span>
+    <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontVariantNumeric: "tabular-nums", width: 28, textAlign: "right" }}>{value}%</span>
   </div>
 );
 
@@ -323,7 +323,7 @@ const bcStyles = {
   priceRow: { display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", padding: "8px 12px", borderBottom: "1px solid #f1f5f9", alignItems: "center", gap: 8 },
   priceRowTotal: { background: "#fafbfc", borderTop: "2px solid #eef1f5", borderBottom: "none" },
   priceK: { fontSize: 11.5, color: "#475569" },
-  priceVal: { fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, textAlign: "right" },
+  priceVal: { fontSize: 12.5, fontVariantNumeric: "tabular-nums", fontWeight: 600, textAlign: "right" },
   priceBadge: { display: "inline-block", marginTop: 12, padding: "4px 10px", background: "#e8f8f1", color: "#0e7a55", borderRadius: 6, fontSize: 12, fontWeight: 600 },
 
   // Plays

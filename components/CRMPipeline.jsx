@@ -404,7 +404,7 @@ const CRMPipeline = () => {
                       <div style={{ padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, background: "#fafbfc", borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9" }}>Opportunités ({globalResults.opps.length})</div>
                       {globalResults.opps.map((o) => (
                         <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderBottom: "1px solid #f1f5f9" }}>
-                          <span style={{ fontSize: 10.5, padding: "2px 7px", background: "#eef2ff", color: "#3730a3", borderRadius: 4, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{o.id}</span>
+                          <span style={{ fontSize: 10.5, padding: "2px 7px", background: "#eef2ff", color: "#3730a3", borderRadius: 4, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{o.id}</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 12.5, fontWeight: 600 }}>{o.name}</div>
                             <div style={{ fontSize: 11, color: "#64748b" }}>{o.client_name} · {o.amount && o.amount + " €"}</div>
@@ -515,7 +515,7 @@ const CRMPipeline = () => {
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{col.label}</span>
                   <span style={crmStyles.colCount}>{col.count}</span>
                 </div>
-                <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>{col.total}</span>
+                <span style={{ fontSize: 11.5, color: "#64748b", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{col.total}</span>
               </div>
               <div style={crmStyles.colBar}>
                 <div style={{ width: `${Math.min(100, parseInt(col.total))}%`, height: "100%", background: col.color, opacity: 0.7, borderRadius: 999 }} />
@@ -568,7 +568,7 @@ const CRMPipeline = () => {
                       <div style={{ marginTop: 8 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                           <span style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Probabilité</span>
-                          <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{c.proba}%</span>
+                          <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{c.proba}%</span>
                         </div>
                         <div style={crmStyles.probaBar}>
                           <div style={{ width: `${c.proba}%`, height: "100%", background: col.color, borderRadius: 999 }} />
@@ -616,21 +616,21 @@ const crmStyles = {
   logo: { width: 30, height: 30, borderRadius: 8, background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 0 rgba(255,255,255,0.2) inset, 0 1px 2px rgba(67,56,202,0.3)" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 14, letterSpacing: -0.5 },
   newBtn: { display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer" },
-  kbd: { marginLeft: "auto", fontSize: 10.5, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { marginLeft: "auto", fontSize: 10.5, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "8px 6px", borderTop: "1px solid #eef1f5", marginTop: 4 },
   userMenuItem: { display: "block", padding: "8px 10px", fontSize: 12.5, color: "#0f172a", textDecoration: "none", borderRadius: 6, fontWeight: 500 },
 
   main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar: { height: 48, padding: "0 20px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
-  totalChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace" },
+  totalChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums" },
   search: { display: "flex", alignItems: "center", gap: 8, width: 340, height: 30, padding: "0 10px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fafbfc" },
   searchInput: { border: "none", outline: "none", background: "transparent", flex: 1, fontSize: 12.5, color: "#0f172a", fontFamily: "inherit" },
-  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", position: "relative", fontSize: 13, display: "inline-flex", alignItems: "center", justifyContent: "center" },
   notifDot: { position: "absolute", top: 6, right: 7, width: 6, height: 6, background: "#ef4444", borderRadius: 999, border: "1.5px solid #fff" },
 
@@ -647,7 +647,7 @@ const crmStyles = {
   tabs: { display: "flex", gap: 2 },
   tab: { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", border: "none", background: "transparent", borderRadius: 6, fontSize: 12.5, color: "#64748b", cursor: "pointer", fontWeight: 500 },
   tabActive: { background: "#0f172a", color: "#fff" },
-  tabCount: { fontSize: 11, padding: "0 5px", borderRadius: 4, background: "#eef1f5", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" },
+  tabCount: { fontSize: 11, padding: "0 5px", borderRadius: 4, background: "#eef1f5", color: "#64748b", fontVariantNumeric: "tabular-nums" },
   tabCountActive: { background: "rgba(255,255,255,0.15)", color: "#cbd5e1" },
   filterPill: { padding: "5px 9px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   divider: { width: 1, height: 18, background: "#eef1f5", alignSelf: "center", margin: "0 4px" },
@@ -656,7 +656,7 @@ const crmStyles = {
   kanban: { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, padding: "14px 24px 24px", background: "#fafbfc" },
   column: { display: "flex", flexDirection: "column", minWidth: 0, background: "#f1f3f6", borderRadius: 10, padding: 10, gap: 8 },
   colHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px" },
-  colCount: { fontSize: 11, padding: "0 6px", borderRadius: 999, background: "#fff", color: "#475569", fontFamily: "'JetBrains Mono', monospace", border: "1px solid #e2e8f0" },
+  colCount: { fontSize: 11, padding: "0 6px", borderRadius: 999, background: "#fff", color: "#475569", fontVariantNumeric: "tabular-nums", border: "1px solid #e2e8f0" },
   colBar: { height: 2, background: "#e2e8f0", borderRadius: 999, overflow: "hidden", margin: "0 2px 4px" },
 
   cards: { display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" },
@@ -769,7 +769,7 @@ const CRMAccountsList = () => {
                     {c.secteur || "Secteur non renseigné"}
                     {c.ville && <> · 📍 {c.ville}</>}
                   </div>
-                  {c.siren && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>SIREN {c.siren}</div>}
+                  {c.siren && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>SIREN {c.siren}</div>}
                 </div>
                 <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, fontWeight: 700, background: isProspect(c) ? "#fef3c7" : "#dcfce7", color: isProspect(c) ? "#78350f" : "#065f46", textTransform: "uppercase", letterSpacing: 0.4 }}>
                   {isProspect(c) ? "Prospect" : "Client"}
@@ -994,7 +994,7 @@ const CRMActionsList = () => {
                 <span style={{ fontSize: 11.5, color: a.overdue ? "#c2410c" : "#475569", fontWeight: 600 }}>{a.due}</span>
                 <span style={{ fontSize: 11, color: a.color, fontWeight: 600 }}>{a.assigned}</span>
               </div>
-              <span style={{ fontSize: 10.5, padding: "2px 7px", background: "#eef2ff", color: "#3730a3", borderRadius: 4, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{a.tag}</span>
+              <span style={{ fontSize: 10.5, padding: "2px 7px", background: "#eef2ff", color: "#3730a3", borderRadius: 4, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{a.tag}</span>
               <button onClick={async () => { if (!a.id) return; try { await window.api.actions.complete(a.id); load(); } catch (e) {} }}
                       style={{ padding: "5px 9px", background: "#10b981", color: "#fff", border: 0, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>✓ Traiter</button>
             </div>

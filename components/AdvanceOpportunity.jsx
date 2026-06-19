@@ -229,11 +229,11 @@ const AdvanceOpportunity = () => {
           {clientId ? (
             <a href={"/fiche-client?id=" + encodeURIComponent(clientId)}
                title="Ouvrir la fiche client"
-               style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#3730a3", textDecoration: "none", fontWeight: 600 }}
+               style={{ fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: "#3730a3", textDecoration: "none", fontWeight: 600 }}
                onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
                onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}>{opp.ref}</a>
           ) : (
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#475569" }}>{opp.ref}</span>
+            <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: "#475569" }}>{opp.ref}</span>
           )}
           <span style={{ color: "#cbd5e1" }}>/</span>
           <span style={{ color: "#0f172a", fontWeight: 600 }}>Faire avancer</span>
@@ -339,7 +339,7 @@ const AdvanceOpportunity = () => {
               <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: isCurrent || isTarget ? 700 : 500, color: isPast || isCurrent ? s.color : isTarget ? "#0f172a" : "#94a3b8" }}>
                 {s.spanco}{isCurrent ? <span style={{ display: "block", fontSize: 9.5, color: s.color, marginTop: 1, letterSpacing: 0.4, textTransform: "uppercase" }}>● Étape actuelle</span> : null}
               </div>
-              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>{s.proba}%</div>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>{s.proba}%</div>
               {i < stages.length - 1 && (
                 <div style={{ ...S.spancoLine, background: i <= curIdx - 1 || (i === curIdx) ? s.color : "#e2e8f0" }} />
               )}
@@ -367,11 +367,11 @@ const AdvanceOpportunity = () => {
               </div>
               <div>
                 <label style={S.label}>Montant estimé (€)</label>
-                <input type="number" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} style={{ ...S.input, fontFamily: "'JetBrains Mono', monospace" }} />
+                <input type="number" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} style={{ ...S.input, fontVariantNumeric: "tabular-nums" }} />
               </div>
               <div>
                 <label style={S.label}>Date de décision potentielle</label>
-                <input type="date" value={editDecisionDate} onChange={(e) => setEditDecisionDate(e.target.value)} style={{ ...S.input, fontFamily: "'JetBrains Mono', monospace" }} />
+                <input type="date" value={editDecisionDate} onChange={(e) => setEditDecisionDate(e.target.value)} style={{ ...S.input, fontVariantNumeric: "tabular-nums" }} />
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
@@ -385,12 +385,12 @@ const AdvanceOpportunity = () => {
               </div>
               <div>
                 <label style={S.label}>Montant concurrent (k€/an)</label>
-                <input type="number" value={editConcurrentAmount} onChange={(e) => setEditConcurrentAmount(e.target.value)} style={{ ...S.input, fontFamily: "'JetBrains Mono', monospace" }} />
+                <input type="number" value={editConcurrentAmount} onChange={(e) => setEditConcurrentAmount(e.target.value)} style={{ ...S.input, fontVariantNumeric: "tabular-nums" }} />
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={S.label}>📅 Échéance du contrat actuel (chez le concurrent)</label>
-                <input type="date" value={editContractEnd} onChange={(e) => setEditContractEnd(e.target.value)} style={{ ...S.input, fontFamily: "'JetBrains Mono', monospace" }} />
+                <input type="date" value={editContractEnd} onChange={(e) => setEditContractEnd(e.target.value)} style={{ ...S.input, fontVariantNumeric: "tabular-nums" }} />
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
@@ -465,7 +465,7 @@ const AdvanceOpportunity = () => {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.5, marginBottom: 14 }}>L'opportunité a atteint l'étape finale du pipeline. Le contrat est signé et entré en production commerciale.</div>
               <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>Montant signé</span>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>{aoFmtEUR(amountNum)}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{aoFmtEUR(amountNum)}</span>
               </div>
             </div>
           ) : (
@@ -503,7 +503,7 @@ const AdvanceOpportunity = () => {
                 </div>
                 <div style={{ marginTop: 10, padding: "7px 10px", borderRadius: 7, background: gain >= 0 ? "#dcfce7" : "#fee2e2", color: gain >= 0 ? "#065f46" : "#991b1b", fontSize: 12, fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
                   <span>{gain >= 0 ? "↗ Gain pondéré" : "↘ Perte pondérée"}</span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{gain >= 0 ? "+ " : "– "}{aoFmtEUR(Math.abs(gain))}</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+ " : "– "}{aoFmtEUR(Math.abs(gain))}</span>
                 </div>
               </div>
             </>
@@ -609,7 +609,7 @@ const LinkedDocsCard = ({ oppRef }) => {
               >
                 <span style={{ fontSize: 14 }}>{m.icon}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{d.id}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{d.id}</div>
                   <div style={{ fontSize: 10.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {m.label} · {STATUS_LABEL[d.status] || d.status} · {amt}
                   </div>
@@ -630,7 +630,7 @@ const Metric = ({ label, value, color }) => (
     <div style={{ width: 90, height: 4, background: "rgba(255,255,255,0.1)", borderRadius: 999, overflow: "hidden" }}>
       <div style={{ width: value + "%", height: "100%", background: color, borderRadius: 999 }} />
     </div>
-    <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff", width: 30, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{value}</span>
+    <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff", width: 30, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{value}</span>
   </div>
 );
 

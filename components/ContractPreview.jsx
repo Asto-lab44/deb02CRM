@@ -138,9 +138,9 @@ const ContractPreview = ({ contract, clientObj, templateName, cgvText, templateP
                         {p.desc && <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{p.desc}</div>}
                       </td>
                       <td style={{ ...S.td, textAlign: "right" }}>{p.qty}</td>
-                      <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(p.unit)}</td>
+                      <td style={{ ...S.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(p.unit)}</td>
                       <td style={{ ...S.td, textAlign: "right", fontSize: 11.5 }}>{p.periodicity === "oneshot" ? "Forfait" : "Annuel"}</td>
-                      <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{fmt(lineHT)}</td>
+                      <td style={{ ...S.td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{fmt(lineHT)}</td>
                     </tr>
                   );
                 })}
@@ -315,7 +315,7 @@ const S = {
   tagline: { fontSize: 10, color: "#64748b", marginTop: 4, letterSpacing: 0.5 },
   contractMeta: { textAlign: "right", fontSize: 10.5 },
   metaLabel: { color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, fontSize: 9, fontWeight: 700 },
-  metaValue: { color: "#0f172a", fontFamily: "'JetBrains Mono', monospace", marginBottom: 6, fontWeight: 700, fontSize: 12 },
+  metaValue: { color: "#0f172a", fontVariantNumeric: "tabular-nums", marginBottom: 6, fontWeight: 700, fontSize: 12 },
 
   h1: { fontSize: 22, fontWeight: 800, margin: "0 0 6px", letterSpacing: -0.3 },
   subtitle: { fontSize: 12, color: "#475569", marginBottom: 28, fontStyle: "italic" },
@@ -339,7 +339,7 @@ const S = {
   totalsBox: { marginTop: 14, marginLeft: "auto", maxWidth: 360, padding: 14, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8 },
   totalRow: { display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12, color: "#475569" },
   totalRowStrong: { borderTop: "2px solid #0f172a", marginTop: 6, paddingTop: 8, color: "#0f172a", fontWeight: 700, fontSize: 13 },
-  totalVal: { fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 },
+  totalVal: { fontVariantNumeric: "tabular-nums", fontWeight: 700 },
 
   list: { margin: "6px 0 0", paddingLeft: 0, listStyle: "none" },
   listItem: { fontSize: 12, padding: "8px 0", borderBottom: "1px solid #f1f5f9", color: "#334155", display: "flex", alignItems: "center", gap: 10 },

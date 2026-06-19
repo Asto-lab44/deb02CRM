@@ -375,7 +375,7 @@ var DisplacementDashboard = () => {
       marginTop: 8,
       fontSize: 11,
       color: "rgba(255,255,255,0.7)",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -636,7 +636,7 @@ var DisplacementDashboard = () => {
         fontSize: 14,
         fontWeight: 700,
         color: "#10b981",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, c.wins), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -648,7 +648,7 @@ var DisplacementDashboard = () => {
         fontSize: 14,
         fontWeight: 700,
         color: "#dc2626",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, c.losses)), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -691,7 +691,7 @@ var DisplacementDashboard = () => {
         fontSize: 13,
         fontWeight: 600,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, c.openValue, " k\u20AC"), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -785,7 +785,7 @@ var DisplacementDashboard = () => {
       fontSize: 12,
       fontWeight: 700,
       color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, r.value, "%")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -852,7 +852,7 @@ var DisplacementDashboard = () => {
       fontSize: 12,
       fontWeight: 700,
       color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, r.value, "%")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -962,7 +962,7 @@ var DisplacementDashboard = () => {
         fontSize: 14,
         fontWeight: 700,
         color: r.type === "win" ? "#10b981" : "#dc2626",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, r.value, " k\u20AC"), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -979,7 +979,7 @@ var DisplacementDashboard = () => {
         fontSize: 12,
         fontWeight: 600,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, r.cycle, " j"), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1174,7 +1174,7 @@ var dispStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600,
     marginLeft: 4
   },
@@ -1225,7 +1225,7 @@ var dispStyles = {
     width: 16,
     textAlign: "right",
     marginLeft: -22,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   gridDash: {
     flex: 1,
@@ -1259,7 +1259,7 @@ var dispStyles = {
     fontSize: 10,
     color: "#94a3b8",
     marginTop: 6,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     whiteSpace: "nowrap"
   },
   insightBox: {
@@ -1347,7 +1347,7 @@ var dispStyles = {
     color: "#fff",
     fontWeight: 700,
     letterSpacing: 0.5,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     flexShrink: 0
   },
   recentLogo: {

@@ -80,7 +80,7 @@ var NCSectionHead = ({
       justifyContent: "center",
       fontSize: 11,
       fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       flexShrink: 0
     }
   }, s.icon), /*#__PURE__*/React.createElement("div", {
@@ -183,7 +183,7 @@ var NCTotalRow = ({
 }, label), /*#__PURE__*/React.createElement("span", {
   style: {
     fontSize: strongLarge ? 14 : strong ? 13 : 12,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: strong || strongLarge ? 700 : 600,
     color: color || "#0f172a"
   }
@@ -218,7 +218,7 @@ var NCLifecycleItem = ({
 }, /*#__PURE__*/React.createElement("div", {
   style: {
     fontSize: 11,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     color: "#0f172a",
     fontWeight: 600
   }
@@ -1042,7 +1042,7 @@ var NewContract = () => {
     style: {
       fontSize: 10.5,
       color: "#64748b",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "SIREN ", clientSiren)))), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Signataire habilit\xE9",
@@ -1390,7 +1390,7 @@ var NewContract = () => {
         fontSize: 13.5,
         fontWeight: 700,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmtEUR(net)), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1598,7 +1598,7 @@ var NewContract = () => {
       onChange: e => setStartDate(e.target.value),
       style: {
         ...ncStyles.input,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         ...(dateErr ? V.errorStyle(dateErr) : {})
       }
     }), dateErr && /*#__PURE__*/React.createElement("div", {
@@ -1612,7 +1612,7 @@ var NewContract = () => {
     readOnly: true,
     style: {
       ...ncStyles.input,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       background: "#fafbfc"
     }
   }), /*#__PURE__*/React.createElement("div", {
@@ -1626,7 +1626,7 @@ var NewContract = () => {
     title: "Devise verrouill\xE9e",
     style: {
       ...ncStyles.input,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       background: "#fafbfc",
       color: "#475569",
       cursor: "not-allowed"
@@ -1913,7 +1913,7 @@ var NewContract = () => {
     style: {
       fontSize: 9,
       fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "CTR-", new Date().getFullYear(), "-DRAFT"))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1982,7 +1982,7 @@ var NewContract = () => {
       style: {
         width: 60,
         textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmtEUR(net)));
   }), /*#__PURE__*/React.createElement("div", {
@@ -2002,7 +2002,7 @@ var NewContract = () => {
     style: {
       width: 60,
       textAlign: "right",
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 700
     }
   }, fmtEUR(sums.totalY1HT))), /*#__PURE__*/React.createElement("div", {
@@ -2150,7 +2150,7 @@ var ncStyles = {
     gap: 10
   },
   refMono: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11,
     color: "#94a3b8",
     padding: "1px 6px",
@@ -2256,7 +2256,7 @@ var ncStyles = {
     justifyContent: "center",
     fontSize: 11,
     fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     flexShrink: 0
   },
   stepLine: {
@@ -2332,7 +2332,7 @@ var ncStyles = {
     border: "1px solid #e2e8f0",
     borderRadius: 6,
     fontSize: 12.5,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     textAlign: "center"
   },
   qtyInput: {
@@ -2341,7 +2341,7 @@ var ncStyles = {
     border: "1px solid #e2e8f0",
     borderRadius: 6,
     fontSize: 12.5,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     textAlign: "center",
     fontWeight: 600
   },
@@ -2504,7 +2504,7 @@ var ncStyles = {
     borderRadius: 3,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 600
   },
   rowMenu: {

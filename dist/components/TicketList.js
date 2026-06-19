@@ -1930,7 +1930,7 @@ var SLA = ({
       fontSize: 12,
       color: color,
       fontWeight: 600,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       letterSpacing: -0.2
     }
   }, bar.left), /*#__PURE__*/React.createElement("div", {
@@ -2013,7 +2013,7 @@ var tlStyles = {
     borderRadius: 4,
     background: "rgba(255,255,255,0.12)",
     color: "#cbd5e1",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -2046,7 +2046,7 @@ var tlStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   kbHint: {
     padding: "10px 11px",
@@ -2092,7 +2092,7 @@ var tlStyles = {
     borderRadius: 999,
     background: "#eef1f5",
     color: "#475569",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   search: {
     display: "flex",
@@ -2121,7 +2121,7 @@ var tlStyles = {
     background: "#fff",
     border: "1px solid #e2e8f0",
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   iconBtn: {
     width: 30,
@@ -2236,7 +2236,7 @@ var tlStyles = {
     borderRadius: 4,
     background: "#eef1f5",
     color: "#64748b",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   tabCountActive: {
     background: "rgba(255,255,255,0.15)",
@@ -2292,7 +2292,7 @@ var tlStyles = {
     paddingLeft: 22
   },
   refMono: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11.5,
     color: "#475569",
     letterSpacing: -0.2
@@ -2315,7 +2315,7 @@ var tlStyles = {
     background: "#4f46e5",
     color: "#fff",
     fontWeight: 600,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   statusPill: {
     display: "inline-flex",

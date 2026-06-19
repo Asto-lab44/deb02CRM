@@ -300,7 +300,7 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
                     return (
                       <a key={t.id} href={`/ticketing?id=${encodeURIComponent(t.id)}`}
                          style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", border: "1px solid #eef1f5", borderRadius: 8, textDecoration: "none", background: "#fff" }}>
-                        <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#64748b", flexShrink: 0 }}>{t.id}</span>
+                        <span style={{ fontSize: 10, fontVariantNumeric: "tabular-nums", color: "#64748b", flexShrink: 0 }}>{t.id}</span>
                         <span style={{ fontSize: 12.5, color: "#0f172a", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
                         <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 4, fontWeight: 700, background: prioStyle.bg, color: prioStyle.color, textTransform: "uppercase", letterSpacing: 0.3, flexShrink: 0 }}>{t.prio || "—"}</span>
                       </a>
@@ -353,7 +353,7 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8", fontWeight: 600 }}>{t.id}</span>
+                      <span style={{ fontSize: 11, fontVariantNumeric: "tabular-nums", color: "#94a3b8", fontWeight: 600 }}>{t.id}</span>
                       {t.sla && <span style={{ fontSize: 10.5, fontWeight: 700, color: t.sla === "danger" ? "#dc2626" : t.sla === "warn" ? "#a65f00" : "#10b981" }}>SLA {t.slaLeft}</span>}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
@@ -390,11 +390,11 @@ const HotlinePopup = ({ call, onClose, onCreateTicket }) => {
             </div>
 
             <div style={H.audioBar}>
-              <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>00:00</span>
+              <span style={{ fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>00:00</span>
               <div style={{ flex: 1, height: 4, background: "#e2e8f0", borderRadius: 999, position: "relative" }}>
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, #10b981 0%, #10b981 100%)", borderRadius: 999, opacity: 0.4 }} />
               </div>
-              <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{fmtDuration(call.durationSec || 0)}</span>
+              <span style={{ fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{fmtDuration(call.durationSec || 0)}</span>
             </div>
 
             <label style={H.field}>

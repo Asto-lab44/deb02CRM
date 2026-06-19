@@ -408,7 +408,7 @@ var ProjectDetail = () => {
       fontSize: 12,
       fontWeight: 600,
       color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, project.sage_ref || project.id), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -553,7 +553,7 @@ var ProjectDetail = () => {
     }
   }, "Doc commercial : ", /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#3730a3"
     }
   }, project.data.bl_doc_id || "—"), project.data.bl_pdf_uploaded_at && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 Mis \xE0 jour le ", new Date(project.data.bl_pdf_uploaded_at).toLocaleString("fr-FR")))), /*#__PURE__*/React.createElement("a", {
@@ -653,7 +653,7 @@ var ProjectDetail = () => {
     }, /*#__PURE__*/React.createElement("td", {
       style: {
         ...S.td,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 600
       }
     }, bl.number), /*#__PURE__*/React.createElement("td", {
@@ -1109,7 +1109,7 @@ var ItemsBlock = ({
           ...cellInput,
           marginTop: 4,
           fontSize: 11,
-          fontFamily: "'JetBrains Mono', monospace"
+          fontVariantNumeric: "tabular-nums"
         },
         placeholder: "Ref produit (optionnel)"
       })), /*#__PURE__*/React.createElement("td", {
@@ -1127,7 +1127,7 @@ var ItemsBlock = ({
         style: {
           ...cellInput,
           textAlign: "right",
-          fontFamily: "'JetBrains Mono', monospace"
+          fontVariantNumeric: "tabular-nums"
         }
       })), /*#__PURE__*/React.createElement("td", {
         style: S.td
@@ -1197,7 +1197,7 @@ var ItemsBlock = ({
       style: {
         fontSize: 10.5,
         color: "#94a3b8",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         marginTop: 2
       }
     }, it.ref_produit), it.serial_numbers && it.serial_numbers.length > 0 && /*#__PURE__*/React.createElement("div", {
@@ -1210,7 +1210,7 @@ var ItemsBlock = ({
       style: {
         ...S.td,
         textAlign: "right",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, Number(it.quantity).toFixed(0), " ", it.unit), /*#__PURE__*/React.createElement("td", {
       style: S.td
@@ -1279,7 +1279,7 @@ var Meta = ({
     fontWeight: strong ? 700 : 600,
     color: "#0f172a",
     marginTop: 3,
-    fontFamily: strong ? "'JetBrains Mono', monospace" : "inherit"
+    fontVariantNumeric: strong ? "tabular-nums" : "normal"
   }
 }, val, editable && /*#__PURE__*/React.createElement("span", {
   style: {

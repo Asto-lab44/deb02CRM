@@ -75,7 +75,7 @@ const RadarAccountDetail = () => {
               <div style={radStyles.banDivider} />
               <div>
                 <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>Échéance</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#dc2626", marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>12 juin 2026</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#dc2626", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>12 juin 2026</div>
                 <div style={{ fontSize: 11.5, color: "#dc2626", fontWeight: 600, marginTop: 1 }}>⏱ Dans 17 jours</div>
               </div>
               <div style={radStyles.banDivider} />
@@ -132,7 +132,7 @@ const RadarAccountDetail = () => {
                       <span style={{ fontSize: 11, color: "#94a3b8" }}>{s.source}</span>
                       {s.auto && <span style={radStyles.autoTag}>Auto</span>}
                       <span style={{ flex: 1 }} />
-                      <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{s.date}</span>
+                      <span style={{ fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{s.date}</span>
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.title}</div>
                     <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, lineHeight: 1.5 }}>{s.desc}</div>
@@ -176,7 +176,7 @@ const RadarAccountDetail = () => {
                       <Avatar name={s.who} size={16} />
                       <span style={{ fontWeight: 500 }}>{s.who}</span>
                       <span style={{ color: "#cbd5e1" }}>·</span>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8" }}>{s.when}</span>
+                      <span style={{ fontVariantNumeric: "tabular-nums", color: "#94a3b8" }}>{s.when}</span>
                     </div>
                   </div>
                 </div>
@@ -243,7 +243,7 @@ const RadarAccountDetail = () => {
               <div key={b.k} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
                   <span style={{ color: "#475569" }}>{b.k}</span>
-                  <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }}>{b.v}/{b.max}</span>
+                  <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "#0f172a" }}>{b.v}/{b.max}</span>
                 </div>
                 <div style={{ height: 4, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
                   <div style={{ width: `${(b.v / b.max) * 100}%`, height: "100%", background: "#10b981", borderRadius: 999 }} />
@@ -264,7 +264,7 @@ const RadarAccountDetail = () => {
               <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>Best fit pour mutuelle santé · couvre 100 % du RFP</div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
                 <span style={{ fontSize: 11, color: "#94a3b8" }}>Estimation</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#10b981", fontFamily: "'JetBrains Mono', monospace" }}>~110 k€/an</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#10b981", fontVariantNumeric: "tabular-nums" }}>~110 k€/an</span>
               </div>
             </div>
             <div style={{ ...radStyles.match, opacity: 0.7, marginTop: 8 }}>
@@ -282,7 +282,7 @@ const radStyles = {
   frame: { width: 1440, display: "flex", flexDirection: "column", background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a" },
 
   head: { padding: "16px 28px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
-  refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 6 },
+  refMono: { fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 6 },
   ghostBtn: { padding: "7px 13px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   primaryBtn: { padding: "7px 14px", border: "none", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, cursor: "pointer", fontWeight: 600, boxShadow: "0 1px 2px rgba(79,70,229,0.3)" },
   dangerGhost: { padding: "6px 12px", border: "1px solid #fecaca", background: "#fff", borderRadius: 8, fontSize: 12, color: "#dc2626", cursor: "pointer", fontWeight: 500 },
@@ -313,7 +313,7 @@ const radStyles = {
   blockHead: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 16 },
   h2: { fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.3, display: "flex", alignItems: "center", gap: 6 },
   h2sub: { fontSize: 12, color: "#64748b", margin: "3px 0 0" },
-  count: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 },
+  count: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums", fontWeight: 600 },
   filterPill: { padding: "4px 10px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
 
   signalsTL: { position: "relative", paddingLeft: 8 },
@@ -328,12 +328,12 @@ const radStyles = {
   step: { display: "flex", gap: 14, padding: 14, border: "1px solid #eef1f5", borderRadius: 10, background: "#fff" },
   stepActive: { borderColor: "#c7d2fe", background: "linear-gradient(180deg, #fafbff, #fff)", boxShadow: "0 0 0 3px rgba(79,70,229,0.06)" },
   stepDone: { opacity: 0.75 },
-  stepNum: { width: 28, height: 28, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
+  stepNum: { width: 28, height: 28, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0 },
   nowTag: { fontSize: 9.5, padding: "1px 6px", borderRadius: 3, background: "#4f46e5", color: "#fff", fontWeight: 700, letterSpacing: 0.4 },
 
   sideBlock: { padding: 16, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12 },
   sideHead: { fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10, display: "flex", justifyContent: "space-between" },
-  miniCount: { fontSize: 10, padding: "0 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace" },
+  miniCount: { fontSize: 10, padding: "0 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums" },
   sideContact: { display: "flex", gap: 9, padding: "7px 0", borderBottom: "1px solid #f1f5f9", alignItems: "center" },
   championPill: { fontSize: 9, padding: "0 4px", borderRadius: 3, background: "#fffbeb", color: "#a65f00", fontWeight: 700, border: "1px solid #fde68a" },
   iconMini: { width: 26, height: 26, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, color: "#475569", cursor: "pointer", fontSize: 12 },

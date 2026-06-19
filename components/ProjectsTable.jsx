@@ -185,13 +185,13 @@ const ProjectsTable = () => {
                       <td style={S.td}>
                         <div style={{ fontSize: 12, color: "#0f172a" }}>{p.pm_name || <span style={{ color: "#94a3b8" }}>—</span>}</div>
                       </td>
-                      <td style={{ ...S.td, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: overdue ? "#dc2626" : "#0f172a", fontWeight: overdue ? 700 : 500 }}>
+                      <td style={{ ...S.td, fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: overdue ? "#dc2626" : "#0f172a", fontWeight: overdue ? 700 : 500 }}>
                         {fmtDate(p.delivery_due)}
                       </td>
-                      <td style={{ ...S.td, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#475569" }}>
+                      <td style={{ ...S.td, fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: "#475569" }}>
                         {fmtDate(p.delivered_at)}
                       </td>
-                      <td style={{ ...S.td, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#475569" }}>
+                      <td style={{ ...S.td, fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#475569" }}>
                         {p.sage_ref || <span style={{ color: "#cbd5e1" }}>—</span>}
                       </td>
                       <td style={{ ...S.td, textAlign: "center" }}>

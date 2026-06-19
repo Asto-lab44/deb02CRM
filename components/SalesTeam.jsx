@@ -180,7 +180,7 @@ const SalesTeam = () => {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{fmt(team.totalDone)} / {fmt(team.totalQuota)}</div>
             </div>
             <div style={teamStyles.kpiBar}><div style={{ width: `${teamAttainment}%`, height: "100%", background: "linear-gradient(90deg, #a78bfa, #10b981)", borderRadius: 999 }} /></div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 6, fontFamily: "'JetBrains Mono', monospace" }}>{team.totalQuota > 0 ? `Reste ${fmt(team.totalQuota - team.totalDone)}` : "Objectif équipe non défini"}</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{team.totalQuota > 0 ? `Reste ${fmt(team.totalQuota - team.totalDone)}` : "Objectif équipe non défini"}</div>
           </div>
 
           <div style={teamStyles.kpi}>
@@ -262,7 +262,7 @@ const SalesTeam = () => {
                 <div style={teamStyles.quotaBlock}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
                     <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Quota Q2</span>
-                    <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(r.quotaDone)} / {fmt(r.quotaTarget)}</span>
+                    <span style={{ fontSize: 11, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>{fmt(r.quotaDone)} / {fmt(r.quotaTarget)}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
                     <span style={{ fontSize: 22, fontWeight: 700, color: pct >= 80 ? "#10b981" : pct >= 60 ? "#0f172a" : "#dc2626", letterSpacing: -0.5 }}>{pct}%</span>
@@ -369,7 +369,7 @@ const ActBar = ({ label, value, max, color, icon }) => {
       <div style={{ flex: 1, height: 4, background: "#f1f3f6", borderRadius: 999, overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 999, opacity: 0.75 }} />
       </div>
-      <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", width: 26, textAlign: "right" }}>{value}</span>
+      <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontVariantNumeric: "tabular-nums", width: 26, textAlign: "right" }}>{value}</span>
     </div>
   );
 };
@@ -382,21 +382,21 @@ const teamStyles = {
   logo: { width: 28, height: 28, borderRadius: 7, background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)", display: "flex", alignItems: "center", justifyContent: "center" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 13 },
   newBtn: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
-  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   bullet: { width: 14, color: "#94a3b8", fontSize: 11 },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "8px 6px", borderTop: "1px solid #eef1f5", marginTop: 4 },
 
   main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar: { height: 48, padding: "0 24px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 },
-  totalChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace" },
+  totalChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums" },
   search: { display: "flex", alignItems: "center", gap: 8, width: 320, height: 30, padding: "0 10px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fafbfc" },
   searchInput: { border: "none", outline: "none", background: "transparent", flex: 1, fontSize: 12.5 },
-  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", fontSize: 13 },
 
   titleRow: { padding: "18px 24px 12px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 },
@@ -430,7 +430,7 @@ const teamStyles = {
   repCardLeader: { background: "linear-gradient(180deg, #fffdf5, #fff)", borderColor: "#fde68a", boxShadow: "0 0 0 1px #fde68a, 0 4px 12px rgba(251,191,36,0.08)" },
   repCardRisk: { borderLeft: "3px solid #dc2626", paddingLeft: 14 },
 
-  rankBadge: { width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
+  rankBadge: { width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0 },
   statusDot: { position: "absolute", bottom: 0, right: 0, width: 11, height: 11, borderRadius: 999, border: "2px solid #fff" },
   cardMenu: { width: 26, height: 26, border: "none", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 14, borderRadius: 4 },
 

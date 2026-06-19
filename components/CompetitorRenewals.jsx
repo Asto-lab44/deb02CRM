@@ -448,7 +448,7 @@ const CompetitorRenewals = () => {
                 <div key={m} style={{ ...crStyles.tlMonth, ...(isUrgent ? crStyles.tlMonthUrgent : {}) }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 11.5, fontWeight: 700, color: isUrgent ? "#dc2626" : "#0f172a", letterSpacing: 0.2 }}>{m}</span>
-                    <span style={{ fontSize: 10.5, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{items.length} · {sum} k€</span>
+                    <span style={{ fontSize: 10.5, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>{items.length} · {sum} k€</span>
                   </div>
                   <div style={crStyles.tlBubbles}>
                     {items.map((r) => {
@@ -530,7 +530,7 @@ const CompetitorRenewals = () => {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8 }}>
                     <span style={{ fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600 }}>Valeur</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace", marginLeft: 2 }}>{r.value} k€/an</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums", marginLeft: 2 }}>{r.value} k€/an</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
                     <span style={{ fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600 }}>Match</span>
@@ -540,7 +540,7 @@ const CompetitorRenewals = () => {
 
                 {/* End date */}
                 <div style={{ width: 130, paddingRight: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: isUrgent ? "#dc2626" : "#0f172a", fontFamily: "'JetBrains Mono', monospace", letterSpacing: -0.2 }}>{r.endDate}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: isUrgent ? "#dc2626" : "#0f172a", fontVariantNumeric: "tabular-nums", letterSpacing: -0.2 }}>{r.endDate}</div>
                   <div style={{ fontSize: 11, color: isUrgent ? "#dc2626" : "#64748b", marginTop: 2 }}>
                     Dans <strong>{r.endIn} jours</strong>
                   </div>
@@ -563,7 +563,7 @@ const CompetitorRenewals = () => {
                   }}>
                     {r.noticeStatus === "passed" ? "✓ Échue" : r.noticeStatus === "soon" ? "⏰ Imminente" : "○ Ouverte"}
                   </div>
-                  <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{r.noticeDeadline}</div>
+                  <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{r.noticeDeadline}</div>
                   <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>{r.autoRenew ? "Tacite reconduct." : "Pas de tacite"}</div>
                 </div>
 
@@ -667,12 +667,12 @@ const crStyles = {
   logo: { width: 30, height: 30, borderRadius: 8, background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)", display: "flex", alignItems: "center", justifyContent: "center" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 14, letterSpacing: -0.5 },
   newBtn: { display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer" },
-  kbd: { marginLeft: "auto", fontSize: 10.5, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { marginLeft: "auto", fontSize: 10.5, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   bullet: { width: 14, color: "#94a3b8", fontSize: 11 },
   compMark: { width: 22, height: 18, borderRadius: 4, border: "1px solid", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 700, letterSpacing: 0.3 },
   compMarkBig: { width: 30, height: 24, borderRadius: 6, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, letterSpacing: 0.3 },
@@ -682,7 +682,7 @@ const crStyles = {
   topbar: { height: 48, padding: "0 24px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 },
   search: { display: "flex", alignItems: "center", gap: 8, width: 320, height: 30, padding: "0 10px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fafbfc" },
   searchInput: { border: "none", outline: "none", background: "transparent", flex: 1, fontSize: 12.5 },
-  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", fontSize: 13 },
 
   titleRow: { padding: "16px 24px 12px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 },
@@ -704,7 +704,7 @@ const crStyles = {
   tabs: { display: "flex", gap: 2 },
   tab: { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", border: "none", background: "transparent", borderRadius: 6, fontSize: 12.5, color: "#64748b", cursor: "pointer", fontWeight: 500 },
   tabActive: { background: "#0f172a", color: "#fff" },
-  tabCount: { fontSize: 11, padding: "0 5px", borderRadius: 4, background: "#eef1f5", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" },
+  tabCount: { fontSize: 11, padding: "0 5px", borderRadius: 4, background: "#eef1f5", color: "#64748b", fontVariantNumeric: "tabular-nums" },
   tabCountActive: { background: "rgba(255,255,255,0.15)", color: "#cbd5e1" },
   filterPill: { padding: "5px 9px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   divider: { width: 1, height: 18, background: "#eef1f5", alignSelf: "center", margin: "0 4px" },

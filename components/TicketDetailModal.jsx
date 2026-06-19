@@ -124,7 +124,7 @@ const TicketDetailModal = ({ ticketId, onClose }) => {
             <button onClick={onClose} style={D.backBtn} title="Retour à la liste">← Retour</button>
             <span style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 500 }}>Ticketing</span>
             <span style={{ color: "#cbd5e1" }}>/</span>
-            <span style={{ fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", fontWeight: 700 }}>{ticketId}</span>
+            <span style={{ fontSize: 12.5, fontVariantNumeric: "tabular-nums", color: "#0f172a", fontWeight: 700 }}>{ticketId}</span>
             {ticket && ticket.client && (
               <>
                 <span style={{ color: "#cbd5e1" }}>·</span>
@@ -268,7 +268,7 @@ const TicketDetailModal = ({ ticketId, onClose }) => {
 
               <div style={{ marginTop: 16, padding: "12px 14px", background: "#f8fafc", borderRadius: 8, border: "1px solid #eef2f7" }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Réf.</div>
-                <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#0f172a" }}>{ticket.id}</div>
+                <div style={{ fontSize: 13, fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0f172a" }}>{ticket.id}</div>
               </div>
             </aside>
           </div>

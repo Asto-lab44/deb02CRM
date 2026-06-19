@@ -315,7 +315,7 @@ const StockCatalogue = () => {
 const KPI = ({ label, value, color, sub }) => (
   <div style={{ flex: 1, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: "12px 14px" }}>
     <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{label}</div>
-    <div style={{ fontSize: 20, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+    <div style={{ fontSize: 20, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{value}</div>
     {sub && <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{sub}</div>}
   </div>
 );
@@ -343,18 +343,18 @@ const MatrixView = ({ matrix, fmtEUR, onCellClick }) => {
             matrix.suppliers.forEach((sup) => { if (rowData[sup]) weekTotal += rowData[sup].total_purchase; });
             return (
               <tr key={week}>
-                <td style={{ ...scStyles.matrixCell, position: "sticky", left: 0, background: "#fff", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{week}</td>
+                <td style={{ ...scStyles.matrixCell, position: "sticky", left: 0, background: "#fff", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{week}</td>
                 {matrix.suppliers.map((sup) => {
                   const cell = rowData[sup];
                   if (!cell) return <td key={sup} style={scStyles.matrixCellEmpty}>—</td>;
                   return (
                     <td key={sup} onClick={() => onCellClick(cell.rows)} style={{ ...scStyles.matrixCell, cursor: "pointer", background: cell.margin > 0 ? "#ecfdf5" : "#fef2f2", borderLeft: "2px solid " + (cell.margin > 0 ? "#10b981" : "#dc2626") }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(cell.total_purchase)}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{fmtEUR(cell.total_purchase)}</div>
                       <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>{cell.items} ligne(s) · vente {fmtEUR(cell.total_sell)}</div>
                     </td>
                   );
                 })}
-                <td style={{ ...scStyles.matrixCell, fontWeight: 700, background: "#f8fafc", fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(weekTotal)}</td>
+                <td style={{ ...scStyles.matrixCell, fontWeight: 700, background: "#f8fafc", fontVariantNumeric: "tabular-nums" }}>{fmtEUR(weekTotal)}</td>
               </tr>
             );
           })}
@@ -589,29 +589,29 @@ const EditableRow = ({ r, suppliers, fmtEURP, onUpdated, onSuppliersChanged }) =
     <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
       <td style={scStyles.td}>
         <div style={{ fontSize: 12, color: "#0f172a", fontWeight: 500 }}>{r.client_name || "—"}</div>
-        <div style={{ fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{r.doc_ref}</div>
+        <div style={{ fontSize: 10.5, fontVariantNumeric: "tabular-nums", color: "#3730a3" }}>{r.doc_ref}</div>
       </td>
       <td style={scStyles.td}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{r.designation || r.ref || "—"}</div>
-        {r.ref && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{r.ref}</div>}
+        {r.ref && <div style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{r.ref}</div>}
       </td>
-      <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{r.quantity}</td>
+      <td style={{ ...scStyles.td, textAlign: "center", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{r.quantity}</td>
       <td style={{ ...scStyles.td, padding: "6px 8px" }}>
         <input type="number" step="0.01" value={local.purchase_price_ht == null ? "" : local.purchase_price_ht} placeholder="—"
                onChange={(e) => typeField("purchase_price_ht", e.target.value === "" ? null : Number(e.target.value))}
                onBlur={() => blurSave("purchase_price_ht")}
                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                title="Tape le prix puis appuie sur Entrée ou clique ailleurs pour sauvegarder"
-               style={{ ...cellInput, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, borderColor: !local.purchase_price_ht ? "#fca5a5" : (dirtyRef.current.has("purchase_price_ht") ? "#f59e0b" : "#e2e8f0"), background: !local.purchase_price_ht ? "#fef2f2" : (dirtyRef.current.has("purchase_price_ht") ? "#fffbeb" : "#fff") }} />
+               style={{ ...cellInput, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, borderColor: !local.purchase_price_ht ? "#fca5a5" : (dirtyRef.current.has("purchase_price_ht") ? "#f59e0b" : "#e2e8f0"), background: !local.purchase_price_ht ? "#fef2f2" : (dirtyRef.current.has("purchase_price_ht") ? "#fffbeb" : "#fff") }} />
         {saving === "purchase_price_ht" && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 2 }}>💾</div>}
         {dirtyRef.current.has("purchase_price_ht") && saving !== "purchase_price_ht" && <div style={{ fontSize: 9, color: "#b45309", textAlign: "right", marginTop: 2 }}>✎ non sauvegardé</div>}
       </td>
-      <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#10b981" }}>
+      <td style={{ ...scStyles.td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#10b981" }}>
         {fmtEURP(r.sell_price_ht)}
       </td>
       <td style={{ ...scStyles.td, textAlign: "right" }}>
         {marginPct != null ? (
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: marginPct >= 20 ? "#10b981" : marginPct >= 10 ? "#f59e0b" : "#dc2626" }}>
+          <div style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700, color: marginPct >= 20 ? "#10b981" : marginPct >= 10 ? "#f59e0b" : "#dc2626" }}>
             {marginPct.toFixed(1)} %
           </div>
         ) : <span style={{ color: "#cbd5e1" }}>—</span>}
@@ -674,7 +674,7 @@ const GroupDateCell = ({ g, defaultDate, onReload }) => {
     setSaving(false);
   };
 
-  const cellInput = { padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", background: "#fff", boxSizing: "border-box", width: "100%" };
+  const cellInput = { padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontVariantNumeric: "tabular-nums", color: "#0f172a", background: "#fff", boxSizing: "border-box", width: "100%" };
   return (
     <div>
       <input type="date"
@@ -944,34 +944,34 @@ const ListView = ({ rows, suppliers, fmtEUR, fmtEURP, onEdit, onReload, onSuppli
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: tm.bg, color: tm.color }}>
                         {tm.icon} {tm.label}
                       </span>
-                      <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: "#0f172a" }}>
                         {g.doc_number || g.doc_ref.slice(0, 8)}
                       </span>
                     </div>
                     {g.doc_title && <div style={{ fontSize: 11, color: "#64748b", marginTop: 3 }}>{g.doc_title}</div>}
-                    {g.doc_date && <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>📅 {String(g.doc_date).slice(0, 10)}</div>}
+                    {g.doc_date && <div style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>📅 {String(g.doc_date).slice(0, 10)}</div>}
                   </td>
                   <td style={scStyles.td}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a" }}>{g.client_name || "—"}</div>
                   </td>
-                  <td style={{ ...scStyles.td, textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#0f172a" }}>
+                  <td style={{ ...scStyles.td, textAlign: "center", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0f172a" }}>
                     {g.lines.length}
                   </td>
                   <td style={{ ...scStyles.td, padding: "6px 8px", minWidth: 140 }} onClick={(e) => e.stopPropagation()}>
                     <GroupDateCell g={g} defaultDate={nextThursday(g.doc_date)} onReload={onReload} />
                   </td>
-                  <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#dc2626" }}>
+                  <td style={{ ...scStyles.td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#dc2626" }}>
                     {fmtEURP ? fmtEURP(totalAchat) : totalAchat.toFixed(2)}
                   </td>
-                  <td style={{ ...scStyles.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#10b981" }}>
+                  <td style={{ ...scStyles.td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#10b981" }}>
                     {fmtEURP ? fmtEURP(totalVente) : totalVente.toFixed(2)}
                   </td>
                   <td style={{ ...scStyles.td, textAlign: "right" }}>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: marge >= 0 ? "#10b981" : "#dc2626" }}>
+                    <div style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700, color: marge >= 0 ? "#10b981" : "#dc2626" }}>
                       {fmtEURP ? fmtEURP(marge) : marge.toFixed(2)}
                     </div>
                     {margePct != null && (
-                      <div style={{ fontSize: 10.5, color: margePct >= 20 ? "#10b981" : margePct >= 10 ? "#f59e0b" : "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>
+                      <div style={{ fontSize: 10.5, color: margePct >= 20 ? "#10b981" : margePct >= 10 ? "#f59e0b" : "#dc2626", fontVariantNumeric: "tabular-nums" }}>
                         {margePct.toFixed(1)} %
                       </div>
                     )}
@@ -1062,9 +1062,9 @@ const EditLineModal = ({ row, suppliers, onClose, onSaved }) => {
         <div style={{ padding: 22 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14, padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #eef1f5" }}>
             <div><span style={scStyles.miniLbl}>Client</span><div>{row.client_name || "—"}</div></div>
-            <div><span style={scStyles.miniLbl}>Doc</span><div style={{ fontFamily: "'JetBrains Mono', monospace", color: "#3730a3" }}>{row.doc_ref}</div></div>
-            <div><span style={scStyles.miniLbl}>Quantité</span><div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{row.quantity} {row.unit || "u"}</div></div>
-            <div><span style={scStyles.miniLbl}>Prix de vente HT</span><div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#10b981" }}>{(Number(row.sell_price_ht) || 0).toFixed(2)} €</div></div>
+            <div><span style={scStyles.miniLbl}>Doc</span><div style={{ fontVariantNumeric: "tabular-nums", color: "#3730a3" }}>{row.doc_ref}</div></div>
+            <div><span style={scStyles.miniLbl}>Quantité</span><div style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{row.quantity} {row.unit || "u"}</div></div>
+            <div><span style={scStyles.miniLbl}>Prix de vente HT</span><div style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#10b981" }}>{(Number(row.sell_price_ht) || 0).toFixed(2)} €</div></div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
@@ -1152,8 +1152,8 @@ const CellDetailModal = ({ rows, fmtEUR, onClose, onOpenLine }) => (
               <div style={{ fontSize: 11, color: "#64748b" }}>{r.client_name} · {r.doc_ref} · Qté {r.quantity}</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#dc2626" }}>{fmtEUR(r.total_purchase_ht)}</div>
-              <div style={{ fontSize: 10.5, color: "#10b981", fontFamily: "'JetBrains Mono', monospace" }}>vente {fmtEUR(r.total_sell_ht)}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: "#dc2626" }}>{fmtEUR(r.total_purchase_ht)}</div>
+              <div style={{ fontSize: 10.5, color: "#10b981", fontVariantNumeric: "tabular-nums" }}>vente {fmtEUR(r.total_sell_ht)}</div>
             </div>
           </div>
         ))}
@@ -1275,14 +1275,14 @@ const StockInternView = ({ fmtEUR, fmtEURP }) => {
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.article_label || "—"}</div>
-                    {a.article_ref && <div style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{a.article_ref}</div>}
+                    {a.article_ref && <div style={{ fontSize: 11, color: "#64748b", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{a.article_ref}</div>}
                   </div>
                   <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: sm.bg, color: sm.color, fontWeight: 700, whiteSpace: "nowrap" }}>{sm.label}</span>
                 </div>
                 {a.serial_number && (
                   <div style={{ fontSize: 11, color: "#475569", marginBottom: 4 }}>
                     <span style={{ color: "#94a3b8" }}>SN :</span>{" "}
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#0f172a", fontWeight: 600 }}>{a.serial_number}</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums", color: "#0f172a", fontWeight: 600 }}>{a.serial_number}</span>
                   </div>
                 )}
                 {a.location && <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>📍 {a.location}</div>}
@@ -1403,7 +1403,7 @@ const AssetEditModal = ({ asset, onClose, onSaved }) => {
           )}
           <div>
             <label style={scStyles.lbl}>N° série / IMEI</label>
-            <input value={form.serial_number || ""} onChange={(e) => set("serial_number", e.target.value)} style={{ ...scStyles.input, fontFamily: "'JetBrains Mono', monospace" }} />
+            <input value={form.serial_number || ""} onChange={(e) => set("serial_number", e.target.value)} style={{ ...scStyles.input, fontVariantNumeric: "tabular-nums" }} />
           </div>
           <div>
             <label style={scStyles.lbl}>Lot / palette</label>
@@ -1543,32 +1543,32 @@ const CatalogueProduitsView = ({ fmtEUR, onSwitchToStock }) => {
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.designation || "—"}</div>
-                    {a.ref && <div style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{a.ref}</div>}
+                    {a.ref && <div style={{ fontSize: 11, color: "#64748b", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{a.ref}</div>}
                   </div>
                   {a.category && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#ede9fe", color: "#5b21b6", fontWeight: 700, whiteSpace: "nowrap" }}>{a.category}</span>}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
                   <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "6px 8px" }}>
-                    <div style={{ color: "#065f46", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{inStock}</div>
+                    <div style={{ color: "#065f46", fontWeight: 700, fontSize: 16, fontVariantNumeric: "tabular-nums" }}>{inStock}</div>
                     <div style={{ color: "#16a34a", fontSize: 10, fontWeight: 600 }}>en stock</div>
                   </div>
                   <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "6px 8px" }}>
-                    <div style={{ color: "#92400e", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{reserved}</div>
+                    <div style={{ color: "#92400e", fontWeight: 700, fontSize: 16, fontVariantNumeric: "tabular-nums" }}>{reserved}</div>
                     <div style={{ color: "#f59e0b", fontSize: 10, fontWeight: 600 }}>réservés</div>
                   </div>
                   <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "6px 8px" }}>
-                    <div style={{ color: "#1e40af", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{sold}</div>
+                    <div style={{ color: "#1e40af", fontWeight: 700, fontSize: 16, fontVariantNumeric: "tabular-nums" }}>{sold}</div>
                     <div style={{ color: "#3b82f6", fontSize: 10, fontWeight: 600 }}>affectés</div>
                   </div>
                   <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "6px 8px" }}>
-                    <div style={{ color: "#991b1b", fontWeight: 700, fontSize: 16, fontFamily: "'JetBrains Mono', monospace" }}>{sav}</div>
+                    <div style={{ color: "#991b1b", fontWeight: 700, fontSize: 16, fontVariantNumeric: "tabular-nums" }}>{sav}</div>
                     <div style={{ color: "#dc2626", fontSize: 10, fontWeight: 600 }}>en SAV</div>
                   </div>
                 </div>
                 {a.unit_price_ht != null && (
                   <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between", borderTop: "1px solid #f1f5f9", paddingTop: 8 }}>
                     <span>Tarif HT</span>
-                    <span style={{ color: "#0f172a", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{fmtEUR(a.unit_price_ht)}</span>
+                    <span style={{ color: "#0f172a", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtEUR(a.unit_price_ht)}</span>
                   </div>
                 )}
                 <button onClick={() => onSwitchToStock && onSwitchToStock(a.id)}
@@ -1591,7 +1591,7 @@ const scStyles = {
   navLabel: { fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 14, marginBottom: 4, padding: "0 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 7, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#cffafe", color: "#155e75", fontWeight: 600 },
-  navCount: { fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
 
   main: { flex: 1, padding: "20px 28px", overflow: "auto" },
   topbar: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },

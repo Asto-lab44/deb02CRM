@@ -412,7 +412,7 @@ var HotlinePopup = ({
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         color: "#64748b",
         flexShrink: 0
       }
@@ -519,7 +519,7 @@ var HotlinePopup = ({
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#94a3b8",
       fontWeight: 600
     }
@@ -605,7 +605,7 @@ var HotlinePopup = ({
     style: {
       fontSize: 11,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "00:00"), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -627,7 +627,7 @@ var HotlinePopup = ({
     style: {
       fontSize: 11,
       color: "#94a3b8",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, fmtDuration(call.durationSec || 0))), /*#__PURE__*/React.createElement("label", {
     style: H.field

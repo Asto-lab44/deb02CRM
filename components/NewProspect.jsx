@@ -444,7 +444,7 @@ const NewProspect = () => {
         <div style={npStyles.completion}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>Fiche complétée</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{completionPct} %</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{completionPct} %</span>
           </div>
           <div style={{ width: 180, height: 5, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
             <div style={{ width: completionPct + "%", height: "100%", background: "linear-gradient(90deg, #4f46e5, #a855f7)", borderRadius: 999 }} />
@@ -509,7 +509,7 @@ const NewProspect = () => {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nom_complet || e.nom_raison_sociale}</div>
                             <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
-                              SIREN <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{formatSiren(e.siren)}</span>
+                              SIREN <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatSiren(e.siren)}</span>
                               {siege.libelle_commune && <> · {siege.libelle_commune}</>}
                               {e.activite_principale && <> · NAF {e.activite_principale}</>}
                             </div>
@@ -529,7 +529,7 @@ const NewProspect = () => {
               return (
             <div style={npStyles.formGrid3}>
               <FormRow label="SIREN" required>
-                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(sirenErr ? V.errorStyle(sirenErr) : {}) }}
+                <input style={{ ...npStyles.input, fontVariantNumeric: "tabular-nums", ...(sirenErr ? V.errorStyle(sirenErr) : {}) }}
                        value={companySiren}
                        placeholder="9 chiffres"
                        onChange={(e) => { setCompanySiren(e.target.value); const t = computeTva(e.target.value); if (t) setCompanyTva(t); }} />
@@ -547,10 +547,10 @@ const NewProspect = () => {
                 )}
               </FormRow>
               <FormRow label="Code NAF">
-                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace" }} value={companyNaf} onChange={(e) => setCompanyNaf(e.target.value)} />
+                <input style={{ ...npStyles.input, fontVariantNumeric: "tabular-nums" }} value={companyNaf} onChange={(e) => setCompanyNaf(e.target.value)} />
               </FormRow>
               <FormRow label="TVA intracom.">
-                <input style={{ ...npStyles.input, fontFamily: "'JetBrains Mono', monospace", ...(V && V.tva(companyTva) ? V.errorStyle(V.tva(companyTva)) : {}) }} value={companyTva} placeholder="FR12345678901" onChange={(e) => setCompanyTva(e.target.value)} />
+                <input style={{ ...npStyles.input, fontVariantNumeric: "tabular-nums", ...(V && V.tva(companyTva) ? V.errorStyle(V.tva(companyTva)) : {}) }} value={companyTva} placeholder="FR12345678901" onChange={(e) => setCompanyTva(e.target.value)} />
                 {V && V.tva(companyTva) && <div style={V.errorMsgStyle(V.tva(companyTva))}>{V.tva(companyTva).message}</div>}
               </FormRow>
             </div>
@@ -614,7 +614,7 @@ const NewProspect = () => {
               <FormRow label="Site web">
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#94a3b8" }}>🌐</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={companyWeb} onChange={(e) => setCompanyWeb(e.target.value)} placeholder="exemple.fr" />
+                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontVariantNumeric: "tabular-nums", fontSize: 12.5 }} value={companyWeb} onChange={(e) => setCompanyWeb(e.target.value)} placeholder="exemple.fr" />
                   {companyWeb && (
                     <a
                       href={companyWeb.startsWith("http") ? companyWeb : "https://" + companyWeb.replace(/^\/+/, "")}
@@ -629,7 +629,7 @@ const NewProspect = () => {
               <FormRow label="LinkedIn entreprise">
                 <div style={npStyles.inputWithIcon}>
                   <span style={{ color: "#0a66c2" }}>in</span>
-                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={companyLi} onChange={(e) => setCompanyLi(e.target.value)} placeholder="linkedin.com/company/…" />
+                  <input style={{ ...npStyles.input, border: "none", padding: 0, fontVariantNumeric: "tabular-nums", fontSize: 12.5 }} value={companyLi} onChange={(e) => setCompanyLi(e.target.value)} placeholder="linkedin.com/company/…" />
                   {companyLi && (
                     <a
                       href={companyLi.startsWith("http") ? companyLi : "https://" + companyLi.replace(/^\/+/, "")}
@@ -798,7 +798,7 @@ const NewProspect = () => {
               <FormRow label="Email pro" required>
                 <div style={{ ...npStyles.inputWithIcon, ...(emailErr ? V.errorStyle(emailErr) : {}) }}>
                   <span style={{ color: "#94a3b8" }}>✉</span>
-                  <input type="email" style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+                  <input type="email" style={{ ...npStyles.input, border: "none", padding: 0, fontVariantNumeric: "tabular-nums", fontSize: 12.5 }} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
                   {!emailErr && contactEmail && <span style={{ ...npStyles.linkTag, color: "#10b981" }}>✓ Format ok</span>}
                 </div>
                 {emailErr && <div style={V.errorMsgStyle(emailErr)}>{emailErr.message}</div>}
@@ -809,7 +809,7 @@ const NewProspect = () => {
                   <input
                     type="tel"
                     placeholder="06 12 34 56 78"
-                    style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }}
+                    style={{ ...npStyles.input, border: "none", padding: 0, fontVariantNumeric: "tabular-nums", fontSize: 12.5 }}
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                   />
@@ -838,7 +838,7 @@ const NewProspect = () => {
             <FormRow label="LinkedIn profil">
               <div style={npStyles.inputWithIcon}>
                 <span style={{ color: "#0a66c2" }}>in</span>
-                <input style={{ ...npStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5 }} value={contactLi} onChange={(e) => setContactLi(e.target.value)} placeholder="linkedin.com/in/…" />
+                <input style={{ ...npStyles.input, border: "none", padding: 0, fontVariantNumeric: "tabular-nums", fontSize: 12.5 }} value={contactLi} onChange={(e) => setContactLi(e.target.value)} placeholder="linkedin.com/in/…" />
                 {contactLi && <span style={{ ...npStyles.linkTag, color: "#4f46e5" }}>↗</span>}
               </div>
             </FormRow>
@@ -990,7 +990,7 @@ const SectionHead = ({ num, title, subtitle, status }) => {
   const s = statusMeta[status];
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #eef1f5" }}>
-      <div style={{ width: 30, height: 30, borderRadius: 8, background: s.bg, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>{s.icon}</div>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: s.bg, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.icon}</div>
       <div style={{ flex: 1 }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.2 }}>{title}</h2>
         <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{subtitle}</div>
@@ -1014,7 +1014,7 @@ const npStyles = {
   frame: { minWidth: 1280, background: "#fafbfc", fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a", display: "flex", flexDirection: "column" },
 
   topbar: { padding: "14px 28px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
-  refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 4 },
+  refMono: { fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5", marginLeft: 4 },
   ghostBtn: { padding: "7px 13px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   primaryBtn: { padding: "7px 16px", border: "none", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, cursor: "pointer", fontWeight: 600, boxShadow: "0 1px 2px rgba(79,70,229,0.3)" },
 

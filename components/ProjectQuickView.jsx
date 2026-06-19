@@ -387,7 +387,7 @@ const ProjectQuickView = ({ projectId, onClose, onChanged }) => {
                   </select>
                   <span style={{ flex: 1 }} />
                   {workflowSteps.length > 0 && (
-                    <span style={{ fontSize: 10.5, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>
+                    <span style={{ fontSize: 10.5, color: "#475569", fontVariantNumeric: "tabular-nums" }}>
                       {Object.keys(workflowDone).filter((k) => k.startsWith(wfFamily + "/" + wfCategory + "::")).length}/{workflowSteps.length} étapes
                     </span>
                   )}
@@ -482,12 +482,12 @@ const ProjectQuickView = ({ projectId, onClose, onChanged }) => {
                             <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
                               {/* Date planifiée (calculée depuis date_achat + date_reception) */}
                               {isDone && doneAt && (
-                                <span style={{ fontSize: 10, color: "#065f46", background: "#dcfce7", border: "1px solid #86efac", padding: "1px 6px", borderRadius: 3, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
+                                <span style={{ fontSize: 10, color: "#065f46", background: "#dcfce7", border: "1px solid #86efac", padding: "1px 6px", borderRadius: 3, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                                   ✓ Fait le {doneAt}
                                 </span>
                               )}
                               {!isDone && scheduledLabel && (
-                                <span style={{ fontSize: 10, color: schedColor.c, background: schedColor.bg, border: "1px solid " + schedColor.border, padding: "1px 6px", borderRadius: 3, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
+                                <span style={{ fontSize: 10, color: schedColor.c, background: schedColor.bg, border: "1px solid " + schedColor.border, padding: "1px 6px", borderRadius: 3, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                                   📅 Prévu {scheduledLabel}
                                 </span>
                               )}
@@ -497,7 +497,7 @@ const ProjectQuickView = ({ projectId, onClose, onChanged }) => {
                                 </span>
                               )}
                               {step.board && (
-                                <span style={{ fontSize: 10, color: "#3730a3", background: "#e0e7ff", padding: "1px 6px", borderRadius: 3, fontFamily: "'JetBrains Mono', monospace" }}>
+                                <span style={{ fontSize: 10, color: "#3730a3", background: "#e0e7ff", padding: "1px 6px", borderRadius: 3, fontVariantNumeric: "tabular-nums" }}>
                                   📋 {step.board}
                                 </span>
                               )}
@@ -627,7 +627,7 @@ const InfoRow = ({ label, value, mono, bold, colored }) => (
     ) : (
       <div style={{ fontSize: 12.5, color: "#0f172a",
                     fontWeight: bold ? 700 : 500,
-                    fontFamily: mono ? "'JetBrains Mono', monospace" : "inherit",
+                    fontVariantNumeric: mono ? "tabular-nums" : "normal",
                     overflow: "hidden", textOverflow: "ellipsis" }}>
         {value || "—"}
       </div>
@@ -699,7 +699,7 @@ const EditText = ({ label, value, onSave, bold, mono, placeholder, savingKey, sa
              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
              placeholder={placeholder || ""}
              style={{ ...inputStyle, fontWeight: bold ? 700 : 500,
-                      fontFamily: mono ? "'JetBrains Mono', monospace" : "inherit",
+                      fontVariantNumeric: mono ? "tabular-nums" : "normal",
                       borderColor: dirty ? "#f59e0b" : "#e2e8f0",
                       background: dirty ? "#fffbeb" : "#fff" }} />
     </div>
@@ -722,7 +722,7 @@ const EditNumber = ({ label, value, onSave, suffix, savingKey, saving }) => {
                onChange={(e) => { setLocal(e.target.value); setDirty(true); }}
                onBlur={commit}
                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-               style={{ ...inputStyle, textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+               style={{ ...inputStyle, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
                         borderColor: dirty ? "#f59e0b" : "#e2e8f0",
                         background: dirty ? "#fffbeb" : "#fff" }} />
         {suffix && <span style={{ fontSize: 11.5, color: "#94a3b8" }}>{suffix}</span>}
@@ -738,7 +738,7 @@ const EditDate = ({ label, value, onSave, savingKey, saving }) => {
       <div style={labelStyle}>{label}<SavingDot on={saving === savingKey} /></div>
       <input type="date" value={cur}
              onChange={(e) => onSave(e.target.value || null)}
-             style={{ ...inputStyle, fontFamily: "'JetBrains Mono', monospace" }} />
+             style={{ ...inputStyle, fontVariantNumeric: "tabular-nums" }} />
     </div>
   );
 };

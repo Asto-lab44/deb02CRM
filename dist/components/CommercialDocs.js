@@ -758,7 +758,7 @@ var CommercialDocs = () => {
     }, s.label, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         opacity: 0.85
       }
     }, count));
@@ -1610,7 +1610,7 @@ var WorkflowChain = ({
         border,
         fontSize: 10,
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, s.label), i < STEPS.length - 1 && /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1681,7 +1681,7 @@ var KPI = ({
     fontWeight: 700,
     color: color || "#0f172a",
     marginTop: 4,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   }
 }, value));
 
@@ -2163,7 +2163,7 @@ var CommercialDocEditor = ({
       margin: 0,
       fontSize: 18,
       fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, d.id)), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2536,7 +2536,7 @@ var CommercialDocEditor = ({
       border: "1px solid #e2e8f0",
       borderRadius: 6,
       fontSize: 12,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 600,
       color: "#3730a3",
       textTransform: "uppercase",
@@ -2579,7 +2579,7 @@ var CommercialDocEditor = ({
       fontSize: 14,
       fontWeight: 700,
       color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2769,7 +2769,7 @@ var CommercialDocEditor = ({
     placeholder: "ex. HP-EB840-G11-A26S0EA",
     style: {
       ...cdStyles.miniInput,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 11.5
     }
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
@@ -2824,7 +2824,7 @@ var CommercialDocEditor = ({
     style: {
       ...cdStyles.miniInput,
       paddingRight: 26,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -2886,7 +2886,7 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("span", null, "Total HT"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 600
     }
   }, fmtEUR(totals.ht))), /*#__PURE__*/React.createElement("div", {
@@ -2899,7 +2899,7 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("span", null, "TVA"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontWeight: 600
     }
   }, fmtEUR(totals.tva))), /*#__PURE__*/React.createElement("div", {
@@ -2915,7 +2915,7 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("span", null, "Total TTC"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, fmtEUR(totals.ttc))))), /*#__PURE__*/React.createElement(DocSendHistory, {
     docId: d.id
@@ -2977,7 +2977,7 @@ var DocSendHistory = ({
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 11,
       color: "#64748b"
     }
@@ -3359,7 +3359,7 @@ var cdStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   main: {
     flex: 1,

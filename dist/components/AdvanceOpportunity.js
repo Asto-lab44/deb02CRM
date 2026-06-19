@@ -353,7 +353,7 @@ var AdvanceOpportunity = () => {
     href: "/fiche-client?id=" + encodeURIComponent(clientId),
     title: "Ouvrir la fiche client",
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 11.5,
       color: "#3730a3",
       textDecoration: "none",
@@ -363,7 +363,7 @@ var AdvanceOpportunity = () => {
     onMouseLeave: e => e.currentTarget.style.textDecoration = "none"
   }, opp.ref) : /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       fontSize: 11.5,
       color: "#475569"
     }
@@ -529,7 +529,7 @@ var AdvanceOpportunity = () => {
         fontSize: 10,
         color: "#94a3b8",
         marginTop: 2,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, s.proba, "%"), i < stages.length - 1 && /*#__PURE__*/React.createElement("div", {
       style: {
@@ -569,7 +569,7 @@ var AdvanceOpportunity = () => {
     onChange: e => setEditAmount(e.target.value),
     style: {
       ...S.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: S.label
@@ -579,7 +579,7 @@ var AdvanceOpportunity = () => {
     onChange: e => setEditDecisionDate(e.target.value),
     style: {
       ...S.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -612,7 +612,7 @@ var AdvanceOpportunity = () => {
     onChange: e => setEditConcurrentAmount(e.target.value),
     style: {
       ...S.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -626,7 +626,7 @@ var AdvanceOpportunity = () => {
     onChange: e => setEditContractEnd(e.target.value),
     style: {
       ...S.input,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -794,7 +794,7 @@ var AdvanceOpportunity = () => {
       fontSize: 15,
       fontWeight: 700,
       color: "#fff",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, aoFmtEUR(amountNum)))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: S.healthCard
@@ -936,7 +936,7 @@ var AdvanceOpportunity = () => {
     }
   }, /*#__PURE__*/React.createElement("span", null, gain >= 0 ? "↗ Gain pondéré" : "↘ Perte pondérée"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, gain >= 0 ? "+ " : "– ", aoFmtEUR(Math.abs(gain)))))), /*#__PURE__*/React.createElement(LinkedDocsCard, {
     oppRef: opp.ref
@@ -1155,7 +1155,7 @@ var LinkedDocsCard = ({
         fontSize: 12,
         fontWeight: 700,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, d.id), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1213,7 +1213,7 @@ var Metric = ({
     color: "#fff",
     width: 30,
     textAlign: "right",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   }
 }, value));
 var S = {

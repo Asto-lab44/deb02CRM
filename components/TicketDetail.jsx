@@ -379,7 +379,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
             <span style={{ color: "#cbd5e1" }}>/</span>
             <span>Mes tickets</span>
             <span style={{ color: "#cbd5e1" }}>/</span>
-            <span style={{ color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{TICKET_ID}</span>
+            <span style={{ color: "#0f172a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{TICKET_ID}</span>
             <button style={tdStyles.copyBtn} title="Copier la référence" onClick={() => navigator.clipboard && navigator.clipboard.writeText(TICKET_ID)}>⧉</button>
 
             {display.client && (
@@ -455,7 +455,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
               </div>
               <h1 style={tdStyles.h1}>{display.title}</h1>
               <p style={tdStyles.subtitle}>
-                Ticket <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{TICKET_ID}</span> · Demandeur {display.requester} · {addedMessages.length} message{addedMessages.length > 1 ? "s" : ""}
+                Ticket <span style={{ fontVariantNumeric: "tabular-nums", color: "#475569" }}>{TICKET_ID}</span> · Demandeur {display.requester} · {addedMessages.length} message{addedMessages.length > 1 ? "s" : ""}
               </p>
 
               {/* SLA strip — calculé depuis sla_due_at + opened_at,
@@ -587,7 +587,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                                 <span style={{ color: "#94a3b8" }}>📎</span>
                                 <div>
                                   <div style={{ fontSize: 12, fontWeight: 500, color: "#0f172a" }}>{a.name}</div>
-                                  <div style={{ fontSize: 10.5, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{a.size}</div>
+                                  <div style={{ fontSize: 10.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{a.size}</div>
                                 </div>
                               </div>
                             ))}
@@ -646,7 +646,7 @@ const TicketDetail = ({ ticketId, ticketData, onBack } = {}) => {
                       <div style={{ flex: 1, height: 4, background: "#e2e8f0", borderRadius: 999 }}>
                         <div style={{ width: "0%", height: "100%", background: "#10b981", borderRadius: 999 }} />
                       </div>
-                      <span style={{ fontSize: 11, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>00:00 / {fmtDur(n.durationSec || 0)}</span>
+                      <span style={{ fontSize: 11, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>00:00 / {fmtDur(n.durationSec || 0)}</span>
                       <button onClick={() => {
                         if (n.recording_url) {
                           const a = document.createElement("a");
@@ -763,7 +763,7 @@ const SidePanel = ({ Avatar }) => (
           <div style={tdStyles.cmdbIcon}>💻</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600 }}>DESKTOP-CD24</div>
-            <div style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>Dell Latitude 7440 · S/N 7HX29Z3</div>
+            <div style={{ fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>Dell Latitude 7440 · S/N 7HX29Z3</div>
           </div>
         </div>
         <div style={tdStyles.cmdbGrid}>
@@ -819,12 +819,12 @@ const tdStyles = {
   logo: { width: 28, height: 28, borderRadius: 7, background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)", display: "flex", alignItems: "center", justifyContent: "center" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 13 },
   newBtn: { display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
-  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { marginLeft: "auto", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   bullet: { width: 14, color: "#94a3b8", fontSize: 11 },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "8px 6px", borderTop: "1px solid #eef1f5", marginTop: 4 },
 
@@ -852,7 +852,7 @@ const tdStyles = {
   slaBlock: { display: "flex", flexDirection: "column", gap: 4, flex: 1 },
   slaLabel: { fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 },
   slaValueOk: { fontSize: 13, fontWeight: 600, color: "#0e7a55" },
-  slaValueDanger: { fontSize: 13, fontWeight: 600, color: "#dc2626", fontFamily: "'JetBrains Mono', monospace" },
+  slaValueDanger: { fontSize: 13, fontWeight: 600, color: "#dc2626", fontVariantNumeric: "tabular-nums" },
   slaBar: { width: "100%", height: 3, background: "#fde2e2", borderRadius: 999, marginTop: 2 },
   slaSep: { width: 1, background: "#eef1f5" },
   kbLink: { fontSize: 12.5, color: "#4f46e5", fontWeight: 500, cursor: "pointer" },
@@ -864,7 +864,7 @@ const tdStyles = {
   sysRow: { display: "flex", alignItems: "center", gap: 10, margin: "2px 0" },
   sysLine: { flex: 1, height: 1, background: "#eef1f5" },
   sysPill: { fontSize: 11.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", background: "#fff", border: "1px solid #eef1f5", borderRadius: 999, whiteSpace: "nowrap" },
-  sysTime: { color: "#94a3b8", marginLeft: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5 },
+  sysTime: { color: "#94a3b8", marginLeft: 8, fontVariantNumeric: "tabular-nums", fontSize: 10.5 },
   miniPill: { padding: "1px 6px", borderRadius: 4, fontSize: 10.5, fontWeight: 600 },
 
   // Messages
@@ -874,7 +874,7 @@ const tdStyles = {
   bubble: { padding: "10px 14px", background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, borderTopLeftRadius: 4 },
   bubbleUser: { background: "#4f46e5", border: "1px solid #4338ca", borderRadius: 12, borderTopRightRadius: 4, color: "#fff" },
   bubbleBot: { background: "#0f172a", borderColor: "#0f172a", color: "#fff" },
-  bubbleMeta: { fontSize: 10.5, color: "rgba(255,255,255,0.55)", marginTop: 8, fontFamily: "'JetBrains Mono', monospace" },
+  bubbleMeta: { fontSize: 10.5, color: "rgba(255,255,255,0.55)", marginTop: 8, fontVariantNumeric: "tabular-nums" },
   roleTag: { fontSize: 10, padding: "1px 6px", borderRadius: 4, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 },
   attachRow: { display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" },
   attach: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8 },
@@ -910,7 +910,7 @@ const tdStyles = {
   cmdbV: { fontSize: 12, color: "#0f172a", fontWeight: 500, marginTop: 1 },
 
   linkRow: { display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", border: "1px solid transparent", borderRadius: 6, cursor: "pointer" },
-  linkRef: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#4f46e5", fontWeight: 600 },
+  linkRef: { fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#4f46e5", fontWeight: 600 },
   statusDot: { width: 7, height: 7, borderRadius: 999, flexShrink: 0 },
 
   metricGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },

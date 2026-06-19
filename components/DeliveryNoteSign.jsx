@@ -197,7 +197,7 @@ const DeliveryNoteSign = ({ blId, onClose, onSigned }) => {
                              style={{ width: 18, height: 18, cursor: "pointer" }} />
                     </td>
                     <td style={S.td}><div style={{ fontWeight: 600 }}>{it.designation}</div></td>
-                    <td style={{ ...S.td, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
+                    <td style={{ ...S.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(it.quantity).toFixed(0)} {it.unit}</td>
                     <td style={{ ...S.td, fontSize: 11, color: "#64748b" }}>{it.serial_numbers && it.serial_numbers.length ? it.serial_numbers.join(", ") : "—"}</td>
                   </tr>
                 ))}

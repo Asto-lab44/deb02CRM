@@ -637,7 +637,7 @@ const ERPHome = () => {
                 <div key={a.id} onClick={() => { if (a.client_id) window.location.href = "/fiche-client?id=" + encodeURIComponent(a.client_id); }} style={{ ...erpStyles.todoRow, ...(overdue ? erpStyles.todoRowOverdue : {}), cursor: a.client_id ? "pointer" : "default" }}>
                   <span style={{ ...erpStyles.catChip, background: catColor + "15", color: catColor }}>{(a.type || "task").toUpperCase()}</span>
                   <span style={{ flex: 1, fontSize: 12.5, color: "#0f172a", fontWeight: 500 }}>{a.title}</span>
-                  <span style={{ fontSize: 11, color: overdue ? "#dc2626" : "#64748b", fontWeight: overdue ? 600 : 500, fontFamily: "'JetBrains Mono', monospace" }}>{overdue ? "⏰ " : ""}{a.due_text || (dueIso ? new Date(dueIso).toLocaleDateString("fr-FR") : "—")}</span>
+                  <span style={{ fontSize: 11, color: overdue ? "#dc2626" : "#64748b", fontWeight: overdue ? 600 : 500, fontVariantNumeric: "tabular-nums" }}>{overdue ? "⏰ " : ""}{a.due_text || (dueIso ? new Date(dueIso).toLocaleDateString("fr-FR") : "—")}</span>
                 </div>
               );
             })}
@@ -670,18 +670,18 @@ const erpStyles = {
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 15, letterSpacing: -0.5 },
   search: { width: "100%", padding: "8px 12px 8px 30px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12.5, background: "#fafbfc", boxSizing: "border-box", outline: "none", fontFamily: "inherit" },
   searchIcon: { position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 13 },
-  searchKbd: { position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  searchKbd: { position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 10.5, padding: "1px 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 10.5, padding: "1px 6px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums" },
   bullet: { width: 14, color: "#94a3b8", fontSize: 12 },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "8px 6px", borderTop: "1px solid #eef1f5", marginTop: 4 },
 
   main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar: { height: 48, padding: "0 28px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 },
-  todayChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace" },
+  todayChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums" },
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", fontSize: 13, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" },
   notifDot: { position: "absolute", top: 6, right: 7, width: 6, height: 6, background: "#dc2626", borderRadius: 999, border: "1.5px solid #fff" },
 
@@ -721,7 +721,7 @@ const erpStyles = {
   catHead: { display: "flex", alignItems: "center", gap: 12, marginBottom: 12 },
   catLabel: { fontSize: 11.5, fontWeight: 700, color: "#0f172a", textTransform: "uppercase", letterSpacing: 0.8 },
   catLine: { flex: 1, height: 1, background: "#eef1f5" },
-  catCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  catCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
 
   tiles: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 },
   tile: { padding: 16, background: "#fff", border: "1px solid #eef1f5", borderRadius: 14, cursor: "pointer", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 12, minHeight: 178 },
@@ -748,7 +748,7 @@ const erpStyles = {
   panelHead: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 },
   h3: { fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.2 },
   h3sub: { fontSize: 11.5, color: "#64748b", margin: "3px 0 0" },
-  count: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 },
+  count: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums", fontWeight: 600 },
   smBtn: { padding: "4px 10px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
 
   todoRow: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #f1f5f9" },

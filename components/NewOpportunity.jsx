@@ -363,7 +363,7 @@ const NewOpportunity = () => {
                               <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
                               <div style={{ fontSize: 11, color: "#64748b" }}>
                                 {c.sector || "—"}{c.city && ` · ${c.city}`}
-                                {c.siren && <span style={{ marginLeft: 6, fontFamily: "'JetBrains Mono', monospace" }}>{c.siren}</span>}
+                                {c.siren && <span style={{ marginLeft: 6, fontVariantNumeric: "tabular-nums" }}>{c.siren}</span>}
                               </div>
                             </div>
                             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, fontWeight: 700, background: c.source === "local" ? "#fef3c7" : "#eef2ff", color: c.source === "local" ? "#78350f" : "#3730a3", textTransform: "uppercase", letterSpacing: 0.3, flexShrink: 0 }}>
@@ -544,7 +544,7 @@ const NewOpportunity = () => {
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
                     <span style={{ fontSize: 11, color: "#94a3b8" }}>Markdown supporté</span>
-                    <span style={{ fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>{oppNotes.length} / 2 000</span>
+                    <span style={{ fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>{oppNotes.length} / 2 000</span>
                   </div>
                 </FormRow>
               </section>
@@ -584,7 +584,7 @@ const NewOpportunity = () => {
                   <FormRow label="Échéance du contrat actuel">
                     <div style={noStyles.dateInput}>
                       <span style={{ color: "#94a3b8" }}>📅</span>
-                      <input type="date" style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                      <input type="date" style={{ ...noStyles.input, border: "none", padding: 0, fontVariantNumeric: "tabular-nums" }}
                              value={oppProjectDate} onChange={(e) => setOppProjectDate(e.target.value)} />
                     </div>
                   </FormRow>
@@ -659,7 +659,7 @@ const NewOpportunity = () => {
                         >
                           <span style={{ width: 6, height: 6, borderRadius: 999, background: s.color, marginRight: 6 }} />
                           <span style={{ fontSize: 11.5, fontWeight: active ? 700 : 500, color: active ? "#0f172a" : "#64748b" }}>{s.label}</span>
-                          {active && <span style={{ fontSize: 10, color: s.color, fontWeight: 700, marginLeft: 6, fontFamily: "'JetBrains Mono', monospace" }}>{s.proba}%</span>}
+                          {active && <span style={{ fontSize: 10, color: s.color, fontWeight: 700, marginLeft: 6, fontVariantNumeric: "tabular-nums" }}>{s.proba}%</span>}
                         </div>
                       );
                     })}
@@ -672,7 +672,7 @@ const NewOpportunity = () => {
                       <div style={{ flex: 1, position: "relative", height: 6, background: "#eef1f5", borderRadius: 999 }}>
                         <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: proba + "%", background: stageProba[oppStage] >= 75 ? "#10b981" : "#a855f7", borderRadius: 999 }} />
                       </div>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", width: 44, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{proba}%</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", width: 44, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{proba}%</span>
                     </div>
                     <div style={noStyles.inputHelp}>Auto-rempli depuis l'étape</div>
                   </FormRow>
@@ -682,7 +682,7 @@ const NewOpportunity = () => {
                       <span style={{ color: "#94a3b8" }}>📅</span>
                       <input
                         type="date"
-                        style={{ ...noStyles.input, border: "none", padding: 0, fontFamily: "'JetBrains Mono', monospace" }}
+                        style={{ ...noStyles.input, border: "none", padding: 0, fontVariantNumeric: "tabular-nums" }}
                         value={oppDate}
                         onChange={(e) => setOppDate(e.target.value)}
                       />
@@ -835,7 +835,7 @@ const NewOpportunity = () => {
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                       <span style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Probabilité</span>
-                      <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{proba}%</span>
+                      <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{proba}%</span>
                     </div>
                     <div style={{ width: "100%", height: 3, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
                       <div style={{ width: proba + "%", height: "100%", background: proba >= 75 ? "#10b981" : proba >= 55 ? "#a855f7" : proba >= 35 ? "#3b82f6" : "#94a3b8", borderRadius: 999 }} />
@@ -933,7 +933,7 @@ const NewOpportunity = () => {
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #eef1f5" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                         <span style={{ fontSize: 11, color: "#64748b" }}>Complété</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{doneCount} / {checks.length}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{doneCount} / {checks.length}</span>
                       </div>
                       <div style={{ height: 4, background: "#eef1f5", borderRadius: 999, overflow: "hidden" }}>
                         <div style={{ width: pct + "%", height: "100%", background: pct >= 75 ? "#10b981" : "#4f46e5", borderRadius: 999 }} />
@@ -958,7 +958,7 @@ const SectionHead = ({ num, title, subtitle, required, done, active }) => (
       background: done ? "#e8f8f1" : active ? "#eef2ff" : "#fafbfc",
       color: done ? "#0e7a55" : active ? "#4f46e5" : "#94a3b8",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums",
       flexShrink: 0,
     }}>{done ? "✓" : num}</div>
     <div style={{ flex: 1 }}>
@@ -1016,14 +1016,14 @@ const noStyles = {
 
   modalHead: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid #eef1f5" },
   modalIcon: { width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #4f46e5, #4338ca)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 },
-  refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5" },
+  refMono: { fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#94a3b8", padding: "1px 6px", borderRadius: 4, background: "#fafbfc", border: "1px solid #eef1f5" },
   h1: { fontSize: 22, fontWeight: 700, letterSpacing: -0.6, margin: "3px 0 0", color: "#0f172a" },
   iconBtn: { width: 32, height: 32, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" },
 
   // Stepper
   stepper: { display: "flex", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #eef1f5", background: "#fafbfc", gap: 8 },
   stepItem: { display: "flex", alignItems: "center", gap: 8 },
-  stepDot: { width: 24, height: 24, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
+  stepDot: { width: 24, height: 24, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0 },
   stepLine: { flex: 1, height: 2, borderRadius: 999, maxWidth: 120 },
 
   // Body

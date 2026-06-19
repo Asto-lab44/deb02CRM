@@ -161,7 +161,7 @@ const ContractMappingAdmin = () => {
         </p>
         <textarea value={testInput} onChange={(e) => setTestInput(e.target.value)}
                   placeholder="ex. AST-SERV-HEBE, OFFICE365-LIC, MAINT-HOTLINE-50"
-                  style={{ ...S.input, width: "100%", minHeight: 80, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }} />
+                  style={{ ...S.input, width: "100%", minHeight: 80, fontVariantNumeric: "tabular-nums", fontSize: 12 }} />
         <button onClick={runTest} style={{ ...S.primaryBtn, marginTop: 10 }}>Tester la détection</button>
         {testResult && (
           <div style={{ marginTop: 12, padding: 14, background: testResult.error ? "#fee2e2" : "#dcfce7",
@@ -202,11 +202,11 @@ const S = {
   h2: { fontSize: 14, fontWeight: 700, margin: "0 0 12px 0", color: "#0f172a" },
   kindGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 },
   kindCard: { padding: 12, border: "1px solid #eef1f5", borderRadius: 10, background: "#fafbfc" },
-  kindBadge: { display: "inline-block", padding: "2px 8px", borderRadius: 4, background: "#1e293b", color: "#fff", fontSize: 9.5, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 0.5 },
+  kindBadge: { display: "inline-block", padding: "2px 8px", borderRadius: 4, background: "#1e293b", color: "#fff", fontSize: 9.5, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: 0.5 },
   kindLabel: { fontSize: 13, fontWeight: 700, color: "#0f172a", marginTop: 6 },
   kindDefaults: { marginTop: 8 },
   lblDef: { fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.3, marginRight: 4 },
-  tag: { display: "inline-block", padding: "1px 5px", margin: "2px 3px 2px 0", borderRadius: 3, background: "#e0e7ff", color: "#3730a3", fontSize: 10, fontFamily: "'JetBrains Mono', monospace" },
+  tag: { display: "inline-block", padding: "1px 5px", margin: "2px 3px 2px 0", borderRadius: 3, background: "#e0e7ff", color: "#3730a3", fontSize: 10, fontVariantNumeric: "tabular-nums" },
   addRow: { display: "flex", gap: 8, marginBottom: 14 },
   input: { padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 12.5, fontFamily: "inherit", outline: "none", background: "#fff", flex: 1 },
   primaryBtn: { padding: "8px 16px", border: "none", background: "#4f46e5", color: "#fff", borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: "pointer" },

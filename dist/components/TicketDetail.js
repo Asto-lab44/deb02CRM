@@ -740,7 +740,7 @@ var TicketDetail = ({
     style: {
       color: "#0f172a",
       fontWeight: 600,
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, TICKET_ID), /*#__PURE__*/React.createElement("button", {
     style: tdStyles.copyBtn,
@@ -904,7 +904,7 @@ var TicketDetail = ({
     style: tdStyles.subtitle
   }, "Ticket ", /*#__PURE__*/React.createElement("span", {
     style: {
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#475569"
     }
   }, TICKET_ID), " \xB7 Demandeur ", display.requester, " \xB7 ", addedMessages.length, " message", addedMessages.length > 1 ? "s" : ""), (() => {
@@ -1184,7 +1184,7 @@ var TicketDetail = ({
       style: {
         fontSize: 10.5,
         color: "#94a3b8",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, a.size))))), isBot && /*#__PURE__*/React.createElement("div", {
       style: tdStyles.botActions
@@ -1296,7 +1296,7 @@ var TicketDetail = ({
     style: {
       fontSize: 11,
       color: "#64748b",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, "00:00 / ", fmtDur(n.durationSec || 0)), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
@@ -1582,7 +1582,7 @@ var SidePanel = ({
   style: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   }
 }, "Dell Latitude 7440 \xB7 S/N 7HX29Z3"))), /*#__PURE__*/React.createElement("div", {
   style: tdStyles.cmdbGrid
@@ -1724,7 +1724,7 @@ var tdStyles = {
     borderRadius: 4,
     background: "rgba(255,255,255,0.12)",
     color: "#cbd5e1",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   navSection: {
     display: "flex",
@@ -1757,7 +1757,7 @@ var tdStyles = {
   navCount: {
     fontSize: 11,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   bullet: {
     width: 14,
@@ -1924,7 +1924,7 @@ var tdStyles = {
     fontSize: 13,
     fontWeight: 600,
     color: "#dc2626",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   slaBar: {
     width: "100%",
@@ -1980,7 +1980,7 @@ var tdStyles = {
   sysTime: {
     color: "#94a3b8",
     marginLeft: 8,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 10.5
   },
   miniPill: {
@@ -2027,7 +2027,7 @@ var tdStyles = {
     fontSize: 10.5,
     color: "rgba(255,255,255,0.55)",
     marginTop: 8,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   roleTag: {
     fontSize: 10,
@@ -2246,7 +2246,7 @@ var tdStyles = {
     cursor: "pointer"
   },
   linkRef: {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontVariantNumeric: "tabular-nums",
     fontSize: 11,
     color: "#4f46e5",
     fontWeight: 600

@@ -112,8 +112,8 @@ const CompanyTab = () => {
 
         <h3 style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>💳 Coordonnées bancaires</h3>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12, marginBottom: 22 }}>
-          <div><label style={cdaStyles.lbl}>IBAN</label><input value={c.iban || ""} onChange={(e) => setField("iban", e.target.value)} style={{ ...cdaStyles.input, fontFamily: "'JetBrains Mono', monospace" }} /></div>
-          <div><label style={cdaStyles.lbl}>BIC</label><input value={c.bic || ""} onChange={(e) => setField("bic", e.target.value)} style={{ ...cdaStyles.input, fontFamily: "'JetBrains Mono', monospace" }} /></div>
+          <div><label style={cdaStyles.lbl}>IBAN</label><input value={c.iban || ""} onChange={(e) => setField("iban", e.target.value)} style={{ ...cdaStyles.input, fontVariantNumeric: "tabular-nums" }} /></div>
+          <div><label style={cdaStyles.lbl}>BIC</label><input value={c.bic || ""} onChange={(e) => setField("bic", e.target.value)} style={{ ...cdaStyles.input, fontVariantNumeric: "tabular-nums" }} /></div>
           <div><label style={cdaStyles.lbl}>Banque</label><input value={c.banque_nom || ""} onChange={(e) => setField("banque_nom", e.target.value)} style={cdaStyles.input} /></div>
         </div>
 
@@ -182,8 +182,8 @@ const SendsTab = () => {
           </div>
           {list.map((s) => (
             <div key={s.id} style={cdaStyles.tableRow}>
-              <span style={{ flex: "0 0 140px", fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#475569" }}>{new Date(s.sent_at).toLocaleString("fr-FR")}</span>
-              <span style={{ flex: "0 0 110px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#3730a3", fontWeight: 600 }}>{s.doc_id}</span>
+              <span style={{ flex: "0 0 140px", fontSize: 11, fontVariantNumeric: "tabular-nums", color: "#475569" }}>{new Date(s.sent_at).toLocaleString("fr-FR")}</span>
+              <span style={{ flex: "0 0 110px", fontVariantNumeric: "tabular-nums", fontSize: 11, color: "#3730a3", fontWeight: 600 }}>{s.doc_id}</span>
               <span style={{ flex: "0 0 70px", fontSize: 12, color: "#64748b" }}>{s.channel}</span>
               <span style={{ flex: 1, fontSize: 12.5 }}>
                 <div style={{ color: "#0f172a", fontWeight: 500 }}>{s.recipient_email || "—"}</div>
@@ -277,11 +277,11 @@ const ArticlesTab = () => {
           </div>
           {list.map((a) => (
             <div key={a.id} style={cdaStyles.tableRow}>
-              <span style={{ flex: "0 0 140px", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#3730a3", fontWeight: 600 }}>{a.ref}</span>
+              <span style={{ flex: "0 0 140px", fontVariantNumeric: "tabular-nums", fontSize: 12, color: "#3730a3", fontWeight: 600 }}>{a.ref}</span>
               <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{a.name}{a.is_recurring ? <span style={{ marginLeft: 8, fontSize: 10, padding: "1px 6px", background: "#eef2ff", color: "#3730a3", borderRadius: 999 }}>🔁 Récurrent</span> : null}</span>
               <span style={{ flex: "0 0 110px", fontSize: 12, color: "#64748b" }}>{a.category || "—"}</span>
               <span style={{ flex: "0 0 60px", textAlign: "center", fontSize: 12, color: "#64748b" }}>{a.unit}</span>
-              <span style={{ flex: "0 0 110px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600 }}>{fmtEUR(a.price_ht)}</span>
+              <span style={{ flex: "0 0 110px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 13, fontWeight: 600 }}>{fmtEUR(a.price_ht)}</span>
               <span style={{ flex: "0 0 70px", textAlign: "center", fontSize: 12 }}>{a.tva_rate}%</span>
               <span style={{ flex: "0 0 80px", textAlign: "right", display: "flex", gap: 4, justifyContent: "flex-end" }}>
                 <button onClick={() => setEditing(a)} style={cdaStyles.iconBtn} title="Éditer">✎</button>
@@ -387,7 +387,7 @@ const TvaTab = () => {
         <div style={cdaStyles.tableHead}><span style={{ flex: "0 0 100px" }}>Taux</span><span style={{ flex: 1 }}>Libellé</span></div>
         {list.map((t) => (
           <div key={t.rate} style={cdaStyles.tableRow}>
-            <span style={{ flex: "0 0 100px", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 14, color: "#3730a3" }}>{t.rate}%</span>
+            <span style={{ flex: "0 0 100px", fontVariantNumeric: "tabular-nums", fontWeight: 700, fontSize: 14, color: "#3730a3" }}>{t.rate}%</span>
             <span style={{ flex: 1, fontSize: 13 }}>{t.label}</span>
           </div>
         ))}
@@ -408,9 +408,9 @@ const PaymentTab = () => {
         <div style={cdaStyles.tableHead}><span style={{ flex: "0 0 120px" }}>Code</span><span style={{ flex: 1 }}>Libellé</span><span style={{ flex: "0 0 100px", textAlign: "right" }}>Jours</span></div>
         {list.map((p) => (
           <div key={p.id} style={cdaStyles.tableRow}>
-            <span style={{ flex: "0 0 120px", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#3730a3" }}>{p.id}</span>
+            <span style={{ flex: "0 0 120px", fontVariantNumeric: "tabular-nums", fontSize: 12, color: "#3730a3" }}>{p.id}</span>
             <span style={{ flex: 1, fontSize: 13 }}>{p.label}</span>
-            <span style={{ flex: "0 0 100px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{p.days || 0}</span>
+            <span style={{ flex: "0 0 100px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{p.days || 0}</span>
           </div>
         ))}
       </div>
@@ -426,7 +426,7 @@ const CountersTab = () => {
       </header>
       <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: 22 }}>
         <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, margin: "0 0 16px" }}>
-          La numérotation est gérée par la table <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>commercial_doc_counters</code> :
+          La numérotation est gérée par la table <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4, fontVariantNumeric: "tabular-nums", fontSize: 11 }}>commercial_doc_counters</code> :
           un compteur séparé par type (devis/commande/bl/facture) et par année.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
@@ -438,7 +438,7 @@ const CountersTab = () => {
           ].map((t) => (
             <div key={t.k} style={{ border: "1px solid #eef1f5", borderRadius: 8, padding: 14, background: "#fafbfc" }}>
               <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase" }}>{t.label}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: t.color, fontFamily: "'JetBrains Mono', monospace", marginTop: 4 }}>{t.prefix}-{new Date().getFullYear()}-XXXX</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: t.color, fontVariantNumeric: "tabular-nums", marginTop: 4 }}>{t.prefix}-{new Date().getFullYear()}-XXXX</div>
             </div>
           ))}
         </div>

@@ -768,13 +768,13 @@ var AssetInventoryModal = ({
         fontSize: 12.5,
         fontWeight: 600,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, a.host), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10.5,
         color: "#94a3b8",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, a.id, " \xB7 ", a.serial)), /*#__PURE__*/React.createElement("td", {
       style: S.td

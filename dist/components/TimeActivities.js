@@ -304,7 +304,7 @@ var TimeActivities = () => {
       }
     }, /*#__PURE__*/React.createElement("div", null, "Derni\xE8re activit\xE9"), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontFamily: "'JetBrains Mono', monospace",
+        fontVariantNumeric: "tabular-nums",
         fontWeight: 600,
         color: "#0f172a"
       }
@@ -366,7 +366,7 @@ var TimeActivities = () => {
       fontSize: 16,
       fontWeight: 700,
       color: p.days_stalled >= 30 ? "#991b1b" : p.days_stalled >= 14 ? "#92400e" : "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, p.days_stalled, " j"), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -464,7 +464,7 @@ var TimeActivities = () => {
         flex: "0 0 140px",
         fontSize: 11.5,
         color: "#64748b",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmtDateTime(s.started_at)), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -543,7 +543,7 @@ var KPI = ({
     fontWeight: 700,
     color: color || "#0f172a",
     marginTop: 4,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   }
 }, value));
 var EventRow = ({
@@ -650,7 +650,7 @@ var EventRow = ({
   }, "\xB7"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       color: "#3730a3"
     }
   }, event.path)), /*#__PURE__*/React.createElement("span", {
@@ -661,7 +661,7 @@ var EventRow = ({
     style: {
       fontSize: 11,
       color: "#64748b",
-      fontFamily: "'JetBrains Mono', monospace"
+      fontVariantNumeric: "tabular-nums"
     }
   }, fmtDateTime(event.occurred_at))), event.message && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -687,7 +687,7 @@ var EventRow = ({
       background: "#0f172a",
       color: "#fca5a5",
       fontSize: 10,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontVariantNumeric: "tabular-nums",
       borderRadius: 6,
       overflow: "auto",
       maxHeight: 200

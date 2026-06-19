@@ -458,7 +458,7 @@ var IntelligenceConcurrentielle = () => {
         fontSize: 13,
         fontWeight: 600,
         color: "#0f172a",
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, fmtDate(t.date_echeance)), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -470,7 +470,7 @@ var IntelligenceConcurrentielle = () => {
         color: urgencyColor,
         fontSize: 12,
         fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace"
+        fontVariantNumeric: "tabular-nums"
       }
     }, "J", t.days_left >= 0 ? "−" : "+", Math.abs(t.days_left))), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -515,7 +515,7 @@ var KPI = ({
     fontWeight: 700,
     color: color || "#0f172a",
     marginTop: 4,
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   }
 }, value));
 var EditModal = ({
@@ -848,7 +848,7 @@ var icStyles = {
   navCount: {
     fontSize: 10.5,
     color: "#94a3b8",
-    fontFamily: "'JetBrains Mono', monospace"
+    fontVariantNumeric: "tabular-nums"
   },
   main: {
     flex: 1,

@@ -107,7 +107,7 @@ const DisplacementDashboard = () => {
             <div style={{ flex: totalWins, background: "#10b981" }} />
             <div style={{ flex: totalLosses, background: "rgba(239,68,68,0.7)" }} />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "'JetBrains Mono', monospace" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.7)", fontVariantNumeric: "tabular-nums" }}>
             <span style={{ color: "#86efac" }}>● {totalWins} wins</span>
             <span style={{ color: "#fca5a5" }}>● {totalLosses} losses</span>
           </div>
@@ -221,9 +221,9 @@ const DisplacementDashboard = () => {
                     </div>
                     <div style={{ width: 130, display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981", fontFamily: "'JetBrains Mono', monospace" }}>{c.wins}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981", fontVariantNumeric: "tabular-nums" }}>{c.wins}</span>
                         <span style={{ fontSize: 11, color: "#cbd5e1" }}>/</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>{c.losses}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#dc2626", fontVariantNumeric: "tabular-nums" }}>{c.losses}</span>
                       </div>
                       <div style={{ width: 100, height: 4, marginTop: 4, borderRadius: 999, overflow: "hidden", display: "flex" }}>
                         <div style={{ flex: c.wins, background: "#10b981" }} />
@@ -234,7 +234,7 @@ const DisplacementDashboard = () => {
                       <span style={{ fontSize: 16, fontWeight: 700, color: wrColor, fontFamily: "'Inter', sans-serif" }}>{wr}%</span>
                     </div>
                     <div style={{ width: 110, textAlign: "right" }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{c.openValue} k€</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{c.openValue} k€</div>
                       <div style={{ fontSize: 10.5, color: "#94a3b8" }}>{c.openDeals} deals</div>
                     </div>
                     <div style={{ width: 80, textAlign: "right" }}>
@@ -267,7 +267,7 @@ const DisplacementDashboard = () => {
                 <div key={r.label} style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                     <span style={{ fontSize: 12, color: "#475569", flex: 1 }}>{r.label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{r.value}%</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{r.value}%</span>
                   </div>
                   <div style={{ height: 8, background: "#f1f3f6", borderRadius: 999, overflow: "hidden" }}>
                     <div style={{ width: `${r.value * 2.5}%`, height: "100%", background: r.color, borderRadius: 999 }} />
@@ -288,7 +288,7 @@ const DisplacementDashboard = () => {
                 <div key={r.label} style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                     <span style={{ fontSize: 12, color: "#475569", flex: 1 }}>{r.label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{r.value}%</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{r.value}%</span>
                   </div>
                   <div style={{ height: 8, background: "#f1f3f6", borderRadius: 999, overflow: "hidden" }}>
                     <div style={{ width: `${r.value * 2.5}%`, height: "100%", background: r.color, borderRadius: 999 }} />
@@ -340,12 +340,12 @@ const DisplacementDashboard = () => {
                 </div>
 
                 <div style={{ width: 90, textAlign: "right" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: r.type === "win" ? "#10b981" : "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>{r.value} k€</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: r.type === "win" ? "#10b981" : "#dc2626", fontVariantNumeric: "tabular-nums" }}>{r.value} k€</div>
                   <div style={{ fontSize: 10.5, color: "#94a3b8" }}>ARR/an</div>
                 </div>
 
                 <div style={{ width: 80, textAlign: "right" }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", fontFamily: "'JetBrains Mono', monospace" }}>{r.cycle} j</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{r.cycle} j</div>
                   <div style={{ fontSize: 10.5, color: "#94a3b8" }}>cycle</div>
                 </div>
 
@@ -392,7 +392,7 @@ const dispStyles = {
   panelHead: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 14 },
   h3: { fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: -0.3 },
   h3sub: { fontSize: 11.5, color: "#64748b", margin: "3px 0 0" },
-  count: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, marginLeft: 4 },
+  count: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums", fontWeight: 600, marginLeft: 4 },
   smBtn: { padding: "4px 10px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
   filterPill: { padding: "4px 10px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
 
@@ -400,12 +400,12 @@ const dispStyles = {
   chart: { position: "relative", height: 220, padding: "10px 0 26px 36px" },
   chartGrid: { position: "absolute", inset: "10px 0 26px 36px", display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" },
   gridLine: { display: "flex", alignItems: "center", gap: 6, position: "relative", height: 0 },
-  gridLabel: { fontSize: 10, color: "#cbd5e1", width: 16, textAlign: "right", marginLeft: -22, fontFamily: "'JetBrains Mono', monospace" },
+  gridLabel: { fontSize: 10, color: "#cbd5e1", width: 16, textAlign: "right", marginLeft: -22, fontVariantNumeric: "tabular-nums" },
   gridDash: { flex: 1, height: 1, borderTop: "1px dashed #eef1f5" },
   chartBars: { display: "flex", alignItems: "flex-end", justifyContent: "space-around", height: "100%", gap: 4, position: "relative" },
   barGroup: { display: "flex", flexDirection: "column", alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" },
   barCol: { display: "flex", gap: 3, alignItems: "flex-end", flex: 1, height: "100%" },
-  barLabel: { fontSize: 10, color: "#94a3b8", marginTop: 6, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap" },
+  barLabel: { fontSize: 10, color: "#94a3b8", marginTop: 6, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" },
 
   insightBox: { display: "flex", gap: 8, padding: "10px 12px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 8, marginTop: 12 },
 
@@ -421,7 +421,7 @@ const dispStyles = {
   recentRow: { display: "flex", alignItems: "center", gap: 14, padding: 12, border: "1px solid #eef1f5", borderRadius: 10, background: "#fff" },
   recentRowWin: { background: "linear-gradient(90deg, #f0fdf6, #ffffff 30%)", borderColor: "#bbf7d0" },
   recentRowLoss: { background: "linear-gradient(90deg, #fff5f5, #ffffff 30%)", borderColor: "#fecaca" },
-  resultBadge: { fontSize: 10, padding: "3px 8px", borderRadius: 4, color: "#fff", fontWeight: 700, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
+  resultBadge: { fontSize: 10, padding: "3px 8px", borderRadius: 4, color: "#fff", fontWeight: 700, letterSpacing: 0.5, fontVariantNumeric: "tabular-nums", flexShrink: 0 },
   recentLogo: { width: 34, height: 34, borderRadius: 8, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, letterSpacing: 0.3, flexShrink: 0 },
 };
 

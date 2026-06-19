@@ -786,7 +786,7 @@ const SLA = ({ bar, color }) => {
   const pct = bar.risk === "danger" ? 92 : bar.risk === "warn" ? 78 : 38;
   return (
     <div>
-      <div style={{ fontSize: 12, color: color, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", letterSpacing: -0.2 }}>{bar.left}</div>
+      <div style={{ fontSize: 12, color: color, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: -0.2 }}>{bar.left}</div>
       <div style={{ width: 96, height: 4, background: "#eef1f5", borderRadius: 999, marginTop: 4, overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 999 }} />
       </div>
@@ -803,13 +803,13 @@ const tlStyles = {
   logo: { width: 30, height: 30, borderRadius: 8, background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 0 rgba(255,255,255,0.2) inset, 0 1px 2px rgba(67,56,202,0.3)" },
   logoMark: { color: "#fff", fontWeight: 700, fontSize: 14, letterSpacing: -0.5 },
   newBtn: { display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", letterSpacing: -0.1 },
-  kbd: { marginLeft: "auto", fontSize: 10.5, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontFamily: "'JetBrains Mono', monospace" },
+  kbd: { marginLeft: "auto", fontSize: 10.5, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.12)", color: "#cbd5e1", fontVariantNumeric: "tabular-nums" },
 
   navSection: { display: "flex", flexDirection: "column", gap: 1 },
   navLabel: { fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 6px 6px" },
   navItem: { display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 6, fontSize: 12.5, color: "#475569", cursor: "pointer" },
   navItemActive: { background: "#eef2ff", color: "#3730a3", fontWeight: 600 },
-  navCount: { fontSize: 11, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  navCount: { fontSize: 11, color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
 
   kbHint: { padding: "10px 11px", border: "1px solid #eef1f5", borderRadius: 8, background: "linear-gradient(180deg, #fafbfc, #f5f7fa)" },
   kbLink: { fontSize: 11.5, color: "#4f46e5", fontWeight: 500, marginTop: 6, display: "inline-block", cursor: "pointer" },
@@ -819,10 +819,10 @@ const tlStyles = {
   // main
   main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar: { height: 48, padding: "0 20px", borderBottom: "1px solid #eef1f5", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" },
-  totalChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontFamily: "'JetBrains Mono', monospace" },
+  totalChip: { fontSize: 11, padding: "1px 7px", borderRadius: 999, background: "#eef1f5", color: "#475569", fontVariantNumeric: "tabular-nums" },
   search: { display: "flex", alignItems: "center", gap: 8, width: 320, height: 30, padding: "0 10px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fafbfc" },
   searchInput: { border: "none", outline: "none", background: "transparent", flex: 1, fontSize: 12.5, color: "#0f172a", fontFamily: "inherit" },
-  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  kbdLight: { fontSize: 10.5, padding: "1px 5px", borderRadius: 4, background: "#fff", border: "1px solid #e2e8f0", color: "#94a3b8", fontVariantNumeric: "tabular-nums" },
   iconBtn: { width: 30, height: 30, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, color: "#475569", cursor: "pointer", position: "relative", fontSize: 13, display: "inline-flex", alignItems: "center", justifyContent: "center" },
   notifDot: { position: "absolute", top: 6, right: 7, width: 6, height: 6, background: "#ef4444", borderRadius: 999, border: "1.5px solid #fff" },
 
@@ -839,7 +839,7 @@ const tlStyles = {
   tabs: { display: "flex", gap: 2 },
   tab: { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", border: "none", background: "transparent", borderRadius: 6, fontSize: 12.5, color: "#64748b", cursor: "pointer", fontWeight: 500 },
   tabActive: { background: "#0f172a", color: "#fff" },
-  tabCount: { fontSize: 11, padding: "0 5px", borderRadius: 4, background: "#eef1f5", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" },
+  tabCount: { fontSize: 11, padding: "0 5px", borderRadius: 4, background: "#eef1f5", color: "#64748b", fontVariantNumeric: "tabular-nums" },
   tabCountActive: { background: "rgba(255,255,255,0.15)", color: "#cbd5e1" },
 
   filterPill: { padding: "5px 9px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, fontSize: 11.5, color: "#475569", cursor: "pointer", fontWeight: 500 },
@@ -852,10 +852,10 @@ const tlStyles = {
   row: { display: "flex", alignItems: "center", padding: "11px 24px", borderBottom: "1px solid #f1f5f9", background: "#fff", cursor: "pointer" },
   rowDanger: { background: "#fff8f7", borderLeft: "2px solid #dc2626", paddingLeft: 22 },
 
-  refMono: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#475569", letterSpacing: -0.2 },
+  refMono: { fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: "#475569", letterSpacing: -0.2 },
   newDot: { width: 7, height: 7, borderRadius: 999, background: "#4f46e5", flexShrink: 0 },
   metaIcon: { fontSize: 10.5, color: "#94a3b8" },
-  unread: { fontSize: 10.5, padding: "1px 6px", borderRadius: 999, background: "#4f46e5", color: "#fff", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" },
+  unread: { fontSize: 10.5, padding: "1px 6px", borderRadius: 999, background: "#4f46e5", color: "#fff", fontWeight: 600, fontVariantNumeric: "tabular-nums" },
 
   statusPill: { display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 8px", borderRadius: 999, fontSize: 11.5, fontWeight: 500 },
   prioPill: { display: "inline-flex", alignItems: "center", padding: "2px 7px", borderRadius: 4, fontSize: 11.5, fontWeight: 600 },

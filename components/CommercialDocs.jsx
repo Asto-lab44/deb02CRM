@@ -369,6 +369,9 @@ const CommercialDocs = () => {
 
   const openDoc = async (id) => {
     const full = await window.api.commercialDocs.getById(id);
+    if (!full) return;
+    // Bascule sur l'onglet correspondant pour cohérence avec la liste derrière
+    if (full.type && full.type !== activeType) setActiveType(full.type);
     setEditing(full);
   };
 
@@ -561,6 +564,7 @@ const CommercialDocs = () => {
       {/* EDITOR MODAL */}
       {editing && (
         <CommercialDocEditor
+          key={editing.id}
           doc={editing}
           clients={clients}
           opps={opps}

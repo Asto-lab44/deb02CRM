@@ -564,6 +564,9 @@ var CommercialDocs = () => {
   };
   var openDoc = async id => {
     var full = await window.api.commercialDocs.getById(id);
+    if (!full) return;
+    // Bascule sur l'onglet correspondant pour cohérence avec la liste derrière
+    if (full.type && full.type !== activeType) setActiveType(full.type);
     setEditing(full);
   };
 
@@ -994,6 +997,7 @@ var CommercialDocs = () => {
     onReload: reload,
     kind: docKind(d)
   })))), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
+    key: editing.id,
     doc: editing,
     clients: clients,
     opps: opps,

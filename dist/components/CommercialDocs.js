@@ -3299,14 +3299,14 @@ var cdStyles = {
     display: "flex",
     alignItems: "flex-start",
     justifyContent: "center",
-    padding: "40px 20px",
+    padding: "24px 16px",
     overflowY: "auto"
   },
   modalCard: {
     background: "#fff",
     borderRadius: 12,
     width: "100%",
-    maxWidth: 1100,
+    maxWidth: 1500,
     boxShadow: "0 20px 60px rgba(15,23,42,0.4)",
     overflow: "hidden"
   },

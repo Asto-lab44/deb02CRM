@@ -1730,8 +1730,8 @@ const cdStyles = {
   tableHead: { display: "flex", alignItems: "center", padding: "10px 14px", gap: 10, background: "#f8fafc", borderBottom: "1px solid #eef1f5", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 },
   tableRow: { display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.1s" },
 
-  modalOverlay: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 20px", overflowY: "auto" },
-  modalCard: { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 1100, boxShadow: "0 20px 60px rgba(15,23,42,0.4)", overflow: "hidden" },
+  modalOverlay: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" },
+  modalCard: { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 1500, boxShadow: "0 20px 60px rgba(15,23,42,0.4)", overflow: "hidden" },
   modalHead: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 22px", borderBottom: "1px solid #eef1f5", background: "#fafbfc" },
   modalBody: { padding: 22, maxHeight: "calc(100vh - 140px)", overflowY: "auto" },
 

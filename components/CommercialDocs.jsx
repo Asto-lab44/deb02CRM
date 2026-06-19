@@ -153,11 +153,12 @@ const CommercialDocs = () => {
     // par transformation de la chaîne (devis → commande → BL → facture), c'est
     // pourquoi leur newLabel pointe vers "Nouveau devis" : le bouton du haut
     // bascule sur l'onglet Devis et ouvre un nouveau devis.
-    { k: "devis",          label: "Devis",            newLabel: "Nouveau devis", color: "#3b82f6", icon: "📄" },
-    { k: "commande",       label: "Commandes client", newLabel: "Nouveau devis", color: "#a855f7", icon: "📋" },
-    { k: "commande_achat", label: "Commande fournisseur", newLabel: "Nouveau devis", color: "#0ea5e9", icon: "🛒" },
-    { k: "bl",             label: "Bons livraison",   newLabel: "Nouveau devis", color: "#ea580c", icon: "🚚" },
-    { k: "facture",        label: "Factures",         newLabel: "Nouveau devis", color: "#10b981", icon: "💶" },
+    // (La commande fournisseur n'est plus une étape du workflow Sage ;
+    // elle est gérée séparément dans la tuile Stock & Catalogue.)
+    { k: "devis",    label: "Devis",            newLabel: "Nouveau devis", color: "#3b82f6", icon: "📄" },
+    { k: "commande", label: "Commandes client", newLabel: "Nouveau devis", color: "#a855f7", icon: "📋" },
+    { k: "bl",       label: "Bons livraison",   newLabel: "Nouveau devis", color: "#ea580c", icon: "🚚" },
+    { k: "facture",  label: "Factures",         newLabel: "Nouveau devis", color: "#10b981", icon: "💶" },
   ];
 
   const STATUS_META = {
@@ -213,41 +214,20 @@ const CommercialDocs = () => {
     return map;
   }, [allDocs]);
 
-  // Pour un doc devis, retourne la chaîne complète :
-  // { devis, commande, commande_achat, bl, facture }
-  // commande_achat est rattachée à la commande via data.parent_commande_id
-  // (et non parent_doc_id, car c'est une branche fournisseur parallèle).
+  // Pour un doc devis, retourne la chaîne complète : { devis, commande, bl, facture }
   const buildChain = React.useCallback((rootDoc) => {
-    const chain = { devis: null, commande: null, commande_achat: null, bl: null, facture: null };
+    const chain = { devis: null, commande: null, bl: null, facture: null };
     let current = rootDoc;
     while (current) {
       chain[current.type] = current;
       current = childrenMap[current.id] || null;
     }
-    // Cherche la commande d'achat rattachée à la commande client
-    if (chain.commande) {
-      const ca = (allDocs || []).find((dd) =>
-        dd.type === "commande_achat" &&
-        (
-          (dd.data && dd.data.parent_commande_id === chain.commande.id) ||
-          (dd.parent_doc_id === chain.commande.id)
-        )
-      );
-      if (ca) chain.commande_achat = ca;
-    }
     return chain;
-  }, [childrenMap, allDocs]);
+  }, [childrenMap]);
 
-  // Pour un doc enfant (ex commande), remonte la chaîne et retourne les 5 docs
+  // Pour un doc enfant (ex commande), remonte la chaîne et retourne les 4 docs
   const buildChainFromAny = React.useCallback((doc) => {
-    if (!doc) return { devis: null, commande: null, commande_achat: null, bl: null, facture: null };
-    // Cas particulier : pour une commande d'achat, remonter à la commande client
-    if (doc.type === "commande_achat") {
-      const parentCommandeId = (doc.data && doc.data.parent_commande_id) || doc.parent_doc_id;
-      const parentCommande = parentCommandeId ? (allDocs || []).find((d) => d.id === parentCommandeId) : null;
-      if (parentCommande) return buildChainFromAny(parentCommande);
-    }
-    // Remonte au devis racine via parent_doc_id
+    if (!doc) return { devis: null, commande: null, bl: null, facture: null };
     let root = doc;
     const seen = new Set();
     while (root.parent_doc_id && !seen.has(root.id)) {
@@ -435,27 +415,14 @@ const CommercialDocs = () => {
         </button>
 
         <div style={cdStyles.navLabel}>Documents</div>
-        {TYPES.map((t) => {
-          // "Commande fournisseur" pointe vers Stock & Catalogue → onglet Achats,
-          // qui agrège déjà les lignes des commandes client en matrice fournisseurs.
-          if (t.k === "commande_achat") {
-            return (
-              <a key={t.k} href="/stock" style={{ ...cdStyles.navItem, textDecoration: "none", color: "inherit" }}>
-                <span style={{ width: 16, color: "#94a3b8" }}>{t.icon}</span>
-                <span style={{ flex: 1 }}>{t.label}</span>
-                <span style={{ fontSize: 10, color: "#cbd5e1" }}>↗</span>
-              </a>
-            );
-          }
-          return (
-            <div key={t.k} onClick={() => setActiveType(t.k)}
-                 style={{ ...cdStyles.navItem, ...(activeType === t.k ? cdStyles.navItemActive : {}) }}>
-              <span style={{ width: 16, color: activeType === t.k ? t.color : "#94a3b8" }}>{t.icon}</span>
-              <span style={{ flex: 1 }}>{t.label}</span>
-              <span style={cdStyles.navCount}>{activeType === t.k ? docs.length : ""}</span>
-            </div>
-          );
-        })}
+        {TYPES.map((t) => (
+          <div key={t.k} onClick={() => setActiveType(t.k)}
+               style={{ ...cdStyles.navItem, ...(activeType === t.k ? cdStyles.navItemActive : {}) }}>
+            <span style={{ width: 16, color: activeType === t.k ? t.color : "#94a3b8" }}>{t.icon}</span>
+            <span style={{ flex: 1 }}>{t.label}</span>
+            <span style={cdStyles.navCount}>{activeType === t.k ? docs.length : ""}</span>
+          </div>
+        ))}
 
         <div style={cdStyles.navLabel}>Administration</div>
         <a href="/gestion-commerciale-admin" style={{ ...cdStyles.navItem, textDecoration: "none", color: "inherit" }}>
@@ -612,11 +579,10 @@ const CommercialDocs = () => {
 // ─────────────────────────────────────────────────────────────────
 const WorkflowBar = ({ doc, canTransform, chain }) => {
   const STEPS = [
-    { k: "devis",          label: "Devis",                icon: "📄" },
-    { k: "commande",       label: "Commande client",      icon: "📋" },
-    { k: "commande_achat", label: "Commande fournisseur", icon: "🛒" },
-    { k: "bl",             label: "BL",                   icon: "🚚" },
-    { k: "facture",        label: "Facture",              icon: "💶" },
+    { k: "devis",    label: "Devis",           icon: "📄" },
+    { k: "commande", label: "Commande client", icon: "📋" },
+    { k: "bl",       label: "BL",              icon: "🚚" },
+    { k: "facture",  label: "Facture",         icon: "💶" },
   ];
   const curIdx = STEPS.findIndex((s) => s.k === doc.type);
   const isLocked = doc.status === "transforme";
@@ -880,11 +846,10 @@ const DocRow = ({ doc, chain, statusMeta, fmtEUR, onOpen, onReload, kind }) => {
 // ─────────────────────────────────────────────────────────────────
 const WorkflowChain = ({ chain, currentType }) => {
   const STEPS = [
-    { k: "devis",          label: "D", title: "Devis",                color: "#3b82f6" },
-    { k: "commande",       label: "C", title: "Commande client",      color: "#a855f7" },
-    { k: "commande_achat", label: "F", title: "Commande fournisseur", color: "#0ea5e9" },
-    { k: "bl",             label: "B", title: "BL",                   color: "#ea580c" },
-    { k: "facture",        label: "$", title: "Facture",              color: "#10b981" },
+    { k: "devis",    label: "D", title: "Devis",           color: "#3b82f6" },
+    { k: "commande", label: "C", title: "Commande client", color: "#a855f7" },
+    { k: "bl",       label: "B", title: "BL",              color: "#ea580c" },
+    { k: "facture",  label: "F", title: "Facture",         color: "#10b981" },
   ];
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
@@ -970,56 +935,6 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
     try { setSuppliers(await window.api.suppliers.list({ active: true }) || []); } catch (e) {}
   }, []);
 
-  // Backfill : si on ouvre une commande client sans commande fournisseur
-  // liée (cascade ancienne ou hook échoué), on la crée silencieusement en
-  // miroir exact pour que la chaîne soit complète. Idempotent.
-  React.useEffect(() => {
-    if (!d || d.type !== "commande") return;
-    if (!chain || chain.commande_achat) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        // Double-check côté BDD (au cas où chain serait obsolète)
-        const allCA = await window.api.commercialDocs.list({ type: "commande_achat" });
-        const existing = (allCA || []).find((x) => x && x.data && x.data.parent_commande_id === d.id);
-        if (existing || cancelled) return;
-        const fullCommande = await window.api.commercialDocs.getById(d.id);
-        if (!fullCommande || cancelled) return;
-        await window.api.commercialDocs.create({
-          type: "commande_achat",
-          status: fullCommande.status === "accepte" ? "accepte" : "brouillon",
-          client_name: fullCommande.client_name,
-          client_address: fullCommande.client_address,
-          client_cp: fullCommande.client_cp,
-          client_city: fullCommande.client_city,
-          client_siren: fullCommande.client_siren,
-          client_tva: fullCommande.client_tva,
-          contact_name: fullCommande.contact_name,
-          contact_email: fullCommande.contact_email,
-          project_id: fullCommande.project_id,
-          opportunity_id: fullCommande.opportunity_id,
-          title: fullCommande.title,
-          notes: fullCommande.notes,
-          payment_terms_id: fullCommande.payment_terms_id,
-          owner: fullCommande.owner,
-          doc_date: fullCommande.doc_date,
-          data: { parent_commande_id: d.id, created_from: "backfill_on_open" },
-          lines: (fullCommande.lines || []).map((l) => ({
-            article_id: l.article_id, ref: l.ref, designation: l.designation, description: l.description,
-            quantity: l.quantity, unit: l.unit, unit_price_ht: l.unit_price_ht,
-            discount_pct: l.discount_pct, tva_rate: l.tva_rate,
-            total_ht: l.total_ht, total_tva: l.total_tva, total_ttc: l.total_ttc,
-            is_text_only: l.is_text_only,
-            manufacturer_ref: l.manufacturer_ref || null,
-            purchase_price_indicative: l.purchase_price_indicative,
-            supplier: l.supplier || null,
-          })),
-        });
-        if (!cancelled && onSaved) onSaved();
-      } catch (e) { console.warn("[backfill cmd fournisseur]", e); }
-    })();
-    return () => { cancelled = true; };
-  }, [d && d.id, d && d.type, chain && !!chain.commande_achat]);
 
   React.useEffect(() => {
     (async () => {
@@ -1184,7 +1099,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
   // brouillon (sinon on respecte les modifications manuelles aval).
   const syncCommandeDownstream = async (commande, lines, patch) => {
     if (!chain) return;
-    const targets = [chain.commande_achat, chain.bl].filter(Boolean);
+    const targets = [chain.bl].filter(Boolean);
     for (const tgt of targets) {
       if (!tgt) continue;
       // Si l'aval a déjà été validé (livré/payé/facturé/transforme), on ne touche pas
@@ -1372,21 +1287,20 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
     }
     const next = canTransform.nextType;
     const labels = { commande: "bon de commande", bl: "bon de livraison", facture: "facture" };
-    // Cascade pour un devis : devis → commande client → cmd fournisseur → BL
-    // en un seul clic. Tous les docs intermédiaires sont marqués Accepté.
+    // Cascade pour un devis : devis → commande client → BL en un seul clic.
+    // Tous les docs intermédiaires sont marqués Accepté.
     if (d.type === "devis") {
       const needAcceptFirst = !canTransform.ok && !canTransform.hard;
       const steps = [
         needAcceptFirst ? { ico: "📄", txt: "Devis marqué Accepté" } : null,
         { ico: "📋", txt: "Commande client créée et marquée Acceptée" },
-        { ico: "🛒", txt: "Commande fournisseur générée et marquée Acceptée" },
         { ico: "🚚", txt: "Bon de livraison créé" },
       ].filter(Boolean);
       const ok = window.HubModal
         ? await window.HubModal.confirm({
-            title: "Cascader la chaîne Sage complète ?",
+            title: "Cascader la chaîne Sage ?",
             message: (needAcceptFirst ? "Le devis est en « " + d.status + " ». Il sera d'abord passé en Accepté.\n\n" : "") +
-                     "Les 3 documents aval seront générés en chaîne :\n\n" +
+                     "Les documents aval seront générés en chaîne :\n\n" +
                      steps.map((s) => "  " + s.ico + "  " + s.txt).join("\n"),
             okLabel: "Lancer la cascade",
             okStyle: "primary",
@@ -1402,57 +1316,9 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
         const commande = await window.api.commercialDocs.transform(d.id, "commande");
         if (!commande) throw new Error("Échec création commande");
         await window.api.commercialDocs.update(commande.id, { status: "accepte" });
-        // 2. Recharge la commande avec ses lignes persistées
-        const fullCommande = await window.api.commercialDocs.getById(commande.id);
-        // 3. Recherche la commande fournisseur auto-créée par le hook
-        //    createPurchaseOrder côté api.js. Si le hook a échoué silencieusement,
-        //    on crée explicitement la commande fournisseur en miroir exact.
-        let cmdFournisseur = null;
-        try {
-          const allCA = await window.api.commercialDocs.list({ type: "commande_achat" });
-          cmdFournisseur = (allCA || []).find((x) =>
-            x && x.data && x.data.parent_commande_id === commande.id
-          ) || null;
-        } catch (e) { console.warn("[cascade: lookup cmd fournisseur]", e); }
-        if (!cmdFournisseur) {
-          try {
-            cmdFournisseur = await window.api.commercialDocs.create({
-              type: "commande_achat",
-              status: "accepte",
-              client_name: fullCommande.client_name,
-              client_address: fullCommande.client_address,
-              client_cp: fullCommande.client_cp,
-              client_city: fullCommande.client_city,
-              client_siren: fullCommande.client_siren,
-              client_tva: fullCommande.client_tva,
-              contact_name: fullCommande.contact_name,
-              contact_email: fullCommande.contact_email,
-              project_id: fullCommande.project_id,
-              opportunity_id: fullCommande.opportunity_id,
-              title: fullCommande.title,
-              notes: fullCommande.notes,
-              payment_terms_id: fullCommande.payment_terms_id,
-              owner: fullCommande.owner,
-              doc_date: fullCommande.doc_date,
-              data: { parent_commande_id: commande.id, created_from: "cascade_explicit" },
-              lines: (fullCommande.lines || []).map((l) => ({
-                article_id: l.article_id, ref: l.ref, designation: l.designation, description: l.description,
-                quantity: l.quantity, unit: l.unit, unit_price_ht: l.unit_price_ht,
-                discount_pct: l.discount_pct, tva_rate: l.tva_rate,
-                total_ht: l.total_ht, total_tva: l.total_tva, total_ttc: l.total_ttc,
-                is_text_only: l.is_text_only,
-                manufacturer_ref: l.manufacturer_ref || null,
-                purchase_price_indicative: l.purchase_price_indicative,
-                supplier: l.supplier || null,
-              })),
-            });
-          } catch (e) { console.warn("[cascade: create explicit cmd fournisseur]", e); }
-        } else if (cmdFournisseur.status !== "accepte") {
-          try { await window.api.commercialDocs.update(cmdFournisseur.id, { status: "accepte" }); } catch (e) {}
-        }
-        // 4. Commande client → BL
+        // 2. Commande client → BL
         const bl = await window.api.commercialDocs.transform(commande.id, "bl");
-        const created = [commande.id, cmdFournisseur && cmdFournisseur.id, bl && bl.id].filter(Boolean);
+        const created = [commande.id, bl && bl.id].filter(Boolean);
         if (window.HubToast) window.HubToast.success("✓ Cascade OK : " + created.join(" + "));
         onSaved && onSaved();
         onClose && onClose();

@@ -233,7 +233,7 @@ const ERPHome = () => {
     {
       cat: "Production",
       key: "inventory",
-      title: "Stock & Catalogue",
+      title: "Commande fournisseur",
       subtitle: "Articles, achats, mouvements",
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8l-9 4-9-4 9-4 9 4z"/><path d="M3 8v8l9 4 9-4V8M3 12l9 4 9-4"/></svg>,
       color: "#0891b2",

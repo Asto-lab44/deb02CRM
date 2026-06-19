@@ -379,7 +379,7 @@ var ERPHome = () => {
   }, {
     cat: "Production",
     key: "inventory",
-    title: "Stock & Catalogue",
+    title: "Commande fournisseur",
     subtitle: "Articles, achats, mouvements",
     icon: /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",

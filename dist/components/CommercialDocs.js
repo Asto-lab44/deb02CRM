@@ -2417,7 +2417,21 @@ var CommercialDocEditor = ({
       } catch (e) {}
     },
     style: cdStyles.ghostBtn
-  }, "\u2709 Envoyer"), d.type !== "facture" && d.status !== "transforme" && (() => {
+  }, "\u2709 Envoyer"), (() => {
+    // Masque le bouton "Transformer en X" dans 3 cas :
+    //  - doc final (facture)
+    //  - doc déjà transformé
+    //  - le doc cible (commande / BL / facture) existe déjà dans la chaîne
+    var NEXT_TYPE = {
+      devis: "commande",
+      commande: "bl",
+      bl: "facture"
+    };
+    var nextType = NEXT_TYPE[d.type];
+    var targetExists = nextType && chain && chain[nextType] && chain[nextType].id !== d.id;
+    if (d.type === "facture" || d.status === "transforme" || targetExists) return null;
+    return true;
+  })() && (() => {
     // 2 états visuels : Cliquable (vert sur vert) · Hard-block (gris, désactivé)
     // Le soft-block (statut pas conforme) reste vert et cliquable :
     // le clic propose alors de basculer le statut automatiquement.

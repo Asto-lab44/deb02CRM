@@ -1,5 +1,6 @@
 // ════════════════════════════════════════════════════════════════════
-// RichDescriptionEditor — mini WYSIWYG (gras / italique / souligné + 4 couleurs)
+// RichDescriptionEditor — mini WYSIWYG (gras / italique / souligné + couleurs)
+// Couleurs masquées derrière un popover "A▾" pour alléger la barre.
 // ════════════════════════════════════════════════════════════════════
 var RichDescriptionEditor = ({
   value,
@@ -8,11 +9,14 @@ var RichDescriptionEditor = ({
 }) => {
   var ref = React.useRef(null);
   var lastValueRef = React.useRef(value || "");
+  var [colorOpen, setColorOpen] = React.useState(false);
+  var [currentColor, setCurrentColor] = React.useState("#0f172a");
+  var popRef = React.useRef(null);
   React.useEffect(() => {
     if (document.getElementById("rich-desc-styles")) return;
     var s = document.createElement("style");
     s.id = "rich-desc-styles";
-    s.textContent = '.rich-desc[contenteditable]:empty:before{content:attr(data-placeholder);color:#94a3b8;font-style:italic;pointer-events:none;}';
+    s.textContent = ['.rich-desc[contenteditable]:empty:before{content:attr(data-placeholder);color:#cbd5e1;font-style:italic;pointer-events:none;}', '.rich-desc[contenteditable]:focus{outline:none;}', '.rich-desc-btn{transition:background 120ms,border-color 120ms,color 120ms;}', '.rich-desc-btn:hover{background:#f1f5f9;border-color:#cbd5e1;}'].join("");
     document.head.appendChild(s);
   }, []);
   React.useEffect(() => {
@@ -23,6 +27,14 @@ var RichDescriptionEditor = ({
       lastValueRef.current = v;
     }
   }, [value]);
+  React.useEffect(() => {
+    if (!colorOpen) return;
+    var close = e => {
+      if (popRef.current && !popRef.current.contains(e.target)) setColorOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [colorOpen]);
   var exec = (cmd, arg) => {
     if (!ref.current) return;
     ref.current.focus();
@@ -34,88 +46,169 @@ var RichDescriptionEditor = ({
     lastValueRef.current = html;
     onChange(html);
   };
-  var btnStyle = {
-    minWidth: 26,
-    height: 26,
-    padding: "0 6px",
-    border: "1px solid #e2e8f0",
-    background: "#fff",
-    borderRadius: 5,
+  var applyColor = color => {
+    setCurrentColor(color);
+    exec("foreColor", color);
+    setColorOpen(false);
+  };
+  var btnBase = {
+    minWidth: 30,
+    height: 28,
+    padding: "0 9px",
+    border: "1px solid transparent",
+    background: "transparent",
+    borderRadius: 6,
     cursor: "pointer",
-    fontSize: 12,
-    color: "#475569",
+    fontSize: 13,
+    color: "#334155",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center"
   };
-  var colorBtn = (color, title) => React.createElement("button", {
-    type: "button",
-    title,
-    onMouseDown: e => e.preventDefault(),
-    onClick: () => exec("foreColor", color),
-    style: {
-      width: 20,
-      height: 20,
-      border: "1px solid #cbd5e1",
-      background: color,
-      borderRadius: 10,
-      cursor: "pointer",
-      padding: 0
-    }
-  });
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 4,
-      padding: "5px 6px",
+      gap: 2,
+      padding: "4px 6px",
       border: "1px solid #e2e8f0",
       borderBottom: 0,
-      borderRadius: "6px 6px 0 0",
-      background: "#fafbfc"
+      borderRadius: "8px 8px 0 0",
+      background: "#f8fafc"
     }
   }, /*#__PURE__*/React.createElement("button", {
     type: "button",
-    title: "Gras",
+    title: "Gras (Ctrl+B)",
+    className: "rich-desc-btn",
     onMouseDown: e => e.preventDefault(),
     onClick: () => exec("bold"),
     style: {
-      ...btnStyle,
-      fontWeight: 700
+      ...btnBase,
+      fontWeight: 800,
+      fontFamily: "'Inter', serif"
     }
   }, "B"), /*#__PURE__*/React.createElement("button", {
     type: "button",
-    title: "Italique",
+    title: "Italique (Ctrl+I)",
+    className: "rich-desc-btn",
     onMouseDown: e => e.preventDefault(),
     onClick: () => exec("italic"),
     style: {
-      ...btnStyle,
-      fontStyle: "italic"
+      ...btnBase,
+      fontStyle: "italic",
+      fontFamily: "'Inter', serif"
     }
   }, "I"), /*#__PURE__*/React.createElement("button", {
     type: "button",
-    title: "Soulign\xE9",
+    title: "Soulign\xE9 (Ctrl+U)",
+    className: "rich-desc-btn",
     onMouseDown: e => e.preventDefault(),
     onClick: () => exec("underline"),
     style: {
-      ...btnStyle,
-      textDecoration: "underline"
+      ...btnBase,
+      textDecoration: "underline",
+      fontWeight: 600
     }
   }, "U"), /*#__PURE__*/React.createElement("span", {
     style: {
       width: 1,
-      height: 16,
+      height: 18,
       background: "#e2e8f0",
-      margin: "0 4px"
+      margin: "0 6px"
     }
-  }), colorBtn("#0f172a", "Noir"), colorBtn("#16a34a", "Vert"), colorBtn("#ea580c", "Orange"), colorBtn("#dc2626", "Rouge"), /*#__PURE__*/React.createElement("span", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    },
+    ref: popRef
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Couleur du texte",
+    className: "rich-desc-btn",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => setColorOpen(v => !v),
+    style: {
+      ...btnBase,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "0 6px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      flexDirection: "column",
+      alignItems: "center",
+      lineHeight: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, "A"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      width: 14,
+      height: 3,
+      background: currentColor,
+      borderRadius: 1,
+      marginTop: 1
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: "#94a3b8"
+    }
+  }, "\u25BE")), colorOpen && /*#__PURE__*/React.createElement("div", {
+    onMouseDown: e => e.preventDefault(),
+    style: {
+      position: "absolute",
+      top: "calc(100% + 4px)",
+      left: 0,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+      padding: 6,
+      display: "flex",
+      gap: 4,
+      zIndex: 50
+    }
+  }, [{
+    c: "#0f172a",
+    label: "Noir"
+  }, {
+    c: "#16a34a",
+    label: "Vert"
+  }, {
+    c: "#ea580c",
+    label: "Orange"
+  }, {
+    c: "#dc2626",
+    label: "Rouge"
+  }].map(opt => /*#__PURE__*/React.createElement("button", {
+    key: opt.c,
+    type: "button",
+    title: opt.label,
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => applyColor(opt.c),
+    style: {
+      width: 22,
+      height: 22,
+      border: opt.c === currentColor ? "2px solid #3730a3" : "1px solid #e2e8f0",
+      background: opt.c,
+      borderRadius: 11,
+      cursor: "pointer",
+      padding: 0
+    }
+  })))), /*#__PURE__*/React.createElement("span", {
     style: {
       marginLeft: "auto",
-      fontSize: 10,
-      color: "#94a3b8",
-      fontStyle: "italic"
+      fontSize: 10.5,
+      color: "#94a3b8"
     }
-  }, "Mise en forme reprise sur le PDF")), /*#__PURE__*/React.createElement("div", {
+  }, "Repris \xE0 l'identique sur le PDF")), /*#__PURE__*/React.createElement("div", {
     ref: ref,
     className: "rich-desc",
     contentEditable: true,
@@ -127,13 +220,13 @@ var RichDescriptionEditor = ({
     },
     onBlur: e => onChange(e.currentTarget.innerHTML),
     style: {
-      minHeight: 48,
-      padding: "8px 10px",
+      minHeight: 56,
+      padding: "10px 12px",
       border: "1px solid #e2e8f0",
-      borderRadius: "0 0 6px 6px",
-      fontSize: 12,
-      color: "#475569",
-      lineHeight: 1.5,
+      borderRadius: "0 0 8px 8px",
+      fontSize: 13,
+      color: "#0f172a",
+      lineHeight: 1.55,
       background: "#fff",
       outline: "none",
       boxSizing: "border-box"

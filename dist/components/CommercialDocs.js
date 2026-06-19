@@ -2280,14 +2280,14 @@ var CommercialDocEditor = ({
         ico: "🚚",
         txt: "Bon de livraison créé"
       }].filter(Boolean);
-      var ok = window.HubModal ? await window.HubModal.confirm({
+      var _ok = window.HubModal ? await window.HubModal.confirm({
         title: "Cascader la chaîne Sage ?",
         message: (needAcceptFirst ? "Le devis est en « " + d.status + " ». Il sera d'abord passé en Accepté.\n\n" : "") + "Les documents aval seront générés en chaîne :\n\n" + steps.map(s => "  " + s.ico + "  " + s.txt).join("\n"),
         okLabel: "Lancer la cascade",
         okStyle: "primary",
         cancelLabel: "Annuler"
       }) : confirm(steps.map(s => "• " + s.txt).join("\n"));
-      if (!ok) return;
+      if (!_ok) return;
       try {
         if (needAcceptFirst) setField("status", canTransform.needStatus);
         await save({
@@ -2313,17 +2313,44 @@ var CommercialDocEditor = ({
       }
       return;
     }
-    // Cas "blocage doux" : on propose d'updater le statut et transformer
+    var TYPE_LABEL = {
+      devis: "devis",
+      commande: "commande client",
+      bl: "BL",
+      facture: "facture"
+    };
+    var NEXT_LABEL = {
+      commande: "commande client",
+      bl: "bon de livraison",
+      facture: "facture"
+    };
+    var STATUS_PRETTY = {
+      brouillon: "Brouillon",
+      envoye: "Envoyé",
+      accepte: "Accepté",
+      livre: "Livré",
+      refuse: "Refusé",
+      paye: "Payé"
+    };
+    // Cas "blocage doux" : on propose d'updater le statut puis de transformer.
     if (!canTransform.ok && !canTransform.hard) {
-      var _ok = confirm("Le " + d.type + " est actuellement en « " + d.status + " ».\n\nPour le transformer en " + labels[next] + ", il doit d'abord être marqué « " + canTransform.needStatusLbl + " ».\n\n• Cliquer OK : on bascule le statut sur « " + canTransform.needStatusLbl + " » puis on crée le " + labels[next] + ".\n• Annuler : aucun changement.");
-      if (!_ok) return;
+      var reqLbl = canTransform.needStatusLbl;
+      var curLbl = STATUS_PRETTY[d.status] || d.status;
+      var _ok2 = window.HubModal ? await window.HubModal.confirm({
+        title: "Transformer ce " + TYPE_LABEL[d.type] + " ?",
+        message: "Statut actuel : « " + curLbl + " »\n" + "Statut requis pour la transformation : « " + reqLbl + " »\n\n" + "Cliquer « Lancer » :\n" + "  1. Bascule le statut sur « " + reqLbl + " »\n" + "  2. Crée le " + NEXT_LABEL[next] + "\n\n" + "Cliquer « Annuler » : aucun changement.",
+        okLabel: "Lancer la transformation",
+        okStyle: "primary",
+        cancelLabel: "Annuler"
+      }) : confirm("Statut requis « " + reqLbl + " ». Continuer ?");
+      if (!_ok2) return;
       try {
         setField("status", canTransform.needStatus);
         await save({
           keepOpen: true
         });
         var child = await window.api.commercialDocs.transform(d.id, next);
-        if (window.HubToast) window.HubToast.success("✓ Statut → " + canTransform.needStatusLbl + " · " + child.id + " créé");
+        if (window.HubToast) window.HubToast.success("✓ Statut → " + reqLbl + " · " + child.id + " créé");
         onSaved && onSaved();
         onClose && onClose();
       } catch (e) {
@@ -2332,7 +2359,14 @@ var CommercialDocEditor = ({
       return;
     }
     // Cas nominal : statut OK
-    if (!confirm("Transformer ce " + d.type + " (statut « " + d.status + " ») en " + labels[next] + " ?\n\n• Le " + d.type + " sera figé avec le statut « Transformé » et ne pourra plus être modifié.\n• Un nouveau document " + next + " sera créé en brouillon.\n• Les modifications en cours seront sauvegardées avant.")) return;
+    var ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Transformer ce " + TYPE_LABEL[d.type] + " ?",
+      message: "Statut actuel : « " + (STATUS_PRETTY[d.status] || d.status) + " »\n\n" + "Effets de la transformation :\n" + "  • Un nouveau " + NEXT_LABEL[next] + " sera créé en brouillon\n" + "  • Les lignes seront héritées du " + TYPE_LABEL[d.type] + "\n" + "  • Les modifications en cours seront sauvegardées avant",
+      okLabel: "Lancer la transformation",
+      okStyle: "primary",
+      cancelLabel: "Annuler"
+    }) : confirm("Transformer en " + NEXT_LABEL[next] + " ?");
+    if (!ok) return;
     try {
       await save({
         keepOpen: true

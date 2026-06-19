@@ -1392,15 +1392,34 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
       }
       return;
     }
-    // Cas "blocage doux" : on propose d'updater le statut et transformer
+    const TYPE_LABEL = { devis: "devis", commande: "commande client", bl: "BL", facture: "facture" };
+    const NEXT_LABEL = { commande: "commande client", bl: "bon de livraison", facture: "facture" };
+    const STATUS_PRETTY = { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", livre: "Livré", refuse: "Refusé", paye: "Payé" };
+    // Cas "blocage doux" : on propose d'updater le statut puis de transformer.
     if (!canTransform.ok && !canTransform.hard) {
-      const ok = confirm("Le " + d.type + " est actuellement en « " + d.status + " ».\n\nPour le transformer en " + labels[next] + ", il doit d'abord être marqué « " + canTransform.needStatusLbl + " ».\n\n• Cliquer OK : on bascule le statut sur « " + canTransform.needStatusLbl + " » puis on crée le " + labels[next] + ".\n• Annuler : aucun changement.");
+      const reqLbl = canTransform.needStatusLbl;
+      const curLbl = STATUS_PRETTY[d.status] || d.status;
+      const ok = window.HubModal
+        ? await window.HubModal.confirm({
+            title: "Transformer ce " + TYPE_LABEL[d.type] + " ?",
+            message:
+              "Statut actuel : « " + curLbl + " »\n" +
+              "Statut requis pour la transformation : « " + reqLbl + " »\n\n" +
+              "Cliquer « Lancer » :\n" +
+              "  1. Bascule le statut sur « " + reqLbl + " »\n" +
+              "  2. Crée le " + NEXT_LABEL[next] + "\n\n" +
+              "Cliquer « Annuler » : aucun changement.",
+            okLabel: "Lancer la transformation",
+            okStyle: "primary",
+            cancelLabel: "Annuler",
+          })
+        : confirm("Statut requis « " + reqLbl + " ». Continuer ?");
       if (!ok) return;
       try {
         setField("status", canTransform.needStatus);
         await save({ keepOpen: true });
         const child = await window.api.commercialDocs.transform(d.id, next);
-        if (window.HubToast) window.HubToast.success("✓ Statut → " + canTransform.needStatusLbl + " · " + child.id + " créé");
+        if (window.HubToast) window.HubToast.success("✓ Statut → " + reqLbl + " · " + child.id + " créé");
         onSaved && onSaved();
         onClose && onClose();
       } catch (e) {
@@ -1409,7 +1428,21 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
       return;
     }
     // Cas nominal : statut OK
-    if (!confirm("Transformer ce " + d.type + " (statut « " + d.status + " ») en " + labels[next] + " ?\n\n• Le " + d.type + " sera figé avec le statut « Transformé » et ne pourra plus être modifié.\n• Un nouveau document " + next + " sera créé en brouillon.\n• Les modifications en cours seront sauvegardées avant.")) return;
+    const ok = window.HubModal
+      ? await window.HubModal.confirm({
+          title: "Transformer ce " + TYPE_LABEL[d.type] + " ?",
+          message:
+            "Statut actuel : « " + (STATUS_PRETTY[d.status] || d.status) + " »\n\n" +
+            "Effets de la transformation :\n" +
+            "  • Un nouveau " + NEXT_LABEL[next] + " sera créé en brouillon\n" +
+            "  • Les lignes seront héritées du " + TYPE_LABEL[d.type] + "\n" +
+            "  • Les modifications en cours seront sauvegardées avant",
+          okLabel: "Lancer la transformation",
+          okStyle: "primary",
+          cancelLabel: "Annuler",
+        })
+      : confirm("Transformer en " + NEXT_LABEL[next] + " ?");
+    if (!ok) return;
     try {
       await save({ keepOpen: true });
       const child = await window.api.commercialDocs.transform(d.id, next);

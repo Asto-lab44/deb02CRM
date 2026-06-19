@@ -213,14 +213,7 @@ var ContractPreview = ({
     style: S.totalRow
   }, /*#__PURE__*/React.createElement("span", null, "Sous-total HT"), /*#__PURE__*/React.createElement("span", {
     style: S.totalVal
-  }, fmt(sums.totalY1HT))), sums.discountTotal > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...S.totalRow,
-      color: "#dc2626"
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "Remise commerciale"), /*#__PURE__*/React.createElement("span", {
-    style: S.totalVal
-  }, "-", fmt(sums.discountTotal))), /*#__PURE__*/React.createElement("div", {
+  }, fmt(sums.totalY1HT))), /*#__PURE__*/React.createElement("div", {
     style: S.totalRow
   }, /*#__PURE__*/React.createElement("span", null, "TVA 20 %"), /*#__PURE__*/React.createElement("span", {
     style: S.totalVal

@@ -644,7 +644,7 @@ const NewContract = () => {
 
             {/* SECTION 3 — pleine largeur (table) */}
             <section style={{ ...ncStyles.section, ...ncStyles.sectionActive }}>
-              <NCSectionHead num="03" title="Produits & pricing" subtitle="Lignes du contrat, remises, abonnement" status="active" />
+              <NCSectionHead num="03" title="Produits & pricing" subtitle="Lignes du contrat & abonnement" status="active" />
 
               <div style={ncStyles.table}>
                 <div style={ncStyles.tableHead}>
@@ -652,7 +652,6 @@ const NewContract = () => {
                   <div style={{ flex: 1.5 }}>Produit / référence</div>
                   <div style={{ width: 90, textAlign: "right" }}>PU HT</div>
                   <div style={{ width: 70, textAlign: "center" }}>Qté</div>
-                  <div style={{ width: 90, textAlign: "right" }}>Remise %</div>
                   <div style={{ width: 110, textAlign: "right" }}>Total HT</div>
                   <div style={{ width: 32 }}></div>
                 </div>
@@ -690,13 +689,6 @@ const NewContract = () => {
                           value={p.qty}
                           onChange={(e) => updateProduct(p.id, { qty: e.target.value.replace(/[^\d.]/g, "") })}
                           style={ncStyles.qtyInput}
-                        />
-                      </div>
-                      <div style={{ width: 90, textAlign: "right" }}>
-                        <input
-                          value={p.discount}
-                          onChange={(e) => updateProduct(p.id, { discount: e.target.value.replace(/[^\d.]/g, "") })}
-                          style={{ ...ncStyles.qtyInput, width: 60, textAlign: "right" }}
                         />
                       </div>
                       <div style={{ width: 110, textAlign: "right" }}>
@@ -774,9 +766,6 @@ const NewContract = () => {
 
                   <NCTotalRow label="Sous-total abonnement HT" v={fmtEUR(sums.recurringHT)} />
                   <NCTotalRow label="Sous-total services HT" v={fmtEUR(sums.oneshotHT)} />
-                  {sums.discountTotal > 0 && (
-                    <NCTotalRow label="Remise commerciale" v={"– " + fmtEUR(sums.discountTotal)} color="#10b981" />
-                  )}
                   <NCTotalRow label="Total HT année 1" v={fmtEUR(sums.totalY1HT)} strong />
                   <NCTotalRow label="TVA 20 %" v={fmtEUR(sums.tva)} />
                   <NCTotalRow label="Total TTC année 1" v={fmtEUR(sums.totalY1TTC)} strongLarge />
@@ -1022,12 +1011,6 @@ const NewContract = () => {
                 <span style={{ fontSize: 14 }}>⚠</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#dc2626" }}>Points d'attention</span>
               </div>
-              {sums.discountTotal / Math.max(1, sums.totalY1HT + sums.discountTotal) > 0.10 && (
-                <div style={ncStyles.alertItem}>
-                  <span style={{ color: "#dc2626", fontSize: 10 }}>●</span>
-                  <span style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>Remise globale > seuil standard 10 % → approbation Finance requise</span>
-                </div>
-              )}
               <div style={ncStyles.alertItem}>
                 <span style={{ color: sums.marginPct >= 35 ? "#10b981" : "#f59e0b", fontSize: 10 }}>●</span>
                 <span style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>Marge nette {sums.marginPct} % {sums.marginPct >= 35 ? "> objectif équipe (35 %)" : "< objectif équipe (35 %)"}</span>

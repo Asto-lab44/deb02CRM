@@ -1261,7 +1261,7 @@ var NewContract = () => {
   }, /*#__PURE__*/React.createElement(NCSectionHead, {
     num: "03",
     title: "Produits & pricing",
-    subtitle: "Lignes du contrat, remises, abonnement",
+    subtitle: "Lignes du contrat & abonnement",
     status: "active"
   }), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.table
@@ -1286,11 +1286,6 @@ var NewContract = () => {
       textAlign: "center"
     }
   }, "Qt\xE9"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 90,
-      textAlign: "right"
-    }
-  }, "Remise %"), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 110,
       textAlign: "right"
@@ -1385,21 +1380,6 @@ var NewContract = () => {
         qty: e.target.value.replace(/[^\d.]/g, "")
       }),
       style: ncStyles.qtyInput
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 90,
-        textAlign: "right"
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      value: p.discount,
-      onChange: e => updateProduct(p.id, {
-        discount: e.target.value.replace(/[^\d.]/g, "")
-      }),
-      style: {
-        ...ncStyles.qtyInput,
-        width: 60,
-        textAlign: "right"
-      }
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         width: 110,
@@ -1512,10 +1492,6 @@ var NewContract = () => {
   }), /*#__PURE__*/React.createElement(NCTotalRow, {
     label: "Sous-total services HT",
     v: fmtEUR(sums.oneshotHT)
-  }), sums.discountTotal > 0 && /*#__PURE__*/React.createElement(NCTotalRow, {
-    label: "Remise commerciale",
-    v: "– " + fmtEUR(sums.discountTotal),
-    color: "#10b981"
   }), /*#__PURE__*/React.createElement(NCTotalRow, {
     label: "Total HT ann\xE9e 1",
     v: fmtEUR(sums.totalY1HT),
@@ -2096,20 +2072,7 @@ var NewContract = () => {
       fontWeight: 700,
       color: "#dc2626"
     }
-  }, "Points d'attention")), sums.discountTotal / Math.max(1, sums.totalY1HT + sums.discountTotal) > 0.10 && /*#__PURE__*/React.createElement("div", {
-    style: ncStyles.alertItem
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#dc2626",
-      fontSize: 10
-    }
-  }, "\u25CF"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#475569",
-      lineHeight: 1.5
-    }
-  }, "Remise globale > seuil standard 10 % \u2192 approbation Finance requise")), /*#__PURE__*/React.createElement("div", {
+  }, "Points d'attention")), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.alertItem
   }, /*#__PURE__*/React.createElement("span", {
     style: {

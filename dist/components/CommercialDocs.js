@@ -2478,7 +2478,7 @@ var CommercialDocEditor = ({
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "100px 110px 1fr 110px 110px",
+      gridTemplateColumns: "100px 110px 1fr 110px",
       gap: 10
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
@@ -2533,34 +2533,6 @@ var CommercialDocEditor = ({
       pointerEvents: "none"
     }
   }, "\u20AC"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.miniLbl
-  }, "Remise"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "0.01",
-    min: "0",
-    max: "100",
-    value: l.discount_pct == null ? "" : l.discount_pct,
-    onFocus: e => e.target.select(),
-    onChange: e => updateLineField(i, "discount_pct", e.target.value === "" ? 0 : Number(e.target.value)),
-    style: {
-      ...cdStyles.miniInput,
-      paddingRight: 26
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      right: 8,
-      top: "50%",
-      transform: "translateY(-50%)",
-      fontSize: 11,
-      color: "#94a3b8",
-      pointerEvents: "none"
-    }
-  }, "%"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: cdStyles.miniLbl
   }, "TVA"), /*#__PURE__*/React.createElement("select", {
     value: l.tva_rate,

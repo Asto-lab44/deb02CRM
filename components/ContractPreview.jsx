@@ -153,12 +153,6 @@ const ContractPreview = ({ contract, clientObj, templateName, cgvText, templateP
                 <span>Sous-total HT</span>
                 <span style={S.totalVal}>{fmt(sums.totalY1HT)}</span>
               </div>
-              {sums.discountTotal > 0 && (
-                <div style={{ ...S.totalRow, color: "#dc2626" }}>
-                  <span>Remise commerciale</span>
-                  <span style={S.totalVal}>-{fmt(sums.discountTotal)}</span>
-                </div>
-              )}
               <div style={S.totalRow}>
                 <span>TVA 20 %</span>
                 <span style={S.totalVal}>{fmt(tva)}</span>

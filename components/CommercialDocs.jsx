@@ -1378,8 +1378,8 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                     placeholder="Ex. caractéristiques techniques, conditions, références produit…"
                   />
                 </div>
-                {/* Ligne 2 : Qté · Unité · P.U. HT · Remise · TVA */}
-                <div style={{ display: "grid", gridTemplateColumns: "100px 110px 1fr 110px 110px", gap: 10 }}>
+                {/* Ligne 2 : Qté · Unité · P.U. HT · TVA */}
+                <div style={{ display: "grid", gridTemplateColumns: "100px 110px 1fr 110px", gap: 10 }}>
                   <div>
                     <label style={cdStyles.miniLbl}>Qté</label>
                     <input type="number" step="0.001" value={l.quantity} onChange={(e) => updateLineField(i, "quantity", e.target.value)}
@@ -1402,17 +1402,6 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                       <input type="number" step="0.01" value={l.unit_price_ht} onChange={(e) => updateLineField(i, "unit_price_ht", e.target.value)}
                              style={{ ...cdStyles.miniInput, paddingRight: 26 }} />
                       <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>€</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label style={cdStyles.miniLbl}>Remise</label>
-                    <div style={{ position: "relative" }}>
-                      <input type="number" step="0.01" min="0" max="100"
-                             value={l.discount_pct == null ? "" : l.discount_pct}
-                             onFocus={(e) => e.target.select()}
-                             onChange={(e) => updateLineField(i, "discount_pct", e.target.value === "" ? 0 : Number(e.target.value))}
-                             style={{ ...cdStyles.miniInput, paddingRight: 26 }} />
-                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", pointerEvents: "none" }}>%</span>
                     </div>
                   </div>
                   <div>

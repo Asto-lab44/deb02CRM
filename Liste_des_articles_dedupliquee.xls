@@ -1,0 +1,1324 @@
+<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<ss:Workbook xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">
+ <o:DocumentProperties>
+  <o:Version>16.00</o:Version>
+ </o:DocumentProperties>
+ <o:OfficeDocumentSettings>
+  <o:Colors>
+   <o:Color>
+    <o:Index>2</o:Index>
+    <o:RGB>#F0F0F0</o:RGB>
+   </o:Color>
+  </o:Colors>
+ </o:OfficeDocumentSettings>
+ <x:ExcelWorkbook>
+  <x:WindowHeight>12225</x:WindowHeight>
+  <x:WindowWidth>28800</x:WindowWidth>
+  <x:WindowTopX>32767</x:WindowTopX>
+  <x:WindowTopY>32767</x:WindowTopY>
+  <x:ProtectStructure>False</x:ProtectStructure>
+  <x:ProtectWindows>False</x:ProtectWindows>
+ </x:ExcelWorkbook>
+ <ss:Styles>
+  <ss:Style ss:ID="Default" ss:Name="Normal">
+   <ss:Alignment ss:Vertical="Bottom" />
+   <ss:Borders />
+   <ss:Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000" />
+   <ss:Interior />
+   <ss:NumberFormat />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s62">
+   <ss:Alignment ss:Horizontal="Center" ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" />
+    <ss:Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" />
+    <ss:Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" ss:Bold="1" />
+   <ss:Interior ss:Color="#F0F0F0" ss:Pattern="Solid" />
+   <ss:NumberFormat />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s63">
+   <ss:Alignment ss:Horizontal="Center" ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" />
+    <ss:Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" ss:Bold="1" />
+   <ss:Interior ss:Color="#F0F0F0" ss:Pattern="Solid" />
+   <ss:NumberFormat />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s64">
+   <ss:Alignment ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" />
+   <ss:Interior ss:Color="#FFFFFF" ss:Pattern="Solid" />
+   <ss:NumberFormat />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s65">
+   <ss:Alignment ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" />
+   <ss:Interior ss:Color="#FFFFFF" ss:Pattern="Solid" />
+   <ss:NumberFormat />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s66">
+   <ss:Alignment ss:Horizontal="Right" ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" />
+   <ss:Interior ss:Color="#FFFFFF" ss:Pattern="Solid" />
+   <ss:NumberFormat ss:Format="0.00\ \ &quot;EUR&quot;" />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s67">
+   <ss:Alignment ss:Horizontal="Right" ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" />
+   <ss:Interior ss:Color="#FFFFFF" ss:Pattern="Solid" />
+   <ss:NumberFormat ss:Format="0.000" />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s68">
+   <ss:Alignment ss:Horizontal="Right" ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" ss:Bold="1" />
+   <ss:Interior ss:Color="#FFFFFF" ss:Pattern="Solid" />
+   <ss:NumberFormat />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s69">
+   <ss:Alignment ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" />
+   <ss:Interior ss:Color="#FFFFFF" ss:Pattern="Solid" />
+   <ss:NumberFormat />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s70">
+   <ss:Alignment ss:Horizontal="Right" ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" ss:Bold="1" />
+   <ss:Interior ss:Color="#F0F0F0" ss:Pattern="Solid" />
+   <ss:NumberFormat ss:Format="0.000" />
+   <ss:Protection />
+  </ss:Style>
+  <ss:Style ss:ID="s71">
+   <ss:Alignment ss:Horizontal="Right" ss:Vertical="Top" />
+   <ss:Borders>
+    <ss:Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+    <ss:Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000" />
+   </ss:Borders>
+   <ss:Font ss:FontName="Arial" ss:Color="#000000" ss:Bold="1" />
+   <ss:Interior ss:Color="#F0F0F0" ss:Pattern="Solid" />
+   <ss:NumberFormat ss:Format="0.000" />
+   <ss:Protection />
+  </ss:Style>
+ </ss:Styles>
+ <ss:Worksheet ss:Name="Feuil1">
+  <ss:Table ss:ExpandedColumnCount="10" ss:ExpandedRowCount="96" x:FullColumns="1" x:FullRows="1" ss:DefaultColumnWidth="60" ss:DefaultRowHeight="15">
+   <ss:Column ss:Width="90" />
+   <ss:Column ss:AutoFitWidth="0" ss:Width="622.5" />
+   <ss:Column ss:Width="90" ss:Span="7" />
+   <ss:Row>
+    <ss:Cell ss:StyleID="s62"><ss:Data ss:Type="String">Code</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Désignation courte</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Famille</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Prix de Vte HT</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Prix de Vte TTC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Stock théor.</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Stock réel</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Stock disponible</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Quantité en cde client</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s63"><ss:Data ss:Type="String">Quantité en cde fournisseur</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0561</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hébergement Licence Office 2021</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">6.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">8.39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-4469</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-4368</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-4381</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">101</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0591</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Hébergement Licence TSE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">10.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3689</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3291</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3317</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">399</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2072</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Antivirus PSB premium -  PC 3 ans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">118.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3551</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3132</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-3318</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">419</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0804</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Office 2024 Home&amp;Business</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">259.89999999999998</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">311.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-1175</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-1093</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-1137</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">90</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">8</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2364</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Licence d'utilisation logiciel 3cx </ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65" />
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.4</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">6.48</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-747</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-132</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-150</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">615</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2882</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365 Gouvernance</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-735</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-490</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-599</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">245</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0099</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Abonnement Licence VPN</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">10.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-603</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-600</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-601</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">3</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0350</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365 Business Standard</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">15.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">19.079999999999998</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-603</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-289</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-315</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">314</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0800</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT Exchange Server 2019 CAL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">49</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">58.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-388</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-217</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-217</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">171</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2304</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TARGUS Sacoche 15.6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">29.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">35.880000000000003</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-361</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-333</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">28</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0129</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MCL SAMAR, Câble RJ45 1M</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.95</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">3.54</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-287</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-347</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-331</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">20</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">80</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1186</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Licence Microsoft TSE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">129.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">155.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-266</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-240</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-240</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">26</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2190</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Office Teams visio</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.76</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-258</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-220</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-223</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">38</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0173</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PF SENSE APPLIANCE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">389</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">466.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-250</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-228</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-234</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">22</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0200</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Licence CAL Windows Serveur 2019</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">245</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">294</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-241</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-228</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-228</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">57</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">44</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2033</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Antispam Mailinblack MIB Protect</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65" />
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-213</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0670</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Câble_à titre indicatif</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-212</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-184</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-190</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">28</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2544</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Passbolt : Abonnement Cloud</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HEBERGEMENT</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-187</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-57</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-161</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">130</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0716</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365 Business Premium</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">20.6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">24.72</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-178</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-111</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-113</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">67</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1862</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">V7, Câble RJ45 50cm blanc</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.75</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">3.3</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-176</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-178</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-178</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">18</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">20</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2971</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">GOOGLE - Workspace Business Std</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">13.6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">16.32</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-174</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-74</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-158</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">100</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1395</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft  Server 2019 cal </ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">49</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">58.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-161</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-136</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-136</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">25</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1600</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365 Teams</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.2</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.04</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-160.1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-133.1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-133.1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">27</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0219</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Certificat SSL-Domaine Unique-1 an</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">118.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-154.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-146.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-150.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2201</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Antivirus standard -  Serveur</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">199</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">238.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-154</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-135</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-136</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">19</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1901</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecran ACER CB242Y 23,8"</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">179</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">214.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-154</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-78</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-154</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">77</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0457</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Antivirus Vade Secure VRC - 3 ans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-152</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-128</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-152</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">24</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1559</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Mémoire vive 4Go DDR4,DIMM,2666 MHz</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MEMOIRES VIVES</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">46.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-148</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-142</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-143</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">26</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">20</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1371</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365 Exchange - Plan 1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">7.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">9.59</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-140</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-73</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">67</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1714</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">YEALINK Téléphone filaire T53</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-137</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-130</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-130</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">22</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">15</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0430</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">YEALINK téléphone fialire SIP-T41S</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">249</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">298.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-130</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-142</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-140</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">10</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">22</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1232</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Antivirus Eset EndPoint Protection </ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">59.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">71.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-128</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-127</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-127</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2976</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Antivirus ESET Endpoint Protect Ent</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">20.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">25.08</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-113</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-109</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-111</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">4</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1294</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Extension garantie 3 ans Pfsense</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">GARANTIE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">89</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">106.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-113</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-105</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-107</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1185</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Office 2019 Open - TSE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">399</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">478.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-111</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-86</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-86</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">25</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0911</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecran ACER B227Qbmiprx 21.5"</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">159</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">190.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-105</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-123</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-123</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">18</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2706</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Casque sans fil mono WH62DT</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">189.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">227.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-102</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-102</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0242</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGITECH Souris filaire M90</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">14.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">17.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-121</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-121</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">27</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">44</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0634</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TRANSCEND Disque dur 256Go SSD</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">DISQUES DURS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">89</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">106.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-100</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-120</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-119</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">20</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">40</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0364</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">UBIQUITI Borne wifi</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-95</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-117</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-125</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">23</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">45</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1305</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Carte SIM</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">9.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">11.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-94</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-80</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">28</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0731</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGITECH,Clavier/Souris MK235</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">39.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">47.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-93</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-118</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">14</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">25</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0656</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">YEALINK Téléphone sans fil  W73P</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">160</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">192</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-91</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-104</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-110</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">3</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">16</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1587</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HP  Station d'accueil USB-C Dock G5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">249</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">298.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-90</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-95</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-95</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">7</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2782</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">I-Tec, Station d'accueil</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">139</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">166.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-89</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-75</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-89</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">14</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1715</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">YEALINK Téléphone filaire T53W</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">269</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">322.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-89</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-84</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-84</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2119</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecran ACER V227Qbip 21.5"</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">169</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">202.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1875</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">FELLOWES Support 2 écrans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">129</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">154.80000000000001</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-83</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-68</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-81</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">18</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">3</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0520</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Prestation installation serveur NAS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PRESTATIONS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">689</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">826.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-80</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-74</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-79</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2700</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Casque Plantronics EncorePro 320</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS TELEPHONIE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">129</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">154.80000000000001</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-78</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-18</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-18</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">60</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0251</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">STARTECH Câble HDMI/HDMI 1M</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">15.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">18.600000000000001</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-77</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-100</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-95</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">24</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">47</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2062</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PSB + logiciel RDR -  Serveur</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">199</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">238.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-70</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-67</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2088</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">F-Secure Radar</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">4.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">5.76</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-69</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-36</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-69</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">33</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0023</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">EATON ELLIPSE Onduleur ECO 1200 FR</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">385</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">462</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-97</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-98</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">10</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">41</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2751</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365 Apps for business</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">10.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">12.96</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-66</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-26</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-26</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">40</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2723</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Certificat S/MIME mail signature</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65" />
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1.49</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1.79</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">64</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2253</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel Foxit Licence perpétuelle </ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">189</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">226.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART3067</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft 365 NCE - Business Basic</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">71.900000000000006</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">86.28</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-64</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1863</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">V7, Câble RJ45 50cm vert</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1.99</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-83</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-83</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">20</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1220</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">YEALINK Téléphone sans fil W60 Pack</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">160</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">192</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-63</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-55</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-55</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2784</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HP Disque Dur serveur 960 Go</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">DISQUES DURS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">889</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1066.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-61</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-60</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-60</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2693</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecran Samsung S27R650FDU 27"</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">259</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">310.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-59</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-59</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-59</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2209</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HP Link-5, Clavier sans fil</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">46.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-57</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0194</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGITECH Clavier filaire K120</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">19.899999999999999</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">23.88</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-57</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-46</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-46</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">18</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">7</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2681</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HP 255 G7,15",8Go,256ssd</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">719</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">862.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-51</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-55</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART3065</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Licence M365 NCE - Exchange P1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65" />
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">52.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">63.48</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0534</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows 10 Pro</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">159</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">190.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-56</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">4</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2867</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Casque sans fil WH66</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">239</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">286.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-55</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-54</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-59</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2599</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Frais portabilité numéro</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">120</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">144</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-53</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-49</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-55</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">4</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2577</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Souris ergonomique Perixx</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">49</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">58.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-53</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-36</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-36</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">17</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2697</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HP ProBook 455 G8,15", 16go,512ssd</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">909</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1090.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-50</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">11</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1899</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">V7, Câble RJ45 1M vert</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">2.95</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">3.54</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-72</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-72</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">20</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART3030</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">VM PF SENSE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">19</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">22.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-47</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2380</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HP 290 G9 - Micro tower</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC FIXE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">619</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">742.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-50</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2888</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365 Migration Exchange</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MICROSOFT 365</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">158</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">189.6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-49.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-48</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-49.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2660</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Acer Aspire 5 A ,17",16go, 512ssd</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1049</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1258.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-48</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-47</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1968</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows Server 2019 Essen</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">549</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">658.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-46</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1225</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">CHERRY  Souris sans fil MW-4500</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ACCESSOIRES PC</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">35.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">43.08</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-47</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-46</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1841</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecran Acer V247Ybip, 23,8"</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">4</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART3068</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">M365 NCE - Business Standard /an</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65" />
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">152.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">183.48</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2975</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Antivirus Eset Internet Security 2a</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">59.98</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">71.98</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART0319</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">EATON ELLIPSE Onduleur ECO 500 FR</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MATERIELS RESEAU</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">149</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">178.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">10</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">10</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2519</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Microsoft Windows Server 2022</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">849</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">1018.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-44</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1035</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Ecran ACER V247Ybmipx 23,8"</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ECRANS</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">155.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">186.6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-52</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">12</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2810</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">F Secure Professionnel -  PC 3 ans</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">57.9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">69.48</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-38</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-40</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">4</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1158</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Licence Windows Serveur 2019</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2204</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Serveur NAS - DiskStation DS420j</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">SERVEUR</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">499</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">598.79999999999995</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-42</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-33</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-35</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">9</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1732</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Mémoire vive 16 Go, DIMM, 2933 MHz</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">MEMOIRES VIVES</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">349</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">418.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-45</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">4</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART3094</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Module site internet</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s66" />
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1037</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">YEALINK Téléphone filaire T46S</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">TELEPHONE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">279</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">334.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-41</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-43</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">3</ss:Data></ss:Cell>
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2513</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">HP 250 G8 8Go,256ssd</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">669</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">802.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-40</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-40</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-40</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART2286</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">ASUS ExpertBook 15", 8Go,256ssd</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">PC PORTABLE / TABLETTE / SURFACE</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">789</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">946.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1463</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Certificat SSL-Wildcard -1 an</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">239</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">286.8</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-40</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s64"><ss:Data ss:Type="String">ART1189</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">Logiciel Veeam Backup </ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s65"><ss:Data ss:Type="String">LOGICIEL</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">435</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s66"><ss:Data ss:Type="Number">522</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-39</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-37</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">-38</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67"><ss:Data ss:Type="Number">2</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s67" />
+   </ss:Row>
+   <ss:Row>
+    <ss:Cell ss:StyleID="s68"><ss:Data ss:Type="String">Total</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s69" />
+    <ss:Cell ss:StyleID="s69" />
+    <ss:Cell ss:StyleID="s69" />
+    <ss:Cell ss:StyleID="s68" />
+    <ss:Cell ss:StyleID="s70"><ss:Data ss:Type="Number">-25102.1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s71"><ss:Data ss:Type="Number">-21878.6</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s71"><ss:Data ss:Type="Number">-22876.1</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s71"><ss:Data ss:Type="Number">3838.5</ss:Data></ss:Cell>
+    <ss:Cell ss:StyleID="s71"><ss:Data ss:Type="Number">615</ss:Data></ss:Cell>
+   </ss:Row>
+  </ss:Table>
+  <x:WorksheetOptions>
+   <x:PageSetup>
+    <x:Header x:Margin="0.4921259845" />
+    <x:Footer x:Margin="0.4921259845" />
+    <x:PageMargins x:Bottom="0.984251969" x:Left="0.78740157499999996" x:Right="0.78740157499999996" x:Top="0.984251969" />
+   </x:PageSetup>
+   <x:Selected />
+   <x:Panes>
+    <x:Pane>
+     <x:Number>3</x:Number>
+     <x:ActiveRow>6</x:ActiveRow>
+     <x:ActiveCol>10</x:ActiveCol>
+    </x:Pane>
+   </x:Panes>
+   <x:ProtectObjects>False</x:ProtectObjects>
+   <x:ProtectScenarios>False</x:ProtectScenarios>
+  </x:WorksheetOptions>
+ </ss:Worksheet>
+</ss:Workbook>

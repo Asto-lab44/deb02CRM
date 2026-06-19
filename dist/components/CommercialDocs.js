@@ -999,7 +999,8 @@ var CommercialDocs = () => {
     opps: opps,
     chain: buildChainFromAny(editing),
     onClose: closeEditor,
-    onSaved: reload
+    onSaved: reload,
+    onOpenDoc: openDoc
   }));
 };
 
@@ -1010,7 +1011,8 @@ var CommercialDocs = () => {
 var WorkflowBar = ({
   doc,
   canTransform,
-  chain
+  chain,
+  onOpenDoc
 }) => {
   var STEPS = [{
     k: "devis",
@@ -1077,11 +1079,17 @@ var WorkflowBar = ({
       key: s.k
     }, /*#__PURE__*/React.createElement("div", {
       onClick: () => {
-        if (isCreated && child && child.id !== doc.id && typeof window !== "undefined" && window.location) {
-          window.location.hash = "#doc=" + child.id;
+        // Pastille violette "CRÉÉ" cliquable → ouvre le doc enfant
+        // (commande client, BL ou facture déjà existant dans la chaîne).
+        if (isPast && chain && chain[s.k] && chain[s.k].id !== doc.id && onOpenDoc) {
+          onOpenDoc(chain[s.k].id);
+          return;
+        }
+        if (isCreated && child && child.id !== doc.id && onOpenDoc) {
+          onOpenDoc(child.id);
         }
       },
-      title: isCreated && child ? "Ouvrir " + child.id : "",
+      title: isCreated && child ? "Ouvrir " + child.id : isPast && chain && chain[s.k] ? "Ouvrir " + chain[s.k].id : "",
       style: {
         flex: 1,
         padding: "8px 10px",
@@ -1090,7 +1098,7 @@ var WorkflowBar = ({
         color: isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
         border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
         boxShadow: isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
-        cursor: isCreated ? "pointer" : "default",
+        cursor: isCreated || isPast && chain && chain[s.k] && chain[s.k].id !== doc.id ? "pointer" : "default",
         fontSize: 12,
         fontWeight: 600,
         display: "flex",
@@ -1721,7 +1729,8 @@ var CommercialDocEditor = ({
   opps,
   chain,
   onClose,
-  onSaved
+  onSaved,
+  onOpenDoc
 }) => {
   var [d, setD] = React.useState(doc);
   var [articles, setArticles] = React.useState([]);
@@ -2382,7 +2391,8 @@ var CommercialDocEditor = ({
   }, /*#__PURE__*/React.createElement(WorkflowBar, {
     doc: d,
     canTransform: canTransform,
-    chain: chain
+    chain: chain,
+    onOpenDoc: onOpenDoc
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",

@@ -567,6 +567,7 @@ const CommercialDocs = () => {
           chain={buildChainFromAny(editing)}
           onClose={closeEditor}
           onSaved={reload}
+          onOpenDoc={openDoc}
         />
       )}
     </div>
@@ -577,7 +578,7 @@ const CommercialDocs = () => {
 // WorkflowBar — Visualisation du cycle Devis→Commande→BL→Facture
 //                avec étape courante + portes de validation
 // ─────────────────────────────────────────────────────────────────
-const WorkflowBar = ({ doc, canTransform, chain }) => {
+const WorkflowBar = ({ doc, canTransform, chain, onOpenDoc }) => {
   const STEPS = [
     { k: "devis",    label: "Devis",           icon: "📄" },
     { k: "commande", label: "Commande client", icon: "📋" },
@@ -606,15 +607,27 @@ const WorkflowBar = ({ doc, canTransform, chain }) => {
           return (
             <React.Fragment key={s.k}>
               <div
-                onClick={() => { if (isCreated && child && child.id !== doc.id && typeof window !== "undefined" && window.location) { window.location.hash = "#doc=" + child.id; } }}
-                title={isCreated && child ? "Ouvrir " + child.id : ""}
+                onClick={() => {
+                  // Pastille violette "CRÉÉ" cliquable → ouvre le doc enfant
+                  // (commande client, BL ou facture déjà existant dans la chaîne).
+                  if (isPast && chain && chain[s.k] && chain[s.k].id !== doc.id && onOpenDoc) {
+                    onOpenDoc(chain[s.k].id);
+                    return;
+                  }
+                  if (isCreated && child && child.id !== doc.id && onOpenDoc) {
+                    onOpenDoc(child.id);
+                  }
+                }}
+                title={isCreated && child ? "Ouvrir " + child.id
+                       : isPast && chain && chain[s.k] ? "Ouvrir " + chain[s.k].id
+                       : ""}
                 style={{
                   flex: 1, padding: "8px 10px", borderRadius: 7,
                   background: isCurrent ? "#3730a3" : isPast ? "#dcfce7" : isCreated ? "#7c3aed" : "#fff",
                   color: isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
                   border: "1px solid " + (isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
                   boxShadow: isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
-                  cursor: isCreated ? "pointer" : "default",
+                  cursor: (isCreated || (isPast && chain && chain[s.k] && chain[s.k].id !== doc.id)) ? "pointer" : "default",
                   fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
                 }}>
                 <span style={{ fontSize: 14 }}>{s.icon}</span>
@@ -922,7 +935,7 @@ const KPI = ({ label, value, color }) => (
 // ─────────────────────────────────────────────────────────────────
 // EDITOR : édition d'un doc + ses lignes
 // ─────────────────────────────────────────────────────────────────
-const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) => {
+const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOpenDoc }) => {
   const [d, setD] = React.useState(doc);
   const [articles, setArticles] = React.useState([]);
   const [tvaRates, setTvaRates] = React.useState([]);
@@ -1405,7 +1418,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
 
         <div style={cdStyles.modalBody}>
           {/* WORKFLOW SAGE — fil de fer + validation gates */}
-          <WorkflowBar doc={d} canTransform={canTransform} chain={chain} />
+          <WorkflowBar doc={d} canTransform={canTransform} chain={chain} onOpenDoc={onOpenDoc} />
 
           {/* Bloc client + meta */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>

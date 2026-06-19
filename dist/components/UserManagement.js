@@ -741,6 +741,24 @@ var UserManagement = () => {
     title: "Supprimer toutes les donn\xE9es m\xE9tier \u2014 CRM, Gestion Commerciale, Projets, Stock & Catalogue"
   }, "\uD83D\uDDD1 Reset donn\xE9es"), /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
+      if (!confirm("Supprimer TOUTES les opportunités ?\n\nCette action vide le dropdown « Rattacher à une opportunité » dans les devis.\n\nNe touche ni aux clients ni aux contacts.\nIrréversible.")) return;
+      try {
+        var res = await window.api.opportunities.purgeAll();
+        flash("✓ " + res.removed + " opportunité(s) supprimée(s)");
+        if (window.HubToast) window.HubToast.success("✓ " + res.removed + " opportunité(s) supprimée(s)");
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      }
+    },
+    style: {
+      ...S.btnGhost,
+      borderColor: "#fed7aa",
+      color: "#c2410c",
+      cursor: "pointer"
+    },
+    title: "Vide le tableau opportunit\xE9s (utile pour nettoyer les entr\xE9es test du dropdown Rattacher dans les devis)"
+  }, "\uD83E\uDDF9 Purger opportunit\xE9s"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
       var ok = window.HubModal ? await window.HubModal.confirm({
         title: "Réinitialiser les groupes ?",
         message: "Tous les groupes et leurs accès aux modules ERP reviendront aux valeurs par défaut.",

@@ -322,6 +322,20 @@ const UserManagement = () => {
                 style={{ ...S.btnGhost, borderColor: "#fecaca", color: "#dc2626", cursor: "pointer" }}
                 title="Supprimer toutes les données métier — CRM, Gestion Commerciale, Projets, Stock & Catalogue"
               >🗑 Reset données</button>
+              <button
+                onClick={async () => {
+                  if (!confirm("Supprimer TOUTES les opportunités ?\n\nCette action vide le dropdown « Rattacher à une opportunité » dans les devis.\n\nNe touche ni aux clients ni aux contacts.\nIrréversible.")) return;
+                  try {
+                    const res = await window.api.opportunities.purgeAll();
+                    flash("✓ " + res.removed + " opportunité(s) supprimée(s)");
+                    if (window.HubToast) window.HubToast.success("✓ " + res.removed + " opportunité(s) supprimée(s)");
+                  } catch (e) {
+                    if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+                  }
+                }}
+                style={{ ...S.btnGhost, borderColor: "#fed7aa", color: "#c2410c", cursor: "pointer" }}
+                title="Vide le tableau opportunités (utile pour nettoyer les entrées test du dropdown Rattacher dans les devis)"
+              >🧹 Purger opportunités</button>
               <button onClick={async () => {
                 const ok = window.HubModal
                   ? await window.HubModal.confirm({ title: "Réinitialiser les groupes ?", message: "Tous les groupes et leurs accès aux modules ERP reviendront aux valeurs par défaut.", okLabel: "Réinitialiser", okStyle: "danger" })

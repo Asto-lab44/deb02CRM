@@ -262,6 +262,24 @@
   //
   // Méthodes : list({client_id, stage}?), getById, create, update
   const opportunities = {
+    /** Supprime TOUTES les opportunités (table + localStorage). Irréversible.
+     *  Utilisé depuis l'admin pour vider le dropdown "Rattacher à une opportunité"
+     *  des entrées test/junk. Ne touche pas aux clients ni aux contacts. */
+    async purgeAll() {
+      const s = supa();
+      let removed = 0;
+      if (s) {
+        try {
+          const { count } = await s.from("opportunities").select("*", { count: "exact", head: true });
+          const { error } = await s.from("opportunities").delete().not("id", "is", null);
+          if (error) throw new Error(error.message);
+          removed = count || 0;
+        } catch (e) { throw e; }
+      }
+      try { lsSet("opportunities", []); } catch (e) {}
+      return { removed };
+    },
+
     async list(filter = {}) {
       const s = supa();
       if (s) {

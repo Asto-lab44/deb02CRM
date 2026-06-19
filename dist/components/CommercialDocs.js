@@ -257,7 +257,12 @@ var computeClientCode = clientName => {
 // ════════════════════════════════════════════════════════════════════
 
 var CommercialDocs = () => {
-  var TYPES = [{
+  var TYPES = [
+  // Seul "devis" est créable directement. Les autres types se créent uniquement
+  // par transformation de la chaîne (devis → commande → BL → facture), c'est
+  // pourquoi leur newLabel pointe vers "Nouveau devis" : le bouton du haut
+  // bascule sur l'onglet Devis et ouvre un nouveau devis.
+  {
     k: "devis",
     label: "Devis",
     newLabel: "Nouveau devis",
@@ -266,25 +271,25 @@ var CommercialDocs = () => {
   }, {
     k: "commande",
     label: "Commandes client",
-    newLabel: "Nouvelle commande client",
+    newLabel: "Nouveau devis",
     color: "#a855f7",
     icon: "📋"
   }, {
     k: "commande_achat",
     label: "Commande d'achat",
-    newLabel: "Nouvelle commande d'achat",
+    newLabel: "Nouveau devis",
     color: "#0ea5e9",
     icon: "🛒"
   }, {
     k: "bl",
     label: "Bons livraison",
-    newLabel: "Nouveau bon de livraison",
+    newLabel: "Nouveau devis",
     color: "#ea580c",
     icon: "🚚"
   }, {
     k: "facture",
     label: "Factures",
-    newLabel: "Nouvelle facture",
+    newLabel: "Nouveau devis",
     color: "#10b981",
     icon: "💶"
   }];
@@ -520,11 +525,38 @@ var CommercialDocs = () => {
     });
     return t;
   }, [filtered]);
+
+  // Création directe interdite pour tous les types autres que devis :
+  // la commande client, la commande d'achat, le BL et la facture ne peuvent
+  // exister que comme transformation d'un devis (ou d'un parent dans la chaîne).
+  // → bascule automatiquement sur l'onglet Devis et ouvre un nouveau devis.
   var newDoc = async () => {
+    if (activeType !== "devis") {
+      var ok = confirm("On ne peut pas créer directement un(e) " + TYPES.find(t => t.k === activeType).label.toLowerCase() + ".\n\nLa chaîne Sage impose de partir d'un devis :\n  Devis → Commande client → BL → Facture\n\nOuvrir un nouveau devis ?");
+      if (!ok) return;
+      setActiveType("devis");
+      // Création différée le temps que l'onglet "Devis" soit actif
+      setTimeout(async () => {
+        try {
+          var doc = await window.api.commercialDocs.create({
+            type: "devis",
+            title: "Devis — Nouveau",
+            status: "brouillon",
+            lines: []
+          });
+          if (window.HubToast) window.HubToast.success("✓ " + doc.id + " créé");
+          setEditing(doc);
+          reload();
+        } catch (e) {
+          if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+        }
+      }, 30);
+      return;
+    }
     try {
       var doc = await window.api.commercialDocs.create({
-        type: activeType,
-        title: TYPES.find(t => t.k === activeType).label + " — Nouveau",
+        type: "devis",
+        title: "Devis — Nouveau",
         status: "brouillon",
         lines: []
       });

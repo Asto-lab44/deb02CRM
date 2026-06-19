@@ -1804,6 +1804,15 @@
         total_tva: Math.round(total_tva * 100) / 100,
         total_ttc: Math.round((total_ht + total_tva) * 100) / 100,
         is_text_only: !!line.is_text_only,
+        // supplier est une vraie colonne (ALTER TABLE 20260615_stock_catalogue)
+        supplier: line.supplier || null,
+        // Champs internes (jamais sur PDF) → data jsonb pour ne pas créer
+        // d'erreur "column does not exist" si la migration n'est pas appliquée.
+        data: {
+          ...((line.data && typeof line.data === "object") ? line.data : {}),
+          manufacturer_ref: line.manufacturer_ref || null,
+          purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative),
+        },
       };
       if (s) {
         const { data, error } = await s.from("commercial_doc_lines").insert(row).select().maybeSingle();
@@ -1815,8 +1824,18 @@
 
     async updateLine(line_id, patch) {
       const s = supa();
+      // Sépare les champs internes (stockés dans data jsonb) des colonnes table.
+      // Si on les laissait dans le patch, Supabase rejetterait l'update entier
+      // avec "column manufacturer_ref does not exist" et la qté ne serait pas
+      // persistée — symptôme : "Enregistrer ne fait rien".
+      const INTERNAL_KEYS = ["manufacturer_ref", "purchase_price_indicative"];
+      const internal = {};
+      const row = {};
+      Object.keys(patch || {}).forEach((k) => {
+        if (INTERNAL_KEYS.includes(k)) internal[k] = patch[k];
+        else row[k] = patch[k];
+      });
       // Recalcul des totaux ligne si quantity / prix / remise / tva touchés
-      const row = { ...patch };
       if (row.quantity != null || row.unit_price_ht != null || row.discount_pct != null || row.tva_rate != null) {
         // Lecture courante pour merger
         if (s) {
@@ -1832,6 +1851,14 @@
             row.total_ttc = Math.round((row.total_ht + row.total_tva) * 100) / 100;
           }
         }
+      }
+      // Merge des champs internes dans data jsonb (pas de migration BDD requise).
+      if (Object.keys(internal).length && s) {
+        try {
+          const { data: cur } = await s.from("commercial_doc_lines").select("data").eq("id", line_id).maybeSingle();
+          const prevData = (cur && cur.data && typeof cur.data === "object") ? cur.data : {};
+          row.data = { ...prevData, ...internal };
+        } catch (e) { row.data = { ...internal }; }
       }
       if (s) {
         const { data, error } = await s.from("commercial_doc_lines").update(row).eq("id", line_id).select().maybeSingle();

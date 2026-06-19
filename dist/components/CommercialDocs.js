@@ -578,9 +578,17 @@ var CommercialDocs = () => {
   })), docs.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
+      gap: 10,
+      marginBottom: 14,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
       gap: 6,
-      marginBottom: 12,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "center"
     }
   }, [{
     k: "all",
@@ -644,15 +652,14 @@ var CommercialDocs = () => {
         opacity: 0.85
       }
     }, count));
-  })), docs.length > 0 && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("span", {
     style: {
-      display: "flex",
-      gap: 10,
-      marginBottom: 14,
-      flexWrap: "wrap",
-      alignItems: "center"
+      width: 1,
+      height: 22,
+      background: "#e2e8f0",
+      margin: "0 2px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -661,7 +668,7 @@ var CommercialDocs = () => {
       border: "1px solid #e2e8f0",
       borderRadius: 8,
       background: "#fff",
-      minWidth: 240
+      minWidth: 220
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {

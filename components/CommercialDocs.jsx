@@ -358,44 +358,41 @@ const CommercialDocs = () => {
           <KPI label="Documents" value={totals.count} color="#0ea5e9" />
         </div>
 
-        {/* FILTRES STATUT */}
-        {docs.length > 0 && (
-          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-            {[
-              { k: "all",        label: "Tous" },
-              { k: "brouillon",  label: "Brouillons",  c: "#94a3b8" },
-              { k: "envoye",     label: "Envoyés",     c: "#3b82f6" },
-              activeType === "devis"   && { k: "accepte",    label: "Acceptés",    c: "#10b981" },
-              activeType === "devis"   && { k: "refuse",     label: "Refusés",     c: "#dc2626" },
-              { k: "transforme", label: "Transformés", c: "#7e22ce" },
-              activeType === "bl"      && { k: "livre",      label: "Livrés",      c: "#f59e0b" },
-              activeType === "facture" && { k: "paye",       label: "Payés",       c: "#065f46" },
-              { k: "annule",     label: "Annulés",     c: "#475569" },
-            ].filter(Boolean).map((s) => {
-              const count = s.k === "all" ? statusCounts.all : (statusCounts[s.k] || 0);
-              const active = statusFilter === s.k;
-              if (s.k !== "all" && count === 0) return null;
-              return (
-                <button key={s.k} onClick={() => setStatusFilter(s.k)}
-                        style={{
-                          padding: "5px 11px", borderRadius: 999, fontSize: 12, fontWeight: 600,
-                          border: "1px solid " + (active ? (s.c || "#0f172a") : "#e2e8f0"),
-                          background: active ? (s.c || "#0f172a") : "#fff",
-                          color: active ? "#fff" : "#475569",
-                          cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
-                        }}>
-                  {s.label}
-                  <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", opacity: 0.85 }}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* FILTRES CLIENT + DATE */}
+        {/* FILTRES — pills statut + recherche client + dates, sur une seule ligne */}
         {docs.length > 0 && (
           <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px 5px 12px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fff", minWidth: 240 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {[
+                { k: "all",        label: "Tous" },
+                { k: "brouillon",  label: "Brouillons",  c: "#94a3b8" },
+                { k: "envoye",     label: "Envoyés",     c: "#3b82f6" },
+                activeType === "devis"   && { k: "accepte",    label: "Acceptés",    c: "#10b981" },
+                activeType === "devis"   && { k: "refuse",     label: "Refusés",     c: "#dc2626" },
+                { k: "transforme", label: "Transformés", c: "#7e22ce" },
+                activeType === "bl"      && { k: "livre",      label: "Livrés",      c: "#f59e0b" },
+                activeType === "facture" && { k: "paye",       label: "Payés",       c: "#065f46" },
+                { k: "annule",     label: "Annulés",     c: "#475569" },
+              ].filter(Boolean).map((s) => {
+                const count = s.k === "all" ? statusCounts.all : (statusCounts[s.k] || 0);
+                const active = statusFilter === s.k;
+                if (s.k !== "all" && count === 0) return null;
+                return (
+                  <button key={s.k} onClick={() => setStatusFilter(s.k)}
+                          style={{
+                            padding: "5px 11px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                            border: "1px solid " + (active ? (s.c || "#0f172a") : "#e2e8f0"),
+                            background: active ? (s.c || "#0f172a") : "#fff",
+                            color: active ? "#fff" : "#475569",
+                            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+                          }}>
+                    {s.label}
+                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", opacity: 0.85 }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <span style={{ width: 1, height: 22, background: "#e2e8f0", margin: "0 2px" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px 5px 12px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fff", minWidth: 220 }}>
               <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>Client</span>
               <input
                 value={clientFilter}

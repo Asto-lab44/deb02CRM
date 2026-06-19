@@ -377,9 +377,15 @@ var CommercialDocs = () => {
     };
   }, [clients]);
   var docKind = React.useCallback(d => {
+    // 1) client_id connu → status réel (client | prospect)
     if (d.client_id && clientStatusMap.byId[d.client_id]) return clientStatusMap.byId[d.client_id];
+    // 2) match par raison sociale dans la table clients
     var nameKey = String(d.client_name || "").toLowerCase();
     if (nameKey && clientStatusMap.byName[nameKey]) return clientStatusMap.byName[nameKey];
+    // 3) raison sociale renseignée mais inconnue de la table clients
+    //    → prospect par défaut (créé à la volée depuis le devis, hors CRM)
+    if (d.client_name && String(d.client_name).trim()) return "prospect";
+    // 4) aucune info client → tiret
     return null;
   }, [clientStatusMap]);
   React.useEffect(() => {

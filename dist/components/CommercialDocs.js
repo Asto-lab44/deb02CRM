@@ -2533,6 +2533,33 @@ var CommercialDocEditor = ({
       pointerEvents: d.type === "devis" && (d.status === "accepte" || d.status === "transforme") ? "none" : "auto",
       transition: "opacity 150ms"
     }
+  }, (d.type === "commande" || d.type === "bl") && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#eef2ff",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      padding: "8px 14px",
+      marginBottom: 14,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      fontSize: 12,
+      color: "#3730a3"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, "En-t\xEAte fig\xE9"), " \u2014 les infos client, titre, dates, opportunit\xE9, statut et conditions de paiement sont h\xE9rit\xE9es du devis. Seules les lignes (articles, qt\xE9, prix) sont modifiables ici.")), /*#__PURE__*/React.createElement("fieldset", {
+    disabled: d.type === "commande" || d.type === "bl",
+    style: {
+      border: 0,
+      padding: 0,
+      margin: 0,
+      minWidth: 0,
+      opacity: d.type === "commande" || d.type === "bl" ? 0.7 : 1,
+      pointerEvents: d.type === "commande" || d.type === "bl" ? "none" : "auto"
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
@@ -2772,7 +2799,7 @@ var CommercialDocEditor = ({
   }, "\u2014 Choisir \u2014"), paymentTerms.map(p => /*#__PURE__*/React.createElement("option", {
     key: p.id,
     value: p.id
-  }, p.label))))), /*#__PURE__*/React.createElement("h3", {
+  }, p.label)))))), /*#__PURE__*/React.createElement("h3", {
     style: {
       margin: "0 0 8px",
       fontSize: 14,

@@ -1518,7 +1518,21 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                              opacity: (d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) ? 0.65 : 1,
                              pointerEvents: (d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) ? "none" : "auto",
                              transition: "opacity 150ms" }}>
-          {/* Bloc client + meta */}
+          {/* Bandeau informatif sur commande / BL : le bloc en-tête (client,
+              titre, dates, opp, statut, paiement) est figé car il provient
+              du devis. Seules les lignes (qté, prix, articles) sont éditables. */}
+          {(d.type === "commande" || d.type === "bl") && (
+            <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "8px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "#3730a3" }}>
+              <span style={{ fontSize: 14 }}>🔒</span>
+              <span><strong>En-tête figé</strong> — les infos client, titre, dates, opportunité, statut et conditions de paiement sont héritées du devis. Seules les lignes (articles, qté, prix) sont modifiables ici.</span>
+            </div>
+          )}
+
+          {/* Bloc client + meta — figé pour commande et BL */}
+          <fieldset disabled={d.type === "commande" || d.type === "bl"}
+                    style={{ border: 0, padding: 0, margin: 0, minWidth: 0,
+                             opacity: (d.type === "commande" || d.type === "bl") ? 0.7 : 1,
+                             pointerEvents: (d.type === "commande" || d.type === "bl") ? "none" : "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
             <div>
               <label style={cdStyles.lbl}>Client</label>
@@ -1685,6 +1699,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
               </select>
             </div>
           </div>
+          </fieldset>
 
           {/* LIGNES — carte par ligne, désignation pleine largeur en haut */}
           <h3 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Lignes</h3>

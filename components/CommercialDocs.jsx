@@ -947,6 +947,20 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
     });
   };
 
+  // Duplique la ligne juste en dessous. Le nouvel id est temporaire
+  // (tmp_…), il sera créé en BDD au prochain Save.
+  const duplicateLine = (idx) => {
+    setD((cur) => {
+      const lines = [...(cur.lines || [])];
+      const src = lines[idx];
+      if (!src) return cur;
+      const clone = { ...src, id: "tmp_" + Math.random().toString(36).slice(2, 10) };
+      lines.splice(idx + 1, 0, clone);
+      lines.forEach((l, i) => { l.position = i + 1; });
+      return { ...cur, lines };
+    });
+  };
+
   // Totaux calculés à la volée
   const totals = React.useMemo(() => {
     let ht = 0, tva = 0;
@@ -1346,7 +1360,12 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved }) =>
                     <button onClick={() => moveLine(i, +1)} disabled={i === (d.lines || []).length - 1} title="Descendre cette ligne"
                             style={{ width: 32, height: 15, background: "#fff", border: "1px solid #e2e8f0", borderTop: 0, color: i === (d.lines || []).length - 1 ? "#cbd5e1" : "#475569", fontSize: 10, cursor: i === (d.lines || []).length - 1 ? "not-allowed" : "pointer", borderRadius: "0 0 6px 6px", padding: 0, lineHeight: 1, fontWeight: 700 }}>▼</button>
                   </div>
-                  <button onClick={() => removeLine(i)} title="Supprimer la ligne" style={{ width: 32, height: 32, background: "#fff", border: "1px solid #fecaca", color: "#dc2626", fontSize: 14, cursor: "pointer", borderRadius: 6, flexShrink: 0 }}>🗑</button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                    <button onClick={() => removeLine(i)} title="Supprimer la ligne"
+                            style={{ width: 32, height: 32, background: "#fff", border: "1px solid #fecaca", color: "#dc2626", fontSize: 14, cursor: "pointer", borderRadius: 6 }}>🗑</button>
+                    <button onClick={() => duplicateLine(i)} title="Dupliquer la ligne en dessous"
+                            style={{ width: 32, height: 32, background: "#fff", border: "1px solid #c7d2fe", color: "#3730a3", fontSize: 14, cursor: "pointer", borderRadius: 6 }}>⎘</button>
+                  </div>
                 </div>
                 {/* Description longue / champ libre (apparaît sous la désignation sur le PDF) */}
                 <div style={{ marginBottom: 10 }}>

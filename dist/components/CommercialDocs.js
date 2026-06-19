@@ -1706,6 +1706,28 @@ var CommercialDocEditor = ({
     });
   };
 
+  // Duplique la ligne juste en dessous. Le nouvel id est temporaire
+  // (tmp_…), il sera créé en BDD au prochain Save.
+  var duplicateLine = idx => {
+    setD(cur => {
+      var lines = [...(cur.lines || [])];
+      var src = lines[idx];
+      if (!src) return cur;
+      var clone = {
+        ...src,
+        id: "tmp_" + Math.random().toString(36).slice(2, 10)
+      };
+      lines.splice(idx + 1, 0, clone);
+      lines.forEach((l, i) => {
+        l.position = i + 1;
+      });
+      return {
+        ...cur,
+        lines
+      };
+    });
+  };
+
   // Totaux calculés à la volée
   var totals = React.useMemo(() => {
     var ht = 0,
@@ -2395,7 +2417,14 @@ var CommercialDocEditor = ({
       lineHeight: 1,
       fontWeight: 700
     }
-  }, "\u25BC")), /*#__PURE__*/React.createElement("button", {
+  }, "\u25BC")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 4,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: () => removeLine(i),
     title: "Supprimer la ligne",
     style: {
@@ -2406,10 +2435,22 @@ var CommercialDocEditor = ({
       color: "#dc2626",
       fontSize: 14,
       cursor: "pointer",
-      borderRadius: 6,
-      flexShrink: 0
+      borderRadius: 6
     }
-  }, "\uD83D\uDDD1")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDDD1"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => duplicateLine(i),
+    title: "Dupliquer la ligne en dessous",
+    style: {
+      width: 32,
+      height: 32,
+      background: "#fff",
+      border: "1px solid #c7d2fe",
+      color: "#3730a3",
+      fontSize: 14,
+      cursor: "pointer",
+      borderRadius: 6
+    }
+  }, "\u2398"))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 10
     }

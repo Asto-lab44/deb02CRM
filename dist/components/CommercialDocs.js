@@ -1231,16 +1231,27 @@ var DocRow = ({
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
     }
   };
+
+  // Typo unifiée Inter + tabular-nums pour les valeurs numériques (chiffres alignés
+  // sans recourir à une police monospace cassante). Date formatée en jj/mm/aaaa.
+  var fmtDate = s => {
+    if (!s) return "";
+    var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+  };
+  var numStyle = {
+    fontVariantNumeric: "tabular-nums"
+  };
   return /*#__PURE__*/React.createElement("div", {
     onClick: () => onOpen(doc.id),
     style: cdStyles.tableRow
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 130px",
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 12,
+      fontSize: 12.5,
       color: "#3730a3",
-      fontWeight: 600
+      fontWeight: 600,
+      ...numStyle
     }
   }, doc.id), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1249,14 +1260,13 @@ var DocRow = ({
   }, doc.client_name ? /*#__PURE__*/React.createElement("span", {
     style: {
       display: "inline-block",
-      padding: "2px 7px",
+      padding: "2px 8px",
       borderRadius: 5,
       background: "#eef2ff",
       color: "#3730a3",
       fontSize: 11,
       fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace",
-      letterSpacing: 0.5
+      letterSpacing: 0.4
     }
   }, computeClientCode(doc.client_name)) : /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1273,11 +1283,11 @@ var DocRow = ({
   })), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 100px",
-      fontSize: 12,
+      fontSize: 12.5,
       color: "#475569",
-      fontFamily: "'JetBrains Mono', monospace"
+      ...numStyle
     }
-  }, doc.doc_date), /*#__PURE__*/React.createElement("span", {
+  }, fmtDate(doc.doc_date)), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,
       minWidth: 0
@@ -1339,7 +1349,7 @@ var DocRow = ({
       fontSize: 13,
       fontWeight: 600,
       color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
+      ...numStyle
     }
   }, fmtEUR(doc.total_ht)), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1348,7 +1358,7 @@ var DocRow = ({
       fontSize: 13,
       fontWeight: 700,
       color: "#0f172a",
-      fontFamily: "'JetBrains Mono', monospace"
+      ...numStyle
     }
   }, fmtEUR(doc.total_ttc)), /*#__PURE__*/React.createElement("span", {
     style: {

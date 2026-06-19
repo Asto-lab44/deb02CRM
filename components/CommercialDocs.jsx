@@ -435,14 +435,27 @@ const CommercialDocs = () => {
         </button>
 
         <div style={cdStyles.navLabel}>Documents</div>
-        {TYPES.map((t) => (
-          <div key={t.k} onClick={() => setActiveType(t.k)}
-               style={{ ...cdStyles.navItem, ...(activeType === t.k ? cdStyles.navItemActive : {}) }}>
-            <span style={{ width: 16, color: activeType === t.k ? t.color : "#94a3b8" }}>{t.icon}</span>
-            <span style={{ flex: 1 }}>{t.label}</span>
-            <span style={cdStyles.navCount}>{activeType === t.k ? docs.length : ""}</span>
-          </div>
-        ))}
+        {TYPES.map((t) => {
+          // "Commande fournisseur" pointe vers Stock & Catalogue → onglet Achats,
+          // qui agrège déjà les lignes des commandes client en matrice fournisseurs.
+          if (t.k === "commande_achat") {
+            return (
+              <a key={t.k} href="/stock" style={{ ...cdStyles.navItem, textDecoration: "none", color: "inherit" }}>
+                <span style={{ width: 16, color: "#94a3b8" }}>{t.icon}</span>
+                <span style={{ flex: 1 }}>{t.label}</span>
+                <span style={{ fontSize: 10, color: "#cbd5e1" }}>↗</span>
+              </a>
+            );
+          }
+          return (
+            <div key={t.k} onClick={() => setActiveType(t.k)}
+                 style={{ ...cdStyles.navItem, ...(activeType === t.k ? cdStyles.navItemActive : {}) }}>
+              <span style={{ width: 16, color: activeType === t.k ? t.color : "#94a3b8" }}>{t.icon}</span>
+              <span style={{ flex: 1 }}>{t.label}</span>
+              <span style={cdStyles.navCount}>{activeType === t.k ? docs.length : ""}</span>
+            </div>
+          );
+        })}
 
         <div style={cdStyles.navLabel}>Administration</div>
         <a href="/gestion-commerciale-admin" style={{ ...cdStyles.navItem, textDecoration: "none", color: "inherit" }}>

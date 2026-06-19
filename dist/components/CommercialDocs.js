@@ -661,25 +661,54 @@ var CommercialDocs = () => {
     }
   }, "+"), /*#__PURE__*/React.createElement("span", null, TYPES.find(t => t.k === activeType).newLabel)), /*#__PURE__*/React.createElement("div", {
     style: cdStyles.navLabel
-  }, "Documents"), TYPES.map(t => /*#__PURE__*/React.createElement("div", {
-    key: t.k,
-    onClick: () => setActiveType(t.k),
-    style: {
-      ...cdStyles.navItem,
-      ...(activeType === t.k ? cdStyles.navItemActive : {})
+  }, "Documents"), TYPES.map(t => {
+    // "Commande fournisseur" pointe vers Stock & Catalogue → onglet Achats,
+    // qui agrège déjà les lignes des commandes client en matrice fournisseurs.
+    if (t.k === "commande_achat") {
+      return /*#__PURE__*/React.createElement("a", {
+        key: t.k,
+        href: "/stock",
+        style: {
+          ...cdStyles.navItem,
+          textDecoration: "none",
+          color: "inherit"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 16,
+          color: "#94a3b8"
+        }
+      }, t.icon), /*#__PURE__*/React.createElement("span", {
+        style: {
+          flex: 1
+        }
+      }, t.label), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "#cbd5e1"
+        }
+      }, "\u2197"));
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 16,
-      color: activeType === t.k ? t.color : "#94a3b8"
-    }
-  }, t.icon), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, t.label), /*#__PURE__*/React.createElement("span", {
-    style: cdStyles.navCount
-  }, activeType === t.k ? docs.length : ""))), /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement("div", {
+      key: t.k,
+      onClick: () => setActiveType(t.k),
+      style: {
+        ...cdStyles.navItem,
+        ...(activeType === t.k ? cdStyles.navItemActive : {})
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 16,
+        color: activeType === t.k ? t.color : "#94a3b8"
+      }
+    }, t.icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, t.label), /*#__PURE__*/React.createElement("span", {
+      style: cdStyles.navCount
+    }, activeType === t.k ? docs.length : ""));
+  }), /*#__PURE__*/React.createElement("div", {
     style: cdStyles.navLabel
   }, "Administration"), /*#__PURE__*/React.createElement("a", {
     href: "/gestion-commerciale-admin",

@@ -338,8 +338,19 @@ var CommercialDocs = () => {
   var [activeType, setActiveType] = React.useState("devis");
   var [statusFilter, setStatusFilter] = React.useState("all");
   var [clientFilter, setClientFilter] = React.useState("");
-  var [dateFrom, setDateFrom] = React.useState("");
-  var [dateTo, setDateTo] = React.useState("");
+  // Plage glissante par défaut : J-365 → aujourd'hui.
+  var DEFAULT_DATE_RANGE = (() => {
+    var iso = d => d.toISOString().slice(0, 10);
+    var today = new Date();
+    var oneYearAgo = new Date();
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    return {
+      from: iso(oneYearAgo),
+      to: iso(today)
+    };
+  })();
+  var [dateFrom, setDateFrom] = React.useState(DEFAULT_DATE_RANGE.from);
+  var [dateTo, setDateTo] = React.useState(DEFAULT_DATE_RANGE.to);
   var [docs, setDocs] = React.useState([]);
   var [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
   var [loading, setLoading] = React.useState(true);
@@ -823,7 +834,8 @@ var CommercialDocs = () => {
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: 0.4
-    }
+    },
+    title: "Plage glissante : 12 derniers mois par d\xE9faut"
   }, "Date"), /*#__PURE__*/React.createElement("input", {
     type: "date",
     value: dateFrom,
@@ -834,8 +846,8 @@ var CommercialDocs = () => {
       fontSize: 12.5,
       padding: "3px 4px",
       background: "transparent",
-      fontFamily: "'JetBrains Mono', monospace",
-      color: "#0f172a"
+      color: "#0f172a",
+      fontVariantNumeric: "tabular-nums"
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -852,15 +864,15 @@ var CommercialDocs = () => {
       fontSize: 12.5,
       padding: "3px 4px",
       background: "transparent",
-      fontFamily: "'JetBrains Mono', monospace",
-      color: "#0f172a"
+      color: "#0f172a",
+      fontVariantNumeric: "tabular-nums"
     }
-  }), (dateFrom || dateTo) && /*#__PURE__*/React.createElement("button", {
+  }), (dateFrom !== DEFAULT_DATE_RANGE.from || dateTo !== DEFAULT_DATE_RANGE.to) && /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      setDateFrom("");
-      setDateTo("");
+      setDateFrom(DEFAULT_DATE_RANGE.from);
+      setDateTo(DEFAULT_DATE_RANGE.to);
     },
-    title: "Effacer",
+    title: "Revenir aux 12 derniers mois",
     style: {
       border: 0,
       background: "transparent",
@@ -868,7 +880,7 @@ var CommercialDocs = () => {
       cursor: "pointer",
       fontSize: 14
     }
-  }, "\xD7")), (clientFilter || dateFrom || dateTo) && /*#__PURE__*/React.createElement("span", {
+  }, "\u21BA")), (clientFilter || dateFrom !== DEFAULT_DATE_RANGE.from || dateTo !== DEFAULT_DATE_RANGE.to) && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
       color: "#64748b"

@@ -171,8 +171,16 @@ const CommercialDocs = () => {
   const [activeType, setActiveType] = React.useState("devis");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [clientFilter, setClientFilter] = React.useState("");
-  const [dateFrom, setDateFrom] = React.useState("");
-  const [dateTo, setDateTo] = React.useState("");
+  // Plage glissante par défaut : J-365 → aujourd'hui.
+  const DEFAULT_DATE_RANGE = (() => {
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const today = new Date();
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    return { from: iso(oneYearAgo), to: iso(today) };
+  })();
+  const [dateFrom, setDateFrom] = React.useState(DEFAULT_DATE_RANGE.from);
+  const [dateTo, setDateTo] = React.useState(DEFAULT_DATE_RANGE.to);
   const [docs, setDocs] = React.useState([]);
   const [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
   const [loading, setLoading] = React.useState(true);
@@ -470,17 +478,19 @@ const CommercialDocs = () => {
               </datalist>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px 5px 12px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fff" }}>
-              <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>Date</span>
+              <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }} title="Plage glissante : 12 derniers mois par défaut">Date</span>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                     style={{ border: 0, outline: "none", fontSize: 12.5, padding: "3px 4px", background: "transparent", fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }} />
+                     style={{ border: 0, outline: "none", fontSize: 12.5, padding: "3px 4px", background: "transparent", color: "#0f172a", fontVariantNumeric: "tabular-nums" }} />
               <span style={{ color: "#94a3b8", fontSize: 12 }}>→</span>
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                     style={{ border: 0, outline: "none", fontSize: 12.5, padding: "3px 4px", background: "transparent", fontFamily: "'JetBrains Mono', monospace", color: "#0f172a" }} />
-              {(dateFrom || dateTo) && (
-                <button onClick={() => { setDateFrom(""); setDateTo(""); }} title="Effacer" style={{ border: 0, background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 14 }}>×</button>
+                     style={{ border: 0, outline: "none", fontSize: 12.5, padding: "3px 4px", background: "transparent", color: "#0f172a", fontVariantNumeric: "tabular-nums" }} />
+              {(dateFrom !== DEFAULT_DATE_RANGE.from || dateTo !== DEFAULT_DATE_RANGE.to) && (
+                <button onClick={() => { setDateFrom(DEFAULT_DATE_RANGE.from); setDateTo(DEFAULT_DATE_RANGE.to); }}
+                        title="Revenir aux 12 derniers mois"
+                        style={{ border: 0, background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 14 }}>↺</button>
               )}
             </div>
-            {(clientFilter || dateFrom || dateTo) && (
+            {(clientFilter || dateFrom !== DEFAULT_DATE_RANGE.from || dateTo !== DEFAULT_DATE_RANGE.to) && (
               <span style={{ fontSize: 11.5, color: "#64748b" }}>
                 {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
               </span>

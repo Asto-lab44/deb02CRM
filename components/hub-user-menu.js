@@ -25,20 +25,44 @@
   // dans le script de la page concernée.
   if (typeof window === "undefined") return;
 
+  // Détecte la largeur de la première sidebar fixe à gauche pour caler le
+  // menu utilisateur dedans (au lieu de le faire dépasser sur le contenu).
+  // Tolère plusieurs patterns : <aside>, .sidebar, [data-sidebar], .navbar-left…
+  function detectSidebarWidth() {
+    try {
+      const candidates = document.querySelectorAll("aside, [data-sidebar], .sidebar, .navbar-left, .hub-sidebar");
+      for (const el of candidates) {
+        const r = el.getBoundingClientRect();
+        // Sidebar = élément ancré à gauche, plus haute que large, raisonnable
+        if (r.left <= 8 && r.width > 140 && r.width < 320 && r.height > 300) return r.width;
+      }
+    } catch (e) {}
+    return null;
+  }
+
   function render(user) {
     // Si déjà rendu, ne pas dupliquer
     if (document.getElementById("hub-user-menu-floating")) return;
 
+    const sidebarW = detectSidebarWidth();
+    // Si une sidebar est détectée → menu calé à l'intérieur, sinon flottant.
+    const insideSidebar = sidebarW != null;
     const wrap = document.createElement("div");
     wrap.id = "hub-user-menu-floating";
     wrap.style.cssText = [
-      "position: fixed", "bottom: 14px", "left: 14px", "z-index: 9000",
-      "display: flex", "align-items: center", "gap: 10px",
-      "padding: 8px 10px", "background: #fff",
+      "position: fixed", "bottom: 12px",
+      insideSidebar ? "left: 10px" : "left: 14px",
+      "z-index: 9000",
+      "display: flex", "align-items: center", "gap: 8px",
+      "padding: 6px 8px", "background: #fff",
       "border: 1px solid #eef1f5", "border-radius: 10px",
       "box-shadow: 0 4px 14px rgba(15,23,42,0.10)",
       "font-family: 'Inter', system-ui, sans-serif", "font-size: 12px",
-      "color: #0f172a", "max-width: 280px",
+      "color: #0f172a",
+      // Largeur calée sur la sidebar (avec marges) si présente, sinon 220px
+      "width: " + (insideSidebar ? (sidebarW - 20) + "px" : "auto"),
+      "max-width: " + (insideSidebar ? (sidebarW - 20) + "px" : "220px"),
+      "box-sizing: border-box",
     ].join(";");
 
     const email = (user && user.email) || "?";
@@ -47,10 +71,10 @@
     // Avatar
     const avatar = document.createElement("div");
     avatar.style.cssText = [
-      "width: 28px", "height: 28px", "border-radius: 999px",
+      "width: 26px", "height: 26px", "border-radius: 999px",
       "background: #64748b", "color: #fff",
       "display: inline-flex", "align-items: center", "justify-content: center",
-      "font-size: 11px", "font-weight: 700", "flex-shrink: 0",
+      "font-size: 10.5px", "font-weight: 700", "flex-shrink: 0",
     ].join(";");
     avatar.textContent = initial;
 
@@ -58,10 +82,10 @@
     const txt = document.createElement("div");
     txt.style.cssText = "flex: 1; min-width: 0;";
     const line1 = document.createElement("div");
-    line1.style.cssText = "font-size: 12px; font-weight: 600; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+    line1.style.cssText = "font-size: 11.5px; font-weight: 600; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
     line1.textContent = email;
     const line2 = document.createElement("div");
-    line2.style.cssText = "font-size: 11px; color: #64748b;";
+    line2.style.cssText = "font-size: 10.5px; color: #64748b;";
     line2.textContent = "Astorya";
     txt.appendChild(line1); txt.appendChild(line2);
 
@@ -72,9 +96,9 @@
     btn.setAttribute("aria-label", "Se déconnecter");
     btn.textContent = "⏻";
     btn.style.cssText = [
-      "width: 28px", "height: 28px", "background: #dc2626",
+      "width: 26px", "height: 26px", "background: #dc2626",
       "border: 0", "border-radius: 6px", "color: #fff",
-      "font-size: 13px", "font-weight: 700", "cursor: pointer",
+      "font-size: 12px", "font-weight: 700", "cursor: pointer",
       "display: inline-flex", "align-items: center", "justify-content: center",
       "box-shadow: 0 1px 2px rgba(220,38,38,0.35)", "flex-shrink: 0",
       "transition: transform 100ms ease, background 100ms ease",
@@ -106,7 +130,20 @@
     try {
       const user = await window.api.auth.getUser();
       if (!user) return; // Pas connecté
+      // Premier rendu immédiat (taille fallback si pas de sidebar encore montée).
       render(user);
+      // Les apps React montent la sidebar après DOMContentLoaded → on retente
+      // un rendu corrigé après 800 ms si une sidebar est apparue entre-temps.
+      setTimeout(() => {
+        const existing = document.getElementById("hub-user-menu-floating");
+        if (!existing) return;
+        if (detectSidebarWidth() != null && existing.dataset.aligned !== "1") {
+          existing.remove();
+          render(user);
+          const fresh = document.getElementById("hub-user-menu-floating");
+          if (fresh) fresh.dataset.aligned = "1";
+        }
+      }, 800);
     } catch (e) { /* silencieux */ }
   }
 

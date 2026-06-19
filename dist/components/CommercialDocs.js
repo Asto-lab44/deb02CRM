@@ -1266,17 +1266,17 @@ var DocRow = ({
     // Si doc déjà transformé ou final → on garde le statut courant.
     var NEXT_LBL = {
       devis: {
-        k: "Commande",
+        k: "À commander",
         c: "#a855f7",
         bg: "#f5efff"
       },
       commande: {
-        k: "BL",
+        k: "À livrer",
         c: "#ea580c",
         bg: "#fff7ed"
       },
       bl: {
-        k: "Facture",
+        k: "À facturer",
         c: "#10b981",
         bg: "#dcfce7"
       },
@@ -1316,7 +1316,7 @@ var DocRow = ({
         fontSize: 11,
         fontWeight: 700
       }
-    }, "\u2192 ", next.k);
+    }, next.k);
   })()), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 60px",

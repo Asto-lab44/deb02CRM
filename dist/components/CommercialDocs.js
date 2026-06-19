@@ -2369,7 +2369,7 @@ var CommercialDocEditor = ({
       commande: "BL",
       bl: "facture"
     }[d.type]);
-  })(), /*#__PURE__*/React.createElement("button", {
+  })(), !(d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) && /*#__PURE__*/React.createElement("button", {
     onClick: save,
     disabled: saving,
     style: cdStyles.primaryBtn
@@ -2383,7 +2383,70 @@ var CommercialDocEditor = ({
     canTransform: canTransform,
     chain: chain,
     onOpenDoc: onOpenDoc
-  }), /*#__PURE__*/React.createElement("div", {
+  }), (() => {
+    var isDevisFrozen = d.type === "devis" && (d.status === "accepte" || d.status === "transforme");
+    if (!isDevisFrozen) return null;
+    var cmd = chain && chain.commande;
+    var bl = chain && chain.bl;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "linear-gradient(135deg, #fef3c7, #fed7aa)",
+        border: "1px solid #fbbf24",
+        borderRadius: 10,
+        padding: "10px 14px",
+        marginBottom: 14,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 18
+      }
+    }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#78350f",
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("strong", null, "Devis fig\xE9"), " \u2014 statut \xAB ", d.status === "accepte" ? "Accepté" : "Transformé", " \xBB. Toute modification doit se faire sur la ", cmd ? /*#__PURE__*/React.createElement(React.Fragment, null, "commande\xA0") : "commande ", " ", cmd && /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: () => onOpenDoc && onOpenDoc(cmd.id),
+      style: {
+        border: 0,
+        background: "transparent",
+        color: "#7c2d12",
+        fontWeight: 700,
+        textDecoration: "underline",
+        cursor: "pointer",
+        padding: 0
+      }
+    }, cmd.id), bl && /*#__PURE__*/React.createElement(React.Fragment, null, " ou le BL ", /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: () => onOpenDoc && onOpenDoc(bl.id),
+      style: {
+        border: 0,
+        background: "transparent",
+        color: "#7c2d12",
+        fontWeight: 700,
+        textDecoration: "underline",
+        cursor: "pointer",
+        padding: 0
+      }
+    }, bl.id)), "."));
+  })(), /*#__PURE__*/React.createElement("fieldset", {
+    disabled: d.type === "devis" && (d.status === "accepte" || d.status === "transforme"),
+    style: {
+      border: 0,
+      padding: 0,
+      margin: 0,
+      minWidth: 0,
+      opacity: d.type === "devis" && (d.status === "accepte" || d.status === "transforme") ? 0.65 : 1,
+      pointerEvents: d.type === "devis" && (d.status === "accepte" || d.status === "transforme") ? "none" : "auto",
+      transition: "opacity 150ms"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -3057,7 +3120,7 @@ var CommercialDocEditor = ({
     style: {
       fontVariantNumeric: "tabular-nums"
     }
-  }, fmtEUR(totals.ttc))))), /*#__PURE__*/React.createElement(DocSendHistory, {
+  }, fmtEUR(totals.ttc)))))), /*#__PURE__*/React.createElement(DocSendHistory, {
     docId: d.id
   }))), sendOpen && /*#__PURE__*/React.createElement(DocSendModal, {
     doc: d,

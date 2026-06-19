@@ -1403,7 +1403,9 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             })()}
             {/* Bouton CASCADE supprimé : la transformation depuis un devis cascade
                 automatiquement en Commande + BL via le bouton vert ci-dessus. */}
-            <button onClick={save} disabled={saving} style={cdStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
+            {!(d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) && (
+              <button onClick={save} disabled={saving} style={cdStyles.primaryBtn}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
+            )}
             <button onClick={onClose} style={cdStyles.closeBtn}>×</button>
           </div>
         </header>
@@ -1412,6 +1414,29 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
           {/* WORKFLOW SAGE — fil de fer + validation gates */}
           <WorkflowBar doc={d} canTransform={canTransform} chain={chain} onOpenDoc={onOpenDoc} />
 
+          {/* Lecture seule du devis dès qu'il a été accepté ou transformé.
+              Les modifications doivent passer par la commande client ou le BL. */}
+          {(() => {
+            const isDevisFrozen = d.type === "devis" && (d.status === "accepte" || d.status === "transforme");
+            if (!isDevisFrozen) return null;
+            const cmd = chain && chain.commande;
+            const bl = chain && chain.bl;
+            return (
+              <div style={{ background: "linear-gradient(135deg, #fef3c7, #fed7aa)", border: "1px solid #fbbf24", borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 18 }}>🔒</span>
+                <span style={{ fontSize: 12.5, color: "#78350f", flex: 1 }}>
+                  <strong>Devis figé</strong> — statut « {d.status === "accepte" ? "Accepté" : "Transformé"} ». Toute modification doit se faire sur la {cmd ? <>commande&nbsp;</> : "commande "} {cmd && <button type="button" onClick={() => onOpenDoc && onOpenDoc(cmd.id)} style={{ border: 0, background: "transparent", color: "#7c2d12", fontWeight: 700, textDecoration: "underline", cursor: "pointer", padding: 0 }}>{cmd.id}</button>}
+                  {bl && <> ou le BL <button type="button" onClick={() => onOpenDoc && onOpenDoc(bl.id)} style={{ border: 0, background: "transparent", color: "#7c2d12", fontWeight: 700, textDecoration: "underline", cursor: "pointer", padding: 0 }}>{bl.id}</button></>}.
+                </span>
+              </div>
+            );
+          })()}
+
+          <fieldset disabled={d.type === "devis" && (d.status === "accepte" || d.status === "transforme")}
+                    style={{ border: 0, padding: 0, margin: 0, minWidth: 0,
+                             opacity: (d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) ? 0.65 : 1,
+                             pointerEvents: (d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) ? "none" : "auto",
+                             transition: "opacity 150ms" }}>
           {/* Bloc client + meta */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
             <div>
@@ -1740,7 +1765,9 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             </div>
           </div>
 
-          {/* HISTORIQUE ENVOIS (visible si déjà envoyé) */}
+          </fieldset>
+
+          {/* HISTORIQUE ENVOIS (visible si déjà envoyé) — toujours consultable */}
           <DocSendHistory docId={d.id} />
 
         </div>

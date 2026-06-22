@@ -2794,58 +2794,20 @@ var ClientPage = () => {
     style: cliStyles.actionsHead
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
     style: cliStyles.h2
-  }, "Informations compte")), /*#__PURE__*/React.createElement("button", {
+  }, "Informations compte"), /*#__PURE__*/React.createElement("p", {
+    style: cliStyles.h2sub
+  }, "Suivi commercial \xB7 Cycle de vie \xB7 Identit\xE9 l\xE9gale")), /*#__PURE__*/React.createElement("button", {
     onClick: openEdit,
     style: {
       ...cliStyles.filterPill,
       cursor: "pointer"
     }
   }, "\xC9diter")), (() => {
-    var InfoCard = ({
-      label,
-      children,
-      full
-    }) => /*#__PURE__*/React.createElement("div", {
-      style: {
-        gridColumn: full ? "1 / -1" : "auto",
-        padding: "10px 12px",
-        background: "#fff",
-        border: "1px solid #eef1f5",
-        borderRadius: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        fontWeight: 600,
-        color: "#94a3b8",
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        marginBottom: 5
-      }
-    }, label), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12.5,
-        color: "#0f172a",
-        minWidth: 0
-      }
-    }, children));
-    var SectionTitle = ({
-      children
-    }) => /*#__PURE__*/React.createElement("div", {
-      style: {
-        gridColumn: "1 / -1",
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: "#3730a3",
-        textTransform: "uppercase",
-        letterSpacing: 0.6,
-        padding: "4px 4px 0"
-      }
-    }, children);
     var monoTxt = {
       fontVariantNumeric: "tabular-nums",
-      fontSize: 12,
-      color: "#475569"
+      fontSize: 12.5,
+      color: "#0f172a",
+      fontWeight: 500
     };
     var actionLabel = {
       email: "📧 Email d'intro",
@@ -2853,24 +2815,103 @@ var ClientPage = () => {
       in: "in LinkedIn",
       wait: "⏸ Attendre"
     }[display.action] || display.action;
-    return /*#__PURE__*/React.createElement("div", {
+    var Field = ({
+      label,
+      children,
+      full
+    }) => /*#__PURE__*/React.createElement("div", {
+      style: {
+        gridColumn: full ? "1 / -1" : "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        padding: "10px 0",
+        borderBottom: "1px solid #f1f5f9"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.4
+      }
+    }, label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "#0f172a",
+        minWidth: 0,
+        lineHeight: 1.4
+      }
+    }, children));
+    var Section = ({
+      title,
+      icon,
+      color,
+      children
+    }) => /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#fff",
+        border: "1px solid #eef1f5",
+        borderRadius: 12,
+        padding: "14px 16px 12px",
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10,
+        paddingBottom: 8,
+        borderBottom: "2px solid " + (color + "30")
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        background: color + "1a",
+        color,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 13
+      }
+    }, icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: color,
+        letterSpacing: 0.3
+      }
+    }, title)), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: 10,
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        columnGap: 16,
+        rowGap: 0
+      }
+    }, children));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
         padding: 4
       }
-    }, /*#__PURE__*/React.createElement(SectionTitle, null, "Suivi commercial"), /*#__PURE__*/React.createElement(InfoCard, {
+    }, /*#__PURE__*/React.createElement(Section, {
+      title: "Suivi commercial",
+      icon: "\uD83D\uDC64",
+      color: "#4f46e5"
+    }, /*#__PURE__*/React.createElement(Field, {
       label: "Commercial"
     }, display.owner === "—" ? /*#__PURE__*/React.createElement("span", {
       style: {
-        color: "#94a3b8"
+        color: "#cbd5e1"
       }
     }, "\u2014") : /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 7
+        gap: 8
       }
     }, /*#__PURE__*/React.createElement(Avatar, {
       name: display.owner,
@@ -2880,163 +2921,273 @@ var ClientPage = () => {
       style: {
         fontWeight: 600
       }
-    }, display.owner))), display.size && display.size !== "—" && /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.owner))), /*#__PURE__*/React.createElement(Field, {
       label: "Effectif"
-    }, /*#__PURE__*/React.createElement("span", {
+    }, display.size && display.size !== "—" ? /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, display.size)), /*#__PURE__*/React.createElement(InfoCard, {
-      label: "Secteur"
-    }, /*#__PURE__*/React.createElement("span", {
-      style: cliStyles.fieldChip
-    }, display.sector)), display.sousSecteur && /*#__PURE__*/React.createElement(InfoCard, {
-      label: "Sous-secteur"
-    }, /*#__PURE__*/React.createElement("span", {
-      style: cliStyles.fieldChip
-    }, display.sousSecteur)), /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.size) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, "\u2014")), /*#__PURE__*/React.createElement(Field, {
       label: "Source"
-    }, /*#__PURE__*/React.createElement("span", {
+    }, display.source ? /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, display.source)), /*#__PURE__*/React.createElement(InfoCard, {
-      label: "Concurrent"
+    }, display.source) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, "\u2014")), /*#__PURE__*/React.createElement(Field, {
+      label: "1\xE8re action"
+    }, display.action ? /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, actionLabel) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, "\u2014")), /*#__PURE__*/React.createElement(Field, {
+      label: "Secteur",
+      full: true
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        color: "#475569"
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6
       }
-    }, display.concurrent), (display.concurrentEnd || display.concurrentAmount) && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#94a3b8",
-        marginTop: 2
-      }
-    }, display.concurrentEnd && `Fin : ${new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}`, display.concurrentEnd && display.concurrentAmount && " · ", display.concurrentAmount && `${display.concurrentAmount} k€/an`)), display.action && /*#__PURE__*/React.createElement(InfoCard, {
-      label: "1\xE8re action"
     }, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, actionLabel)), display.contactDate && /*#__PURE__*/React.createElement(InfoCard, {
-      label: "1er contact"
+    }, display.sector), display.sousSecteur && /*#__PURE__*/React.createElement("span", {
+      style: cliStyles.fieldChip
+    }, display.sousSecteur))), /*#__PURE__*/React.createElement(Field, {
+      label: "Concurrent",
+      full: true
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 8
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        ...monoTxt,
-        color: "#0f172a"
+        color: "#475569",
+        fontWeight: 600
       }
+    }, display.concurrent || "—"), display.concurrentEnd && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: "#fef3c7",
+        color: "#92400e",
+        fontWeight: 600
+      }
+    }, "Fin : ", new Date(display.concurrentEnd).toLocaleDateString("fr-FR")), display.concurrentAmount && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: "#fee2e2",
+        color: "#991b1b",
+        fontWeight: 600,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, display.concurrentAmount, " k\u20AC/an"))), display.contactDate && /*#__PURE__*/React.createElement(Field, {
+      label: "1er contact"
+    }, /*#__PURE__*/React.createElement("span", {
+      style: monoTxt
     }, new Date(display.contactDate).toLocaleDateString("fr-FR", {
       day: "2-digit",
       month: "long",
       year: "numeric"
-    }))), display.projectDate && /*#__PURE__*/React.createElement(InfoCard, {
+    }))), display.projectDate && /*#__PURE__*/React.createElement(Field, {
       label: "\xC9ch\xE9ance projet"
     }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        ...monoTxt,
-        color: "#0f172a"
-      }
+      style: monoTxt
     }, new Date(display.projectDate).toLocaleDateString("fr-FR", {
       day: "2-digit",
       month: "long",
       year: "numeric"
-    }))), display.besoin && /*#__PURE__*/React.createElement(InfoCard, {
+    }))), display.besoin && /*#__PURE__*/React.createElement(Field, {
       label: "Besoin identifi\xE9",
       full: true
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
+        fontSize: 12.5,
         color: "#475569",
         lineHeight: 1.5
       }
-    }, display.besoin)), /*#__PURE__*/React.createElement(SectionTitle, null, "Cycle de vie"), /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.besoin))), /*#__PURE__*/React.createElement(Section, {
+      title: "Cycle de vie",
+      icon: "\uD83D\uDD04",
+      color: "#0e7a55"
+    }, /*#__PURE__*/React.createElement(Field, {
       label: isCustom ? "Prospect depuis" : "Client depuis"
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         ...monoTxt,
-        color: "#0f172a",
-        fontWeight: 600
+        fontWeight: 700
       }
-    }, display.clientSince)), !isCustom && /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.clientSince)), !isCustom && /*#__PURE__*/React.createElement(Field, {
       label: "Renouvellement"
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         color: "#0e7a55",
-        fontWeight: 600
+        fontWeight: 700
       }
-    }, display.renewal)), /*#__PURE__*/React.createElement(InfoCard, {
-      label: "Contrats actifs"
+    }, display.renewal)), /*#__PURE__*/React.createElement(Field, {
+      label: "Contrats actifs",
+      full: true
+    }, contractsList.length > 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap"
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontWeight: 600
+        fontSize: 18,
+        fontWeight: 700,
+        color: "#0e7a55",
+        fontVariantNumeric: "tabular-nums"
       }
-    }, contractsList.length > 0 ? `${contractsList.length} (${contractsList.map(x => x.name).slice(0, 2).join(", ")}${contractsList.length > 2 ? "…" : ""})` : isCustom ? "Aucun" : display.activeContracts)), display.tier && /*#__PURE__*/React.createElement(InfoCard, {
+    }, contractsList.length), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#64748b"
+      }
+    }, contractsList.map(x => x.name).slice(0, 3).join(", "), contractsList.length > 3 ? "…" : "")) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, isCustom ? "Aucun" : display.activeContracts)), display.tier && /*#__PURE__*/React.createElement(Field, {
       label: "Tier"
     }, /*#__PURE__*/React.createElement("span", {
       style: cliStyles.fieldChip
-    }, "Tier ", display.tier)), display.ca && /*#__PURE__*/React.createElement(InfoCard, {
+    }, "Tier ", display.tier)), display.ca && /*#__PURE__*/React.createElement(Field, {
       label: "CA annuel"
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontWeight: 600
+        fontWeight: 700,
+        color: "#0f172a",
+        fontVariantNumeric: "tabular-nums"
       }
-    }, display.ca, " M\u20AC")), /*#__PURE__*/React.createElement(SectionTitle, null, "Identit\xE9 l\xE9gale"), display.siren && /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.ca, " M\u20AC"))), /*#__PURE__*/React.createElement(Section, {
+      title: "Identit\xE9 l\xE9gale",
+      icon: "\uD83C\uDFDB",
+      color: "#7c3aed"
+    }, /*#__PURE__*/React.createElement(Field, {
       label: "SIREN"
-    }, /*#__PURE__*/React.createElement("span", {
+    }, display.siren ? /*#__PURE__*/React.createElement("span", {
       style: monoTxt
-    }, display.siren)), display.naf && /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.siren) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, "\u2014")), /*#__PURE__*/React.createElement(Field, {
       label: "NAF"
-    }, /*#__PURE__*/React.createElement("span", {
+    }, display.naf ? /*#__PURE__*/React.createElement("span", {
       style: monoTxt
-    }, display.naf)), display.tva && /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.naf) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, "\u2014")), /*#__PURE__*/React.createElement(Field, {
       label: "TVA intra."
-    }, /*#__PURE__*/React.createElement("span", {
+    }, display.tva ? /*#__PURE__*/React.createElement("span", {
       style: monoTxt
-    }, display.tva)), display.linkedin && /*#__PURE__*/React.createElement(InfoCard, {
-      label: "LinkedIn"
+    }, display.tva) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, "\u2014")), display.linkedin && /*#__PURE__*/React.createElement(Field, {
+      label: "LinkedIn",
+      full: true
     }, /*#__PURE__*/React.createElement("a", {
       href: display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin,
       target: "_blank",
       rel: "noopener",
       style: {
-        fontSize: 12,
+        fontSize: 12.5,
         color: "#3730a3",
         textDecoration: "none",
-        wordBreak: "break-all"
+        wordBreak: "break-all",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4
       }
-    }, display.linkedin.replace(/^https?:\/\//, ""), " \u2197")), /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.linkedin.replace(/^https?:\/\//, ""), " ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10
+      }
+    }, "\u2197"))), /*#__PURE__*/React.createElement(Field, {
       label: "Adresse si\xE8ge",
       full: true
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        alignItems: "flex-start"
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
+        fontSize: 16,
+        lineHeight: 1,
+        marginTop: 1
+      }
+    }, "\uD83D\uDCCD"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
         color: "#475569",
         lineHeight: 1.5
       }
-    }, "\uD83D\uDCCD ", display.address, (display.cp || display.addressCity) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), display.cp, " ", display.addressCity))), Array.isArray(display.etablissements_secondaires) && display.etablissements_secondaires.length > 0 && /*#__PURE__*/React.createElement(InfoCard, {
+    }, display.address || /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#cbd5e1"
+      }
+    }, "\u2014"), (display.cp || display.addressCity) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, display.cp, " ", display.addressCity))))), Array.isArray(display.etablissements_secondaires) && display.etablissements_secondaires.length > 0 && /*#__PURE__*/React.createElement(Field, {
       label: "Établissements secondaires (" + display.etablissements_secondaires.length + ")",
       full: true
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: 8
+        gap: 8,
+        marginTop: 4
       }
     }, display.etablissements_secondaires.map((es, i) => /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
         fontSize: 12,
-        padding: "8px 10px",
+        padding: "10px 12px",
         background: "#fafbfc",
         border: "1px solid #eef1f5",
-        borderRadius: 6
+        borderRadius: 8,
+        borderLeft: "3px solid #7c3aed"
       }
     }, es.nom && /*#__PURE__*/React.createElement("div", {
       style: {
-        fontWeight: 600,
+        fontWeight: 700,
         color: "#0f172a",
-        marginBottom: 2
+        marginBottom: 4
       }
     }, es.nom), /*#__PURE__*/React.createElement("div", {
       style: {
         color: "#475569",
-        lineHeight: 1.4
+        lineHeight: 1.5
       }
-    }, es.adresse, (es.cp || es.ville) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), es.cp, " ", es.ville)))))));
+    }, es.adresse, (es.cp || es.ville) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, es.cp, " ", es.ville)))))))));
   })()))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {

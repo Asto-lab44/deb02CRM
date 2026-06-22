@@ -1627,92 +1627,165 @@ const ClientPage = () => {
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>Informations compte</h2>
+                    <p style={cliStyles.h2sub}>Suivi commercial · Cycle de vie · Identité légale</p>
                   </div>
                   <button onClick={openEdit} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>Éditer</button>
                 </div>
                 {(() => {
-                  const InfoCard = ({ label, children, full }) => (
-                    <div style={{ gridColumn: full ? "1 / -1" : "auto", padding: "10px 12px", background: "#fff", border: "1px solid #eef1f5", borderRadius: 8 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>{label}</div>
-                      <div style={{ fontSize: 12.5, color: "#0f172a", minWidth: 0 }}>{children}</div>
+                  const monoTxt = { fontVariantNumeric: "tabular-nums", fontSize: 12.5, color: "#0f172a", fontWeight: 500 };
+                  const actionLabel = ({ email: "📧 Email d'intro", call: "📞 Cold call", in: "in LinkedIn", wait: "⏸ Attendre" })[display.action] || display.action;
+                  const Field = ({ label, children, full }) => (
+                    <div style={{ gridColumn: full ? "1 / -1" : "auto", display: "flex", flexDirection: "column", gap: 4, padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</div>
+                      <div style={{ fontSize: 12.5, color: "#0f172a", minWidth: 0, lineHeight: 1.4 }}>{children}</div>
                     </div>
                   );
-                  const SectionTitle = ({ children }) => (
-                    <div style={{ gridColumn: "1 / -1", fontSize: 10.5, fontWeight: 700, color: "#3730a3", textTransform: "uppercase", letterSpacing: 0.6, padding: "4px 4px 0" }}>{children}</div>
+                  const Section = ({ title, icon, color, children }) => (
+                    <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, padding: "14px 16px 12px", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: "2px solid " + (color + "30") }}>
+                        <span style={{ width: 24, height: 24, borderRadius: 6, background: color + "1a", color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{icon}</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: color, letterSpacing: 0.3 }}>{title}</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", columnGap: 16, rowGap: 0 }}>
+                        {children}
+                      </div>
+                    </div>
                   );
-                  const monoTxt = { fontVariantNumeric: "tabular-nums", fontSize: 12, color: "#475569" };
-                  const actionLabel = ({ email: "📧 Email d'intro", call: "📞 Cold call", in: "in LinkedIn", wait: "⏸ Attendre" })[display.action] || display.action;
+
                   return (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, padding: 4 }}>
-                      <SectionTitle>Suivi commercial</SectionTitle>
-                      <InfoCard label="Commercial">
-                        {display.owner === "—" ? <span style={{ color: "#94a3b8" }}>—</span> : (
-                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <Avatar name={display.owner} size={22} color={display.ownerColor} />
-                            <span style={{ fontWeight: 600 }}>{display.owner}</span>
+                    <div style={{ padding: 4 }}>
+                      <Section title="Suivi commercial" icon="👤" color="#4f46e5">
+                        <Field label="Commercial">
+                          {display.owner === "—" ? <span style={{ color: "#cbd5e1" }}>—</span> : (
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <Avatar name={display.owner} size={22} color={display.ownerColor} />
+                              <span style={{ fontWeight: 600 }}>{display.owner}</span>
+                            </div>
+                          )}
+                        </Field>
+                        <Field label="Effectif">
+                          {display.size && display.size !== "—" ? <span style={cliStyles.fieldChip}>{display.size}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </Field>
+                        <Field label="Source">
+                          {display.source ? <span style={cliStyles.fieldChip}>{display.source}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </Field>
+                        <Field label="1ère action">
+                          {display.action ? <span style={cliStyles.fieldChip}>{actionLabel}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </Field>
+                        <Field label="Secteur" full>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            <span style={cliStyles.fieldChip}>{display.sector}</span>
+                            {display.sousSecteur && <span style={cliStyles.fieldChip}>{display.sousSecteur}</span>}
                           </div>
-                        )}
-                      </InfoCard>
-                      {display.size && display.size !== "—" && <InfoCard label="Effectif"><span style={cliStyles.fieldChip}>{display.size}</span></InfoCard>}
-                      <InfoCard label="Secteur"><span style={cliStyles.fieldChip}>{display.sector}</span></InfoCard>
-                      {display.sousSecteur && <InfoCard label="Sous-secteur"><span style={cliStyles.fieldChip}>{display.sousSecteur}</span></InfoCard>}
-                      <InfoCard label="Source"><span style={cliStyles.fieldChip}>{display.source}</span></InfoCard>
-                      <InfoCard label="Concurrent">
-                        <div style={{ color: "#475569" }}>{display.concurrent}</div>
-                        {(display.concurrentEnd || display.concurrentAmount) && (
-                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-                            {display.concurrentEnd && `Fin : ${new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}`}
-                            {display.concurrentEnd && display.concurrentAmount && " · "}
-                            {display.concurrentAmount && `${display.concurrentAmount} k€/an`}
+                        </Field>
+                        <Field label="Concurrent" full>
+                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                            <span style={{ color: "#475569", fontWeight: 600 }}>{display.concurrent || "—"}</span>
+                            {display.concurrentEnd && (
+                              <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "#fef3c7", color: "#92400e", fontWeight: 600 }}>
+                                Fin : {new Date(display.concurrentEnd).toLocaleDateString("fr-FR")}
+                              </span>
+                            )}
+                            {display.concurrentAmount && (
+                              <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "#fee2e2", color: "#991b1b", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                                {display.concurrentAmount} k€/an
+                              </span>
+                            )}
                           </div>
+                        </Field>
+                        {display.contactDate && (
+                          <Field label="1er contact">
+                            <span style={monoTxt}>{new Date(display.contactDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</span>
+                          </Field>
                         )}
-                      </InfoCard>
-                      {display.action && <InfoCard label="1ère action"><span style={cliStyles.fieldChip}>{actionLabel}</span></InfoCard>}
-                      {display.contactDate && <InfoCard label="1er contact"><span style={{ ...monoTxt, color: "#0f172a" }}>{new Date(display.contactDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</span></InfoCard>}
-                      {display.projectDate && <InfoCard label="Échéance projet"><span style={{ ...monoTxt, color: "#0f172a" }}>{new Date(display.projectDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</span></InfoCard>}
-                      {display.besoin && <InfoCard label="Besoin identifié" full><span style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>{display.besoin}</span></InfoCard>}
+                        {display.projectDate && (
+                          <Field label="Échéance projet">
+                            <span style={monoTxt}>{new Date(display.projectDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</span>
+                          </Field>
+                        )}
+                        {display.besoin && (
+                          <Field label="Besoin identifié" full>
+                            <span style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.5 }}>{display.besoin}</span>
+                          </Field>
+                        )}
+                      </Section>
 
-                      <SectionTitle>Cycle de vie</SectionTitle>
-                      <InfoCard label={isCustom ? "Prospect depuis" : "Client depuis"}><span style={{ ...monoTxt, color: "#0f172a", fontWeight: 600 }}>{display.clientSince}</span></InfoCard>
-                      {!isCustom && <InfoCard label="Renouvellement"><span style={{ color: "#0e7a55", fontWeight: 600 }}>{display.renewal}</span></InfoCard>}
-                      <InfoCard label="Contrats actifs">
-                        <span style={{ fontWeight: 600 }}>{contractsList.length > 0 ? `${contractsList.length} (${contractsList.map((x) => x.name).slice(0, 2).join(", ")}${contractsList.length > 2 ? "…" : ""})` : (isCustom ? "Aucun" : display.activeContracts)}</span>
-                      </InfoCard>
-                      {display.tier && <InfoCard label="Tier"><span style={cliStyles.fieldChip}>Tier {display.tier}</span></InfoCard>}
-                      {display.ca && <InfoCard label="CA annuel"><span style={{ fontWeight: 600 }}>{display.ca} M€</span></InfoCard>}
+                      <Section title="Cycle de vie" icon="🔄" color="#0e7a55">
+                        <Field label={isCustom ? "Prospect depuis" : "Client depuis"}>
+                          <span style={{ ...monoTxt, fontWeight: 700 }}>{display.clientSince}</span>
+                        </Field>
+                        {!isCustom && (
+                          <Field label="Renouvellement">
+                            <span style={{ color: "#0e7a55", fontWeight: 700 }}>{display.renewal}</span>
+                          </Field>
+                        )}
+                        <Field label="Contrats actifs" full>
+                          {contractsList.length > 0 ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 18, fontWeight: 700, color: "#0e7a55", fontVariantNumeric: "tabular-nums" }}>{contractsList.length}</span>
+                              <span style={{ fontSize: 12, color: "#64748b" }}>
+                                {contractsList.map((x) => x.name).slice(0, 3).join(", ")}{contractsList.length > 3 ? "…" : ""}
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ color: "#cbd5e1" }}>{isCustom ? "Aucun" : display.activeContracts}</span>
+                          )}
+                        </Field>
+                        {display.tier && (
+                          <Field label="Tier">
+                            <span style={cliStyles.fieldChip}>Tier {display.tier}</span>
+                          </Field>
+                        )}
+                        {display.ca && (
+                          <Field label="CA annuel">
+                            <span style={{ fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{display.ca} M€</span>
+                          </Field>
+                        )}
+                      </Section>
 
-                      <SectionTitle>Identité légale</SectionTitle>
-                      {display.siren && <InfoCard label="SIREN"><span style={monoTxt}>{display.siren}</span></InfoCard>}
-                      {display.naf && <InfoCard label="NAF"><span style={monoTxt}>{display.naf}</span></InfoCard>}
-                      {display.tva && <InfoCard label="TVA intra."><span style={monoTxt}>{display.tva}</span></InfoCard>}
-                      {display.linkedin && (
-                        <InfoCard label="LinkedIn">
-                          <a href={display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin} target="_blank" rel="noopener" style={{ fontSize: 12, color: "#3730a3", textDecoration: "none", wordBreak: "break-all" }}>
-                            {display.linkedin.replace(/^https?:\/\//, "")} ↗
-                          </a>
-                        </InfoCard>
-                      )}
-                      <InfoCard label="Adresse siège" full>
-                        <span style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
-                          📍 {display.address}
-                          {(display.cp || display.addressCity) && <><br/>{display.cp} {display.addressCity}</>}
-                        </span>
-                      </InfoCard>
-                      {Array.isArray(display.etablissements_secondaires) && display.etablissements_secondaires.length > 0 && (
-                        <InfoCard label={"Établissements secondaires (" + display.etablissements_secondaires.length + ")"} full>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
-                            {display.etablissements_secondaires.map((es, i) => (
-                              <div key={i} style={{ fontSize: 12, padding: "8px 10px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 6 }}>
-                                {es.nom && <div style={{ fontWeight: 600, color: "#0f172a", marginBottom: 2 }}>{es.nom}</div>}
-                                <div style={{ color: "#475569", lineHeight: 1.4 }}>
-                                  {es.adresse}
-                                  {(es.cp || es.ville) && <><br/>{es.cp} {es.ville}</>}
+                      <Section title="Identité légale" icon="🏛" color="#7c3aed">
+                        <Field label="SIREN">
+                          {display.siren ? <span style={monoTxt}>{display.siren}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </Field>
+                        <Field label="NAF">
+                          {display.naf ? <span style={monoTxt}>{display.naf}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </Field>
+                        <Field label="TVA intra.">
+                          {display.tva ? <span style={monoTxt}>{display.tva}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </Field>
+                        {display.linkedin && (
+                          <Field label="LinkedIn" full>
+                            <a href={display.linkedin.startsWith("http") ? display.linkedin : "https://" + display.linkedin} target="_blank" rel="noopener"
+                               style={{ fontSize: 12.5, color: "#3730a3", textDecoration: "none", wordBreak: "break-all", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              {display.linkedin.replace(/^https?:\/\//, "")} <span style={{ fontSize: 10 }}>↗</span>
+                            </a>
+                          </Field>
+                        )}
+                        <Field label="Adresse siège" full>
+                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                            <span style={{ fontSize: 16, lineHeight: 1, marginTop: 1 }}>📍</span>
+                            <span style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.5 }}>
+                              {display.address || <span style={{ color: "#cbd5e1" }}>—</span>}
+                              {(display.cp || display.addressCity) && <><br/><span style={{ fontWeight: 600, color: "#0f172a" }}>{display.cp} {display.addressCity}</span></>}
+                            </span>
+                          </div>
+                        </Field>
+                        {Array.isArray(display.etablissements_secondaires) && display.etablissements_secondaires.length > 0 && (
+                          <Field label={"Établissements secondaires (" + display.etablissements_secondaires.length + ")"} full>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8, marginTop: 4 }}>
+                              {display.etablissements_secondaires.map((es, i) => (
+                                <div key={i} style={{ fontSize: 12, padding: "10px 12px", background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 8, borderLeft: "3px solid #7c3aed" }}>
+                                  {es.nom && <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{es.nom}</div>}
+                                  <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                                    {es.adresse}
+                                    {(es.cp || es.ville) && <><br/><span style={{ fontWeight: 600, color: "#0f172a" }}>{es.cp} {es.ville}</span></>}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        </InfoCard>
-                      )}
+                              ))}
+                            </div>
+                          </Field>
+                        )}
+                      </Section>
                     </div>
                   );
                 })()}

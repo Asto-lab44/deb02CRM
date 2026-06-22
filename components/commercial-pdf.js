@@ -273,21 +273,21 @@
     };
 
     // ───── Bandeau header : logo Astorya à gauche, titre type à droite
-    // Le logo SVG est embarqué inline (pas de dépendance asset externe).
+    // Logo : fit augmenté à [300, 85] pour éviter la coupe de "informatique".
     const logoCell = (window.AstoryaAssets && window.AstoryaAssets.logoSvg)
-      ? { svg: window.AstoryaAssets.logoSvg, width: 220, fit: [220, 70], margin: [4, 8, 0, 8], alignment: "left" }
-      : { svg: ASTORYA_LOGO_SVG, width: 220, height: 60, margin: [4, 8, 0, 8], alignment: "left" };
+      ? { svg: window.AstoryaAssets.logoSvg, fit: [240, 55], margin: [4, 4, 0, 4], alignment: "left" }
+      : { svg: ASTORYA_LOGO_SVG, fit: [240, 55], margin: [4, 4, 0, 4], alignment: "left" };
     const headerBand = {
       table: {
-        widths: ["*", 220],
+        widths: ["*", 140],
         body: [
           [
             logoCell,
             {
               text: typeLabel,
-              fontSize: 26, bold: true, color: "#c91c45",
+              fontSize: 22, bold: true, color: "#c91c45",
               alignment: "right",
-              margin: [0, 24, 8, 8],
+              margin: [0, 16, 4, 4],
             },
           ],
         ],
@@ -368,22 +368,22 @@
           },
         },
         {
-          width: 220,
+          width: 180,
           margin: [12, 18, 0, 0],
           table: {
-            widths: ["*", 90],
+            widths: ["*", 72],
             body: [
               [
-                { text: "Total HT", bold: true, fontSize: 10, margin: [4, 6, 0, 6] },
-                { text: fmtEUR(doc.total_ht), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
+                { text: "Total HT", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
+                { text: fmtEUR(doc.total_ht), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
               ],
               [
-                { text: "Total TVA", bold: true, fontSize: 10, margin: [4, 6, 0, 6] },
-                { text: fmtEUR(doc.total_tva), bold: true, fontSize: 10, alignment: "right", margin: [0, 6, 6, 6] },
+                { text: "Total TVA", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
+                { text: fmtEUR(doc.total_tva), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
               ],
               [
-                { text: "NET A PAYER", bold: true, fontSize: 12, color: "#fff", margin: [4, 8, 0, 8], fillColor: "#0f172a" },
-                { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 12, alignment: "right", color: "#fff", margin: [0, 8, 6, 8], fillColor: "#0f172a" },
+                { text: "NET A PAYER", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: "#0f172a" },
+                { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: "#0f172a" },
               ],
             ],
           },

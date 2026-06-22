@@ -298,13 +298,13 @@ var ERPHome = () => {
     bg: "#fdf2f8",
     stats: [{
       k: "Campagnes",
-      v: "12"
+      v: "0"
     }, {
       k: "Leads",
-      v: "284"
+      v: "0"
     }, {
       k: "CTR",
-      v: "4,2 %"
+      v: "—"
     }]
   },
   // PRODUCTION / TECHNIQUE
@@ -329,18 +329,14 @@ var ERPHome = () => {
     bg: "#e0f4fc",
     stats: [{
       k: "Tickets ouverts",
-      v: "47"
+      v: "0"
     }, {
       k: "SLA respect",
-      v: "94 %"
+      v: "—"
     }, {
       k: "MTTR",
-      v: "6h12"
-    }],
-    badge: {
-      label: "2 critiques",
-      tone: "danger"
-    }
+      v: "—"
+    }]
   }, {
     cat: "Production",
     key: "projects",
@@ -368,13 +364,13 @@ var ERPHome = () => {
     bg: "#f5efff",
     stats: [{
       k: "Projets actifs",
-      v: "18"
+      v: "0"
     }, {
       k: "Jalons 30 j",
-      v: "7"
+      v: "0"
     }, {
       k: "En retard",
-      v: "2"
+      v: "0"
     }]
   }, {
     cat: "Production",
@@ -399,13 +395,13 @@ var ERPHome = () => {
     bg: "#cffafe",
     stats: [{
       k: "Références",
-      v: "1 412"
+      v: "0"
     }, {
       k: "Rupture",
-      v: "8"
+      v: "0"
     }, {
       k: "Valeur",
-      v: "428 k€"
+      v: "0 €"
     }]
   },
   // FINANCE
@@ -430,15 +426,14 @@ var ERPHome = () => {
     bg: "#e8f8f1",
     stats: [{
       k: "CA mois",
-      v: "284 k€"
+      v: "0 €"
     }, {
       k: "Marge",
-      v: "32 %"
+      v: "—"
     }, {
       k: "Clôture",
-      v: "J-3"
-    }],
-    trendUp: true
+      v: "—"
+    }]
   }, {
     cat: "Finance",
     key: "commercial",
@@ -501,13 +496,13 @@ var ERPHome = () => {
     bg: "#d1fae5",
     stats: [{
       k: "Trésorerie",
-      v: "1,24 M€"
+      v: "0 €"
     }, {
       k: "Échéances 30 j",
-      v: "62 k€"
+      v: "0 €"
     }, {
       k: "Runway",
-      v: "14 mois"
+      v: "—"
     }]
   },
   // RH
@@ -538,13 +533,13 @@ var ERPHome = () => {
     bg: "#f3e8ff",
     stats: [{
       k: "Effectif",
-      v: "127"
+      v: "0"
     }, {
       k: "Absents",
-      v: "8"
+      v: "0"
     }, {
       k: "Recrutements",
-      v: "5"
+      v: "0"
     }]
   }, {
     cat: "Ressources humaines",
@@ -606,13 +601,13 @@ var ERPHome = () => {
     bg: "#e0e7ff",
     stats: [{
       k: "Dashboards",
-      v: "12"
+      v: "0"
     }, {
       k: "Partagés",
-      v: "47"
+      v: "0"
     }, {
       k: "Sources",
-      v: "8"
+      v: "0"
     }]
   }, {
     cat: "Pilotage",
@@ -639,13 +634,13 @@ var ERPHome = () => {
     bg: "#f1f3f6",
     stats: [{
       k: "Utilisateurs",
-      v: "184"
+      v: "0"
     }, {
       k: "Actifs 7 j",
-      v: "147"
+      v: "0"
     }, {
       k: "Intégrations",
-      v: "23"
+      v: "0"
     }]
   }];
   var visibleModules = modules.filter(m => allowedKeys.has(m.key));

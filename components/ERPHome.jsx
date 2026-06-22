@@ -194,9 +194,9 @@ const ERPHome = () => {
       color: "#ec4899",
       bg: "#fdf2f8",
       stats: [
-        { k: "Campagnes", v: "12" },
-        { k: "Leads", v: "284" },
-        { k: "CTR", v: "4,2 %" },
+        { k: "Campagnes", v: "0" },
+        { k: "Leads", v: "0" },
+        { k: "CTR", v: "—" },
       ],
     },
 
@@ -210,11 +210,10 @@ const ERPHome = () => {
       color: "#0ea5e9",
       bg: "#e0f4fc",
       stats: [
-        { k: "Tickets ouverts", v: "47" },
-        { k: "SLA respect", v: "94 %" },
-        { k: "MTTR", v: "6h12" },
+        { k: "Tickets ouverts", v: "0" },
+        { k: "SLA respect", v: "—" },
+        { k: "MTTR", v: "—" },
       ],
-      badge: { label: "2 critiques", tone: "danger" },
     },
     {
       cat: "Production",
@@ -225,9 +224,9 @@ const ERPHome = () => {
       color: "#a855f7",
       bg: "#f5efff",
       stats: [
-        { k: "Projets actifs", v: "18" },
-        { k: "Jalons 30 j", v: "7" },
-        { k: "En retard", v: "2" },
+        { k: "Projets actifs", v: "0" },
+        { k: "Jalons 30 j", v: "0" },
+        { k: "En retard", v: "0" },
       ],
     },
     {
@@ -239,9 +238,9 @@ const ERPHome = () => {
       color: "#0891b2",
       bg: "#cffafe",
       stats: [
-        { k: "Références", v: "1 412" },
-        { k: "Rupture", v: "8" },
-        { k: "Valeur", v: "428 k€" },
+        { k: "Références", v: "0" },
+        { k: "Rupture", v: "0" },
+        { k: "Valeur", v: "0 €" },
       ],
     },
 
@@ -255,11 +254,10 @@ const ERPHome = () => {
       color: "#10b981",
       bg: "#e8f8f1",
       stats: [
-        { k: "CA mois", v: "284 k€" },
-        { k: "Marge", v: "32 %" },
-        { k: "Clôture", v: "J-3" },
+        { k: "CA mois", v: "0 €" },
+        { k: "Marge", v: "—" },
+        { k: "Clôture", v: "—" },
       ],
-      trendUp: true,
     },
     {
       cat: "Finance",
@@ -285,9 +283,9 @@ const ERPHome = () => {
       color: "#0e7a55",
       bg: "#d1fae5",
       stats: [
-        { k: "Trésorerie", v: "1,24 M€" },
-        { k: "Échéances 30 j", v: "62 k€" },
-        { k: "Runway", v: "14 mois" },
+        { k: "Trésorerie", v: "0 €" },
+        { k: "Échéances 30 j", v: "0 €" },
+        { k: "Runway", v: "—" },
       ],
     },
 
@@ -301,9 +299,9 @@ const ERPHome = () => {
       color: "#8b5cf6",
       bg: "#f3e8ff",
       stats: [
-        { k: "Effectif", v: "127" },
-        { k: "Absents", v: "8" },
-        { k: "Recrutements", v: "5" },
+        { k: "Effectif", v: "0" },
+        { k: "Absents", v: "0" },
+        { k: "Recrutements", v: "0" },
       ],
     },
     {
@@ -332,9 +330,9 @@ const ERPHome = () => {
       color: "#3730a3",
       bg: "#e0e7ff",
       stats: [
-        { k: "Dashboards", v: "12" },
-        { k: "Partagés", v: "47" },
-        { k: "Sources", v: "8" },
+        { k: "Dashboards", v: "0" },
+        { k: "Partagés", v: "0" },
+        { k: "Sources", v: "0" },
       ],
     },
     {
@@ -346,9 +344,9 @@ const ERPHome = () => {
       color: "#64748b",
       bg: "#f1f3f6",
       stats: [
-        { k: "Utilisateurs", v: "184" },
-        { k: "Actifs 7 j", v: "147" },
-        { k: "Intégrations", v: "23" },
+        { k: "Utilisateurs", v: "0" },
+        { k: "Actifs 7 j", v: "0" },
+        { k: "Intégrations", v: "0" },
       ],
     },
   ];

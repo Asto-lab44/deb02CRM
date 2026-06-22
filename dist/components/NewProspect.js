@@ -670,7 +670,10 @@ var NewProspect = () => {
     onBlur: () => setTimeout(() => setSiretOpen(false), 150),
     placeholder: "Tapez le nom de l'entreprise ou un SIREN\u2026"
   }), /*#__PURE__*/React.createElement("span", {
-    style: npStyles.searchTag
+    style: {
+      ...npStyles.searchTag,
+      right: companyName || companySiren ? 44 : 8
+    }
   }, siretLoading ? "⏳ Recherche…" : "🔍 Auto-complété via base SIRENE"), (companyName || companySiren) && /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: clearSelection,

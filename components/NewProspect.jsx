@@ -475,7 +475,7 @@ const NewProspect = () => {
                   onBlur={() => setTimeout(() => setSiretOpen(false), 150)}
                   placeholder="Tapez le nom de l'entreprise ou un SIREN…"
                 />
-                <span style={npStyles.searchTag}>{siretLoading ? "⏳ Recherche…" : "🔍 Auto-complété via base SIRENE"}</span>
+                <span style={{ ...npStyles.searchTag, right: (companyName || companySiren) ? 44 : 8 }}>{siretLoading ? "⏳ Recherche…" : "🔍 Auto-complété via base SIRENE"}</span>
                 {(companyName || companySiren) && (
                   <button
                     type="button"

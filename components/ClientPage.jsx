@@ -1180,31 +1180,38 @@ const ClientPage = () => {
                               "",
                               "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe.",
                             ].join("\n");
-                            const href = "mailto:" + encodeURIComponent(recipient) +
-                              "?subject=" + encodeURIComponent(subject) +
-                              "&body=" + encodeURIComponent(body);
+                            // Outlook Web compose — ne dépend pas du client mail par défaut du système
+                            // (en particulier utile quand mailto: n'est pas mappé à Outlook).
+                            const params = new URLSearchParams({
+                              path: "/mail/action/compose",
+                              to: recipient,
+                              subject,
+                              body,
+                            });
+                            const href = "https://outlook.office.com/owa/?" + params.toString();
                             return (
-                              <a href={href}
-                                 title={recipient ? ("Ouvrir un mail pour " + recipient) : "Aucun destinataire renseigné"}
+                              <button
+                                 type="button"
+                                 title={recipient ? ("Ouvrir Outlook pour " + recipient) : "Aucun destinataire renseigné"}
                                  onClick={(e) => {
                                    if (!recipient) {
-                                     e.preventDefault();
                                      if (window.HubToast) window.HubToast.warn("Aucun email — ajoute un contact d'abord");
                                      return;
                                    }
                                    // Télécharge la plaquette automatiquement → l'utilisateur n'a
-                                   // qu'à glisser-déposer le PDF dans son mail (mailto: ne supporte
-                                   // pas les pièces jointes, contrainte navigateur).
+                                   // qu'à glisser-déposer le PDF dans son mail (Outlook web n'accepte
+                                   // pas les pièces jointes en URL, contrainte navigateur).
                                    const link = document.createElement("a");
                                    link.href = "/assets/Plaquette-Astorya.pdf";
                                    link.download = "Plaquette-Astorya.pdf";
                                    document.body.appendChild(link);
                                    link.click();
                                    document.body.removeChild(link);
-                                   if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail comme pièce jointe");
+                                   window.open(href, "outlook-compose", "noopener");
+                                   if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans Outlook comme pièce jointe");
                                  }}
-                                 style={hoverStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                              >{a.icon}</a>
+                                 style={{ ...hoverStyle, border: 0 }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                              >{a.icon}</button>
                             );
                           }
                           if (isCall) {

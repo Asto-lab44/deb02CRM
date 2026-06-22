@@ -2045,10 +2045,11 @@ var noStyles = {
   // Modal
   modal: {
     position: "absolute",
-    top: 24,
+    top: 16,
     left: "50%",
     transform: "translateX(-50%)",
-    width: "min(1600px, calc(100vw - 32px))",
+    width: "calc(100vw - 24px)",
+    maxWidth: "none",
     maxHeight: 1620,
     background: "#fff",
     borderRadius: 16,

@@ -1012,7 +1012,7 @@ const noStyles = {
   overlay: { position: "absolute", inset: 0, background: "rgba(15, 23, 42, 0.55)", backdropFilter: "blur(4px)" },
 
   // Modal
-  modal: { position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", width: "min(1600px, calc(100vw - 32px))", maxHeight: 1620, background: "#fff", borderRadius: 16, boxShadow: "0 24px 64px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(15, 23, 42, 0.05)", display: "flex", flexDirection: "column", overflow: "hidden" },
+  modal: { position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", width: "calc(100vw - 24px)", maxWidth: "none", maxHeight: 1620, background: "#fff", borderRadius: 16, boxShadow: "0 24px 64px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(15, 23, 42, 0.05)", display: "flex", flexDirection: "column", overflow: "hidden" },
 
   modalHead: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid #eef1f5" },
   modalIcon: { width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #4f46e5, #4338ca)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 },

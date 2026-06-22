@@ -960,7 +960,46 @@ const ClientPage = () => {
                   const opps = opportunities.filter((o) => (o.stage || "qualif") === s.k);
                   const sum = opps.reduce((acc, o) => acc + (parseInt(String(o.amount || "0").replace(/[^\d]/g, "")) || 0), 0);
                   return (
-                    <div key={s.k} style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 10, padding: 10, display: "flex", flexDirection: "column", gap: 8, minHeight: 200 }}>
+                    <div key={s.k}
+                         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.style.background = s.color + "1a"; }}
+                         onDragLeave={(e) => { e.currentTarget.style.background = "#fafbfc"; }}
+                         onDrop={async (e) => {
+                           e.preventDefault();
+                           e.currentTarget.style.background = "#fafbfc";
+                           const oppId = e.dataTransfer.getData("oppId");
+                           if (!oppId || !window.api) return;
+                           const dragged = opportunities.find((o) => o.ref === oppId || o.id === oppId);
+                           if (!dragged) return;
+                           if ((dragged.stage || "qualif") === s.k) return;
+                           const stageLabels = { qualif: "Prospect", discovery: "Approche", propo: "Négociation", nego: "Conclusion", won: "Ordre", lost: "Perdu" };
+                           const fromLbl = stageLabels[dragged.stage || "qualif"] || dragged.stage;
+                           const toLbl = stageLabels[s.k] || s.label;
+                           const oppName = dragged.name || dragged.client_name || oppId;
+                           const ok = window.HubModal
+                             ? await window.HubModal.confirm({
+                                 title: "Confirmer le déplacement",
+                                 message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
+                                 okLabel: "Oui, déplacer", okStyle: "primary",
+                               })
+                             : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
+                           if (!ok) {
+                             if (window.HubToast) window.HubToast.info("Déplacement annulé");
+                             return;
+                           }
+                           const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
+                           try {
+                             await window.api.opportunities.update(dragged.id || dragged.ref, { stage: s.k, proba: stageProba[s.k] || 20 });
+                             if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
+                             // Reload opportunités pour le client courant
+                             try {
+                               const list = await window.api.opportunities.list({ client_id: urlId || display.id });
+                               setStoredOpps(list || []);
+                             } catch (e2) { window.location.reload(); }
+                           } catch (err) {
+                             if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+                           }
+                         }}
+                         style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 10, padding: 10, display: "flex", flexDirection: "column", gap: 8, minHeight: 200, transition: "background 120ms" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ width: 7, height: 7, borderRadius: 2, background: s.color }} />
@@ -993,7 +1032,12 @@ const ClientPage = () => {
                         const tagColor = tagLabel === "Cyber" ? "#dc2626" : tagLabel === "Hub" ? "#4338ca" : "#7e22ce";
                         return (
                           <div key={o.ref || j} onClick={openOpp}
-                               style={{ background: isWon ? "#f0fdf4" : "#fff", border: "1px solid " + (isWon ? "#bbf7d0" : "#eef1f5"), borderRadius: 10, padding: 11, cursor: "pointer", display: "flex", flexDirection: "column", gap: 8 }}>
+                               draggable={!!(o.ref || o.id)}
+                               onDragStart={(e) => {
+                                 const id = o.ref || o.id;
+                                 if (id) { e.dataTransfer.setData("oppId", id); e.dataTransfer.effectAllowed = "move"; }
+                               }}
+                               style={{ background: isWon ? "#f0fdf4" : "#fff", border: "1px solid " + (isWon ? "#bbf7d0" : "#eef1f5"), borderRadius: 10, padding: 11, cursor: "grab", display: "flex", flexDirection: "column", gap: 8 }}>
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
                               <div style={{ width: 28, height: 28, borderRadius: 6, background: logoBg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, flexShrink: 0 }}>{logo}</div>
                               <div style={{ flex: 1, minWidth: 0 }}>

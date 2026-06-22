@@ -398,7 +398,7 @@
 
     // ───── Bloc bas : signature + coordonnées bancaires (selon type)
     const signatureBlock = isBL ? {
-      margin: [0, 16, 0, 0],
+      margin: [0, 0, 0, 8],
       columns: [
         {
           width: "*",
@@ -423,7 +423,7 @@
         },
       ],
     } : {
-      margin: [0, 16, 0, 0],
+      margin: [0, 0, 0, 8],
       columns: [
         {
           width: "*",
@@ -518,13 +518,15 @@
       linesTable,
       notesBlock || { text: " " },
       isBL ? null : totalsBlock,
-      signatureBlock,
+      // signatureBlock retiré du body → maintenant dans le footer
+      // uniquement sur la dernière page (voir footer callback).
     ].filter(Boolean);
 
-    // Hauteur réservée au footer : contacts (~70px) + réserve (~25px) + n°
-    // page (~10px) + marge interne ≈ 110px. pageMargins.bottom = 120 laisse
-    // 10px de respiration pour pdfmake.
-    const FOOTER_HEIGHT = 120;
+    // Hauteur réservée au footer :
+    //  - Pages intermédiaires : contacts (~70) + réserve (~25) + pagination ≈ 110px
+    //  - Dernière page : + signature block (~95px) ≈ 205px
+    // On dimensionne au max pour que pdfmake ne tronque pas la dernière page.
+    const FOOTER_HEIGHT = 210;
 
     return {
       pageSize: "A4",
@@ -540,12 +542,17 @@
         tvaCell:      { fontSize: 8.5 },
       },
       footer: function (currentPage, pageCount) {
-        // Footer = contacts + réserve + pagination → rendu en bas de CHAQUE
-        // page. Quand un doc occupe plusieurs pages (multi-articles), le bas
-        // de page s'adapte automatiquement et reste collé en bas.
+        // Footer = signature (dernière page uniquement) + contacts + réserve
+        // + pagination → rendu en bas de chaque page. Sur la dernière page on
+        // ajoute le bloc "<type> suivi par + coordonnées bancaires / Bon pour
+        // accord" pour le coller en bas de page (au lieu de flotter au milieu
+        // sur les docs courts).
+        const isLastPage = currentPage === pageCount;
         return {
           margin: [28, 0, 28, 8],
           stack: [
+            // Bloc signature (seulement dernière page)
+            isLastPage ? signatureBlock : null,
             // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
             // gauche/droite, séparateur fin en haut)
             {

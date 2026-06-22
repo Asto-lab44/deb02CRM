@@ -1708,7 +1708,12 @@ var ClientPage = () => {
     }, "Aucune opportunit\xE9"), opps.map((o, j) => {
       var openOpp = () => {
         var cid = urlId || display.id || "";
-        window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
+        var oppKey = o.ref || o.id;
+        if (!oppKey) {
+          if (window.HubToast) window.HubToast.warn("Référence opportunité manquante");
+          return;
+        }
+        window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(oppKey) + (cid ? "&client=" + encodeURIComponent(cid) : "");
       };
       var stageColor = s.color;
       var proba = o.proba || {
@@ -1911,7 +1916,12 @@ var ClientPage = () => {
     var currentStage = edited.stage || o.stage;
     var openOpp = () => {
       var cid = urlId || display.id || "";
-      window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(o.ref) + (cid ? "&client=" + encodeURIComponent(cid) : "");
+      var oppKey = o.ref || o.id;
+      if (!oppKey) {
+        if (window.HubToast) window.HubToast.warn("Référence opportunité manquante");
+        return;
+      }
+      window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(oppKey) + (cid ? "&client=" + encodeURIComponent(cid) : "");
     };
     var stage = pipeStages.find(s => s.k === o.stage);
     return /*#__PURE__*/React.createElement("div", {

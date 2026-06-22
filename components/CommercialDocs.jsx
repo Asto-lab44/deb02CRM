@@ -377,13 +377,17 @@ const CommercialDocs = () => {
     setEditing(full);
   };
 
-  // Si URL ?open=DEV-XXXX → ouvre le doc en éditeur au chargement
-  // (ex : depuis AdvanceOpportunity > "Créer un devis")
+  // URL params au chargement :
+  //  - ?open=DEV-XXXX → ouvre le doc en éditeur
+  //  - ?client=ACC-XXXX & ?opp=OPP-XXXX (sans ?open=) → crée un devis
+  //    pré-rempli avec ce client et cette opportunité
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const openId = params.get("open");
+    const clientParam = params.get("client");
+    const oppParam = params.get("opp");
+
     if (openId && !editing) {
-      // Bascule au bon type selon préfixe pour que la liste soit cohérente
       const prefix = openId.split("-")[0];
       const typeByPrefix = { DEV: "devis", BC: "commande", BL: "bl", FAC: "facture", CA: "commande_achat" };
       const matched = typeByPrefix[prefix];
@@ -393,6 +397,52 @@ const CommercialDocs = () => {
           const full = await window.api.commercialDocs.getById(openId);
           if (full) setEditing(full);
         } catch (e) {}
+      })();
+      return;
+    }
+
+    // Pas de ?open= mais ?client= ou ?opp= valides (non "undefined") → crée
+    // un nouveau devis pré-rempli automatiquement.
+    const validParam = (v) => v && v !== "undefined" && v !== "null";
+    if ((validParam(clientParam) || validParam(oppParam)) && !editing) {
+      (async () => {
+        try {
+          let opp = null;
+          let client = null;
+          if (validParam(oppParam) && window.api.opportunities && window.api.opportunities.getById) {
+            try { opp = await window.api.opportunities.getById(oppParam); } catch (e) {}
+          }
+          const clientId = (validParam(clientParam) && clientParam) || (opp && opp.client_id) || null;
+          if (clientId && window.api.clients && window.api.clients.getById) {
+            try { client = await window.api.clients.getById(clientId); } catch (e) {}
+          }
+          const newDoc = await window.api.commercialDocs.create({
+            type: "devis",
+            status: "brouillon",
+            client_id: clientId,
+            client_name: (client && (client.name || client.raison_sociale)) || (opp && opp.client_name) || null,
+            client_address: (client && client.address) || null,
+            client_cp: (client && client.cp) || null,
+            client_city: (client && client.city) || null,
+            client_siren: (client && client.siren) || null,
+            opportunity_id: (opp && (opp.id || opp.ref)) || (validParam(oppParam) ? oppParam : null),
+            title: (opp && opp.name) ? ("Devis — " + opp.name) : "Devis — Nouveau",
+            owner: (opp && opp.owner) || null,
+            lines: [],
+          });
+          if (newDoc) {
+            if (window.HubToast) window.HubToast.success("✓ " + newDoc.id + " créé — client" + (opp ? " et opportunité" : "") + " pré-remplis");
+            setActiveType("devis");
+            setEditing(newDoc);
+            // Nettoie l'URL pour éviter une re-création au refresh
+            try {
+              const cleanUrl = window.location.pathname;
+              window.history.replaceState({}, "", cleanUrl);
+            } catch (e) {}
+          }
+        } catch (e) {
+          if (window.HubToast) window.HubToast.error("Création devis : " + (e.message || e));
+        }
       })();
     }
   }, []);

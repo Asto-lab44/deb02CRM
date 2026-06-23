@@ -396,6 +396,29 @@ Le Prestataire s'engage à répondre aux demandes du Client liées à l'exercice
 
 ---
 
+## ARTICLE 8 BIS — OBLIGATIONS DE SÉCURITÉ À LA CHARGE DU CLIENT 🛡
+
+En sa qualité de responsable de traitement et d'utilisateur du Logiciel, le Client souscrit aux obligations suivantes, qui constituent des **conditions essentielles et déterminantes** du présent contrat.
+
+🛡 **Article 8 bis.1 — Assurance cyber-risques obligatoire**
+Le Client s'engage à souscrire et à maintenir en vigueur, pendant toute la durée du contrat, une **police d'assurance « cyber-risques »** auprès d'un assureur de premier rang, couvrant a minima :
+- Les conséquences d'une violation de données personnelles (RGPD), incluant les frais de notification, d'expertise et les sanctions administratives assurables ;
+- Les pertes d'exploitation consécutives à une cyberattaque ;
+- Les frais de remédiation, de restauration et de gestion de crise ;
+- La responsabilité civile à l'égard des personnes concernées et des tiers.
+
+Le Client communique au Prestataire, sur simple demande, une **attestation d'assurance** en cours de validité. À défaut de souscription ou de maintien de cette assurance, le Prestataire pourra suspendre l'accès au Logiciel après mise en demeure restée infructueuse pendant 15 jours, sans que sa propre responsabilité puisse être recherchée au titre d'un sinistre survenu pendant la période de non-couverture.
+
+🛡 **Article 8 bis.2 — Sauvegarde déconnectée obligatoire (option non refusable)**
+Compte tenu des exigences du RGPD (article 32) et des bonnes pratiques de continuité d'activité, le Client **ne peut refuser** l'option de **sauvegarde déconnectée et externalisée** de ses données, opérée de manière indépendante de l'infrastructure de production (sauvegarde dite « air-gap » / hors-ligne, stockée sur un site distinct).
+
+Cette sauvegarde, facturée au titre du Contrat de Services (cf. Annexe 5), garantit la disponibilité d'une copie de secours en cas de sinistre majeur (rançongiciel, corruption, défaillance du fournisseur d'hébergement). Le refus de cette option par le Client constitue un manquement à ses obligations de sécurité et **dégage le Prestataire de toute responsabilité** en cas de perte de données qui aurait pu être évitée par ladite sauvegarde.
+
+**Article 8 bis.3 — Bonnes pratiques utilisateurs**
+Le Client s'engage à : protéger ses identifiants de connexion, activer la double authentification (2FA) lorsqu'elle est disponible, ne pas partager les comptes nominatifs, et signaler sans délai tout accès suspect à `security@astorya.fr`.
+
+---
+
 ## ARTICLE 9 — RÉVERSIBILITÉ ET PORTABILITÉ DES DONNÉES 🛡
 
 **Article 9.1 — Droit d'export permanent**
@@ -452,6 +475,28 @@ En cas de :
 - Arrêt définitif d'exploitation du Logiciel non remplacé par une solution équivalente sous 90 jours
 
 le code source est mis à la disposition des clients sous contrat actif au moment de l'événement, sous licence MIT, leur permettant de continuer à utiliser et faire évoluer le Logiciel à leurs frais.
+
+---
+
+## ARTICLE 10 BIS — MODIFICATION DU CODE PAR UN TIERS — EXCLUSION DE RESPONSABILITÉ 🛡
+
+🛡 **Article 10 bis.1 — Interdiction et exclusion**
+Toute intervention, modification, altération ou extension du code du Logiciel, de sa base de données ou de sa configuration, réalisée par le Client lui-même ou par un tiers agissant pour son compte — **notamment via une application tierce, un connecteur non agréé, une intelligence artificielle générative, un script automatisé ou un développeur externe** — est strictement interdite sans l'accord écrit préalable du Prestataire.
+
+🛡 **Article 10 bis.2** — En cas de violation de cette interdiction, le Prestataire est **intégralement déchargé de toute responsabilité** concernant, sans limitation :
+- Les dysfonctionnements, bugs, régressions ou indisponibilités consécutifs ;
+- Les failles de sécurité, intrusions, fuites de données ou compromissions (hack) résultant directement ou indirectement de la modification ;
+- La corruption, la perte ou l'altération des données ;
+- La non-conformité réglementaire (RGPD ou autre) induite par la modification.
+
+Les engagements de niveau de service (SLA), de disponibilité et de maintenance du Contrat de Services sont **suspendus de plein droit** sur le périmètre affecté, jusqu'à remise en état par le Prestataire.
+
+🛡 **Article 10 bis.3 — Remise en fonctionnement facturée**
+La remise en fonctionnement du système consécutive à une modification non autorisée, ou à tout incident imputable au Client (suppression de données, mauvaise manipulation, infection par un logiciel malveillant introduit côté Client), s'effectue **par restauration de la dernière sauvegarde saine**.
+
+Cette prestation de restauration fait l'objet d'un **devis chiffré et communiqué immédiatement** au Client, et exécuté après son accord exprès. La tarification de référence figure en Annexe 5 (Article « Restauration / remise en fonctionnement »). En cas d'urgence vitale pour l'activité du Client et sur sa demande écrite, le Prestataire peut intervenir sans attendre la signature du devis, la prestation étant alors due au tarif d'urgence applicable.
+
+**Article 10 bis.4** — Le Prestataire conserve un droit d'usage normal du Logiciel et ne saurait être tenu d'assurer la compatibilité de ses mises à jour avec une quelconque modification non agréée introduite par le Client ou un tiers.
 
 ---
 
@@ -648,19 +693,40 @@ Toute modification de cette liste fait l'objet d'une notification écrite au Cli
 | **Administration BDD** | Gestion PostgreSQL/Supabase, optimisation, gestion des accès et RLS | Inclus |
 | **Certificats SSL/TLS** | Émission, renouvellement automatique, monitoring d'expiration | Inclus |
 | **Sauvegardes & PRA** | Snapshot quotidien chiffré, rétention 30 j, réplication, test de restauration trimestriel | Inclus |
+| **Sauvegarde déconnectée (air-gap)** | Copie hors-ligne externalisée sur site distinct, indépendante de la production — **option obligatoire (art. 8 bis.2)** | Inclus / obligatoire |
 | **Maintenance corrective** | Correction d'anomalies, application des correctifs de sécurité sous 48 h | Inclus |
 | **Maintenance évolutive** | Montées de version, nouvelles fonctionnalités du socle | Inclus |
 | **TMA** | Développements spécifiques, adaptations métier sur demande | Option (au forfait ou en régie) |
 | **Support utilisateurs** | Assistance, formation, accompagnement | Selon niveau souscrit |
+| **Restauration / remise en fonctionnement** | Restauration depuis sauvegarde après incident imputable au Client ou modification non autorisée (art. 10 bis) | À l'acte (devis) |
 
 ### Modèle de tarification (à compléter)
 
-| Formule | Périmètre | Tarif mensuel HT | Engagement |
+| Formule | Périmètre | Tarif mensuel HT (indicatif) | Engagement |
 |---|---|---|---|
-| **Essentiel** | Hébergement + BDD + SSL + sauvegardes + maintenance corrective | _______ €/mois | 12 mois |
-| **Business** | Essentiel + maintenance évolutive + support prioritaire | _______ €/mois | 12 mois |
-| **Premium / TMA** | Business + enveloppe TMA mensuelle + SLA renforcé | _______ €/mois | 24 mois |
-| **Prestations TMA additionnelles** | Au-delà de l'enveloppe incluse | _______ €/jour | À la demande |
+| **Essentiel** | Hébergement + BDD + SSL + sauvegardes + sauvegarde air-gap + maintenance corrective | **49 à 89 €/mois** | 12 mois |
+| **Business** | Essentiel + maintenance évolutive + support prioritaire | **129 à 199 €/mois** | 12 mois |
+| **Premium / TMA** | Business + enveloppe TMA (½ j/mois) + SLA renforcé | **290 à 450 €/mois** | 24 mois |
+| **Prestations TMA additionnelles** | Au-delà de l'enveloppe incluse | **650 €/jour** | À la demande |
+
+> Fourchettes indicatives marché TPE/PME — à caler selon nombre d'utilisateurs et volume de données.
+
+### Sauvegarde déconnectée (option obligatoire — art. 8 bis.2)
+
+| Prestation | Tarif HT (indicatif) |
+|---|---|
+| **Sauvegarde air-gap externalisée** (incluse dans les formules ci-dessus) | inclus, ou **29 €/mois** si souscrite seule |
+
+### Restauration / remise en fonctionnement (art. 10 bis.3)
+
+| Cas | Tarif HT (indicatif) | Délai |
+|---|---|---|
+| **Restauration standard** (heures ouvrées, incident simple) | **690 €** forfait | sous 4 h ouvrées |
+| **Heure supplémentaire** au-delà du forfait | **120 €/h** | — |
+| **Restauration d'urgence** (hors heures ouvrées / week-end / férié) | **1 200 €** forfait | sous 2 h |
+| **Restauration après modification non autorisée du code** (art. 10 bis) — audit + remise en état | **sur devis, à partir de 1 500 €** | selon ampleur |
+
+> Ces tarifs couvrent l'intervention de restauration depuis une sauvegarde saine. Ils ne s'appliquent **pas** aux incidents imputables au Prestataire (pris en charge sans frais au titre de la maintenance corrective).
 
 ### Modalités
 
@@ -671,4 +737,4 @@ Toute modification de cette liste fait l'objet d'une notification écrite au Cli
 
 ---
 
-*Fin du document — Total : 3 articles + 1 contrat (avec article 2 bis sur les services payants) + 5 annexes.*
+*Fin du document — Total : 3 articles + 1 contrat (articles 2 bis « services payants », 8 bis « obligations sécurité du Client », 10 bis « modification du code par un tiers ») + 5 annexes.*

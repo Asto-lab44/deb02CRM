@@ -3459,5 +3459,160 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets };
+  // ───────────────────────────────────────────────────────────────────
+  // §6.90 DATA EXPORT — réversibilité RGPD (art. 9 du contrat)
+  // Collecte TOUTES les données d'un client en CSV + bundle ZIP.
+  // Implémente le droit à la portabilité (RGPD art. 20).
+  // ───────────────────────────────────────────────────────────────────
+  const dataExport = {
+    // Convertit un tableau d'objets en CSV (UTF-8 BOM, séparateur ;).
+    _toCsv(rows) {
+      if (!rows || rows.length === 0) return "﻿(aucune donnée)\n";
+      // Colonnes = union des clés de toutes les lignes
+      const cols = [];
+      const seen = new Set();
+      rows.forEach((r) => Object.keys(r || {}).forEach((k) => { if (!seen.has(k)) { seen.add(k); cols.push(k); } }));
+      const esc = (v) => {
+        if (v == null) return "";
+        if (typeof v === "object") v = JSON.stringify(v);
+        v = String(v);
+        return /[";\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      };
+      const head = cols.join(";");
+      const body = rows.map((r) => cols.map((c) => esc(r ? r[c] : "")).join(";")).join("\r\n");
+      return "﻿" + head + "\r\n" + body + "\r\n";
+    },
+
+    // Récupère toutes les données liées à un client_id donné.
+    async collect(clientId) {
+      const s = supa();
+      const out = {};
+      if (!s) {
+        // Fallback localStorage : on exporte ce qu'on a en cache
+        ["clients","contacts","opportunities","contracts","commercial_docs","projects"].forEach((k) => {
+          out[k] = lsGet(k).filter((r) => !clientId || r.client_id === clientId || r.id === clientId);
+        });
+        return out;
+      }
+      const fetchByClient = async (table, col) => {
+        try {
+          let q = s.from(table).select("*");
+          if (col && clientId) q = q.eq(col, clientId);
+          const { data, error } = await q;
+          if (error) { console.warn("[export]", table, error.message); return []; }
+          return data || [];
+        } catch (e) { return []; }
+      };
+      // Tables liées directement au client
+      out.clients        = await fetchByClient("clients", "id");
+      out.contacts       = await fetchByClient("contacts", "client_id");
+      out.opportunities  = await fetchByClient("opportunities", "client_id");
+      out.contracts      = await fetchByClient("contracts", "client_id");
+      out.actions        = await fetchByClient("actions", "client_id");
+      out.commercial_docs = await fetchByClient("commercial_docs", "client_id");
+      out.projects       = await fetchByClient("projects", "client_id");
+      out.assets         = await fetchByClient("assets", "client_id");
+      out.leasing_contracts = await fetchByClient("leasing_contracts", "client_id");
+      out.warranties     = await fetchByClient("warranties", "client_id");
+      // Lignes des docs commerciaux (rattachées via doc_id)
+      const docIds = (out.commercial_docs || []).map((d) => d.id);
+      if (docIds.length) {
+        try {
+          const { data } = await s.from("commercial_doc_lines").select("*").in("doc_id", docIds);
+          out.commercial_doc_lines = data || [];
+        } catch (e) { out.commercial_doc_lines = []; }
+        try {
+          const { data } = await s.from("commercial_doc_sends").select("*").in("doc_id", docIds);
+          out.commercial_doc_sends = data || [];
+        } catch (e) {}
+      }
+      // Items / events de projets
+      const projIds = (out.projects || []).map((p) => p.id);
+      if (projIds.length) {
+        try { const { data } = await s.from("project_items").select("*").in("project_id", projIds); out.project_items = data || []; } catch (e) {}
+        try { const { data } = await s.from("project_events").select("*").in("project_id", projIds); out.project_events = data || []; } catch (e) {}
+      }
+      return out;
+    },
+
+    // Charge JSZip depuis CDN (lazy).
+    _loadJSZip() {
+      if (window.JSZip) return Promise.resolve(window.JSZip);
+      return new Promise((resolve, reject) => {
+        const sc = document.createElement("script");
+        sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+        sc.onload = () => resolve(window.JSZip);
+        sc.onerror = () => reject(new Error("Échec chargement JSZip"));
+        document.head.appendChild(sc);
+      });
+    },
+
+    // Génère et télécharge le ZIP complet pour un client.
+    async downloadZip(clientId, clientName) {
+      const JSZip = await this._loadJSZip();
+      const data = await this.collect(clientId);
+      const zip = new JSZip();
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const safeName = String(clientName || clientId || "client").replace(/[^a-zA-Z0-9_-]+/g, "_");
+
+      // Dossier data/ avec un CSV par table
+      const dataFolder = zip.folder("data");
+      const manifest = { client_id: clientId, client_name: clientName, export_date: new Date().toISOString(), files: [] };
+      Object.keys(data).forEach((table) => {
+        const rows = data[table] || [];
+        const csv = this._toCsv(rows);
+        dataFolder.file(table + ".csv", csv);
+        manifest.files.push({ file: "data/" + table + ".csv", rows: rows.length });
+      });
+
+      // JSON brut complet (pour ré-import technique)
+      zip.file("data_complete.json", JSON.stringify(data, null, 2));
+      zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+      // README explicatif
+      const totalRows = manifest.files.reduce((a, f) => a + f.rows, 0);
+      const readme = [
+        "# Export des données — " + (clientName || clientId),
+        "",
+        "Export généré le " + new Date().toLocaleString("fr-FR") + " par le Hub Astorya.",
+        "",
+        "Cet export contient l'intégralité de vos données au titre de votre droit",
+        "à la portabilité (RGPD art. 20) et de la clause de réversibilité (art. 9",
+        "du contrat de mise à disposition).",
+        "",
+        "## Contenu",
+        "",
+        "- `data/*.csv` : une table par fichier CSV (UTF-8 BOM, séparateur point-virgule)",
+        "- `data_complete.json` : l'ensemble des données en JSON (pour ré-import technique)",
+        "- `manifest.json` : liste des fichiers + nombre de lignes",
+        "",
+        "## Tables exportées",
+        "",
+        manifest.files.map((f) => "- " + f.file + " — " + f.rows + " ligne(s)").join("\n"),
+        "",
+        "Total : " + totalRows + " enregistrement(s).",
+        "",
+        "## Format des CSV",
+        "",
+        "- Encodage : UTF-8 avec BOM (ouverture directe dans Excel)",
+        "- Séparateur : point-virgule (;)",
+        "- Première ligne : en-têtes de colonnes",
+        "- Échappement : guillemets doubles",
+        "",
+        "Pour toute question : dpo@astorya.fr",
+      ].join("\n");
+      zip.file("README.md", readme);
+
+      const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "export-" + safeName + "-" + dateStr + ".zip";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      return { tables: manifest.files.length, rows: totalRows };
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport };
 })();

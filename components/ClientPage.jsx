@@ -941,6 +941,31 @@ const ClientPage = () => {
               >
                 💻 Parc IT
               </button>
+              <button
+                onClick={async () => {
+                  const cid = urlId || display.id;
+                  if (!cid) { if (window.HubToast) window.HubToast.warn("Identifiant client introuvable"); return; }
+                  const ok = window.HubModal
+                    ? await window.HubModal.confirm({
+                        title: "Exporter toutes les données du client ?",
+                        message: "Génère un fichier ZIP contenant l'intégralité des données de « " + (display.name || cid) + " » (comptes, contacts, opportunités, devis, factures, projets, tickets…) au format CSV + JSON.\n\nConforme au droit de portabilité RGPD (art. 20) et à la clause de réversibilité du contrat.",
+                        okLabel: "Générer le ZIP", okStyle: "primary",
+                      })
+                    : confirm("Exporter toutes les données de " + (display.name || cid) + " ?");
+                  if (!ok) return;
+                  if (window.HubToast) window.HubToast.info("⏳ Génération de l'export en cours…");
+                  try {
+                    const res = await window.api.dataExport.downloadZip(cid, display.name);
+                    if (window.HubToast) window.HubToast.success("✓ Export généré : " + res.tables + " tables · " + res.rows + " enregistrements");
+                  } catch (e) {
+                    if (window.HubToast) window.HubToast.error("Échec export : " + (e.message || e));
+                  }
+                }}
+                style={{ ...cliStyles.ghostBtn, background: "#fef3c7", borderColor: "#fcd34d", color: "#92400e", fontWeight: 600 }}
+                title="Exporter toutes les données du client en ZIP (CSV + JSON) — réversibilité RGPD"
+              >
+                ⬇ Exporter les données
+              </button>
             </div>
           </section>
 

@@ -1725,7 +1725,7 @@ var crmStyles = {
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    maxHeight: 560,
+    maxHeight: 296,
     overflowY: "auto",
     overflowX: "hidden",
     paddingRight: 4,

@@ -729,7 +729,7 @@ const crmStyles = {
   colCount: { fontSize: 11, padding: "0 6px", borderRadius: 999, background: "#fff", color: "#475569", fontVariantNumeric: "tabular-nums", border: "1px solid #e2e8f0" },
   colBar: { height: 2, background: "#e2e8f0", borderRadius: 999, overflow: "hidden", margin: "0 2px 4px" },
 
-  cards: { display: "flex", flexDirection: "column", gap: 8, maxHeight: 560, overflowY: "auto", overflowX: "hidden", paddingRight: 4, marginRight: -4 },
+  cards: { display: "flex", flexDirection: "column", gap: 8, maxHeight: 296, overflowY: "auto", overflowX: "hidden", paddingRight: 4, marginRight: -4 },
   card: { position: "relative", padding: 11, background: "#fff", border: "1px solid #eef1f5", borderRadius: 8, boxShadow: "0 1px 0 rgba(15,23,42,0.02)" },
   cardHot: { borderColor: "#fed7aa", boxShadow: "0 0 0 1px #fed7aa, 0 1px 0 rgba(15,23,42,0.02)" },
   cardWon: { background: "linear-gradient(180deg, #ffffff, #f0fdf6)", borderColor: "#bbf7d0" },

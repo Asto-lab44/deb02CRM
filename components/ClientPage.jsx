@@ -1115,7 +1115,7 @@ const ClientPage = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 540, overflowY: "auto", paddingRight: 4, marginRight: -4 }}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 296, overflowY: "auto", paddingRight: 4, marginRight: -4 }}
                            className="hub-kanban-scroll">
                       {opps.length === 0 && (
                         <div style={{ padding: "16px 8px", fontSize: 11, color: "#cbd5e1", textAlign: "center", fontStyle: "italic", border: "1px dashed #e2e8f0", borderRadius: 6 }}>

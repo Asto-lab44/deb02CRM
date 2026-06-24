@@ -1902,7 +1902,7 @@ var ClientPage = () => {
           display: "flex",
           flexDirection: "column",
           gap: 8,
-          maxHeight: 540,
+          maxHeight: 296,
           overflowY: "auto",
           paddingRight: 4,
           marginRight: -4

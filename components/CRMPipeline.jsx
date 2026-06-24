@@ -543,8 +543,8 @@ const CRMPipeline = () => {
                 <div style={{ textAlign: "right" }}>Montant</div>
                 <div style={{ textAlign: "center" }}>Probabilité</div>
                 <div style={{ textAlign: "center" }}>Owner</div>
-                <div style={{ textAlign: "right" }} title="Date de décision potentielle du projet">Échéance projet</div>
-                <div style={{ textAlign: "right" }} title="Date de fin du contrat actuel chez le concurrent">Fin contrat concurrent</div>
+                <div style={{ textAlign: "right" }} title="Date de décision potentielle saisie sur la page Avancer l'opportunité">Date de décision potentielle</div>
+                <div style={{ textAlign: "right" }} title="Échéance du contrat actuel chez le concurrent">Échéance contrat concurrent</div>
               </div>
               {columns.flatMap((col) => col.cards.map((c) => ({ ...c, _stage: col }))).length === 0 && (
                 <div style={{ padding: "30px 12px", textAlign: "center", color: "#94a3b8", fontSize: 12.5 }}>

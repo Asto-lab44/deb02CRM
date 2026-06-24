@@ -1107,13 +1107,13 @@ var CRMPipeline = () => {
     style: {
       textAlign: "right"
     },
-    title: "Date de d\xE9cision potentielle du projet"
-  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("div", {
+    title: "Date de d\xE9cision potentielle saisie sur la page Avancer l'opportunit\xE9"
+  }, "Date de d\xE9cision potentielle"), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "right"
     },
-    title: "Date de fin du contrat actuel chez le concurrent"
-  }, "Fin contrat concurrent")), columns.flatMap(col => col.cards.map(c => ({
+    title: "\xC9ch\xE9ance du contrat actuel chez le concurrent"
+  }, "\xC9ch\xE9ance contrat concurrent")), columns.flatMap(col => col.cards.map(c => ({
     ...c,
     _stage: col
   }))).length === 0 && /*#__PURE__*/React.createElement("div", {

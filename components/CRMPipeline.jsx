@@ -484,23 +484,23 @@ const CRMPipeline = () => {
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {/* Toggle vue kanban / liste */}
                   <div style={{ display: "inline-flex", border: "1px solid #e2e8f0", borderRadius: 8, padding: 2, background: "#fff" }}>
-                    <button onClick={() => changeCrmView("kanban")}
-                            title="Vue kanban"
+                    <button onClick={() => changeCrmView("kanban")} title="Vue kanban"
                             style={{ padding: "5px 9px", border: "none", borderRadius: 6, cursor: "pointer",
                                      fontSize: 12, fontWeight: 600, lineHeight: 1,
                                      background: crmView === "kanban" ? "#0f172a" : "transparent",
-                                     color: crmView === "kanban" ? "#fff" : "#64748b" }}>
-                      ⊞
-                    </button>
-                    <button onClick={() => changeCrmView("list")}
-                            title="Vue liste"
+                                     color: crmView === "kanban" ? "#fff" : "#64748b" }}>⊞</button>
+                    <button onClick={() => changeCrmView("list")} title="Vue liste"
                             style={{ padding: "5px 9px", border: "none", borderRadius: 6, cursor: "pointer",
                                      fontSize: 12, fontWeight: 600, lineHeight: 1,
                                      background: crmView === "list" ? "#0f172a" : "transparent",
-                                     color: crmView === "list" ? "#fff" : "#64748b" }}>
-                      ☰
-                    </button>
+                                     color: crmView === "list" ? "#fff" : "#64748b" }}>☰</button>
                   </div>
+                  <a href="/planning-commercial" title="Vue planning — opportunités classées par échéances"
+                     style={{ ...crmStyles.primaryBtn, background: "#fff", color: "#0e7a55", border: "1px solid #a7f3d0",
+                              textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4,
+                              cursor: "pointer", boxShadow: "none" }}>
+                    📅 Planning
+                  </a>
                   <a href="/nouveau-prospect" style={{ ...crmStyles.primaryBtn, background: "#fff", color: "#3730a3", border: "1px solid #c7d2fe", textDecoration: "none", display: "inline-block", cursor: "pointer", boxShadow: "none" }}>+ Nouveau prospect</a>
                   <a href="/nouvelle-opportunite" style={{ ...crmStyles.primaryBtn, textDecoration: "none", display: "inline-block", cursor: "pointer" }}>+ Nouvelle opportunité</a>
                 </div>

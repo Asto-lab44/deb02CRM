@@ -986,6 +986,21 @@ var CRMPipeline = () => {
         color: crmView === "list" ? "#fff" : "#64748b"
       }
     }, "\u2630")), /*#__PURE__*/React.createElement("a", {
+      href: "/planning-commercial",
+      title: "Vue planning \u2014 opportunit\xE9s class\xE9es par \xE9ch\xE9ances",
+      style: {
+        ...crmStyles.primaryBtn,
+        background: "#fff",
+        color: "#0e7a55",
+        border: "1px solid #a7f3d0",
+        textDecoration: "none",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        cursor: "pointer",
+        boxShadow: "none"
+      }
+    }, "\uD83D\uDCC5 Planning"), /*#__PURE__*/React.createElement("a", {
       href: "/nouveau-prospect",
       style: {
         ...crmStyles.primaryBtn,

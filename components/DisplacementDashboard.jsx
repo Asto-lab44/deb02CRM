@@ -231,7 +231,7 @@ const DisplacementDashboard = () => {
                       </div>
                     </div>
                     <div style={{ width: 90, textAlign: "right" }}>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: wrColor, fontFamily: "'Inter', sans-serif" }}>{wr}%</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: wrColor, fontFamily: "'Inter', system-ui, sans-serif" }}>{wr}%</span>
                     </div>
                     <div style={{ width: 110, textAlign: "right" }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{c.openValue} k€</div>

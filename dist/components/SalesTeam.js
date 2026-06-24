@@ -1284,7 +1284,7 @@ var teamStyles = {
     color: "#0f172a",
     marginTop: 2,
     letterSpacing: -0.3,
-    fontFamily: "'Inter', sans-serif"
+    fontFamily: "'Inter', system-ui, sans-serif"
   },
   actBars: {
     display: "flex",

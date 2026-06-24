@@ -679,7 +679,7 @@ var DisplacementDashboard = () => {
         fontSize: 16,
         fontWeight: 700,
         color: wrColor,
-        fontFamily: "'Inter', sans-serif"
+        fontFamily: "'Inter', system-ui, sans-serif"
       }
     }, wr, "%")), /*#__PURE__*/React.createElement("div", {
       style: {

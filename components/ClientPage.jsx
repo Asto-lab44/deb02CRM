@@ -2587,7 +2587,7 @@ const cliStyles = {
   stagePill: { display: "inline-flex", alignItems: "center", gap: 5, padding: "1px 7px", borderRadius: 999, fontSize: 10.5, fontWeight: 600 },
   hotPill: { fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "#fff1d6", color: "#a65f00", fontWeight: 700 },
   wonPill: { fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "#e8f8f1", color: "#0e7a55", fontWeight: 700 },
-  oppAmount: { fontSize: 18, fontWeight: 700, color: "#0f172a", letterSpacing: -0.4, fontFamily: "'Inter', sans-serif" },
+  oppAmount: { fontSize: 18, fontWeight: 700, color: "#0f172a", letterSpacing: -0.4, fontFamily: "'Inter', system-ui, sans-serif" },
   probaBar: { width: "100%", height: 4, background: "#eef1f5", borderRadius: 999, overflow: "hidden" },
   oppFoot: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4, paddingTop: 8, borderTop: "1px solid #f1f5f9" },
 

@@ -5324,7 +5324,7 @@ var cliStyles = {
     fontWeight: 700,
     color: "#0f172a",
     letterSpacing: -0.4,
-    fontFamily: "'Inter', sans-serif"
+    fontFamily: "'Inter', system-ui, sans-serif"
   },
   probaBar: {
     width: "100%",

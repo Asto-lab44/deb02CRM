@@ -440,7 +440,7 @@ const teamStyles = {
   miniMetrics: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12, padding: "10px 0", borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9" },
   miniMetric: { textAlign: "left" },
   miniK: { fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 },
-  miniV: { fontSize: 14, fontWeight: 700, color: "#0f172a", marginTop: 2, letterSpacing: -0.3, fontFamily: "'Inter', sans-serif" },
+  miniV: { fontSize: 14, fontWeight: 700, color: "#0f172a", marginTop: 2, letterSpacing: -0.3, fontFamily: "'Inter', system-ui, sans-serif" },
 
   actBars: { display: "flex", flexDirection: "column", gap: 6 },
 

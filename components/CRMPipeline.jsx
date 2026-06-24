@@ -731,11 +731,14 @@ const CRMPipeline = () => {
         </div>
         )}
 
+        {/* ─── ACTIONS À MENER ────────────────────────────────────────── */}
+        {/* Remontées au-dessus des Comptes & contacts : ce sont les tâches
+            commerciales à traiter en priorité par le commercial — il doit
+            les voir avant de passer aux comptes. */}
+        <CRMActionsList />
+
         {/* ─── COMPTES & CONTACTS ─────────────────────────────────────── */}
         <CRMAccountsList />
-
-        {/* ─── ACTIONS À MENER ────────────────────────────────────────── */}
-        <CRMActionsList />
       </main>
     </div>
   );
@@ -799,7 +802,7 @@ const crmStyles = {
   newRibbon: { position: "absolute", top: -6, right: 8, padding: "1px 7px", background: "#4f46e5", color: "#fff", fontSize: 9.5, fontWeight: 700, borderRadius: 999, letterSpacing: 0.3, textTransform: "uppercase" },
   coLogo: { width: 28, height: 28, borderRadius: 6, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, flexShrink: 0 },
   tagPill: { display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: 0.2 },
-  cardAmount: { fontSize: 18, fontWeight: 600, color: "#0f172a", letterSpacing: -0.4, fontFamily: "'Inter', sans-serif" },
+  cardAmount: { fontSize: 18, fontWeight: 600, color: "#0f172a", letterSpacing: -0.4, fontFamily: "'Inter', system-ui, sans-serif" },
 
   meetingNote: { fontSize: 11, color: "#3730a3", background: "#eef2ff", padding: "4px 7px", borderRadius: 6, marginTop: 6 },
   warnNote: { fontSize: 11, color: "#a65f00", background: "#fff6e6", padding: "4px 7px", borderRadius: 6, marginTop: 6, display: "flex", gap: 4, alignItems: "center" },

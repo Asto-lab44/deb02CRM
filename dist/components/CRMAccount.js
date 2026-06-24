@@ -1179,7 +1179,7 @@ var CRMAccount = () => {
       fontWeight: 700,
       color: "#0f172a",
       letterSpacing: -1,
-      fontFamily: "'Inter', sans-serif"
+      fontFamily: "'Inter', system-ui, sans-serif"
     }
   }, "78"), /*#__PURE__*/React.createElement("span", {
     style: {

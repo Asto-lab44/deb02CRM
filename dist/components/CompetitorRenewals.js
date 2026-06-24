@@ -1141,7 +1141,7 @@ var CompetitorRenewals = () => {
         fontWeight: 700,
         color: scoreColor(r.score),
         letterSpacing: -0.5,
-        fontFamily: "'Inter', sans-serif"
+        fontFamily: "'Inter', system-ui, sans-serif"
       }
     }, r.score), /*#__PURE__*/React.createElement("span", {
       style: {

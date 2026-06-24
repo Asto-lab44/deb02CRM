@@ -1765,7 +1765,7 @@ var erpStyles = {
     fontWeight: 700,
     color: "#0f172a",
     letterSpacing: -0.3,
-    fontFamily: "'Inter', sans-serif"
+    fontFamily: "'Inter', system-ui, sans-serif"
   },
   tileStatK: {
     fontSize: 10,

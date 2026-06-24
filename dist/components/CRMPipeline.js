@@ -1495,7 +1495,7 @@ var CRMPipeline = () => {
       textAlign: "center",
       cursor: "pointer"
     }
-  }, "+ Ajouter une opportunit\xE9"))))), /*#__PURE__*/React.createElement(CRMAccountsList, null), /*#__PURE__*/React.createElement(CRMActionsList, null)));
+  }, "+ Ajouter une opportunit\xE9"))))), /*#__PURE__*/React.createElement(CRMActionsList, null), /*#__PURE__*/React.createElement(CRMAccountsList, null)));
 };
 var crmStyles = {
   frame: {
@@ -1901,7 +1901,7 @@ var crmStyles = {
     fontWeight: 600,
     color: "#0f172a",
     letterSpacing: -0.4,
-    fontFamily: "'Inter', sans-serif"
+    fontFamily: "'Inter', system-ui, sans-serif"
   },
   meetingNote: {
     fontSize: 11,

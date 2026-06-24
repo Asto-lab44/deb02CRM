@@ -406,7 +406,7 @@ const CRMAccount = () => {
                 <div style={accStyles.sideHead}>Score d'engagement</div>
                 <div style={accStyles.scoreBox}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontSize: 32, fontWeight: 700, color: "#0f172a", letterSpacing: -1, fontFamily: "'Inter', sans-serif" }}>78</span>
+                    <span style={{ fontSize: 32, fontWeight: 700, color: "#0f172a", letterSpacing: -1, fontFamily: "'Inter', system-ui, sans-serif" }}>78</span>
                     <span style={{ fontSize: 14, color: "#64748b" }}>/ 100</span>
                     <span style={accStyles.scoreTrend}>↑ +12 sem.</span>
                   </div>

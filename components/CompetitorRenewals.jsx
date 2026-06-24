@@ -570,7 +570,7 @@ const CompetitorRenewals = () => {
                 {/* Score */}
                 <div style={{ width: 110, paddingRight: 8 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: scoreColor(r.score), letterSpacing: -0.5, fontFamily: "'Inter', sans-serif" }}>{r.score}</span>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: scoreColor(r.score), letterSpacing: -0.5, fontFamily: "'Inter', system-ui, sans-serif" }}>{r.score}</span>
                     <span style={{ fontSize: 11, color: "#94a3b8" }}>/ 100</span>
                   </div>
                   <div style={crStyles.scoreBar}>

@@ -731,7 +731,7 @@ const erpStyles = {
 
   tileStats: { display: "flex", alignItems: "stretch", gap: 0, padding: "10px 0", borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9", position: "relative", zIndex: 1 },
   tileStat: { flex: 1, minWidth: 0 },
-  tileStatV: { fontSize: 14, fontWeight: 700, color: "#0f172a", letterSpacing: -0.3, fontFamily: "'Inter', sans-serif" },
+  tileStatV: { fontSize: 14, fontWeight: 700, color: "#0f172a", letterSpacing: -0.3, fontFamily: "'Inter', system-ui, sans-serif" },
   tileStatK: { fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600, marginTop: 1 },
   tileStatDiv: { width: 1, background: "#eef1f5", margin: "0 10px" },
 

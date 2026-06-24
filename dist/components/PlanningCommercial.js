@@ -9,12 +9,10 @@ var PlanningCommercial = () => {
   var [loading, setLoading] = React.useState(true);
   var [filterType, setFilterType] = React.useState("all"); // all | decision | concurrent
   // Mois affiché — par défaut le mois courant. Navigation < Aujourd'hui >.
-  var [cursor, setCursor] = React.useState(() => {
-    var d = new Date();
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 7); // "YYYY-MM"
-  });
+  // Format "YYYY-MM" en heure LOCALE (toISOString convertit en UTC et shift
+  // d'un jour selon le fuseau — bug sur la nav mois en France UTC+2 DST).
+  var toLocalMonth = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  var [cursor, setCursor] = React.useState(() => toLocalMonth(new Date()));
   React.useEffect(() => {
     if (!window.api || !window.api.opportunities) return;
     window.api.opportunities.list().then(list => {
@@ -112,7 +110,8 @@ var PlanningCommercial = () => {
     length: totalCells
   }, (_, i) => {
     var d = new Date(gridStart.getTime() + i * 86400000);
-    var iso = d.toISOString().slice(0, 10);
+    // ISO local YYYY-MM-DD (toISOString shift UTC et fausse les jours)
+    var iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     return {
       date: iso,
       day: d.getDate(),
@@ -127,9 +126,11 @@ var PlanningCommercial = () => {
   var uniqueOppsMonth = new Set(monthEntries.map(e => e.opp.id || e.opp.ref)).size;
   var navMonth = delta => {
     var d = new Date(year, month - 1 + delta, 1);
-    setCursor(d.toISOString().slice(0, 7));
+    setCursor(toLocalMonth(d));
   };
-  var today = new Date().toISOString().slice(0, 10);
+  // "today" en local YYYY-MM-DD (pas toISOString qui shift UTC)
+  var todayD = new Date();
+  var today = todayD.getFullYear() + "-" + String(todayD.getMonth() + 1).padStart(2, "0") + "-" + String(todayD.getDate()).padStart(2, "0");
   var fmtAmount = n => n != null ? Math.round(n).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—";
 
   // Modal "voir tous les événements d'un jour" si > N
@@ -220,11 +221,7 @@ var PlanningCommercial = () => {
     style: S.navBtn,
     title: "Mois pr\xE9c\xE9dent"
   }, "\u2039"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      var d = new Date();
-      d.setDate(1);
-      setCursor(d.toISOString().slice(0, 7));
-    },
+    onClick: () => setCursor(toLocalMonth(new Date())),
     style: {
       ...S.navBtn,
       padding: "6px 14px",

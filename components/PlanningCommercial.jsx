@@ -9,10 +9,10 @@ const PlanningCommercial = () => {
   const [loading, setLoading] = React.useState(true);
   const [filterType, setFilterType] = React.useState("all"); // all | decision | concurrent
   // Mois affiché — par défaut le mois courant. Navigation < Aujourd'hui >.
-  const [cursor, setCursor] = React.useState(() => {
-    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 7); // "YYYY-MM"
-  });
+  // Format "YYYY-MM" en heure LOCALE (toISOString convertit en UTC et shift
+  // d'un jour selon le fuseau — bug sur la nav mois en France UTC+2 DST).
+  const toLocalMonth = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  const [cursor, setCursor] = React.useState(() => toLocalMonth(new Date()));
 
   React.useEffect(() => {
     if (!window.api || !window.api.opportunities) return;
@@ -69,7 +69,8 @@ const PlanningCommercial = () => {
   const totalCells = Math.ceil((shiftStart + daysInMonth) / 7) * 7;
   const cells = Array.from({ length: totalCells }, (_, i) => {
     const d = new Date(gridStart.getTime() + i * 86400000);
-    const iso = d.toISOString().slice(0, 10);
+    // ISO local YYYY-MM-DD (toISOString shift UTC et fausse les jours)
+    const iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     return { date: iso, day: d.getDate(), inMonth: d.getMonth() === month - 1, weekday: (d.getDay() + 6) % 7 };
   });
 
@@ -80,9 +81,11 @@ const PlanningCommercial = () => {
 
   const navMonth = (delta) => {
     const d = new Date(year, month - 1 + delta, 1);
-    setCursor(d.toISOString().slice(0, 7));
+    setCursor(toLocalMonth(d));
   };
-  const today = new Date().toISOString().slice(0, 10);
+  // "today" en local YYYY-MM-DD (pas toISOString qui shift UTC)
+  const todayD = new Date();
+  const today = todayD.getFullYear() + "-" + String(todayD.getMonth() + 1).padStart(2, "0") + "-" + String(todayD.getDate()).padStart(2, "0");
 
   const fmtAmount = (n) => n != null ? Math.round(n).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—";
 
@@ -132,10 +135,8 @@ const PlanningCommercial = () => {
           {/* Navigation mois */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => navMonth(-1)} style={S.navBtn} title="Mois précédent">‹</button>
-            <button onClick={() => {
-              const d = new Date(); d.setDate(1);
-              setCursor(d.toISOString().slice(0, 7));
-            }} style={{ ...S.navBtn, padding: "6px 14px", width: "auto" }}>Aujourd'hui</button>
+            <button onClick={() => setCursor(toLocalMonth(new Date()))}
+                    style={{ ...S.navBtn, padding: "6px 14px", width: "auto" }}>Aujourd'hui</button>
             <button onClick={() => navMonth(1)} style={S.navBtn} title="Mois suivant">›</button>
           </div>
 

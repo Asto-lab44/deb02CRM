@@ -1,6 +1,6 @@
-// PlanningCommercial — Vue planning des opportunités groupées par mois
-// selon leurs deux types d'échéances : Date de décision potentielle
-// (close_date) et Échéance contrat concurrent (contract_end).
+// PlanningCommercial — Vue calendrier Outlook des opportunités selon leurs
+// deux types d'échéances : Date de décision potentielle (close_date, violet)
+// et Échéance contrat concurrent (contract_end, cyan).
 //
 // Source de données : api.opportunities.list() — même flux que CRMPipeline.
 
@@ -8,7 +8,13 @@ var PlanningCommercial = () => {
   var [opps, setOpps] = React.useState([]);
   var [loading, setLoading] = React.useState(true);
   var [filterType, setFilterType] = React.useState("all"); // all | decision | concurrent
-
+  // Mois affiché — par défaut le mois courant. Navigation < Aujourd'hui >.
+  var [cursor, setCursor] = React.useState(() => {
+    var d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().slice(0, 7); // "YYYY-MM"
+  });
   React.useEffect(() => {
     if (!window.api || !window.api.opportunities) return;
     window.api.opportunities.list().then(list => {
@@ -41,9 +47,23 @@ var PlanningCommercial = () => {
       color: "#10b981"
     }
   };
+  var kindMeta = {
+    decision: {
+      color: "#a855f7",
+      bg: "#f5efff",
+      border: "#d8b4fe",
+      label: "Décision potentielle"
+    },
+    concurrent: {
+      color: "#0ea5e9",
+      bg: "#e0f2fe",
+      border: "#7dd3fc",
+      label: "Fin contrat concurrent"
+    }
+  };
 
   // Aplatit chaque opp en 1 ou 2 entrées (une par date renseignée)
-  var entries = React.useMemo(() => {
+  var allEntries = React.useMemo(() => {
     var out = [];
     opps.forEach(o => {
       var dec = o.close_date || o.data && (o.data.close_date || o.data.decision_date) || null;
@@ -51,82 +71,70 @@ var PlanningCommercial = () => {
       if (dec && (filterType === "all" || filterType === "decision")) {
         out.push({
           opp: o,
-          date: dec,
+          date: dec.slice(0, 10),
           kind: "decision"
         });
       }
       if (con && (filterType === "all" || filterType === "concurrent")) {
         out.push({
           opp: o,
-          date: con,
+          date: con.slice(0, 10),
           kind: "concurrent"
         });
       }
     });
-    out.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
     return out;
   }, [opps, filterType]);
 
-  // Groupe par mois (clé = YYYY-MM)
-  var byMonth = React.useMemo(() => {
+  // Index des entrées par YYYY-MM-DD
+  var byDate = React.useMemo(() => {
     var m = {};
-    entries.forEach(e => {
-      var key = e.date.slice(0, 7);
-      if (!m[key]) m[key] = [];
-      m[key].push(e);
+    allEntries.forEach(e => {
+      (m[e.date] = m[e.date] || []).push(e);
     });
     return m;
-  }, [entries]);
-  var monthKeys = Object.keys(byMonth).sort();
-  var totalAmount = entries.reduce((acc, e) => acc + (Number(e.opp.amount_eur) || 0), 0);
-  var uniqueOpps = new Set(entries.map(e => e.opp.id || e.opp.ref)).size;
-  var fmtMonth = key => {
-    var [y, m] = key.split("-");
-    var d = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
-    return d.toLocaleDateString("fr-FR", {
-      month: "long",
-      year: "numeric"
-    });
+  }, [allEntries]);
+
+  // Construit la grille du mois courant (semaines de Lundi à Dimanche).
+  var [year, month] = cursor.split("-").map(n => parseInt(n, 10));
+  var firstOfMonth = new Date(year, month - 1, 1);
+  var monthLabel = firstOfMonth.toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric"
+  });
+  // Décalage en jours pour que la grille commence un lundi
+  // (getDay() : 0=dim, 1=lun, ..., 6=sam → on veut 1=lun donc shift = (day+6)%7)
+  var shiftStart = (firstOfMonth.getDay() + 6) % 7;
+  var gridStart = new Date(year, month - 1, 1 - shiftStart);
+  var daysInMonth = new Date(year, month, 0).getDate();
+  var totalCells = Math.ceil((shiftStart + daysInMonth) / 7) * 7;
+  var cells = Array.from({
+    length: totalCells
+  }, (_, i) => {
+    var d = new Date(gridStart.getTime() + i * 86400000);
+    var iso = d.toISOString().slice(0, 10);
+    return {
+      date: iso,
+      day: d.getDate(),
+      inMonth: d.getMonth() === month - 1,
+      weekday: (d.getDay() + 6) % 7
+    };
+  });
+
+  // Stats du mois affiché
+  var monthEntries = allEntries.filter(e => e.date.slice(0, 7) === cursor);
+  var monthAmount = monthEntries.reduce((acc, e) => acc + (Number(e.opp.amount_eur) || 0), 0);
+  var uniqueOppsMonth = new Set(monthEntries.map(e => e.opp.id || e.opp.ref)).size;
+  var navMonth = delta => {
+    var d = new Date(year, month - 1 + delta, 1);
+    setCursor(d.toISOString().slice(0, 7));
   };
-  var fmtDay = iso => {
-    var d = new Date(iso);
-    return d.toLocaleDateString("fr-FR", {
-      weekday: "short",
-      day: "2-digit"
-    });
-  };
+  var today = new Date().toISOString().slice(0, 10);
   var fmtAmount = n => n != null ? Math.round(n).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—";
-  var daysFromToday = iso => {
-    var d = new Date(iso);
-    d.setHours(0, 0, 0, 0);
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.round((d.getTime() - today.getTime()) / 86400000);
-  };
-  var urgencyChip = iso => {
-    var days = daysFromToday(iso);
-    if (days < 0) return {
-      label: "En retard de " + Math.abs(days) + " j",
-      color: "#dc2626",
-      bg: "#fee2e2"
-    };
-    if (days === 0) return {
-      label: "Aujourd'hui",
-      color: "#dc2626",
-      bg: "#fee2e2"
-    };
-    if (days <= 7) return {
-      label: "J-" + days,
-      color: "#ea580c",
-      bg: "#fed7aa"
-    };
-    if (days <= 30) return {
-      label: "J-" + days,
-      color: "#a16207",
-      bg: "#fef3c7"
-    };
-    return null;
-  };
+
+  // Modal "voir tous les événements d'un jour" si > N
+  var [dayPopup, setDayPopup] = React.useState(null);
+  var MAX_VISIBLE_PER_DAY = 3;
   return /*#__PURE__*/React.createElement("div", {
     style: S.frame
   }, /*#__PURE__*/React.createElement("header", {
@@ -155,22 +163,23 @@ var PlanningCommercial = () => {
       color: "#0f172a",
       fontWeight: 600
     }
-  }, "Planning commercial")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("a", {
+  }, "Planning commercial")), /*#__PURE__*/React.createElement("a", {
     href: "/crm",
     style: S.btnGhost
-  }, "\u2190 Pipeline"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u2190 Pipeline")), /*#__PURE__*/React.createElement("div", {
     style: S.titleRow
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: S.h1
   }, "Planning commercial"), /*#__PURE__*/React.createElement("p", {
     style: S.h1sub
-  }, uniqueOpps, " opportunit\xE9", uniqueOpps > 1 ? "s" : "", " \xB7 ", entries.length, " \xE9ch\xE9ance", entries.length > 1 ? "s" : "", " \xB7 ", fmtAmount(totalAmount), " cumul\xE9s")), /*#__PURE__*/React.createElement("div", {
+  }, uniqueOppsMonth, " opportunit\xE9", uniqueOppsMonth > 1 ? "s" : "", " \xB7 ", monthEntries.length, " \xE9ch\xE9ance", monthEntries.length > 1 ? "s" : "", " ce mois \xB7 ", fmtAmount(monthAmount), " cumul\xE9s")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-flex",
       border: "1px solid #e2e8f0",
@@ -180,13 +189,13 @@ var PlanningCommercial = () => {
     }
   }, [{
     k: "all",
-    label: "Toutes les échéances"
+    label: "Toutes"
   }, {
     k: "decision",
-    label: "Décision potentielle uniquement"
+    label: "Décision"
   }, {
     k: "concurrent",
-    label: "Contrat concurrent uniquement"
+    label: "Concurrent"
   }].map(f => /*#__PURE__*/React.createElement("button", {
     key: f.k,
     onClick: () => setFilterType(f.k),
@@ -200,197 +209,304 @@ var PlanningCommercial = () => {
       background: filterType === f.k ? "#0f172a" : "transparent",
       color: filterType === f.k ? "#fff" : "#64748b"
     }
-  }, f.label)))), /*#__PURE__*/React.createElement("div", {
+  }, f.label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navMonth(-1),
+    style: S.navBtn,
+    title: "Mois pr\xE9c\xE9dent"
+  }, "\u2039"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var d = new Date();
+      d.setDate(1);
+      setCursor(d.toISOString().slice(0, 7));
+    },
+    style: {
+      ...S.navBtn,
+      padding: "6px 14px",
+      width: "auto"
+    }
+  }, "Aujourd'hui"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navMonth(1),
+    style: S.navBtn,
+    title: "Mois suivant"
+  }, "\u203A")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      textTransform: "capitalize",
+      minWidth: 160
+    }
+  }, monthLabel))), /*#__PURE__*/React.createElement("div", {
     style: S.legend
   }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 11.5,
-      color: "#475569"
-    }
+    style: S.legendItem
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       width: 10,
       height: 10,
       borderRadius: 3,
-      background: "#a855f7"
+      background: kindMeta.decision.color
     }
   }), "Date de d\xE9cision potentielle"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 11.5,
-      color: "#475569"
-    }
+    style: S.legendItem
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       width: 10,
       height: 10,
       borderRadius: 3,
-      background: "#0ea5e9"
+      background: kindMeta.concurrent.color
     }
   }), "\xC9ch\xE9ance contrat concurrent")), /*#__PURE__*/React.createElement("div", {
     style: S.body
-  }, loading && /*#__PURE__*/React.createElement("div", {
+  }, loading ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",
       color: "#94a3b8",
       fontSize: 13
     }
-  }, "Chargement\u2026"), !loading && monthKeys.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 40,
-      textAlign: "center",
-      color: "#94a3b8",
-      fontSize: 13
-    }
-  }, "Aucune opportunit\xE9 avec une date renseign\xE9e. Renseigne \xAB Date de d\xE9cision potentielle \xBB ou \xAB \xC9ch\xE9ance du contrat actuel \xBB sur la page Avancer l'opportunit\xE9 pour qu'elles apparaissent ici."), !loading && monthKeys.map(key => {
-    var month = byMonth[key];
-    var monthTotal = month.reduce((acc, e) => acc + (Number(e.opp.amount_eur) || 0), 0);
-    return /*#__PURE__*/React.createElement("section", {
-      key: key,
-      style: S.monthBlock
-    }, /*#__PURE__*/React.createElement("header", {
-      style: S.monthHead
-    }, /*#__PURE__*/React.createElement("h2", {
-      style: S.monthTitle
-    }, fmtMonth(key), /*#__PURE__*/React.createElement("span", {
-      style: S.monthCount
-    }, month.length)), /*#__PURE__*/React.createElement("span", {
-      style: S.monthTotal
-    }, fmtAmount(monthTotal), " cumul\xE9s")), /*#__PURE__*/React.createElement("div", {
-      style: S.entries
-    }, month.map((e, i) => {
-      var opp = e.opp;
-      var stage = stageMeta[opp.stage || "qualif"] || stageMeta.qualif;
-      var kindMeta = e.kind === "decision" ? {
-        color: "#a855f7",
-        bg: "#f5efff",
-        label: "Décision potentielle"
-      } : {
-        color: "#0ea5e9",
-        bg: "#e0f2fe",
-        label: "Fin contrat concurrent"
-      };
-      var urgency = urgencyChip(e.date);
+  }, "Chargement\u2026") : /*#__PURE__*/React.createElement("div", {
+    style: S.calendar
+  }, /*#__PURE__*/React.createElement("div", {
+    style: S.weekHeader
+  }, ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map(d => /*#__PURE__*/React.createElement("div", {
+    key: d,
+    style: S.weekHeaderCell
+  }, d))), /*#__PURE__*/React.createElement("div", {
+    style: S.grid
+  }, cells.map(c => {
+    var dayEntries = byDate[c.date] || [];
+    var isToday = c.date === today;
+    var isWeekend = c.weekday >= 5;
+    var visible = dayEntries.slice(0, MAX_VISIBLE_PER_DAY);
+    var hidden = dayEntries.length - visible.length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.date,
+      style: {
+        ...S.dayCell,
+        background: !c.inMonth ? "#fafbfc" : isToday ? "#fff7ed" : isWeekend ? "#fafbfc" : "#fff",
+        opacity: c.inMonth ? 1 : 0.5
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: isToday ? 800 : 600,
+        color: isToday ? "#fff" : c.inMonth ? "#0f172a" : "#94a3b8",
+        background: isToday ? "#dc2626" : "transparent",
+        width: 22,
+        height: 22,
+        borderRadius: 999,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, c.day), dayEntries.length > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        color: "#94a3b8",
+        fontWeight: 600
+      }
+    }, dayEntries.length, " \xE9v\xE9n.")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3
+      }
+    }, visible.map((e, i) => {
+      var k = kindMeta[e.kind];
+      var stage = stageMeta[e.opp.stage || "qualif"] || stageMeta.qualif;
       return /*#__PURE__*/React.createElement("a", {
         key: i,
-        href: "/avancer-opportunite?opp=" + encodeURIComponent(opp.id || opp.ref),
-        style: S.entry
-      }, /*#__PURE__*/React.createElement("div", {
+        href: "/avancer-opportunite?opp=" + encodeURIComponent(e.opp.id || e.opp.ref),
+        title: (e.opp.name || "") + " — " + (e.opp.client_name || "") + " · " + k.label + " · " + fmtAmount(e.opp.amount_eur),
         style: {
-          ...S.dateBlock,
-          color: kindMeta.color,
-          background: kindMeta.bg
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 17,
-          fontWeight: 800,
-          lineHeight: 1,
-          fontVariantNumeric: "tabular-nums"
-        }
-      }, new Date(e.date).getDate()), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 9,
-          textTransform: "uppercase",
-          letterSpacing: 0.5,
-          marginTop: 2
-        }
-      }, fmtDay(e.date).split(" ")[0])), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1,
-          minWidth: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 13.5,
-          fontWeight: 700,
-          color: "#0f172a"
-        }
-      }, opp.name || "Opportunité"), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 11.5,
-          color: "#64748b"
-        }
-      }, "\xB7 ", opp.client_name || opp.data && opp.data.client_name || "—")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          marginTop: 4,
-          flexWrap: "wrap"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          padding: "2px 8px",
-          borderRadius: 999,
-          background: stage.color + "1a",
-          color: stage.color,
-          fontSize: 10.5,
-          fontWeight: 700
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 6,
-          height: 6,
-          borderRadius: 999,
-          background: stage.color
-        }
-      }), stage.label), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10.5,
-          padding: "2px 7px",
+          display: "block",
+          padding: "3px 6px",
           borderRadius: 4,
-          background: kindMeta.bg,
-          color: kindMeta.color,
-          fontWeight: 700
-        }
-      }, kindMeta.label), urgency && /*#__PURE__*/React.createElement("span", {
-        style: {
+          background: k.bg,
+          borderLeft: "3px solid " + k.color,
           fontSize: 10.5,
-          padding: "2px 7px",
-          borderRadius: 4,
-          background: urgency.bg,
-          color: urgency.color,
-          fontWeight: 700
-        }
-      }, urgency.label))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          textAlign: "right",
-          flexShrink: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 15,
-          fontWeight: 700,
           color: "#0f172a",
-          fontVariantNumeric: "tabular-nums"
+          textDecoration: "none",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          fontWeight: 600
         }
-      }, fmtAmount(opp.amount_eur)), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 10.5,
-          color: "#94a3b8",
-          marginTop: 2,
-          fontVariantNumeric: "tabular-nums"
+          display: "inline-block",
+          width: 5,
+          height: 5,
+          borderRadius: 999,
+          background: stage.color,
+          marginRight: 4,
+          verticalAlign: "middle"
         }
-      }, opp.proba || 0, " % pond\xE9r\xE9")));
-    })));
-  })));
+      }), e.opp.name || "Opp.");
+    }), hidden > 0 && /*#__PURE__*/React.createElement("button", {
+      onClick: () => setDayPopup({
+        date: c.date,
+        entries: dayEntries
+      }),
+      style: {
+        background: "transparent",
+        border: 0,
+        padding: "2px 6px",
+        fontSize: 10,
+        color: "#3730a3",
+        cursor: "pointer",
+        fontWeight: 700,
+        textAlign: "left"
+      }
+    }, "+ ", hidden, " de plus")));
+  })))), dayPopup && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setDayPopup(null),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 20,
+      maxWidth: 480,
+      width: "90%",
+      maxHeight: "80vh",
+      overflow: "auto",
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: 0,
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, new Date(dayPopup.date).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setDayPopup(null),
+    style: {
+      width: 28,
+      height: 28,
+      border: 0,
+      background: "#f1f5f9",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 16,
+      fontWeight: 700
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, dayPopup.entries.map((e, i) => {
+    var k = kindMeta[e.kind];
+    var stage = stageMeta[e.opp.stage || "qualif"] || stageMeta.qualif;
+    return /*#__PURE__*/React.createElement("a", {
+      key: i,
+      href: "/avancer-opportunite?opp=" + encodeURIComponent(e.opp.id || e.opp.ref),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        border: "1px solid " + k.border,
+        background: k.bg,
+        borderRadius: 8,
+        textDecoration: "none",
+        color: "inherit"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, e.opp.name || "Opportunité"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, e.opp.client_name || e.opp.data && e.opp.data.client_name || "—"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        marginTop: 5,
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        padding: "1px 6px",
+        borderRadius: 3,
+        background: stage.color + "1a",
+        color: stage.color,
+        fontWeight: 700
+      }
+    }, stage.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        padding: "1px 6px",
+        borderRadius: 3,
+        background: k.color,
+        color: "#fff",
+        fontWeight: 700
+      }
+    }, k.label))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "right",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0f172a",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, fmtAmount(e.opp.amount_eur))));
+  })))));
 };
 var S = {
   frame: {
@@ -443,6 +559,21 @@ var S = {
     color: "#64748b",
     margin: "4px 0 0"
   },
+  navBtn: {
+    width: 32,
+    height: 32,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    borderRadius: 8,
+    fontSize: 15,
+    fontWeight: 700,
+    color: "#475569",
+    cursor: "pointer",
+    padding: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
   legend: {
     display: "flex",
     gap: 18,
@@ -450,73 +581,50 @@ var S = {
     borderBottom: "1px solid #eef1f5",
     background: "#fafbfc"
   },
+  legendItem: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 11.5,
+    color: "#475569"
+  },
   body: {
     padding: "20px 28px 60px"
   },
-  monthBlock: {
-    marginBottom: 24,
+  calendar: {
     background: "#fff",
     border: "1px solid #eef1f5",
     borderRadius: 12,
-    overflow: "hidden"
+    overflow: "hidden",
+    boxShadow: "0 2px 6px rgba(15,23,42,0.04)"
   },
-  monthHead: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "14px 18px",
-    borderBottom: "1px solid #eef1f5",
-    background: "linear-gradient(180deg, #fafbfc, #fff)"
+  weekHeader: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    background: "#fafbfc",
+    borderBottom: "1px solid #eef1f5"
   },
-  monthTitle: {
-    fontSize: 15,
+  weekHeaderCell: {
+    padding: "10px 8px",
+    fontSize: 11,
     fontWeight: 700,
-    color: "#0f172a",
-    textTransform: "capitalize",
-    margin: 0,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 10
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    textAlign: "center"
   },
-  monthCount: {
-    fontSize: 10.5,
-    padding: "2px 8px",
-    borderRadius: 999,
-    background: "#eef2ff",
-    color: "#4338ca",
-    fontWeight: 700,
-    fontVariantNumeric: "tabular-nums"
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)"
   },
-  monthTotal: {
-    fontSize: 12,
-    color: "#64748b",
-    fontWeight: 600,
-    fontVariantNumeric: "tabular-nums"
-  },
-  entries: {
-    display: "flex",
-    flexDirection: "column"
-  },
-  entry: {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    padding: "12px 18px",
+  dayCell: {
+    minHeight: 110,
+    padding: 6,
+    borderRight: "1px solid #f1f5f9",
     borderBottom: "1px solid #f1f5f9",
-    textDecoration: "none",
-    color: "inherit",
-    cursor: "pointer",
-    transition: "background 120ms"
-  },
-  dateBlock: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0
+    overflow: "hidden"
   }
 };
 window.PlanningCommercial = PlanningCommercial;

@@ -1,6 +1,6 @@
-// PlanningCommercial — Vue planning des opportunités groupées par mois
-// selon leurs deux types d'échéances : Date de décision potentielle
-// (close_date) et Échéance contrat concurrent (contract_end).
+// PlanningCommercial — Vue calendrier Outlook des opportunités selon leurs
+// deux types d'échéances : Date de décision potentielle (close_date, violet)
+// et Échéance contrat concurrent (contract_end, cyan).
 //
 // Source de données : api.opportunities.list() — même flux que CRMPipeline.
 
@@ -8,6 +8,11 @@ const PlanningCommercial = () => {
   const [opps, setOpps] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [filterType, setFilterType] = React.useState("all"); // all | decision | concurrent
+  // Mois affiché — par défaut le mois courant. Navigation < Aujourd'hui >.
+  const [cursor, setCursor] = React.useState(() => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0);
+    return d.toISOString().slice(0, 7); // "YYYY-MM"
+  });
 
   React.useEffect(() => {
     if (!window.api || !window.api.opportunities) return;
@@ -24,62 +29,66 @@ const PlanningCommercial = () => {
     nego:      { label: "Conclusion",  color: "#ea580c" },
     won:       { label: "Ordre",       color: "#10b981" },
   };
+  const kindMeta = {
+    decision:   { color: "#a855f7", bg: "#f5efff", border: "#d8b4fe", label: "Décision potentielle" },
+    concurrent: { color: "#0ea5e9", bg: "#e0f2fe", border: "#7dd3fc", label: "Fin contrat concurrent" },
+  };
 
   // Aplatit chaque opp en 1 ou 2 entrées (une par date renseignée)
-  const entries = React.useMemo(() => {
+  const allEntries = React.useMemo(() => {
     const out = [];
     opps.forEach((o) => {
       const dec = o.close_date || (o.data && (o.data.close_date || o.data.decision_date)) || null;
       const con = o.contract_end || (o.data && o.data.contract_end) || null;
       if (dec && (filterType === "all" || filterType === "decision")) {
-        out.push({ opp: o, date: dec, kind: "decision" });
+        out.push({ opp: o, date: dec.slice(0, 10), kind: "decision" });
       }
       if (con && (filterType === "all" || filterType === "concurrent")) {
-        out.push({ opp: o, date: con, kind: "concurrent" });
+        out.push({ opp: o, date: con.slice(0, 10), kind: "concurrent" });
       }
     });
-    out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     return out;
   }, [opps, filterType]);
 
-  // Groupe par mois (clé = YYYY-MM)
-  const byMonth = React.useMemo(() => {
+  // Index des entrées par YYYY-MM-DD
+  const byDate = React.useMemo(() => {
     const m = {};
-    entries.forEach((e) => {
-      const key = e.date.slice(0, 7);
-      if (!m[key]) m[key] = [];
-      m[key].push(e);
-    });
+    allEntries.forEach((e) => { (m[e.date] = m[e.date] || []).push(e); });
     return m;
-  }, [entries]);
+  }, [allEntries]);
 
-  const monthKeys = Object.keys(byMonth).sort();
-  const totalAmount = entries.reduce((acc, e) => acc + (Number(e.opp.amount_eur) || 0), 0);
-  const uniqueOpps = new Set(entries.map((e) => e.opp.id || e.opp.ref)).size;
+  // Construit la grille du mois courant (semaines de Lundi à Dimanche).
+  const [year, month] = cursor.split("-").map((n) => parseInt(n, 10));
+  const firstOfMonth = new Date(year, month - 1, 1);
+  const monthLabel = firstOfMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  // Décalage en jours pour que la grille commence un lundi
+  // (getDay() : 0=dim, 1=lun, ..., 6=sam → on veut 1=lun donc shift = (day+6)%7)
+  const shiftStart = (firstOfMonth.getDay() + 6) % 7;
+  const gridStart = new Date(year, month - 1, 1 - shiftStart);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const totalCells = Math.ceil((shiftStart + daysInMonth) / 7) * 7;
+  const cells = Array.from({ length: totalCells }, (_, i) => {
+    const d = new Date(gridStart.getTime() + i * 86400000);
+    const iso = d.toISOString().slice(0, 10);
+    return { date: iso, day: d.getDate(), inMonth: d.getMonth() === month - 1, weekday: (d.getDay() + 6) % 7 };
+  });
 
-  const fmtMonth = (key) => {
-    const [y, m] = key.split("-");
-    const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
-    return d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  // Stats du mois affiché
+  const monthEntries = allEntries.filter((e) => e.date.slice(0, 7) === cursor);
+  const monthAmount = monthEntries.reduce((acc, e) => acc + (Number(e.opp.amount_eur) || 0), 0);
+  const uniqueOppsMonth = new Set(monthEntries.map((e) => e.opp.id || e.opp.ref)).size;
+
+  const navMonth = (delta) => {
+    const d = new Date(year, month - 1 + delta, 1);
+    setCursor(d.toISOString().slice(0, 7));
   };
-  const fmtDay = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit" });
-  };
+  const today = new Date().toISOString().slice(0, 10);
+
   const fmtAmount = (n) => n != null ? Math.round(n).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—";
-  const daysFromToday = (iso) => {
-    const d = new Date(iso); d.setHours(0, 0, 0, 0);
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    return Math.round((d.getTime() - today.getTime()) / 86400000);
-  };
-  const urgencyChip = (iso) => {
-    const days = daysFromToday(iso);
-    if (days < 0) return { label: "En retard de " + Math.abs(days) + " j", color: "#dc2626", bg: "#fee2e2" };
-    if (days === 0) return { label: "Aujourd'hui", color: "#dc2626", bg: "#fee2e2" };
-    if (days <= 7) return { label: "J-" + days, color: "#ea580c", bg: "#fed7aa" };
-    if (days <= 30) return { label: "J-" + days, color: "#a16207", bg: "#fef3c7" };
-    return null;
-  };
+
+  // Modal "voir tous les événements d'un jour" si > N
+  const [dayPopup, setDayPopup] = React.useState(null);
+  const MAX_VISIBLE_PER_DAY = 3;
 
   return (
     <div style={S.frame}>
@@ -90,9 +99,7 @@ const PlanningCommercial = () => {
           <span style={{ color: "#cbd5e1" }}>/</span>
           <span style={{ color: "#0f172a", fontWeight: 600 }}>Planning commercial</span>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <a href="/crm" style={S.btnGhost}>← Pipeline</a>
-        </div>
+        <a href="/crm" style={S.btnGhost}>← Pipeline</a>
       </header>
 
       {/* Title row */}
@@ -100,121 +107,195 @@ const PlanningCommercial = () => {
         <div>
           <h1 style={S.h1}>Planning commercial</h1>
           <p style={S.h1sub}>
-            {uniqueOpps} opportunité{uniqueOpps > 1 ? "s" : ""} · {entries.length} échéance{entries.length > 1 ? "s" : ""} · {fmtAmount(totalAmount)} cumulés
+            {uniqueOppsMonth} opportunité{uniqueOppsMonth > 1 ? "s" : ""} · {monthEntries.length} échéance{monthEntries.length > 1 ? "s" : ""} ce mois · {fmtAmount(monthAmount)} cumulés
           </p>
         </div>
 
-        {/* Filtre type d'échéance */}
-        <div style={{ display: "inline-flex", border: "1px solid #e2e8f0", borderRadius: 8, padding: 2, background: "#fff" }}>
-          {[
-            { k: "all",        label: "Toutes les échéances" },
-            { k: "decision",   label: "Décision potentielle uniquement" },
-            { k: "concurrent", label: "Contrat concurrent uniquement" },
-          ].map((f) => (
-            <button key={f.k} onClick={() => setFilterType(f.k)}
-                    style={{ padding: "6px 12px", border: "none", borderRadius: 6, cursor: "pointer",
-                             fontSize: 12, fontWeight: 600,
-                             background: filterType === f.k ? "#0f172a" : "transparent",
-                             color: filterType === f.k ? "#fff" : "#64748b" }}>
-              {f.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          {/* Filtre type d'échéance */}
+          <div style={{ display: "inline-flex", border: "1px solid #e2e8f0", borderRadius: 8, padding: 2, background: "#fff" }}>
+            {[
+              { k: "all",        label: "Toutes" },
+              { k: "decision",   label: "Décision" },
+              { k: "concurrent", label: "Concurrent" },
+            ].map((f) => (
+              <button key={f.k} onClick={() => setFilterType(f.k)}
+                      style={{ padding: "6px 12px", border: "none", borderRadius: 6, cursor: "pointer",
+                               fontSize: 12, fontWeight: 600,
+                               background: filterType === f.k ? "#0f172a" : "transparent",
+                               color: filterType === f.k ? "#fff" : "#64748b" }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Navigation mois */}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => navMonth(-1)} style={S.navBtn} title="Mois précédent">‹</button>
+            <button onClick={() => {
+              const d = new Date(); d.setDate(1);
+              setCursor(d.toISOString().slice(0, 7));
+            }} style={{ ...S.navBtn, padding: "6px 14px", width: "auto" }}>Aujourd'hui</button>
+            <button onClick={() => navMonth(1)} style={S.navBtn} title="Mois suivant">›</button>
+          </div>
+
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", textTransform: "capitalize", minWidth: 160 }}>
+            {monthLabel}
+          </div>
         </div>
       </div>
 
       {/* Légende */}
       <div style={S.legend}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "#475569" }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#a855f7" }} />
+        <span style={S.legendItem}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: kindMeta.decision.color }} />
           Date de décision potentielle
         </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "#475569" }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#0ea5e9" }} />
+        <span style={S.legendItem}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: kindMeta.concurrent.color }} />
           Échéance contrat concurrent
         </span>
       </div>
 
-      {/* Body */}
+      {/* Calendrier */}
       <div style={S.body}>
-        {loading && (
+        {loading ? (
           <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Chargement…</div>
-        )}
-        {!loading && monthKeys.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-            Aucune opportunité avec une date renseignée. Renseigne « Date de décision potentielle » ou « Échéance du contrat actuel » sur la page Avancer l'opportunité pour qu'elles apparaissent ici.
+        ) : (
+          <div style={S.calendar}>
+            {/* En-tête jours de la semaine */}
+            <div style={S.weekHeader}>
+              {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map((d) => (
+                <div key={d} style={S.weekHeaderCell}>{d}</div>
+              ))}
+            </div>
+
+            {/* Grille des cellules jour */}
+            <div style={S.grid}>
+              {cells.map((c) => {
+                const dayEntries = byDate[c.date] || [];
+                const isToday = c.date === today;
+                const isWeekend = c.weekday >= 5;
+                const visible = dayEntries.slice(0, MAX_VISIBLE_PER_DAY);
+                const hidden = dayEntries.length - visible.length;
+                return (
+                  <div key={c.date}
+                       style={{
+                         ...S.dayCell,
+                         background: !c.inMonth ? "#fafbfc" : isToday ? "#fff7ed" : isWeekend ? "#fafbfc" : "#fff",
+                         opacity: c.inMonth ? 1 : 0.5,
+                       }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{
+                        fontSize: 12,
+                        fontWeight: isToday ? 800 : 600,
+                        color: isToday ? "#fff" : c.inMonth ? "#0f172a" : "#94a3b8",
+                        background: isToday ? "#dc2626" : "transparent",
+                        width: 22, height: 22, borderRadius: 999,
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        fontVariantNumeric: "tabular-nums",
+                      }}>{c.day}</span>
+                      {dayEntries.length > 0 && (
+                        <span style={{ fontSize: 9.5, color: "#94a3b8", fontWeight: 600 }}>
+                          {dayEntries.length} évén.
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      {visible.map((e, i) => {
+                        const k = kindMeta[e.kind];
+                        const stage = stageMeta[e.opp.stage || "qualif"] || stageMeta.qualif;
+                        return (
+                          <a key={i}
+                             href={"/avancer-opportunite?opp=" + encodeURIComponent(e.opp.id || e.opp.ref)}
+                             title={(e.opp.name || "") + " — " + (e.opp.client_name || "") + " · " + k.label + " · " + fmtAmount(e.opp.amount_eur)}
+                             style={{
+                               display: "block",
+                               padding: "3px 6px",
+                               borderRadius: 4,
+                               background: k.bg,
+                               borderLeft: "3px solid " + k.color,
+                               fontSize: 10.5,
+                               color: "#0f172a",
+                               textDecoration: "none",
+                               overflow: "hidden",
+                               textOverflow: "ellipsis",
+                               whiteSpace: "nowrap",
+                               fontWeight: 600,
+                             }}>
+                            <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: 999, background: stage.color, marginRight: 4, verticalAlign: "middle" }} />
+                            {e.opp.name || "Opp."}
+                          </a>
+                        );
+                      })}
+                      {hidden > 0 && (
+                        <button onClick={() => setDayPopup({ date: c.date, entries: dayEntries })}
+                                style={{ background: "transparent", border: 0, padding: "2px 6px", fontSize: 10,
+                                         color: "#3730a3", cursor: "pointer", fontWeight: 700, textAlign: "left" }}>
+                          + {hidden} de plus
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
-        {!loading && monthKeys.map((key) => {
-          const month = byMonth[key];
-          const monthTotal = month.reduce((acc, e) => acc + (Number(e.opp.amount_eur) || 0), 0);
-          return (
-            <section key={key} style={S.monthBlock}>
-              <header style={S.monthHead}>
-                <h2 style={S.monthTitle}>
-                  {fmtMonth(key)}
-                  <span style={S.monthCount}>{month.length}</span>
-                </h2>
-                <span style={S.monthTotal}>{fmtAmount(monthTotal)} cumulés</span>
-              </header>
-              <div style={S.entries}>
-                {month.map((e, i) => {
-                  const opp = e.opp;
-                  const stage = stageMeta[opp.stage || "qualif"] || stageMeta.qualif;
-                  const kindMeta = e.kind === "decision"
-                    ? { color: "#a855f7", bg: "#f5efff", label: "Décision potentielle" }
-                    : { color: "#0ea5e9", bg: "#e0f2fe", label: "Fin contrat concurrent" };
-                  const urgency = urgencyChip(e.date);
-                  return (
-                    <a key={i}
-                       href={"/avancer-opportunite?opp=" + encodeURIComponent(opp.id || opp.ref)}
-                       style={S.entry}>
-                      <div style={{ ...S.dateBlock, color: kindMeta.color, background: kindMeta.bg }}>
-                        <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-                          {new Date(e.date).getDate()}
-                        </div>
-                        <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>
-                          {fmtDay(e.date).split(" ")[0]}
-                        </div>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a" }}>{opp.name || "Opportunité"}</span>
-                          <span style={{ fontSize: 11.5, color: "#64748b" }}>· {opp.client_name || (opp.data && opp.data.client_name) || "—"}</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999,
-                                         background: stage.color + "1a", color: stage.color, fontSize: 10.5, fontWeight: 700 }}>
-                            <span style={{ width: 6, height: 6, borderRadius: 999, background: stage.color }} />
-                            {stage.label}
-                          </span>
-                          <span style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4,
-                                         background: kindMeta.bg, color: kindMeta.color, fontWeight: 700 }}>
-                            {kindMeta.label}
-                          </span>
-                          {urgency && (
-                            <span style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4,
-                                           background: urgency.bg, color: urgency.color, fontWeight: 700 }}>
-                              {urgency.label}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>
-                          {fmtAmount(opp.amount_eur)}
-                        </div>
-                        <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                          {(opp.proba || 0)} % pondéré
-                        </div>
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
       </div>
+
+      {/* Popup détail d'une journée chargée */}
+      {dayPopup && (
+        <div onClick={() => setDayPopup(null)}
+             style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 1000,
+                      display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={(e) => e.stopPropagation()}
+               style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 480, width: "90%",
+                        maxHeight: "80vh", overflow: "auto", boxShadow: "0 12px 40px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
+                {new Date(dayPopup.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+              </h3>
+              <button onClick={() => setDayPopup(null)}
+                      style={{ width: 28, height: 28, border: 0, background: "#f1f5f9", borderRadius: 6,
+                               cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {dayPopup.entries.map((e, i) => {
+                const k = kindMeta[e.kind];
+                const stage = stageMeta[e.opp.stage || "qualif"] || stageMeta.qualif;
+                return (
+                  <a key={i}
+                     href={"/avancer-opportunite?opp=" + encodeURIComponent(e.opp.id || e.opp.ref)}
+                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                              border: "1px solid " + k.border, background: k.bg, borderRadius: 8,
+                              textDecoration: "none", color: "inherit" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{e.opp.name || "Opportunité"}</div>
+                      <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{e.opp.client_name || (e.opp.data && e.opp.data.client_name) || "—"}</div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 5, alignItems: "center" }}>
+                        <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 3,
+                                       background: stage.color + "1a", color: stage.color, fontWeight: 700 }}>
+                          {stage.label}
+                        </span>
+                        <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 3,
+                                       background: k.color, color: "#fff", fontWeight: 700 }}>
+                          {k.label}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>
+                        {fmtAmount(e.opp.amount_eur)}
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -230,24 +311,22 @@ const S = {
               borderBottom: "1px solid #eef1f5", background: "#fff", flexWrap: "wrap", gap: 16 },
   h1: { fontSize: 24, fontWeight: 700, letterSpacing: -0.7, margin: 0 },
   h1sub: { fontSize: 13, color: "#64748b", margin: "4px 0 0" },
+  navBtn: { width: 32, height: 32, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8,
+            fontSize: 15, fontWeight: 700, color: "#475569", cursor: "pointer", padding: 0,
+            display: "inline-flex", alignItems: "center", justifyContent: "center" },
   legend: { display: "flex", gap: 18, padding: "12px 28px", borderBottom: "1px solid #eef1f5",
             background: "#fafbfc" },
+  legendItem: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "#475569" },
   body: { padding: "20px 28px 60px" },
-  monthBlock: { marginBottom: 24, background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "hidden" },
-  monthHead: { display: "flex", justifyContent: "space-between", alignItems: "center",
-               padding: "14px 18px", borderBottom: "1px solid #eef1f5",
-               background: "linear-gradient(180deg, #fafbfc, #fff)" },
-  monthTitle: { fontSize: 15, fontWeight: 700, color: "#0f172a", textTransform: "capitalize",
-                margin: 0, display: "inline-flex", alignItems: "center", gap: 10 },
-  monthCount: { fontSize: 10.5, padding: "2px 8px", borderRadius: 999, background: "#eef2ff",
-                color: "#4338ca", fontWeight: 700, fontVariantNumeric: "tabular-nums" },
-  monthTotal: { fontSize: 12, color: "#64748b", fontWeight: 600, fontVariantNumeric: "tabular-nums" },
-  entries: { display: "flex", flexDirection: "column" },
-  entry: { display: "flex", alignItems: "center", gap: 14, padding: "12px 18px",
-           borderBottom: "1px solid #f1f5f9", textDecoration: "none", color: "inherit",
-           cursor: "pointer", transition: "background 120ms" },
-  dateBlock: { width: 52, height: 52, borderRadius: 8, display: "flex", flexDirection: "column",
-               alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  calendar: { background: "#fff", border: "1px solid #eef1f5", borderRadius: 12, overflow: "hidden",
+              boxShadow: "0 2px 6px rgba(15,23,42,0.04)" },
+  weekHeader: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: "#fafbfc",
+                borderBottom: "1px solid #eef1f5" },
+  weekHeaderCell: { padding: "10px 8px", fontSize: 11, fontWeight: 700, color: "#475569",
+                    textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)" },
+  dayCell: { minHeight: 110, padding: 6, borderRight: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9",
+             display: "flex", flexDirection: "column", overflow: "hidden" },
 };
 
 window.PlanningCommercial = PlanningCommercial;

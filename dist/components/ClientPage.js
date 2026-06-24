@@ -1611,7 +1611,45 @@ var ClientPage = () => {
       fontWeight: 600
     },
     title: "Exporter toutes les donn\xE9es du client en ZIP (CSV + JSON) \u2014 r\xE9versibilit\xE9 RGPD"
-  }, "\u2B07 Exporter les donn\xE9es"))), /*#__PURE__*/React.createElement("section", {
+  }, "\u2B07 Exporter les donn\xE9es"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      var clientName = display.name || display.raison_sociale || "ce client";
+      var ok1 = window.HubModal ? await window.HubModal.confirm({
+        title: "Supprimer définitivement « " + clientName + " » ?",
+        message: "Cette action supprimera la fiche client ainsi que toutes ses données liées :\n" + "• contacts, opportunités, devis, contrats, projets, tickets, actions, factures.\n\n" + "Action IRRÉVERSIBLE — assurez-vous d'avoir exporté les données (article 20 RGPD) avant.",
+        okLabel: "Continuer",
+        okStyle: "danger"
+      }) : confirm("Supprimer définitivement « " + clientName + " » ? Action irréversible.");
+      if (!ok1) return;
+      // Double confirmation : saisie explicite « SUPPRIMER »
+      var typed = window.HubModal ? await window.HubModal.prompt({
+        title: "Confirmation finale",
+        label: "Tapez « SUPPRIMER » en majuscules pour confirmer définitivement.",
+        placeholder: "SUPPRIMER"
+      }) : prompt("Tapez SUPPRIMER pour confirmer :");
+      if ((typed || "").trim() !== "SUPPRIMER") {
+        if (window.HubToast) window.HubToast.info("Suppression annulée");
+        return;
+      }
+      try {
+        await window.api.clients.remove(display.id || urlId);
+        if (window.HubToast) window.HubToast.success("✓ Client « " + clientName + " » supprimé");
+        setTimeout(() => {
+          window.location.href = "/crm";
+        }, 800);
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      }
+    },
+    style: {
+      ...cliStyles.ghostBtn,
+      background: "#fef2f2",
+      borderColor: "#fecaca",
+      color: "#dc2626",
+      fontWeight: 600
+    },
+    title: "Supprimer d\xE9finitivement la fiche client et toutes ses donn\xE9es li\xE9es"
+  }, "\uD83D\uDDD1 Supprimer le client"))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.blockHead

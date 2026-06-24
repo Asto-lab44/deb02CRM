@@ -105,7 +105,11 @@
     return base + ".pdf";
   }
 
-  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // toLocaleString("fr-FR") utilise un NARROW NO-BREAK SPACE (U+202F) comme
+  // séparateur de milliers — la police Roboto embarquée par pdfmake n'a pas
+  // ce glyphe et affiche un carré vide. On normalise vers un espace standard.
+  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    .replace(/[  ]/g, " ");
   const fmtDate = (s) => {
     if (!s) return "";
     const d = new Date(s);
@@ -229,14 +233,17 @@
       tvaMap[rate].ht += ht;
       tvaMap[rate].tva += tva;
     });
-    const tvaRows = Object.values(tvaMap).map((t, i) => [
-      { text: String(i + 1), style: "tvaCell" },
+    // Code TVA : "T<taux>" — stable par taux, lisible (T20, T10, T5.5, T2.1, T0)
+    const tvaCode = (rate) => "T" + (Number(rate) % 1 === 0 ? String(Number(rate)) : String(Number(rate)).replace(".", ","));
+    const tvaRows = Object.values(tvaMap).map((t) => [
+      { text: tvaCode(t.rate), style: "tvaCell" },
       { text: fmtEUR(t.ht), style: "tvaCell", alignment: "right" },
-      { text: fmtEUR(t.rate), style: "tvaCell", alignment: "right" },
+      { text: fmtEUR(t.rate) + " %", style: "tvaCell", alignment: "right" },
       { text: fmtEUR(t.tva), style: "tvaCell", alignment: "right" },
+      { text: fmtEUR(t.ht + t.tva), style: "tvaCell", alignment: "right" },
     ]);
     if (tvaRows.length === 0) {
-      tvaRows.push([{ text: "—", colSpan: 4, alignment: "center", style: "tvaCell", color: "#999" }, {}, {}, {}]);
+      tvaRows.push([{ text: "—", colSpan: 5, alignment: "center", style: "tvaCell", color: "#999" }, {}, {}, {}, {}]);
     }
 
     // ───── Bloc client (haut droite)
@@ -347,13 +354,14 @@
           width: "*",
           margin: [0, 18, 0, 0],
           table: {
-            widths: [25, 60, 50, 60],
+            widths: [32, 58, 46, 58, 58],
             body: [
               [
                 { text: "Code", style: "tvaHead" },
                 { text: "Base HT", style: "tvaHead", alignment: "right" },
                 { text: "Taux TVA", style: "tvaHead", alignment: "right" },
                 { text: "Montant TVA", style: "tvaHead", alignment: "right" },
+                { text: "Montant TTC", style: "tvaHead", alignment: "right" },
               ],
               ...tvaRows,
             ],
@@ -382,6 +390,10 @@
                 { text: fmtEUR(doc.total_tva), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
               ],
               [
+                { text: "Total TTC", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
+                { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
+              ],
+              [
                 { text: "NET A PAYER", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: "#0f172a" },
                 { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: "#0f172a" },
               ],
@@ -390,7 +402,7 @@
           layout: {
             hLineWidth: () => 0.3, vLineWidth: () => 0.3,
             hLineColor: () => "#0f172a", vLineColor: () => "#0f172a",
-            fillColor: (row) => (row === 2 ? "#0f172a" : null),
+            fillColor: (row) => (row === 3 ? "#0f172a" : null),
           },
         },
       ],

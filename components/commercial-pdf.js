@@ -512,6 +512,47 @@
     // positionnement, donc le bandeau de bas de page suit toujours le
     // contenu, quel que soit le nombre d'articles.
     // ─────────────────────────────────────────────────────────────────
+    // ── Bloc CGV au verso — uniquement sur les DEVIS.
+    // Source : window.HubAstoryaCGV (chargée depuis components/astorya-cgv.js
+    // — données extraites du Word officiel « Conditions générales devis 2025 »).
+    // Mise en page 2 colonnes type CGV verso, taille 7,5 pour tenir sur 1 page.
+    const cgvBlock = (doc.type === "devis" && Array.isArray(window.HubAstoryaCGV) && window.HubAstoryaCGV.length > 0) ? {
+      pageBreak: "before",
+      stack: [
+        { text: "CONDITIONS GÉNÉRALES DE VENTE", fontSize: 13, bold: true, color: "#c91c45",
+          alignment: "center", margin: [0, 0, 0, 4] },
+        { text: "ASTORYA SGI · 9 rue du Petit Châtelier · 44300 Nantes · SIRET 523 625 804 00027",
+          fontSize: 7.5, color: "#64748b", alignment: "center", margin: [0, 0, 0, 10] },
+        {
+          columns: [
+            {
+              width: "*",
+              stack: window.HubAstoryaCGV.slice(0, Math.ceil(window.HubAstoryaCGV.length / 2))
+                .map((art, i) => ({
+                  stack: [
+                    { text: "Article " + (i + 1) + " — " + art.title,
+                      fontSize: 8, bold: true, color: "#0f172a", margin: [0, 4, 0, 2] },
+                    { text: art.body, fontSize: 7, alignment: "justify", color: "#334155", lineHeight: 1.25 },
+                  ],
+                })),
+            },
+            { width: 12, text: " " },
+            {
+              width: "*",
+              stack: window.HubAstoryaCGV.slice(Math.ceil(window.HubAstoryaCGV.length / 2))
+                .map((art, i) => ({
+                  stack: [
+                    { text: "Article " + (Math.ceil(window.HubAstoryaCGV.length / 2) + i + 1) + " — " + art.title,
+                      fontSize: 8, bold: true, color: "#0f172a", margin: [0, 4, 0, 2] },
+                    { text: art.body, fontSize: 7, alignment: "justify", color: "#334155", lineHeight: 1.25 },
+                  ],
+                })),
+            },
+          ],
+        },
+      ],
+    } : null;
+
     const content = [
       headerBand,
       // Bloc client en haut droite (positionné absolu via colonnes)
@@ -532,6 +573,7 @@
       isBL ? null : totalsBlock,
       // signatureBlock retiré du body → maintenant dans le footer
       // uniquement sur la dernière page (voir footer callback).
+      cgvBlock,
     ].filter(Boolean);
 
     // Hauteur réservée au footer :

@@ -263,6 +263,31 @@ var AdvanceOpportunity = () => {
       return;
     }
 
+    // ⚡ Création automatique d'actions liées au passage d'étape.
+    // Approche (discovery) → Négociation (propo) : créer une action
+    // « Envoi de l'offre commerciale » assignée au commercial courant
+    // (échéance 5 jours par défaut, priorité haute).
+    if (!asLost && (opp.stage || "qualif") === "discovery" && newStage === "propo" && window.api.actions && window.api.actions.create) {
+      try {
+        var _clientId = oppData && (oppData.client_id || oppData.data && oppData.data.client_id);
+        await window.api.actions.create({
+          client_id: _clientId || null,
+          opportunity_id: opp.ref,
+          type: "task",
+          title: "Envoi de l'offre commerciale — " + (editName || opp.name || ""),
+          meta: "Opportunité « " + (editName || opp.name || opp.ref) + " » passée en Négociation : envoyer le devis chiffré sous 5 jours.",
+          due_text: "Sous 5 jours",
+          priority: "haute",
+          icon: "✉",
+          tag: "Offre commerciale",
+          tagColor: "#a855f7"
+        });
+        if (window.HubToast) window.HubToast.info("✉ Action « Envoi de l'offre commerciale » créée");
+      } catch (e) {
+        console.warn("[AdvanceOpp] création action offre:", e);
+      }
+    }
+
     // ⚡ CASCADE EXPLICITE COTÉ CLIENT pour passage en Ordre (won)
     // Filet de sécurité au cas où le hook backend silencieusement échoue.
     // Visible étape par étape via toast pour debug.

@@ -414,8 +414,12 @@
       unbreakable: true,
     };
 
-    // ── CONDITIONS GÉNÉRALES (texte commun + titre adapté au template)
-    const cgvBlock = buildCgvBlock(K, kindKey);
+    // ── CONDITIONS GÉNÉRALES — soit les articles personnalisés du Contrat
+    // de Services (si payload.articles fourni), soit le bloc CGV générique
+    // historique pour les autres types de contrats (hosting, phone…).
+    const cgvBlock = (Array.isArray(p.articles) && p.articles.length > 0)
+      ? buildCustomArticlesBlock(p.articles, K)
+      : buildCgvBlock(K, kindKey);
 
     // ── MANDAT SEPA
     const sepaBlock = buildSepaBlock(client, signatory);
@@ -460,6 +464,93 @@
       fillColor: (row) => headerFill && row === 0 ? "#f8fafc" : null,
       paddingTop: () => 5, paddingBottom: () => 5, paddingLeft: () => 6, paddingRight: () => 6,
     };
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Articles personnalisés — depuis les textareas éditables de NewContract
+  // ─────────────────────────────────────────────────────────────────
+  // Parse un body en markdown léger (paragraphes, ** gras, * italique,
+  // ### sous-titres, listes numérotées et à puces, séparateurs ---) en
+  // une stack pdfmake. Volontairement minimaliste — c'est du texte
+  // juridique, pas du contenu marketing.
+  function parseInlineRich(line) {
+    // Découpe sur **gras** et *italique* en gardant l'ordre.
+    const tokens = [];
+    const re = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+    let last = 0; let m;
+    while ((m = re.exec(line)) !== null) {
+      if (m.index > last) tokens.push({ text: line.slice(last, m.index) });
+      const t = m[0];
+      if (t.startsWith("**")) tokens.push({ text: t.slice(2, -2), bold: true });
+      else if (t.startsWith("`")) tokens.push({ text: t.slice(1, -1) });
+      else tokens.push({ text: t.slice(1, -1), italics: true });
+      last = m.index + t.length;
+    }
+    if (last < line.length) tokens.push({ text: line.slice(last) });
+    return tokens.length ? tokens : [{ text: line }];
+  }
+
+  function renderArticleBody(body) {
+    const lines = String(body || "").split("\n");
+    const stack = [];
+    let i = 0;
+    while (i < lines.length) {
+      const raw = lines[i];
+      const line = raw.trim();
+      if (!line || line === "---") { i++; continue; }
+      // Sous-titre #### / ### / ##
+      const headMatch = line.match(/^(#{2,4})\s+(.*)$/);
+      if (headMatch) {
+        const level = headMatch[1].length;
+        const size = level <= 2 ? 10.5 : level === 3 ? 10 : 9.5;
+        stack.push({ text: headMatch[2], fontSize: size, bold: true, color: "#0f172a", margin: [0, 6, 0, 3] });
+        i++; continue;
+      }
+      // Liste numérotée
+      if (/^\d+\.\s+/.test(line)) {
+        const items = [];
+        while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+          items.push({ text: parseInlineRich(lines[i].trim().replace(/^\d+\.\s+/, "")) });
+          i++;
+        }
+        stack.push({ ol: items, fontSize: 9, margin: [10, 2, 0, 4] });
+        continue;
+      }
+      // Liste à puces
+      if (/^[-•]\s+/.test(line)) {
+        const items = [];
+        while (i < lines.length && /^[-•]\s+/.test(lines[i].trim())) {
+          items.push({ text: parseInlineRich(lines[i].trim().replace(/^[-•]\s+/, "")) });
+          i++;
+        }
+        stack.push({ ul: items, fontSize: 9, margin: [10, 2, 0, 4] });
+        continue;
+      }
+      // Paragraphe — agrège les lignes consécutives non-vides
+      const para = [line];
+      i++;
+      while (i < lines.length) {
+        const next = lines[i].trim();
+        if (!next || next === "---" || /^(#{2,4})\s+/.test(next) || /^\d+\.\s+/.test(next) || /^[-•]\s+/.test(next)) break;
+        para.push(next);
+        i++;
+      }
+      stack.push({ text: parseInlineRich(para.join(" ")), fontSize: 9, alignment: "justify", margin: [0, 0, 0, 4] });
+    }
+    return stack;
+  }
+
+  function buildCustomArticlesBlock(articles, K) {
+    const sorted = articles.slice().sort((a, b) => (a.n || 0) - (b.n || 0));
+    const stack = [
+      { text: K.cgvTitle || "CONDITIONS GÉNÉRALES DE SERVICES", style: "h1", pageBreak: "before", margin: [0, 4, 0, 8] },
+    ];
+    sorted.forEach((a) => {
+      stack.push({ text: "ARTICLE " + a.n + " — " + (a.title || ""), style: "h2", margin: [0, 10, 0, 4] });
+      const body = renderArticleBody(a.body || "");
+      body.forEach((b) => stack.push(b));
+    });
+    return { stack };
   }
 
   // ─────────────────────────────────────────────────────────────────

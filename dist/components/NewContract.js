@@ -532,7 +532,15 @@ var NewContract = () => {
         name: signatory.name,
         email: clientObj && clientObj.email || ""
       },
-      sums
+      sums,
+      // Articles personnalisés du Contrat de Services — remplacent le bloc CGV
+      // générique du PDF par les 16 articles éditables (texte d'origine ou
+      // version modifiée dans la section Conditions juridiques).
+      articles: contractArticles.map(a => ({
+        n: a.n,
+        title: a.title,
+        body: a.body
+      }))
     };
     try {
       await window.HubHostingContractPdf.preview(payload);
@@ -2009,7 +2017,8 @@ var NewContract = () => {
     status: "todo"
   }), /*#__PURE__*/React.createElement(NCFormRow, {
     label: "Mode de signature",
-    required: true
+    required: true,
+    subtitle: "S\xE9lectionnez puis pr\xE9visualisez le contrat complet pr\xE9-rempli ci-dessous"
   }, /*#__PURE__*/React.createElement("div", {
     style: ncStyles.signMethods
   }, [{
@@ -2075,7 +2084,58 @@ var NewContract = () => {
       color: signMethod === m.k ? "#64748b" : "#94a3b8",
       marginTop: 3
     }
-  }, m.desc)))))))), /*#__PURE__*/React.createElement("div", {
+  }, m.desc)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      padding: 14,
+      marginTop: 4,
+      background: "linear-gradient(135deg, #fff5f6, #fff)",
+      border: "1px solid #fecdd3",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18
+    }
+  }, "\uD83D\uDCC4"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "Aper\xE7u du contrat pr\xE9-rempli"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      marginTop: 1
+    }
+  }, "G\xE9n\xE8re le PDF complet \u2014 parties, prestations, conditions financi\xE8res, 16 articles personnalisables et bloc signature (", signMethod === "qualified" ? "électronique qualifiée DocuSign" : signMethod === "simple" ? "signature simple par scan retour" : "manuscrite — original papier", ")."))), /*#__PURE__*/React.createElement("button", {
+    onClick: generateContractPdf,
+    style: {
+      alignSelf: "flex-start",
+      padding: "8px 18px",
+      border: "none",
+      background: "#c91c45",
+      color: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      boxShadow: "0 2px 4px rgba(201,28,69,0.25)"
+    }
+  }, "\uD83D\uDCC4 Voir l'aper\xE7u PDF complet")))), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.actionsRow
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => history.back(),

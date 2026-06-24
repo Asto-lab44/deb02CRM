@@ -274,6 +274,10 @@ const NewContract = () => {
       signatory,
       referent: { name: signatory.name, email: (clientObj && clientObj.email) || "" },
       sums,
+      // Articles personnalisés du Contrat de Services — remplacent le bloc CGV
+      // générique du PDF par les 16 articles éditables (texte d'origine ou
+      // version modifiée dans la section Conditions juridiques).
+      articles: contractArticles.map((a) => ({ n: a.n, title: a.title, body: a.body })),
     };
     try { await window.HubHostingContractPdf.preview(payload); }
     catch (e) { alert("Génération PDF : " + (e.message || e)); }
@@ -1045,7 +1049,7 @@ const NewContract = () => {
             <section style={ncStyles.section}>
               <NCSectionHead num="05" title="Signature & workflow" subtitle="Validation interne et signature électronique" status="todo" />
 
-              <NCFormRow label="Mode de signature" required>
+              <NCFormRow label="Mode de signature" required subtitle="Sélectionnez puis prévisualisez le contrat complet pré-rempli ci-dessous">
                 <div style={ncStyles.signMethods}>
                   {[
                     { k: "qualified", emoji: "✍", title: "Signature électronique qualifiée", desc: "Via DocuSign — valeur juridique probante · délai moyen 2 j", badge: "eIDAS" },
@@ -1070,6 +1074,26 @@ const NewContract = () => {
                   ))}
                 </div>
               </NCFormRow>
+
+              {/* CTA aperçu PDF complet — visible une fois le mode signature choisi */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 14, marginTop: 4,
+                            background: "linear-gradient(135deg, #fff5f6, #fff)", border: "1px solid #fecdd3", borderRadius: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>📄</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>Aperçu du contrat pré-rempli</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>
+                      Génère le PDF complet — parties, prestations, conditions financières, 16 articles personnalisables et bloc signature ({signMethod === "qualified" ? "électronique qualifiée DocuSign" : signMethod === "simple" ? "signature simple par scan retour" : "manuscrite — original papier"}).
+                    </div>
+                  </div>
+                </div>
+                <button onClick={generateContractPdf}
+                        style={{ alignSelf: "flex-start", padding: "8px 18px", border: "none",
+                                 background: "#c91c45", color: "#fff", borderRadius: 8, fontSize: 12.5,
+                                 fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 4px rgba(201,28,69,0.25)" }}>
+                  📄 Voir l'aperçu PDF complet
+                </button>
+              </div>
             </section>
 
             </div>{/* /Row 3 */}

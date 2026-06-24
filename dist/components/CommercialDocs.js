@@ -3748,7 +3748,90 @@ var CommercialDocEditor = ({
     style: {
       fontVariantNumeric: "tabular-nums"
     }
-  }, fmtEUR(totals.ttc)))))), /*#__PURE__*/React.createElement(DocSendHistory, {
+  }, fmtEUR(totals.ttc))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      padding: 14,
+      background: "#fefce8",
+      border: "1.5px dashed #facc15",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#854d0e"
+    }
+  }, "Note interne \u2014 visible techniciens uniquement"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#a16207",
+      marginTop: 1
+    }
+  }, "Suit l'opportunit\xE9 jusqu'\xE0 la livraison (devis \u2192 commande \u2192 BL \u2192 facture). Jamais imprim\xE9e sur le PDF transmis au client.")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 7px",
+      borderRadius: 4,
+      background: "#fff",
+      color: "#a16207",
+      fontWeight: 700,
+      border: "1px solid #fde68a"
+    }
+  }, "NON IMPRIM\xC9E")), /*#__PURE__*/React.createElement("textarea", {
+    value: d.data && d.data.internal_notes || "",
+    onChange: e => setD({
+      ...d,
+      data: {
+        ...(d.data || {}),
+        internal_notes: e.target.value
+      }
+    }),
+    placeholder: "Pr\xE9ciser le contexte technique : configurations sp\xE9cifiques, acc\xE8s admin, contraintes infra, points d'attention pour la pose, r\xE9f\xE9rences internes, contacts techniques du client, etc.",
+    rows: 5,
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      border: "1px solid #fde68a",
+      borderRadius: 8,
+      fontSize: 12,
+      fontFamily: "'Inter', system-ui, sans-serif",
+      color: "#0f172a",
+      background: "#fffef5",
+      lineHeight: 1.5,
+      boxSizing: "border-box",
+      resize: "vertical",
+      outline: "none"
+    },
+    spellCheck: false
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 6,
+      fontSize: 10.5,
+      color: "#a16207"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, (d.data && d.data.internal_notes || "").length, " caract\xE8res"), d.parent_doc_id && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontStyle: "italic"
+    }
+  }, "Note h\xE9rit\xE9e du document parent \u2014 modifiable")))), /*#__PURE__*/React.createElement(DocSendHistory, {
     docId: d.id
   }))), sendOpen && /*#__PURE__*/React.createElement(DocSendModal, {
     doc: d,

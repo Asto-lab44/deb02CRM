@@ -1957,6 +1957,13 @@
         payment_terms_id: parent.payment_terms_id,
         owner: parent.owner,
         lines,
+        // Note interne du devis propagée tout au long de la cascade
+        // (Devis → Commande → BL → Facture). Stockée dans data.internal_notes,
+        // jamais affichée sur le PDF client.
+        data: {
+          ...(parent.data || {}),
+          internal_notes: (parent.data && parent.data.internal_notes) || parent.internal_notes || null,
+        },
       };
       const child = await this.create(childPayload);
       // Le parent garde son statut métier (accepte / livre / paye) au lieu

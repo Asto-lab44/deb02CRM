@@ -2135,6 +2135,45 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             </div>
           </div>
 
+          {/* NOTE INTERNE — non imprimée sur le PDF client, propagée dans la
+              cascade Devis → Commande → BL → Facture pour les techniciens.
+              Stockée dans data.internal_notes (jsonb). */}
+          <div style={{ marginTop: 18, padding: 14, background: "#fefce8",
+                        border: "1.5px dashed #facc15", borderRadius: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 16 }}>🔒</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#854d0e" }}>
+                  Note interne — visible techniciens uniquement
+                </div>
+                <div style={{ fontSize: 10.5, color: "#a16207", marginTop: 1 }}>
+                  Suit l'opportunité jusqu'à la livraison (devis → commande → BL → facture).
+                  Jamais imprimée sur le PDF transmis au client.
+                </div>
+              </div>
+              <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                             background: "#fff", color: "#a16207", fontWeight: 700,
+                             border: "1px solid #fde68a" }}>NON IMPRIMÉE</span>
+            </div>
+            <textarea
+              value={(d.data && d.data.internal_notes) || ""}
+              onChange={(e) => setD({ ...d, data: { ...(d.data || {}), internal_notes: e.target.value } })}
+              placeholder="Préciser le contexte technique : configurations spécifiques, accès admin, contraintes infra, points d'attention pour la pose, références internes, contacts techniques du client, etc."
+              rows={5}
+              style={{ width: "100%", padding: "10px 12px", border: "1px solid #fde68a",
+                       borderRadius: 8, fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif",
+                       color: "#0f172a", background: "#fffef5", lineHeight: 1.5,
+                       boxSizing: "border-box", resize: "vertical", outline: "none" }}
+              spellCheck={false}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10.5, color: "#a16207" }}>
+              <span>{((d.data && d.data.internal_notes) || "").length} caractères</span>
+              {d.parent_doc_id && (
+                <span style={{ fontStyle: "italic" }}>Note héritée du document parent — modifiable</span>
+              )}
+            </div>
+          </div>
+
           </fieldset>
 
           {/* HISTORIQUE ENVOIS (visible si déjà envoyé) — toujours consultable */}

@@ -225,9 +225,28 @@ const CRMPipeline = () => {
         })(),
         logoBg: palette[(idx * 3 + i) % palette.length],
         won: o.stage === "won",
+        // Échéance — privilégie close_date (BDD) ou data.close_date (jsonb),
+        // fallback decision_date / expected_close_date. Format ISO conservé
+        // pour le tri ; le rendu humain est fait côté affichage.
+        close_iso: o.close_date || (o.data && (o.data.close_date || o.data.decision_date || o.data.expected_close_date)) || null,
       })),
     };
   });
+
+  // Helpers d'affichage de l'échéance — calcule la couleur selon urgence et
+  // formate en JJ/MM/AAAA. Utilisé dans la vue liste de la CRM.
+  const fmtClose = (iso) => {
+    if (!iso) return { label: "—", color: "#94a3b8", weight: 500 };
+    let d; try { d = new Date(iso); } catch (e) { return { label: "—", color: "#94a3b8", weight: 500 }; }
+    if (isNaN(d.getTime())) return { label: "—", color: "#94a3b8", weight: 500 };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((d.getTime() - today.getTime()) / 86400000);
+    const label = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    if (diffDays < 0) return { label, color: "#dc2626", weight: 700, badge: "En retard" };
+    if (diffDays <= 7) return { label, color: "#ea580c", weight: 700, badge: "J-" + diffDays };
+    if (diffDays <= 30) return { label, color: "#a16207", weight: 600 };
+    return { label, color: "#475569", weight: 500 };
+  };
 
   const tagMeta = {
     Cyber: { bg: "#fdecec", color: "#dc2626" },
@@ -573,8 +592,22 @@ const CRMPipeline = () => {
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <Avatar name={c.owner} size={22} />
                       </div>
-                      <div style={{ textAlign: "right", fontSize: 11.5, color: "#64748b",
-                                    fontVariantNumeric: "tabular-nums" }}>{c.close || "—"}</div>
+                      {(() => {
+                        const ech = fmtClose(c.close_iso);
+                        return (
+                          <div style={{ textAlign: "right", fontSize: 11.5, color: ech.color,
+                                        fontVariantNumeric: "tabular-nums", fontWeight: ech.weight,
+                                        display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
+                            {ech.badge && (
+                              <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3,
+                                             background: ech.color + "1a", color: ech.color, fontWeight: 700 }}>
+                                {ech.badge}
+                              </span>
+                            )}
+                            <span>{ech.label}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

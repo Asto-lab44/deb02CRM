@@ -65,6 +65,7 @@ var NewProspect = () => {
     return () => document.removeEventListener("click", close);
   }, [ownerMenu]);
   var [extraContactList, setExtraContactList] = React.useState([]); // [{prenom, nom, fonction, email, phone}]
+  var [contactAutoFilled, setContactAutoFilled] = React.useState(false);
   var addExtraContact = () => setExtraContactList(l => [...l, {
     prenom: "",
     nom: "",
@@ -234,6 +235,7 @@ var NewProspect = () => {
     setSiretResults([]);
     setSiretOpen(false);
     setSecondaryEstabs([]);
+    setContactAutoFilled(false);
   };
   var pickCompany = e => {
     var siege = e.siege || {};
@@ -277,9 +279,71 @@ var NewProspect = () => {
     }
     var mapped = mapEffectif(e.tranche_effectif_salarie || siege.tranche_effectif_salarie);
     if (mapped) setEffectif(mapped);
+
+    // Auto-remplissage du contact principal à partir des dirigeants déclarés
+    // (open data INSEE/INPI exposé par recherche-entreprises). Seuls
+    // prenom/nom/fonction sont disponibles publiquement — email/téléphone
+    // restent à compléter manuellement (données personnelles non publiques).
+    var dirigeants = Array.isArray(e.dirigeants) ? e.dirigeants.filter(d => d && (d.prenoms || d.prenom || d.nom)) : [];
+    var personPhysique = dirigeants.filter(d => (d.type_dirigeant || "personne physique").toLowerCase() === "personne physique");
+    var useable = personPhysique.length > 0 ? personPhysique : dirigeants;
+    var nbAutoContacts = 0;
+    if (useable.length > 0) {
+      // Toujours pré-remplir le premier (écrase la saisie utilisateur uniquement
+      // si le contact est encore vierge — sinon on ajoute aux co-contacts)
+      var d0 = useable[0];
+      var prenom0 = (d0.prenoms || d0.prenom || "").split(/\s+/)[0] || "";
+      var nom0 = (d0.nom || "").toUpperCase();
+      var role0 = mapDirigeantQualite(d0.qualite);
+      if (!contactPrenom && !contactNom && !contactEmail && !contactPhone) {
+        if (prenom0) setContactPrenom(capitalize(prenom0));
+        if (nom0) setContactNom(nom0);
+        if (role0) setContactRole(role0);
+        // Devine un LinkedIn plausible — éditable
+        var liSlug = slugify(prenom0 + "-" + nom0);
+        if (liSlug && !contactLi) setContactLi("linkedin.com/in/" + liSlug);
+        setContactAutoFilled(true);
+        nbAutoContacts = 1;
+      }
+      // Co-dirigeants → liste de co-contacts (sans doublon)
+      var extras = useable.slice(personPhysique.length > 0 || dirigeants[0] === d0 ? 1 : 0, 4).filter(d => d !== d0).map(d => ({
+        prenom: capitalize((d.prenoms || d.prenom || "").split(/\s+/)[0] || ""),
+        nom: (d.nom || "").toUpperCase(),
+        fonction: mapDirigeantQualite(d.qualite) || d.qualite || "",
+        email: "",
+        phone: ""
+      })).filter(c => c.prenom || c.nom);
+      if (extras.length > 0 && extraContactList.length === 0) {
+        setExtraContactList(extras);
+        nbAutoContacts += extras.length;
+      }
+    }
     setSiretOpen(false);
     setSiretResults([]);
-    showFlash("✓ Entreprise importée depuis SIRENE");
+    var msg = nbAutoContacts > 0 ? `✓ Entreprise + ${nbAutoContacts} dirigeant${nbAutoContacts > 1 ? "s" : ""} importé${nbAutoContacts > 1 ? "s" : ""} depuis SIRENE` : "✓ Entreprise importée depuis SIRENE";
+    showFlash(msg);
+  };
+
+  // Mappe le libellé qualité du dirigeant (INPI/RNE) sur les options du select
+  // "Fonction" — on vise les libellés exacts utilisés dans le dropdown.
+  var mapDirigeantQualite = q => {
+    var t = String(q || "").toLowerCase().trim();
+    if (!t) return "";
+    if (/président\s*directeur\s*général|pdg/.test(t)) return "CEO / Directeur général";
+    if (/président/.test(t)) return "CEO / Directeur général";
+    if (/directeur\s*général/.test(t)) return "CEO / Directeur général";
+    if (/gérant|gerant|gerante|gérante/.test(t)) return "Gérant / Dirigeant";
+    if (/co.?gérant/.test(t)) return "Gérant / Dirigeant";
+    if (/directeur\s*g[eé]n[eé]ral\s*délégu/.test(t)) return "COO / Directeur des opérations";
+    if (/directeur\s*administratif|daf|directeur\s*financier/.test(t)) return "DAF / Directeur financier";
+    if (/secrétaire\s*général/.test(t)) return "Secrétaire général";
+    if (/associé/.test(t)) return "Gérant / Dirigeant";
+    if (/membre/.test(t)) return "Gérant / Dirigeant";
+    return ""; // laisse à l'utilisateur le soin de choisir
+  };
+  var capitalize = s => {
+    var x = String(s || "").toLowerCase();
+    return x.charAt(0).toUpperCase() + x.slice(1);
   };
   var showFlash = (msg, tone = "ok") => {
     setFlash({
@@ -1056,7 +1120,47 @@ var NewProspect = () => {
     title: "Contact principal",
     subtitle: "D\xE9cideur identifi\xE9 ou point d'entr\xE9e commercial",
     status: "active"
-  }), /*#__PURE__*/React.createElement("div", {
+  }), contactAutoFilled && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 12px",
+      marginBottom: 12,
+      background: "#eef2ff",
+      border: "1px solid #c7d2fe",
+      borderRadius: 8,
+      fontSize: 11.5,
+      color: "#3730a3"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
+    }
+  }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Auto-compl\xE9t\xE9 depuis les dirigeants d\xE9clar\xE9s"), " \xB7 pr\xE9nom, nom, fonction et LinkedIn estim\xE9s \xE0 partir de l'open data INSEE/INPI. Email et t\xE9l\xE9phone restent \xE0 renseigner manuellement."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setContactPrenom("");
+      setContactNom("");
+      setContactRole("");
+      setContactLi("");
+      setExtraContactList([]);
+      setContactAutoFilled(false);
+    },
+    style: {
+      padding: "3px 9px",
+      border: "1px solid #c7d2fe",
+      background: "#fff",
+      color: "#3730a3",
+      borderRadius: 5,
+      fontSize: 11,
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "Effacer")), /*#__PURE__*/React.createElement("div", {
     style: npStyles.formGrid2
   }, /*#__PURE__*/React.createElement(FormRow, {
     label: "Pr\xE9nom",

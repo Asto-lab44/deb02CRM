@@ -56,6 +56,7 @@ const NewProspect = () => {
     return () => document.removeEventListener("click", close);
   }, [ownerMenu]);
   const [extraContactList, setExtraContactList] = React.useState([]); // [{prenom, nom, fonction, email, phone}]
+  const [contactAutoFilled, setContactAutoFilled] = React.useState(false);
   const addExtraContact = () => setExtraContactList((l) => [...l, { prenom: "", nom: "", fonction: "", email: "", phone: "" }]);
   const removeExtraContact = (i) => setExtraContactList((l) => l.filter((_, idx) => idx !== i));
   const updateExtraContact = (i, field, value) => setExtraContactList((l) => l.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
@@ -205,6 +206,7 @@ const NewProspect = () => {
     setSiretResults([]);
     setSiretOpen(false);
     setSecondaryEstabs([]);
+    setContactAutoFilled(false);
   };
 
   const pickCompany = (e) => {
@@ -254,9 +256,77 @@ const NewProspect = () => {
 
     const mapped = mapEffectif(e.tranche_effectif_salarie || siege.tranche_effectif_salarie);
     if (mapped) setEffectif(mapped);
+
+    // Auto-remplissage du contact principal à partir des dirigeants déclarés
+    // (open data INSEE/INPI exposé par recherche-entreprises). Seuls
+    // prenom/nom/fonction sont disponibles publiquement — email/téléphone
+    // restent à compléter manuellement (données personnelles non publiques).
+    const dirigeants = Array.isArray(e.dirigeants) ? e.dirigeants.filter((d) => d && (d.prenoms || d.prenom || d.nom)) : [];
+    const personPhysique = dirigeants.filter((d) => (d.type_dirigeant || "personne physique").toLowerCase() === "personne physique");
+    const useable = personPhysique.length > 0 ? personPhysique : dirigeants;
+    let nbAutoContacts = 0;
+    if (useable.length > 0) {
+      // Toujours pré-remplir le premier (écrase la saisie utilisateur uniquement
+      // si le contact est encore vierge — sinon on ajoute aux co-contacts)
+      const d0 = useable[0];
+      const prenom0 = (d0.prenoms || d0.prenom || "").split(/\s+/)[0] || "";
+      const nom0    = (d0.nom || "").toUpperCase();
+      const role0   = mapDirigeantQualite(d0.qualite);
+      if (!contactPrenom && !contactNom && !contactEmail && !contactPhone) {
+        if (prenom0) setContactPrenom(capitalize(prenom0));
+        if (nom0)    setContactNom(nom0);
+        if (role0)   setContactRole(role0);
+        // Devine un LinkedIn plausible — éditable
+        const liSlug = slugify(prenom0 + "-" + nom0);
+        if (liSlug && !contactLi) setContactLi("linkedin.com/in/" + liSlug);
+        setContactAutoFilled(true);
+        nbAutoContacts = 1;
+      }
+      // Co-dirigeants → liste de co-contacts (sans doublon)
+      const extras = useable.slice(personPhysique.length > 0 || dirigeants[0] === d0 ? 1 : 0, 4)
+        .filter((d) => d !== d0)
+        .map((d) => ({
+          prenom: capitalize((d.prenoms || d.prenom || "").split(/\s+/)[0] || ""),
+          nom: (d.nom || "").toUpperCase(),
+          fonction: mapDirigeantQualite(d.qualite) || (d.qualite || ""),
+          email: "", phone: "",
+        }))
+        .filter((c) => c.prenom || c.nom);
+      if (extras.length > 0 && extraContactList.length === 0) {
+        setExtraContactList(extras);
+        nbAutoContacts += extras.length;
+      }
+    }
+
     setSiretOpen(false);
     setSiretResults([]);
-    showFlash("✓ Entreprise importée depuis SIRENE");
+    const msg = nbAutoContacts > 0
+      ? `✓ Entreprise + ${nbAutoContacts} dirigeant${nbAutoContacts > 1 ? "s" : ""} importé${nbAutoContacts > 1 ? "s" : ""} depuis SIRENE`
+      : "✓ Entreprise importée depuis SIRENE";
+    showFlash(msg);
+  };
+
+  // Mappe le libellé qualité du dirigeant (INPI/RNE) sur les options du select
+  // "Fonction" — on vise les libellés exacts utilisés dans le dropdown.
+  const mapDirigeantQualite = (q) => {
+    const t = String(q || "").toLowerCase().trim();
+    if (!t) return "";
+    if (/président\s*directeur\s*général|pdg/.test(t)) return "CEO / Directeur général";
+    if (/président/.test(t)) return "CEO / Directeur général";
+    if (/directeur\s*général/.test(t)) return "CEO / Directeur général";
+    if (/gérant|gerant|gerante|gérante/.test(t)) return "Gérant / Dirigeant";
+    if (/co.?gérant/.test(t)) return "Gérant / Dirigeant";
+    if (/directeur\s*g[eé]n[eé]ral\s*délégu/.test(t)) return "COO / Directeur des opérations";
+    if (/directeur\s*administratif|daf|directeur\s*financier/.test(t)) return "DAF / Directeur financier";
+    if (/secrétaire\s*général/.test(t)) return "Secrétaire général";
+    if (/associé/.test(t)) return "Gérant / Dirigeant";
+    if (/membre/.test(t)) return "Gérant / Dirigeant";
+    return ""; // laisse à l'utilisateur le soin de choisir
+  };
+
+  const capitalize = (s) => {
+    const x = String(s || "").toLowerCase();
+    return x.charAt(0).toUpperCase() + x.slice(1);
   };
 
   const showFlash = (msg, tone = "ok") => {
@@ -675,6 +745,23 @@ const NewProspect = () => {
           {/* SECTION 2 — Contact principal */}
           <section style={npStyles.section}>
             <SectionHead num="02" title="Contact principal" subtitle="Décideur identifié ou point d'entrée commercial" status="active" />
+
+            {contactAutoFilled && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 12,
+                            background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 11.5, color: "#3730a3" }}>
+                <span style={{ fontSize: 13 }}>🔍</span>
+                <span style={{ flex: 1 }}>
+                  <strong>Auto-complété depuis les dirigeants déclarés</strong> · prénom, nom, fonction et LinkedIn estimés à partir de l'open data INSEE/INPI. Email et téléphone restent à renseigner manuellement.
+                </span>
+                <button onClick={() => {
+                  setContactPrenom(""); setContactNom(""); setContactRole(""); setContactLi("");
+                  setExtraContactList([]); setContactAutoFilled(false);
+                }} style={{ padding: "3px 9px", border: "1px solid #c7d2fe", background: "#fff", color: "#3730a3",
+                           borderRadius: 5, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                  Effacer
+                </button>
+              </div>
+            )}
 
             <div style={npStyles.formGrid2}>
               <FormRow label="Prénom" required>

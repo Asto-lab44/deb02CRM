@@ -93,6 +93,20 @@ var CRMPipeline = () => {
     } catch (e) {}
     return next;
   });
+  // Vue du pipeline : kanban (par défaut) ou liste plate. Persisté localStorage.
+  var [crmView, setCrmView] = React.useState(() => {
+    try {
+      return localStorage.getItem("hubAstorya.crmView.v1") || "kanban";
+    } catch (e) {
+      return "kanban";
+    }
+  });
+  var changeCrmView = v => {
+    setCrmView(v);
+    try {
+      localStorage.setItem("hubAstorya.crmView.v1", v);
+    } catch (e) {}
+  };
   React.useEffect(() => {
     if (!userMenuOpen) return;
     var onDoc = () => setUserMenuOpen(false);
@@ -863,9 +877,46 @@ var CRMPipeline = () => {
     }, active.length, " opportunit\xE9", active.length > 1 ? "s" : "", " active", active.length > 1 ? "s" : "", " \xB7 ", fmtK(pondere), " pond\xE9r\xE9")), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 8
+        gap: 8,
+        alignItems: "center"
       }
-    }, /*#__PURE__*/React.createElement("a", {
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "inline-flex",
+        border: "1px solid #e2e8f0",
+        borderRadius: 8,
+        padding: 2,
+        background: "#fff"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => changeCrmView("kanban"),
+      title: "Vue kanban",
+      style: {
+        padding: "5px 9px",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+        fontSize: 12,
+        fontWeight: 600,
+        lineHeight: 1,
+        background: crmView === "kanban" ? "#0f172a" : "transparent",
+        color: crmView === "kanban" ? "#fff" : "#64748b"
+      }
+    }, "\u229E"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => changeCrmView("list"),
+      title: "Vue liste",
+      style: {
+        padding: "5px 9px",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+        fontSize: 12,
+        fontWeight: 600,
+        lineHeight: 1,
+        background: crmView === "list" ? "#0f172a" : "transparent",
+        color: crmView === "list" ? "#fff" : "#64748b"
+      }
+    }, "\u2630")), /*#__PURE__*/React.createElement("a", {
       href: "/nouveau-prospect",
       style: {
         ...crmStyles.primaryBtn,
@@ -946,7 +997,188 @@ var CRMPipeline = () => {
         marginTop: 2
       }
     }, k.delta)))));
-  })(), /*#__PURE__*/React.createElement("div", {
+  })(), crmView === "list" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 24px 24px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1.5fr 2fr 110px 90px 100px 90px 110px",
+      padding: "10px 14px",
+      background: "#fafbfc",
+      borderBottom: "1px solid #eef1f5",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "Opportunit\xE9"), /*#__PURE__*/React.createElement("div", null, "Client"), /*#__PURE__*/React.createElement("div", null, "Stage"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, "Montant"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, "Owner"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, "\xC9ch\xE9ance")), columns.flatMap(col => col.cards.map(c => ({
+    ...c,
+    _stage: col
+  }))).length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "30px 12px",
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 12.5
+    }
+  }, "Aucune opportunit\xE9 \xE0 afficher."), columns.flatMap(col => col.cards.map(c => ({
+    ...c,
+    _stage: col
+  }))).sort((a, b) => {
+    // Tri : stage (par ordre) puis montant décroissant
+    var stageOrder = {
+      qualif: 0,
+      discovery: 1,
+      propo: 2,
+      nego: 3,
+      won: 4
+    };
+    var sa = stageOrder[a._stage.key] ?? 99;
+    var sb = stageOrder[b._stage.key] ?? 99;
+    if (sa !== sb) return sa - sb;
+    var va = parseFloat(String(a.amount || "0").replace(/[^\d.]/g, "")) || 0;
+    var vb = parseFloat(String(b.amount || "0").replace(/[^\d.]/g, "")) || 0;
+    return vb - va;
+  }).map(c => {
+    var goto = () => {
+      if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id);
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.id,
+      onClick: goto,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1.5fr 2fr 110px 90px 100px 90px 110px",
+        padding: "12px 14px",
+        borderBottom: "1px solid #f1f5f9",
+        alignItems: "center",
+        gap: 12,
+        cursor: c.id ? "pointer" : "default",
+        background: "#fff"
+      },
+      onMouseEnter: e => {
+        e.currentTarget.style.background = "#fafbfc";
+      },
+      onMouseLeave: e => {
+        e.currentTarget.style.background = "#fff";
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 26,
+        height: 26,
+        borderRadius: 6,
+        background: c.logoBg,
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 10,
+        fontWeight: 700,
+        flexShrink: 0
+      }
+    }, c.logo), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.co)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.client), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: c._stage.color + "1a",
+        color: c._stage.color,
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: c._stage.color
+      }
+    }), c._stage.label)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "right",
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0f172a",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, c.amount), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        fontSize: 12,
+        color: "#475569",
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600
+      }
+    }, c.proba, "%"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "center"
+      }
+    }, /*#__PURE__*/React.createElement(Avatar, {
+      name: c.owner,
+      size: 22
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "right",
+        fontSize: 11.5,
+        color: "#64748b",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, c.close || "—"));
+  }))), crmView === "kanban" && /*#__PURE__*/React.createElement("div", {
     style: crmStyles.kanban
   }, columns.map(col => /*#__PURE__*/React.createElement("div", {
     key: col.key,

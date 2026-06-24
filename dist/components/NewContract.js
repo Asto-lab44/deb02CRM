@@ -853,49 +853,96 @@ var NewContract = () => {
       ...ncStyles.liveKpiV,
       color: "#10b981"
     }
-  }, sums.marginPct, " %")))), /*#__PURE__*/React.createElement("div", {
-    style: ncStyles.stepper
-  }, [{
-    n: 1,
-    label: "Type & rattachement",
-    done: true
-  }, {
-    n: 2,
-    label: "Client & contact",
-    done: true
-  }, {
-    n: 3,
-    label: "Produits & pricing",
-    active: true
-  }, {
-    n: 4,
-    label: "Conditions juridiques"
-  }, {
-    n: 5,
-    label: "Signature & envoi"
-  }].map((s, i, arr) => /*#__PURE__*/React.createElement(React.Fragment, {
-    key: s.n
-  }, /*#__PURE__*/React.createElement("div", {
-    style: ncStyles.stepItem
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...ncStyles.stepDot,
-      background: s.done ? "#10b981" : s.active ? "#4f46e5" : "#fff",
-      border: s.done || s.active ? "none" : "1.5px solid #cbd5e1",
-      color: s.done || s.active ? "#fff" : "#94a3b8"
-    }
-  }, s.done ? "✓" : s.n), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: s.active ? 700 : 500,
-      color: s.done ? "#10b981" : s.active ? "#0f172a" : "#94a3b8"
-    }
-  }, s.label)), i < arr.length - 1 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...ncStyles.stepLine,
-      background: s.done ? "#10b981" : "#eef1f5"
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, sums.marginPct, " %")))), (() => {
+    // Étape active calculée selon le remplissage : type → contact → produits → conditions → signature
+    var steps = [{
+      k: "type",
+      label: "Type & rattachement",
+      letter: "T",
+      proba: 15,
+      color: "#94a3b8",
+      done: !!contractType
+    }, {
+      k: "client",
+      label: "Client & contact",
+      letter: "C",
+      proba: 35,
+      color: "#3b82f6",
+      done: !!(clientId && (signatory.name || clientContacts.length > 0))
+    }, {
+      k: "prods",
+      label: "Produits & pricing",
+      letter: "P",
+      proba: 60,
+      color: "#a855f7",
+      done: products.length > 0 && sums.totalY1HT > 0
+    }, {
+      k: "cond",
+      label: "Conditions juridiques",
+      letter: "J",
+      proba: 85,
+      color: "#ea580c",
+      done: !!startDate && !!selectedTemplate
+    }, {
+      k: "sign",
+      label: "Signature & envoi",
+      letter: "S",
+      proba: 100,
+      color: "#10b981",
+      done: false
+    }];
+    // Étape courante = première non-faite (ou dernière si tout est fait)
+    var curIdx = (() => {
+      var i = steps.findIndex(s => !s.done);
+      return i === -1 ? steps.length - 1 : i;
+    })();
+    return /*#__PURE__*/React.createElement("div", {
+      style: ncStyles.spancoStepper
+    }, steps.map((s, i) => {
+      var isCurrent = i === curIdx;
+      var isPast = i < curIdx;
+      return /*#__PURE__*/React.createElement("div", {
+        key: s.k,
+        style: ncStyles.spancoStep
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          ...ncStyles.spancoDot,
+          background: isPast || isCurrent ? s.color : "#fff",
+          borderColor: isPast || isCurrent ? s.color : "#e2e8f0",
+          color: isPast || isCurrent ? "#fff" : "#94a3b8",
+          boxShadow: isCurrent ? "0 0 0 5px " + s.color + "33" : "none"
+        }
+      }, isPast || isCurrent ? "✓" : s.letter), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 6,
+          fontSize: 11.5,
+          fontWeight: isCurrent ? 700 : 500,
+          color: isPast || isCurrent ? s.color : "#94a3b8"
+        }
+      }, s.label, isCurrent && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 9.5,
+          color: s.color,
+          marginTop: 1,
+          letterSpacing: 0.4,
+          textTransform: "uppercase"
+        }
+      }, "\u25CF \xC9tape actuelle")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          color: "#94a3b8",
+          marginTop: 2,
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, s.proba, "%"), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
+        style: {
+          ...ncStyles.spancoLine,
+          background: i < curIdx ? s.color : "#e2e8f0"
+        }
+      }));
+    }));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.body
   }, /*#__PURE__*/React.createElement("div", {
     style: ncStyles.bodyGrid
@@ -2233,38 +2280,46 @@ var ncStyles = {
     letterSpacing: -0.4,
     marginTop: 2
   },
-  stepper: {
+  // Stepper SPANCO — gros cercles colorés, alignés avec lignes connectrices
+  spancoStepper: {
     display: "flex",
-    alignItems: "center",
-    padding: "14px 28px",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: "22px 28px",
+    background: "#fff",
     borderBottom: "1px solid #eef1f5",
-    background: "#fafbfc",
-    gap: 8,
-    flexWrap: "wrap"
-  },
-  stepItem: {
-    display: "flex",
-    alignItems: "center",
     gap: 8
   },
-  stepDot: {
-    width: 24,
-    height: 24,
+  spancoStep: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    position: "relative",
+    textAlign: "center"
+  },
+  spancoDot: {
+    width: 38,
+    height: 38,
     borderRadius: 999,
+    border: "2px solid",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 700,
-    fontVariantNumeric: "tabular-nums",
-    flexShrink: 0
+    transition: "all 180ms",
+    zIndex: 1
   },
-  stepLine: {
-    flex: 1,
+  spancoLine: {
+    position: "absolute",
+    top: 18,
+    left: "calc(50% + 22px)",
+    right: "calc(-50% + 22px)",
     height: 2,
-    borderRadius: 999,
-    maxWidth: 100,
-    minWidth: 20
+    background: "#e2e8f0",
+    zIndex: 0,
+    pointerEvents: "none"
   },
   body: {
     padding: 20

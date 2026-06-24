@@ -488,11 +488,10 @@ const NewContract = () => {
         </div>
       </div>
 
-      {/* Stepper — workflow visuel à l'identique des autres pages
-          (SPANCO opp / devis-commande-BL-facture). Cercles 38 px colorés,
-          connecteurs alignés au centre des cercles, label + % en dessous. */}
+      {/* Stepper — boutons rectangulaires style « workflow Sage »
+          (Devis → Commande → BL → Facture). Une pilule colorée par étape,
+          flèches → entre les étapes. */}
       {(() => {
-        // Étape active calculée selon le remplissage : type → contact → produits → conditions → signature
         const steps = [
           { k: "type",   label: "Type & rattachement",  letter: "T", proba: 15,  color: "#94a3b8",
             done: !!contractType },
@@ -505,7 +504,6 @@ const NewContract = () => {
           { k: "sign",   label: "Signature & envoi",     letter: "S", proba: 100, color: "#10b981",
             done: false },
         ];
-        // Étape courante = première non-faite (ou dernière si tout est fait)
         const curIdx = (() => {
           const i = steps.findIndex((s) => !s.done);
           return i === -1 ? steps.length - 1 : i;
@@ -515,32 +513,47 @@ const NewContract = () => {
             {steps.map((s, i) => {
               const isCurrent = i === curIdx;
               const isPast = i < curIdx;
+              const statusBadge =
+                isPast    ? { label: "VALIDÉ", bg: "rgba(255,255,255,0.25)", color: "#fff" }
+                : isCurrent ? { label: "ACTUELLE", bg: "rgba(255,255,255,0.25)", color: "#fff" }
+                : null;
+              const pillBg = isPast || isCurrent ? s.color : "#fafbfc";
+              const pillBorder = isPast || isCurrent ? s.color : "#e2e8f0";
+              const pillColor = isPast || isCurrent ? "#fff" : "#94a3b8";
               return (
-                <div key={s.k} style={ncStyles.spancoStep}>
+                <React.Fragment key={s.k}>
                   <div style={{
-                    ...ncStyles.spancoDot,
-                    background: isPast || isCurrent ? s.color : "#fff",
-                    borderColor: isPast || isCurrent ? s.color : "#e2e8f0",
-                    color: isPast || isCurrent ? "#fff" : "#94a3b8",
-                    boxShadow: isCurrent ? "0 0 0 5px " + s.color + "33" : "none",
+                    ...ncStyles.spancoPill,
+                    background: pillBg,
+                    border: "1.5px solid " + pillBorder,
+                    color: pillColor,
+                    boxShadow: isCurrent ? "0 2px 8px " + s.color + "55" : "none",
                   }}>
-                    {isPast || isCurrent ? "✓" : s.letter}
-                  </div>
-                  <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: isCurrent ? 700 : 500,
-                                color: isPast || isCurrent ? s.color : "#94a3b8" }}>
-                    {s.label}
-                    {isCurrent && (
-                      <span style={{ display: "block", fontSize: 9.5, color: s.color, marginTop: 1,
-                                     letterSpacing: 0.4, textTransform: "uppercase" }}>● Étape actuelle</span>
+                    <span style={{
+                      width: 24, height: 24, borderRadius: 6,
+                      background: isPast || isCurrent ? "rgba(255,255,255,0.2)" : "#fff",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: 700,
+                      color: isPast || isCurrent ? "#fff" : "#94a3b8",
+                    }}>
+                      {isPast || isCurrent ? "✓" : s.letter}
+                    </span>
+                    <div style={{ flex: 1, lineHeight: 1.15 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700 }}>{s.label}</div>
+                      <div style={{ fontSize: 9.5, opacity: 0.7, fontVariantNumeric: "tabular-nums" }}>{s.proba} %</div>
+                    </div>
+                    {statusBadge && (
+                      <span style={{
+                        fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
+                        padding: "2px 7px", borderRadius: 4,
+                        background: statusBadge.bg, color: statusBadge.color,
+                      }}>{statusBadge.label}</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                    {s.proba}%
-                  </div>
                   {i < steps.length - 1 && (
-                    <div style={{ ...ncStyles.spancoLine, background: i < curIdx ? s.color : "#e2e8f0" }} />
+                    <span style={{ fontSize: 16, color: "#cbd5e1", fontWeight: 700, padding: "0 2px", flexShrink: 0 }}>→</span>
                   )}
-                </div>
+                </React.Fragment>
               );
             })}
           </div>
@@ -1246,11 +1259,9 @@ const ncStyles = {
   liveKpiK: { fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 },
   liveKpiV: { fontSize: 18, fontWeight: 700, color: "#0f172a", letterSpacing: -0.4, marginTop: 2 },
 
-  // Stepper SPANCO — gros cercles colorés, alignés avec lignes connectrices
-  spancoStepper: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "22px 28px", background: "#fff", borderBottom: "1px solid #eef1f5", gap: 8 },
-  spancoStep: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", textAlign: "center" },
-  spancoDot: { width: 38, height: 38, borderRadius: 999, border: "2px solid", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, transition: "all 180ms", zIndex: 1 },
-  spancoLine: { position: "absolute", top: 18, left: "calc(50% + 22px)", right: "calc(-50% + 22px)", height: 2, background: "#e2e8f0", zIndex: 0, pointerEvents: "none" },
+  // Stepper SPANCO — boutons rectangulaires style « workflow Sage »
+  spancoStepper: { display: "flex", alignItems: "center", padding: "20px 28px", background: "#fff", borderBottom: "1px solid #eef1f5", gap: 6, flexWrap: "wrap" },
+  spancoPill: { flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, transition: "all 180ms" },
 
   body: { padding: 20 },
   bodyGrid: { display: "grid", gridTemplateColumns: "1fr 340px", gap: 14, gridAutoRows: "min-content" },

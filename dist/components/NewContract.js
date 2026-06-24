@@ -928,7 +928,6 @@ var NewContract = () => {
       color: "#10b981"
     }
   }, sums.marginPct, " %")))), (() => {
-    // Étape active calculée selon le remplissage : type → contact → produits → conditions → signature
     var steps = [{
       k: "type",
       label: "Type & rattachement",
@@ -965,7 +964,6 @@ var NewContract = () => {
       color: "#10b981",
       done: false
     }];
-    // Étape courante = première non-faite (ou dernière si tout est fait)
     var curIdx = (() => {
       var i = steps.findIndex(s => !s.done);
       return i === -1 ? steps.length - 1 : i;
@@ -975,46 +973,76 @@ var NewContract = () => {
     }, steps.map((s, i) => {
       var isCurrent = i === curIdx;
       var isPast = i < curIdx;
-      return /*#__PURE__*/React.createElement("div", {
-        key: s.k,
-        style: ncStyles.spancoStep
+      var statusBadge = isPast ? {
+        label: "VALIDÉ",
+        bg: "rgba(255,255,255,0.25)",
+        color: "#fff"
+      } : isCurrent ? {
+        label: "ACTUELLE",
+        bg: "rgba(255,255,255,0.25)",
+        color: "#fff"
+      } : null;
+      var pillBg = isPast || isCurrent ? s.color : "#fafbfc";
+      var pillBorder = isPast || isCurrent ? s.color : "#e2e8f0";
+      var pillColor = isPast || isCurrent ? "#fff" : "#94a3b8";
+      return /*#__PURE__*/React.createElement(React.Fragment, {
+        key: s.k
       }, /*#__PURE__*/React.createElement("div", {
         style: {
-          ...ncStyles.spancoDot,
-          background: isPast || isCurrent ? s.color : "#fff",
-          borderColor: isPast || isCurrent ? s.color : "#e2e8f0",
-          color: isPast || isCurrent ? "#fff" : "#94a3b8",
-          boxShadow: isCurrent ? "0 0 0 5px " + s.color + "33" : "none"
+          ...ncStyles.spancoPill,
+          background: pillBg,
+          border: "1.5px solid " + pillBorder,
+          color: pillColor,
+          boxShadow: isCurrent ? "0 2px 8px " + s.color + "55" : "none"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 24,
+          height: 24,
+          borderRadius: 6,
+          background: isPast || isCurrent ? "rgba(255,255,255,0.2)" : "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 12,
+          fontWeight: 700,
+          color: isPast || isCurrent ? "#fff" : "#94a3b8"
         }
       }, isPast || isCurrent ? "✓" : s.letter), /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 6,
-          fontSize: 11.5,
-          fontWeight: isCurrent ? 700 : 500,
-          color: isPast || isCurrent ? s.color : "#94a3b8"
+          flex: 1,
+          lineHeight: 1.15
         }
-      }, s.label, isCurrent && /*#__PURE__*/React.createElement("span", {
+      }, /*#__PURE__*/React.createElement("div", {
         style: {
-          display: "block",
+          fontSize: 12.5,
+          fontWeight: 700
+        }
+      }, s.label), /*#__PURE__*/React.createElement("div", {
+        style: {
           fontSize: 9.5,
-          color: s.color,
-          marginTop: 1,
-          letterSpacing: 0.4,
-          textTransform: "uppercase"
-        }
-      }, "\u25CF \xC9tape actuelle")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 10,
-          color: "#94a3b8",
-          marginTop: 2,
+          opacity: 0.7,
           fontVariantNumeric: "tabular-nums"
         }
-      }, s.proba, "%"), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
+      }, s.proba, " %")), statusBadge && /*#__PURE__*/React.createElement("span", {
         style: {
-          ...ncStyles.spancoLine,
-          background: i < curIdx ? s.color : "#e2e8f0"
+          fontSize: 9.5,
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          padding: "2px 7px",
+          borderRadius: 4,
+          background: statusBadge.bg,
+          color: statusBadge.color
         }
-      }));
+      }, statusBadge.label)), i < steps.length - 1 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 16,
+          color: "#cbd5e1",
+          fontWeight: 700,
+          padding: "0 2px",
+          flexShrink: 0
+        }
+      }, "\u2192"));
     }));
   })(), /*#__PURE__*/React.createElement("div", {
     style: ncStyles.body
@@ -2530,46 +2558,25 @@ var ncStyles = {
     letterSpacing: -0.4,
     marginTop: 2
   },
-  // Stepper SPANCO — gros cercles colorés, alignés avec lignes connectrices
+  // Stepper SPANCO — boutons rectangulaires style « workflow Sage »
   spancoStepper: {
     display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    padding: "22px 28px",
+    alignItems: "center",
+    padding: "20px 28px",
     background: "#fff",
     borderBottom: "1px solid #eef1f5",
-    gap: 8
+    gap: 6,
+    flexWrap: "wrap"
   },
-  spancoStep: {
+  spancoPill: {
     flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    position: "relative",
-    textAlign: "center"
-  },
-  spancoDot: {
-    width: 38,
-    height: 38,
-    borderRadius: 999,
-    border: "2px solid",
+    minWidth: 160,
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    fontSize: 13,
-    fontWeight: 700,
-    transition: "all 180ms",
-    zIndex: 1
-  },
-  spancoLine: {
-    position: "absolute",
-    top: 18,
-    left: "calc(50% + 22px)",
-    right: "calc(-50% + 22px)",
-    height: 2,
-    background: "#e2e8f0",
-    zIndex: 0,
-    pointerEvents: "none"
+    gap: 10,
+    padding: "10px 14px",
+    borderRadius: 10,
+    transition: "all 180ms"
   },
   body: {
     padding: 20

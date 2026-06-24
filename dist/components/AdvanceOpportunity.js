@@ -291,14 +291,39 @@ var AdvanceOpportunity = () => {
     }
 
     // ⚡ Création automatique d'actions liées au passage d'étape.
+    // Prospect (qualif) → Approche (discovery) : créer une action
+    // « Préparation de la rédaction de l'offre commerciale » pour cadrer
+    // le besoin et préparer le chiffrage avant Négociation.
+    if (!asLost && (opp.stage || "qualif") === "qualif" && newStage === "discovery" && window.api.actions && window.api.actions.create) {
+      try {
+        var _clientId = oppData && (oppData.client_id || oppData.data && oppData.data.client_id);
+        await window.api.actions.create({
+          client_id: _clientId || null,
+          opp_id: opp.ref,
+          type: "task",
+          title: "Préparation de la rédaction de l'offre commerciale — " + (editName || opp.name || ""),
+          meta: "Opportunité « " + (editName || opp.name || opp.ref) + " » passée en Approche : cadrer le besoin, identifier les décideurs et préparer la trame du devis.",
+          due_text: "Sous 7 jours",
+          due: "Sous 7 jours",
+          priority: "haute",
+          icon: "📝",
+          tag: "Préparation offre",
+          tagColor: "#3b82f6"
+        });
+        if (window.HubToast) window.HubToast.info("📝 Action « Préparation de la rédaction de l'offre commerciale » créée");
+      } catch (e) {
+        console.warn("[AdvanceOpp] création action préparation offre:", e);
+      }
+    }
+
     // Approche (discovery) → Négociation (propo) : créer une action
     // « Envoi de l'offre commerciale » assignée au commercial courant
     // (échéance 5 jours par défaut, priorité haute).
     if (!asLost && (opp.stage || "qualif") === "discovery" && newStage === "propo" && window.api.actions && window.api.actions.create) {
       try {
-        var _clientId = oppData && (oppData.client_id || oppData.data && oppData.data.client_id);
+        var _clientId2 = oppData && (oppData.client_id || oppData.data && oppData.data.client_id);
         await window.api.actions.create({
-          client_id: _clientId || null,
+          client_id: _clientId2 || null,
           opp_id: opp.ref,
           type: "task",
           title: "Envoi de l'offre commerciale — " + (editName || opp.name || ""),

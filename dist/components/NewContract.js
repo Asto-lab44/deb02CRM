@@ -352,6 +352,36 @@ var NewContract = () => {
   // Modèles juridiques (CGV) chargés depuis l'admin
   var [templates, setTemplates] = React.useState([]);
   var [selectedTemplate, setSelectedTemplate] = React.useState(null);
+  // Articles du contrat — chargés depuis window.HubContractArticles (texte par défaut).
+  // Chaque article : { n, title, body, edited, originalBody }.
+  // edited === true ⇒ texte différent de la version source.
+  var [contractArticles, setContractArticles] = React.useState(() => {
+    var src = typeof window !== "undefined" && window.HubContractArticles || [];
+    return src.map(a => ({
+      n: a.n,
+      title: a.title,
+      body: a.body,
+      originalBody: a.body,
+      edited: false
+    }));
+  });
+  var [expandedArticles, setExpandedArticles] = React.useState({});
+  var [articlesPanelOpen, setArticlesPanelOpen] = React.useState(false);
+  var toggleArticle = n => setExpandedArticles(m => ({
+    ...m,
+    [n]: !m[n]
+  }));
+  var updateArticleBody = (n, body) => setContractArticles(arr => arr.map(a => a.n === n ? {
+    ...a,
+    body,
+    edited: body !== a.originalBody
+  } : a));
+  var resetArticleBody = n => setContractArticles(arr => arr.map(a => a.n === n ? {
+    ...a,
+    body: a.originalBody,
+    edited: false
+  } : a));
+  var editedCount = contractArticles.filter(a => a.edited).length;
   React.useEffect(() => {
     if (!window.api || !window.api.contractTemplates) return;
     window.api.contractTemplates.list().then(list => {
@@ -594,6 +624,12 @@ var NewContract = () => {
       sign_method: signMethod,
       annexes,
       clauses,
+      // Articles personnalisés — ne stocke que les diffs pour rester léger
+      articles_overrides: contractArticles.filter(a => a.edited).map(a => ({
+        n: a.n,
+        title: a.title,
+        body: a.body
+      })),
       total_ht_y1: sums.totalY1HT,
       tcv: sums.tcv,
       margin_pct: sums.marginPct,
@@ -1810,7 +1846,130 @@ var NewContract = () => {
       ...ncStyles.addChip,
       alignSelf: "flex-start"
     }
-  }, "+ Ajouter une clause")))), /*#__PURE__*/React.createElement("section", {
+  }, "+ Ajouter une clause"))), contractArticles.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: ncStyles.articlesPanel
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setArticlesPanelOpen(v => !v),
+    style: ncStyles.articlesPanelHead
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, "\uD83D\uDCD1"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "Articles du contrat"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, "\xB7 ", contractArticles.length, " articles"), editedCount > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "1px 6px",
+      borderRadius: 3,
+      background: "#fef3c7",
+      color: "#a65f00",
+      fontWeight: 700
+    }
+  }, "\u25CF ", editedCount, " modifi\xE9", editedCount > 1 ? "s" : "")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      color: "#64748b",
+      transition: "transform 180ms",
+      transform: articlesPanelOpen ? "rotate(180deg)" : "none"
+    }
+  }, "\u2304")), articlesPanelOpen && /*#__PURE__*/React.createElement("div", {
+    style: ncStyles.articlesPanelBody
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      padding: "6px 12px 10px",
+      lineHeight: 1.5
+    }
+  }, "Personnalisez chaque article pour ce contrat. Le texte modifi\xE9 remplacera celui du mod\xE8le standard lors de la g\xE9n\xE9ration du PDF. Cliquez sur un article pour le d\xE9plier."), contractArticles.map(a => {
+    var open = !!expandedArticles[a.n];
+    return /*#__PURE__*/React.createElement("div", {
+      key: a.n,
+      style: ncStyles.articleItem
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => toggleArticle(a.n),
+      style: ncStyles.articleHead
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: ncStyles.articleNum
+    }, "Art. ", a.n), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, a.title), a.edited && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        padding: "1px 5px",
+        borderRadius: 3,
+        background: "#fef3c7",
+        color: "#a65f00",
+        fontWeight: 700,
+        flexShrink: 0
+      }
+    }, "MODIFI\xC9")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#94a3b8",
+        transition: "transform 180ms",
+        transform: open ? "rotate(180deg)" : "none"
+      }
+    }, "\u2304")), open && /*#__PURE__*/React.createElement("div", {
+      style: ncStyles.articleBody
+    }, /*#__PURE__*/React.createElement("textarea", {
+      value: a.body,
+      onChange: e => updateArticleBody(a.n, e.target.value),
+      rows: Math.min(20, Math.max(6, a.body.split("\n").length + 1)),
+      style: ncStyles.articleTextarea,
+      spellCheck: false
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#94a3b8"
+      }
+    }, a.body.length, " caract\xE8res \xB7 ", a.body.split(/\s+/).filter(Boolean).length, " mots"), a.edited && /*#__PURE__*/React.createElement("button", {
+      onClick: () => resetArticleBody(a.n),
+      style: {
+        ...ncStyles.ghostBtn,
+        padding: "4px 10px",
+        fontSize: 11
+      }
+    }, "\u21BA Restaurer le texte original"))));
+  })))), /*#__PURE__*/React.createElement("section", {
     style: ncStyles.section
   }, /*#__PURE__*/React.createElement(NCSectionHead, {
     num: "05",
@@ -2780,6 +2939,81 @@ var ncStyles = {
     display: "flex",
     gap: 8,
     padding: "5px 0"
+  },
+  // Panneau articles dépliable
+  articlesPanel: {
+    marginTop: 16,
+    border: "1px solid #eef1f5",
+    borderRadius: 10,
+    background: "#fff",
+    overflow: "hidden"
+  },
+  articlesPanelHead: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "12px 14px",
+    background: "linear-gradient(180deg, #fafbfc, #fff)",
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    textAlign: "left"
+  },
+  articlesPanelBody: {
+    borderTop: "1px solid #eef1f5",
+    background: "#fafbfc",
+    padding: "8px 8px 10px"
+  },
+  articleItem: {
+    background: "#fff",
+    border: "1px solid #eef1f5",
+    borderRadius: 8,
+    marginBottom: 6,
+    overflow: "hidden"
+  },
+  articleHead: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    padding: "9px 12px",
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    textAlign: "left"
+  },
+  articleNum: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#fff",
+    background: "#4f46e5",
+    padding: "2px 6px",
+    borderRadius: 4,
+    letterSpacing: 0.3,
+    flexShrink: 0,
+    fontVariantNumeric: "tabular-nums"
+  },
+  articleBody: {
+    padding: "10px 12px 12px",
+    borderTop: "1px solid #f1f5f9",
+    background: "#fafbfc"
+  },
+  articleTextarea: {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 6,
+    fontSize: 12,
+    fontFamily: "'SF Mono', Consolas, monospace",
+    lineHeight: 1.55,
+    color: "#0f172a",
+    background: "#fff",
+    boxSizing: "border-box",
+    resize: "vertical",
+    outline: "none"
   }
 };
 window.NewContract = NewContract;

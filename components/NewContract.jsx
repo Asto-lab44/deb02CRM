@@ -162,6 +162,23 @@ const NewContract = () => {
   // Modèles juridiques (CGV) chargés depuis l'admin
   const [templates, setTemplates] = React.useState([]);
   const [selectedTemplate, setSelectedTemplate] = React.useState(null);
+  // Articles du contrat — chargés depuis window.HubContractArticles (texte par défaut).
+  // Chaque article : { n, title, body, edited, originalBody }.
+  // edited === true ⇒ texte différent de la version source.
+  const [contractArticles, setContractArticles] = React.useState(() => {
+    const src = (typeof window !== "undefined" && window.HubContractArticles) || [];
+    return src.map((a) => ({ n: a.n, title: a.title, body: a.body, originalBody: a.body, edited: false }));
+  });
+  const [expandedArticles, setExpandedArticles] = React.useState({});
+  const [articlesPanelOpen, setArticlesPanelOpen] = React.useState(false);
+  const toggleArticle = (n) => setExpandedArticles((m) => ({ ...m, [n]: !m[n] }));
+  const updateArticleBody = (n, body) => setContractArticles((arr) => arr.map((a) =>
+    a.n === n ? { ...a, body, edited: body !== a.originalBody } : a
+  ));
+  const resetArticleBody = (n) => setContractArticles((arr) => arr.map((a) =>
+    a.n === n ? { ...a, body: a.originalBody, edited: false } : a
+  ));
+  const editedCount = contractArticles.filter((a) => a.edited).length;
   React.useEffect(() => {
     if (!window.api || !window.api.contractTemplates) return;
     window.api.contractTemplates.list().then((list) => {
@@ -322,6 +339,8 @@ const NewContract = () => {
       sign_method: signMethod,
       annexes,
       clauses,
+      // Articles personnalisés — ne stocke que les diffs pour rester léger
+      articles_overrides: contractArticles.filter((a) => a.edited).map((a) => ({ n: a.n, title: a.title, body: a.body })),
       total_ht_y1: sums.totalY1HT,
       tcv: sums.tcv,
       margin_pct: sums.marginPct,
@@ -928,6 +947,85 @@ const NewContract = () => {
                   <button onClick={addClause} style={{ ...ncStyles.addChip, alignSelf: "flex-start" }}>+ Ajouter une clause</button>
                 </div>
               </NCFormRow>
+
+              {/* Panneau dépliable : Articles du contrat (16 articles éditables) */}
+              {contractArticles.length > 0 && (
+                <div style={ncStyles.articlesPanel}>
+                  <button onClick={() => setArticlesPanelOpen((v) => !v)} style={ncStyles.articlesPanelHead}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 14 }}>📑</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                        Articles du contrat
+                      </span>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>
+                        · {contractArticles.length} articles
+                      </span>
+                      {editedCount > 0 && (
+                        <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 3, background: "#fef3c7",
+                                       color: "#a65f00", fontWeight: 700 }}>
+                          ● {editedCount} modifié{editedCount > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: 14, color: "#64748b", transition: "transform 180ms",
+                                   transform: articlesPanelOpen ? "rotate(180deg)" : "none" }}>⌄</span>
+                  </button>
+
+                  {articlesPanelOpen && (
+                    <div style={ncStyles.articlesPanelBody}>
+                      <div style={{ fontSize: 11, color: "#64748b", padding: "6px 12px 10px", lineHeight: 1.5 }}>
+                        Personnalisez chaque article pour ce contrat. Le texte modifié remplacera celui du modèle
+                        standard lors de la génération du PDF. Cliquez sur un article pour le déplier.
+                      </div>
+                      {contractArticles.map((a) => {
+                        const open = !!expandedArticles[a.n];
+                        return (
+                          <div key={a.n} style={ncStyles.articleItem}>
+                            <button onClick={() => toggleArticle(a.n)} style={ncStyles.articleHead}>
+                              <span style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                                <span style={ncStyles.articleNum}>Art. {a.n}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a",
+                                               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {a.title}
+                                </span>
+                                {a.edited && (
+                                  <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: "#fef3c7",
+                                                 color: "#a65f00", fontWeight: 700, flexShrink: 0 }}>MODIFIÉ</span>
+                                )}
+                              </span>
+                              <span style={{ fontSize: 12, color: "#94a3b8", transition: "transform 180ms",
+                                             transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+                            </button>
+                            {open && (
+                              <div style={ncStyles.articleBody}>
+                                <textarea
+                                  value={a.body}
+                                  onChange={(e) => updateArticleBody(a.n, e.target.value)}
+                                  rows={Math.min(20, Math.max(6, a.body.split("\n").length + 1))}
+                                  style={ncStyles.articleTextarea}
+                                  spellCheck={false}
+                                />
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                                              marginTop: 6 }}>
+                                  <span style={{ fontSize: 10.5, color: "#94a3b8" }}>
+                                    {a.body.length} caractères · {a.body.split(/\s+/).filter(Boolean).length} mots
+                                  </span>
+                                  {a.edited && (
+                                    <button onClick={() => resetArticleBody(a.n)}
+                                            style={{ ...ncStyles.ghostBtn, padding: "4px 10px", fontSize: 11 }}>
+                                      ↺ Restaurer le texte original
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* SECTION 5 */}
@@ -1192,6 +1290,16 @@ const ncStyles = {
 
   alertBlock: { padding: 14, border: "1px solid", borderRadius: 12 },
   alertItem: { display: "flex", gap: 8, padding: "5px 0" },
+
+  // Panneau articles dépliable
+  articlesPanel: { marginTop: 16, border: "1px solid #eef1f5", borderRadius: 10, background: "#fff", overflow: "hidden" },
+  articlesPanelHead: { width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: "linear-gradient(180deg, #fafbfc, #fff)", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
+  articlesPanelBody: { borderTop: "1px solid #eef1f5", background: "#fafbfc", padding: "8px 8px 10px" },
+  articleItem: { background: "#fff", border: "1px solid #eef1f5", borderRadius: 8, marginBottom: 6, overflow: "hidden" },
+  articleHead: { width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 12px", border: "none", background: "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
+  articleNum: { fontSize: 10, fontWeight: 700, color: "#fff", background: "#4f46e5", padding: "2px 6px", borderRadius: 4, letterSpacing: 0.3, flexShrink: 0, fontVariantNumeric: "tabular-nums" },
+  articleBody: { padding: "10px 12px 12px", borderTop: "1px solid #f1f5f9", background: "#fafbfc" },
+  articleTextarea: { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "'SF Mono', Consolas, monospace", lineHeight: 1.55, color: "#0f172a", background: "#fff", boxSizing: "border-box", resize: "vertical", outline: "none" },
 };
 
 window.NewContract = NewContract;

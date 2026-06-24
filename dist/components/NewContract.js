@@ -366,7 +366,9 @@ var NewContract = () => {
     }));
   });
   var [expandedArticles, setExpandedArticles] = React.useState({});
-  var [articlesPanelOpen, setArticlesPanelOpen] = React.useState(false);
+  // Panneau articles ouvert par défaut — c'est l'élément le plus important
+  // de la section Conditions juridiques (16 articles personnalisables).
+  var [articlesPanelOpen, setArticlesPanelOpen] = React.useState(true);
   var toggleArticle = n => setExpandedArticles(m => ({
     ...m,
     [n]: !m[n]
@@ -813,6 +815,34 @@ var NewContract = () => {
     key: k,
     value: k
   }, KINDS[k].label)))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setArticlesPanelOpen(true);
+      setTimeout(() => {
+        var el = document.getElementById("nc-articles-panel");
+        if (el) el.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 50);
+    },
+    style: {
+      ...ncStyles.ghostBtn,
+      color: "#3730a3",
+      borderColor: "#c7d2fe"
+    },
+    title: "Voir et personnaliser les 16 articles du contrat de services"
+  }, "\uD83D\uDCD1 Articles du contrat ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "1px 5px",
+      marginLeft: 4,
+      borderRadius: 3,
+      background: "#eef2ff",
+      color: "#3730a3",
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, contractArticles.length)), /*#__PURE__*/React.createElement("button", {
     onClick: generateContractPdf,
     style: {
       ...ncStyles.ghostBtn,
@@ -1847,6 +1877,7 @@ var NewContract = () => {
       alignSelf: "flex-start"
     }
   }, "+ Ajouter une clause"))), contractArticles.length > 0 && /*#__PURE__*/React.createElement("div", {
+    id: "nc-articles-panel",
     style: ncStyles.articlesPanel
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setArticlesPanelOpen(v => !v),

@@ -170,7 +170,9 @@ const NewContract = () => {
     return src.map((a) => ({ n: a.n, title: a.title, body: a.body, originalBody: a.body, edited: false }));
   });
   const [expandedArticles, setExpandedArticles] = React.useState({});
-  const [articlesPanelOpen, setArticlesPanelOpen] = React.useState(false);
+  // Panneau articles ouvert par défaut — c'est l'élément le plus important
+  // de la section Conditions juridiques (16 articles personnalisables).
+  const [articlesPanelOpen, setArticlesPanelOpen] = React.useState(true);
   const toggleArticle = (n) => setExpandedArticles((m) => ({ ...m, [n]: !m[n] }));
   const updateArticleBody = (n, body) => setContractArticles((arr) => arr.map((a) =>
     a.n === n ? { ...a, body, edited: body !== a.originalBody } : a
@@ -432,6 +434,17 @@ const NewContract = () => {
               ))}
             </select>
           </div>
+          <button onClick={() => {
+                    setArticlesPanelOpen(true);
+                    setTimeout(() => {
+                      const el = document.getElementById("nc-articles-panel");
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 50);
+                  }}
+                  style={{ ...ncStyles.ghostBtn, color: "#3730a3", borderColor: "#c7d2fe" }}
+                  title="Voir et personnaliser les 16 articles du contrat de services">
+            📑 Articles du contrat <span style={{ fontSize: 10, padding: "1px 5px", marginLeft: 4, borderRadius: 3, background: "#eef2ff", color: "#3730a3", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{contractArticles.length}</span>
+          </button>
           <button onClick={generateContractPdf} style={{ ...ncStyles.ghostBtn, color: "#c91c45", borderColor: "#fecdd3" }}
                   title="Génère le PDF du contrat pré-rempli avec les valeurs ci-dessous">
             📄 Aperçu PDF du contrat
@@ -950,7 +963,7 @@ const NewContract = () => {
 
               {/* Panneau dépliable : Articles du contrat (16 articles éditables) */}
               {contractArticles.length > 0 && (
-                <div style={ncStyles.articlesPanel}>
+                <div id="nc-articles-panel" style={ncStyles.articlesPanel}>
                   <button onClick={() => setArticlesPanelOpen((v) => !v)} style={ncStyles.articlesPanelHead}>
                     <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ fontSize: 14 }}>📑</span>

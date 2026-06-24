@@ -1011,7 +1011,15 @@ var ClientPage = () => {
       fontWeight: 600
     }
   }, "+ Cr\xE9er")), recents.map(c => {
-    var initials = (c.name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    // Initiales robustes : strip parenthèses (« ATPS (ATPS) » → « ATPS »),
+    // 2 lettres si un seul mot, sinon initiales des mots.
+    var initials = (() => {
+      var cleaned = (c.name || "?").replace(/\s*\([^)]*\)\s*/g, " ").trim();
+      var words = cleaned.split(/\s+/).filter(Boolean);
+      if (words.length === 0) return "?";
+      if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+      return words.map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    })();
     var active = c.id === display.id;
     return /*#__PURE__*/React.createElement("a", {
       key: c.id,

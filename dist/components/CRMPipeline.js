@@ -282,8 +282,15 @@ var CRMPipeline = () => {
         logo: (() => {
           var clientName = o.client_name && o.client_name.trim() || o.data && o.data.client_name && String(o.data.client_name).trim() || "";
           if (!clientName) return "?";
-          var ini = clientName.split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase();
-          return ini || clientName.slice(0, 2).toUpperCase();
+          // Retire la partie entre parenthèses (souvent un doublon d'acronyme
+          // « ATPS (ATPS) »), puis prend 2 lettres de l'acronyme si un seul
+          // mot, sinon les initiales des mots. Évite « A( » sur les acronymes
+          // suivis de leur parenthèse.
+          var cleaned = clientName.replace(/\s*\([^)]*\)\s*/g, " ").trim();
+          var words = cleaned.split(/\s+/).filter(Boolean);
+          if (words.length === 0) return clientName.slice(0, 2).toUpperCase();
+          if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+          return words.map(w => w[0]).join("").slice(0, 2).toUpperCase();
         })(),
         logoBg: palette[(idx * 3 + i) % palette.length],
         won: o.stage === "won",

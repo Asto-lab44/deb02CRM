@@ -700,7 +700,15 @@ const ClientPage = () => {
             <div style={{ fontSize: 11, color: "#94a3b8", padding: "6px 8px" }}>Aucun compte. <a href="/nouveau-prospect" style={{ color: "#3730a3", fontWeight: 600 }}>+ Créer</a></div>
           )}
           {recents.map((c) => {
-            const initials = (c.name || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+            // Initiales robustes : strip parenthèses (« ATPS (ATPS) » → « ATPS »),
+            // 2 lettres si un seul mot, sinon initiales des mots.
+            const initials = (() => {
+              const cleaned = (c.name || "?").replace(/\s*\([^)]*\)\s*/g, " ").trim();
+              const words = cleaned.split(/\s+/).filter(Boolean);
+              if (words.length === 0) return "?";
+              if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+              return words.map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+            })();
             const active = c.id === display.id;
             return (
               <a key={c.id} href={"/fiche-client?id=" + encodeURIComponent(c.id)}

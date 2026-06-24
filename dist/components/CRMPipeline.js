@@ -2367,12 +2367,24 @@ var CRMActionsList = () => {
   var [actions, setActions] = React.useState([]);
   var load = React.useCallback(() => {
     if (!window.api) return;
-    window.api.actions.list({
+    Promise.all([window.api.actions.list({
       status: "todo"
-    }).then(rows => {
+    }),
+    // On charge les clients en parallèle pour pouvoir afficher leur nom
+    // dans la meta (sinon plusieurs actions « Email d'introduction » sont
+    // indistinguables visuellement). Tolérant aux erreurs réseau.
+    (window.api.clients && window.api.clients.list ? window.api.clients.list() : Promise.resolve([])).catch(() => [])]).then(([rows, clients]) => {
+      var clientById = {};
+      (clients || []).forEach(c => {
+        if (c && c.id) clientById[c.id] = c.name || c.raison_sociale || "";
+      });
       setActions((rows || []).map(a => ({
         id: a.id,
         client_id: a.client_id,
+        client_name: clientById[a.client_id] || "",
+        // Note : l'API stocke « opp_id » (cohérent avec opportunities.create),
+        // pas « opportunity_id ». On récupère les deux par sécurité.
+        opp_id: a.opp_id || a.opportunity_id || a.data && (a.data.opp_id || a.data.opportunity_id) || null,
         priority: a.priority || "moyenne",
         overdue: false,
         icon: a.icon || (a.type === "call" ? "📞" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : "✓"),
@@ -2566,8 +2578,12 @@ var CRMActionsList = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.location.href = "mailto:" + encodeURIComponent(email) + "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") + "&body=" + encodeURIComponent(body);
-        if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail");
+        // Ouvre Outlook Web (OWA) plutôt que mailto: — fonctionne sur
+        // n'importe quel poste sans nécessiter un client mail local
+        // installé. Onglet séparé pour ne pas perdre la session Hub.
+        var owaUrl = "https://outlook.office.com/owa/?path=/mail/action/compose" + "&to=" + encodeURIComponent(email) + "&subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") + "&body=" + encodeURIComponent(body);
+        window.open(owaUrl, "_blank", "noopener");
+        if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail Outlook");
         return;
       }
       if (isCall) {
@@ -2628,6 +2644,14 @@ var CRMActionsList = () => {
     }, a.icon) : /*#__PURE__*/React.createElement("span", {
       style: iconBaseStyle
     }, a.icon);
+    // Destination de navigation : opp_id en priorité, sinon fiche client
+    var openTarget = a.opp_id ? "/avancer-opportunite?opp=" + encodeURIComponent(a.opp_id) + (a.client_id ? "&client=" + encodeURIComponent(a.client_id) : "") : a.client_id ? "/fiche-client?id=" + encodeURIComponent(a.client_id) : null;
+    var goToTarget = () => {
+      if (openTarget) window.location.href = openTarget;
+    };
+    // Meta enrichie avec le nom du client (sinon plusieurs actions du
+    // même type sont indistinguables visuellement)
+    var enrichedMeta = a.client_name ? a.meta ? a.client_name + " · " + a.meta : a.client_name : a.meta;
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -2657,10 +2681,15 @@ var CRMActionsList = () => {
         minWidth: 0
       }
     }, /*#__PURE__*/React.createElement("div", {
+      onClick: goToTarget,
+      title: openTarget ? a.opp_id ? "Ouvrir l'opportunité associée" : "Ouvrir la fiche client" : undefined,
       style: {
         fontSize: 13,
         fontWeight: 600,
-        color: "#0f172a"
+        color: openTarget ? "#3730a3" : "#0f172a",
+        cursor: openTarget ? "pointer" : "default",
+        textDecoration: openTarget ? "underline dotted" : "none",
+        textUnderlineOffset: 3
       }
     }, a.title), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2668,7 +2697,7 @@ var CRMActionsList = () => {
         color: "#64748b",
         marginTop: 2
       }
-    }, a.meta)), /*#__PURE__*/React.createElement("div", {
+    }, enrichedMeta)), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         flexDirection: "column",

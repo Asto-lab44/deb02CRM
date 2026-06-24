@@ -299,11 +299,12 @@ var AdvanceOpportunity = () => {
         var _clientId = oppData && (oppData.client_id || oppData.data && oppData.data.client_id);
         await window.api.actions.create({
           client_id: _clientId || null,
-          opportunity_id: opp.ref,
+          opp_id: opp.ref,
           type: "task",
           title: "Envoi de l'offre commerciale — " + (editName || opp.name || ""),
           meta: "Opportunité « " + (editName || opp.name || opp.ref) + " » passée en Négociation : envoyer le devis chiffré sous 5 jours.",
           due_text: "Sous 5 jours",
+          due: "Sous 5 jours",
           priority: "haute",
           icon: "✉",
           tag: "Offre commerciale",

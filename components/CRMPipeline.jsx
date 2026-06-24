@@ -1011,10 +1011,22 @@ const CRMActionsList = () => {
   const [actions, setActions] = React.useState([]);
   const load = React.useCallback(() => {
     if (!window.api) return;
-    window.api.actions.list({ status: "todo" }).then((rows) => {
+    Promise.all([
+      window.api.actions.list({ status: "todo" }),
+      // On charge les clients en parallèle pour pouvoir afficher leur nom
+      // dans la meta (sinon plusieurs actions « Email d'introduction » sont
+      // indistinguables visuellement). Tolérant aux erreurs réseau.
+      (window.api.clients && window.api.clients.list ? window.api.clients.list() : Promise.resolve([])).catch(() => []),
+    ]).then(([rows, clients]) => {
+      const clientById = {};
+      (clients || []).forEach((c) => { if (c && c.id) clientById[c.id] = c.name || c.raison_sociale || ""; });
       setActions((rows || []).map((a) => ({
         id: a.id,
         client_id: a.client_id,
+        client_name: clientById[a.client_id] || "",
+        // Note : l'API stocke « opp_id » (cohérent avec opportunities.create),
+        // pas « opportunity_id ». On récupère les deux par sécurité.
+        opp_id: a.opp_id || a.opportunity_id || (a.data && (a.data.opp_id || a.data.opportunity_id)) || null,
         priority: a.priority || "moyenne",
         overdue: false,
         icon: a.icon || (a.type === "call" ? "📞" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : "✓"),
@@ -1110,10 +1122,15 @@ const CRMActionsList = () => {
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
-              window.location.href = "mailto:" + encodeURIComponent(email) +
-                "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") +
-                "&body=" + encodeURIComponent(body);
-              if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail");
+              // Ouvre Outlook Web (OWA) plutôt que mailto: — fonctionne sur
+              // n'importe quel poste sans nécessiter un client mail local
+              // installé. Onglet séparé pour ne pas perdre la session Hub.
+              const owaUrl = "https://outlook.office.com/owa/?path=/mail/action/compose"
+                + "&to=" + encodeURIComponent(email)
+                + "&subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya")
+                + "&body=" + encodeURIComponent(body);
+              window.open(owaUrl, "_blank", "noopener");
+              if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail Outlook");
               return;
             }
             if (isCall) {
@@ -1161,6 +1178,18 @@ const CRMActionsList = () => {
           ) : (
             <span style={iconBaseStyle}>{a.icon}</span>
           );
+          // Destination de navigation : opp_id en priorité, sinon fiche client
+          const openTarget = a.opp_id
+            ? "/avancer-opportunite?opp=" + encodeURIComponent(a.opp_id) + (a.client_id ? "&client=" + encodeURIComponent(a.client_id) : "")
+            : a.client_id
+              ? "/fiche-client?id=" + encodeURIComponent(a.client_id)
+              : null;
+          const goToTarget = () => { if (openTarget) window.location.href = openTarget; };
+          // Meta enrichie avec le nom du client (sinon plusieurs actions du
+          // même type sont indistinguables visuellement)
+          const enrichedMeta = a.client_name
+            ? (a.meta ? a.client_name + " · " + a.meta : a.client_name)
+            : a.meta;
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: a.overdue ? "#fff7ed" : "#fff", border: "1px solid " + (a.overdue ? "#fdba74" : "#e2e8f0"), borderRadius: 10 }}>
               {iconEl}
@@ -1168,8 +1197,15 @@ const CRMActionsList = () => {
                 {a.overdue ? "⚠ EN RETARD" : pm.label}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{a.title}</div>
-                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{a.meta}</div>
+                <div onClick={goToTarget}
+                     title={openTarget ? (a.opp_id ? "Ouvrir l'opportunité associée" : "Ouvrir la fiche client") : undefined}
+                     style={{ fontSize: 13, fontWeight: 600, color: openTarget ? "#3730a3" : "#0f172a",
+                              cursor: openTarget ? "pointer" : "default",
+                              textDecoration: openTarget ? "underline dotted" : "none",
+                              textUnderlineOffset: 3 }}>
+                  {a.title}
+                </div>
+                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{enrichedMeta}</div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
                 <span style={{ fontSize: 11.5, color: a.overdue ? "#c2410c" : "#475569", fontWeight: 600 }}>{a.due}</span>

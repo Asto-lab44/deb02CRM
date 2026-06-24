@@ -358,6 +358,28 @@ const AdvanceOpportunity = () => {
                   title="Sauvegarder les modifications de la fiche sans changer d'étape SPANCO">
             {savingOpp ? "⏳ Enregistrement…" : "💾 Enregistrer"}
           </button>
+          {/* Supprimer définitivement l'opportunité — disponible à tout moment */}
+          <button onClick={async () => {
+            const ok = window.HubModal
+              ? await window.HubModal.confirm({
+                  title: "Supprimer définitivement l'opportunité ?",
+                  message: "« " + (editName || opp.name || opp.ref) + " » sera supprimée. Action irréversible. Les projets liés seront détachés (pas supprimés).",
+                  okLabel: "Supprimer définitivement",
+                  okStyle: "danger",
+                })
+              : confirm("Supprimer définitivement « " + (editName || opp.name || opp.ref) + " » ? Action irréversible.");
+            if (!ok) return;
+            try {
+              await window.api.opportunities.remove(opp.ref);
+              if (window.HubToast) window.HubToast.success("✓ Opportunité supprimée");
+              window.location.href = clientId ? "/fiche-client?id=" + encodeURIComponent(clientId) : "/crm";
+            } catch (e) {
+              if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+            }
+          }} style={{ ...S.btnGhost, borderColor: "#fecaca", color: "#dc2626", background: "#fef2f2" }}
+             title="Supprime définitivement cette opportunité (action irréversible)">
+            🗑 Supprimer
+          </button>
           {curIdx < stages.length - 1 && targetIdx > curIdx && (
             <button
               onClick={() => confirmAdvance(false)}

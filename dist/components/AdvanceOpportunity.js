@@ -536,7 +536,31 @@ var AdvanceOpportunity = () => {
       opacity: savingOpp ? 0.6 : 1
     },
     title: "Sauvegarder les modifications de la fiche sans changer d'\xE9tape SPANCO"
-  }, savingOpp ? "⏳ Enregistrement…" : "💾 Enregistrer"), curIdx < stages.length - 1 && targetIdx > curIdx && /*#__PURE__*/React.createElement("button", {
+  }, savingOpp ? "⏳ Enregistrement…" : "💾 Enregistrer"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Supprimer définitivement l'opportunité ?",
+        message: "« " + (editName || opp.name || opp.ref) + " » sera supprimée. Action irréversible. Les projets liés seront détachés (pas supprimés).",
+        okLabel: "Supprimer définitivement",
+        okStyle: "danger"
+      }) : confirm("Supprimer définitivement « " + (editName || opp.name || opp.ref) + " » ? Action irréversible.");
+      if (!ok) return;
+      try {
+        await window.api.opportunities.remove(opp.ref);
+        if (window.HubToast) window.HubToast.success("✓ Opportunité supprimée");
+        window.location.href = clientId ? "/fiche-client?id=" + encodeURIComponent(clientId) : "/crm";
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      }
+    },
+    style: {
+      ...S.btnGhost,
+      borderColor: "#fecaca",
+      color: "#dc2626",
+      background: "#fef2f2"
+    },
+    title: "Supprime d\xE9finitivement cette opportunit\xE9 (action irr\xE9versible)"
+  }, "\uD83D\uDDD1 Supprimer"), curIdx < stages.length - 1 && targetIdx > curIdx && /*#__PURE__*/React.createElement("button", {
     onClick: () => confirmAdvance(false),
     style: target.k === "won" ? {
       ...S.btnPrimary,

@@ -520,6 +520,27 @@
       lsSet("opportunities", arr);
       return arr[0];
     },
+
+    /** Supprime UNE opportunité par id. Idempotent. Détache aussi le lien
+     *  côté projects (opportunity_id → null) si un projet pointe dessus
+     *  pour ne pas laisser de référence orpheline. */
+    async remove(id) {
+      if (!id) return null;
+      const s = supa();
+      if (s) {
+        try {
+          // Détache les projets liés (FK nullable)
+          await s.from("projects").update({ opportunity_id: null }).eq("opportunity_id", id);
+        } catch (e) { console.warn("[opp.remove projects detach]", e.message || e); }
+        const { error } = await s.from("opportunities").delete().eq("id", id);
+        if (error) throw new Error(error.message);
+        return { id };
+      }
+      let arr = lsGet("opportunities");
+      arr = arr.filter((o) => o.id !== id && o.ref !== id);
+      lsSet("opportunities", arr);
+      return { id };
+    },
   };
 
   // ───────────────────────────────────────────────────────────────────

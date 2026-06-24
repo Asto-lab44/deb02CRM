@@ -232,6 +232,33 @@ var AdvanceOpportunity = () => {
     bg: "#fee2e2"
   };
 
+  // Enregistrer les modifications de la fiche SANS changer d'étape SPANCO.
+  // Permet de sauver les champs édités (nom, montant, besoin, concurrent,
+  // contract_end, notes, date de décision…) à tout moment du workflow.
+  var [savingOpp, setSavingOpp] = React.useState(false);
+  var saveOpp = async () => {
+    var amountFinal = parseFloat(String(editAmount || "0").replace(/[^\d.]/g, "")) || 0;
+    setSavingOpp(true);
+    try {
+      await window.api.opportunities.update(opp.ref, {
+        amount_eur: amountFinal,
+        close_date: editDecisionDate || null,
+        notes: editNotes || null,
+        name: editName || opp.name,
+        besoin: editBesoin || null,
+        concurrent: editConcurrent || null,
+        concurrent_amount: editConcurrentAmount || null,
+        contract_end: editContractEnd || null
+      });
+      if (window.HubToast) window.HubToast.success("✓ Modifications enregistrées");
+    } catch (e) {
+      console.warn("saveOpp:", e);
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    } finally {
+      setSavingOpp(false);
+    }
+  };
+
   // Confirmer le passage
   var confirmAdvance = async asLost => {
     var newStage = asLost ? "lost" : target.k;
@@ -497,7 +524,19 @@ var AdvanceOpportunity = () => {
       color: "#b45309",
       background: "#fef0e6"
     }
-  }, "\uD83D\uDCC4 Cr\xE9er un devis"), curIdx < stages.length - 1 && targetIdx > curIdx && /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDCC4 Cr\xE9er un devis"), /*#__PURE__*/React.createElement("button", {
+    onClick: saveOpp,
+    disabled: savingOpp,
+    style: {
+      ...S.btnGhost,
+      borderColor: "#10b981",
+      color: "#047857",
+      background: "#ecfdf5",
+      cursor: savingOpp ? "wait" : "pointer",
+      opacity: savingOpp ? 0.6 : 1
+    },
+    title: "Sauvegarder les modifications de la fiche sans changer d'\xE9tape SPANCO"
+  }, savingOpp ? "⏳ Enregistrement…" : "💾 Enregistrer"), curIdx < stages.length - 1 && targetIdx > curIdx && /*#__PURE__*/React.createElement("button", {
     onClick: () => confirmAdvance(false),
     style: target.k === "won" ? {
       ...S.btnPrimary,
@@ -1034,7 +1073,22 @@ var AdvanceOpportunity = () => {
       if (ok) confirmAdvance(true);
     },
     style: S.btnLose
-  }, "\u2715 Marquer comme perdu"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2715 Marquer comme perdu"), /*#__PURE__*/React.createElement("button", {
+    onClick: saveOpp,
+    disabled: savingOpp,
+    style: {
+      padding: "12px 22px",
+      background: "#fff",
+      color: "#047857",
+      border: "1.5px solid #10b981",
+      borderRadius: 9,
+      fontSize: 14,
+      fontWeight: 700,
+      cursor: savingOpp ? "wait" : "pointer",
+      opacity: savingOpp ? 0.6 : 1
+    },
+    title: "Sauvegarder les modifications de la fiche sans changer d'\xE9tape"
+  }, savingOpp ? "⏳ Enregistrement…" : "💾 Enregistrer les modifications"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "#64748b"
@@ -1051,6 +1105,21 @@ var AdvanceOpportunity = () => {
     },
     style: S.btnLose
   }, "\u2715 Marquer comme perdu"), /*#__PURE__*/React.createElement("button", {
+    onClick: saveOpp,
+    disabled: savingOpp,
+    style: {
+      padding: "12px 22px",
+      background: "#fff",
+      color: "#047857",
+      border: "1.5px solid #10b981",
+      borderRadius: 9,
+      fontSize: 14,
+      fontWeight: 700,
+      cursor: savingOpp ? "wait" : "pointer",
+      opacity: savingOpp ? 0.6 : 1
+    },
+    title: "Sauvegarder les modifications de la fiche sans changer d'\xE9tape SPANCO"
+  }, savingOpp ? "⏳ Enregistrement…" : "💾 Enregistrer les modifications"), /*#__PURE__*/React.createElement("button", {
     onClick: () => confirmAdvance(false),
     style: S.btnPrimaryBig
   }, "\u2713 Confirmer le passage en ", target.spanco, " \u2192"))));

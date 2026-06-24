@@ -1245,9 +1245,13 @@ var CRMPipeline = () => {
     }, /*#__PURE__*/React.createElement(Avatar, {
       name: c.owner,
       size: 22
-    })), (() => {
-      var ech = fmtClose(c.close_iso);
+    })), [c.close_iso, c.contract_end_iso].map((iso, idx) => {
+      if (!iso) return /*#__PURE__*/React.createElement("div", {
+        key: idx
+      }); // cellule vide quand pas de date
+      var ech = fmtClose(iso);
       return /*#__PURE__*/React.createElement("div", {
+        key: idx,
         style: {
           textAlign: "right",
           fontSize: 11.5,
@@ -1269,31 +1273,7 @@ var CRMPipeline = () => {
           fontWeight: 700
         }
       }, ech.badge), /*#__PURE__*/React.createElement("span", null, ech.label));
-    })(), (() => {
-      var ech = fmtClose(c.contract_end_iso);
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          textAlign: "right",
-          fontSize: 11.5,
-          color: ech.color,
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: ech.weight,
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: 6
-        }
-      }, ech.badge && /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 9.5,
-          padding: "1px 5px",
-          borderRadius: 3,
-          background: ech.color + "1a",
-          color: ech.color,
-          fontWeight: 700
-        }
-      }, ech.badge), /*#__PURE__*/React.createElement("span", null, ech.label));
-    })());
+    }));
   }))), crmView === "kanban" && /*#__PURE__*/React.createElement("div", {
     style: crmStyles.kanban
   }, columns.map(col => /*#__PURE__*/React.createElement("div", {

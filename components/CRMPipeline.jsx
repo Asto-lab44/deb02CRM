@@ -603,10 +603,11 @@ const CRMPipeline = () => {
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <Avatar name={c.owner} size={22} />
                       </div>
-                      {(() => {
-                        const ech = fmtClose(c.close_iso);
+                      {[c.close_iso, c.contract_end_iso].map((iso, idx) => {
+                        if (!iso) return <div key={idx} />; // cellule vide quand pas de date
+                        const ech = fmtClose(iso);
                         return (
-                          <div style={{ textAlign: "right", fontSize: 11.5, color: ech.color,
+                          <div key={idx} style={{ textAlign: "right", fontSize: 11.5, color: ech.color,
                                         fontVariantNumeric: "tabular-nums", fontWeight: ech.weight,
                                         display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
                             {ech.badge && (
@@ -618,23 +619,7 @@ const CRMPipeline = () => {
                             <span>{ech.label}</span>
                           </div>
                         );
-                      })()}
-                      {(() => {
-                        const ech = fmtClose(c.contract_end_iso);
-                        return (
-                          <div style={{ textAlign: "right", fontSize: 11.5, color: ech.color,
-                                        fontVariantNumeric: "tabular-nums", fontWeight: ech.weight,
-                                        display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-                            {ech.badge && (
-                              <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3,
-                                             background: ech.color + "1a", color: ech.color, fontWeight: 700 }}>
-                                {ech.badge}
-                              </span>
-                            )}
-                            <span>{ech.label}</span>
-                          </div>
-                        );
-                      })()}
+                      })}
                     </div>
                   );
                 })}

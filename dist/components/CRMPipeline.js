@@ -294,10 +294,13 @@ var CRMPipeline = () => {
         })(),
         logoBg: palette[(idx * 3 + i) % palette.length],
         won: o.stage === "won",
-        // Échéance — privilégie close_date (BDD) ou data.close_date (jsonb),
+        // Échéance projet — close_date (BDD) ou data.close_date (jsonb),
         // fallback decision_date / expected_close_date. Format ISO conservé
         // pour le tri ; le rendu humain est fait côté affichage.
-        close_iso: o.close_date || o.data && (o.data.close_date || o.data.decision_date || o.data.expected_close_date) || null
+        close_iso: o.close_date || o.data && (o.data.close_date || o.data.decision_date || o.data.expected_close_date) || null,
+        // Échéance contrat concurrent — saisie sur la page Avancer
+        // l'opportunité (« Échéance du contrat actuel (chez le concurrent) »).
+        contract_end_iso: o.contract_end || o.data && o.data.contract_end || null
       }))
     };
   });
@@ -1077,7 +1080,7 @@ var CRMPipeline = () => {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "1.5fr 2fr 110px 90px 100px 90px 110px",
+      gridTemplateColumns: "1.5fr 1.8fr 110px 90px 90px 70px 110px 110px",
       padding: "10px 14px",
       background: "#fafbfc",
       borderBottom: "1px solid #eef1f5",
@@ -1103,8 +1106,14 @@ var CRMPipeline = () => {
   }, "Owner"), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "right"
-    }
-  }, "\xC9ch\xE9ance")), columns.flatMap(col => col.cards.map(c => ({
+    },
+    title: "Date de d\xE9cision potentielle du projet"
+  }, "\xC9ch\xE9ance projet"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    },
+    title: "Date de fin du contrat actuel chez le concurrent"
+  }, "Fin contrat concurrent")), columns.flatMap(col => col.cards.map(c => ({
     ...c,
     _stage: col
   }))).length === 0 && /*#__PURE__*/React.createElement("div", {
@@ -1141,7 +1150,7 @@ var CRMPipeline = () => {
       onClick: goto,
       style: {
         display: "grid",
-        gridTemplateColumns: "1.5fr 2fr 110px 90px 100px 90px 110px",
+        gridTemplateColumns: "1.5fr 1.8fr 110px 90px 90px 70px 110px 110px",
         padding: "12px 14px",
         borderBottom: "1px solid #f1f5f9",
         alignItems: "center",
@@ -1238,6 +1247,30 @@ var CRMPipeline = () => {
       size: 22
     })), (() => {
       var ech = fmtClose(c.close_iso);
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          textAlign: "right",
+          fontSize: 11.5,
+          color: ech.color,
+          fontVariantNumeric: "tabular-nums",
+          fontWeight: ech.weight,
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 6
+        }
+      }, ech.badge && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          padding: "1px 5px",
+          borderRadius: 3,
+          background: ech.color + "1a",
+          color: ech.color,
+          fontWeight: 700
+        }
+      }, ech.badge), /*#__PURE__*/React.createElement("span", null, ech.label));
+    })(), (() => {
+      var ech = fmtClose(c.contract_end_iso);
       return /*#__PURE__*/React.createElement("div", {
         style: {
           textAlign: "right",

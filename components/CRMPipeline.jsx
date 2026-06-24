@@ -232,10 +232,13 @@ const CRMPipeline = () => {
         })(),
         logoBg: palette[(idx * 3 + i) % palette.length],
         won: o.stage === "won",
-        // Échéance — privilégie close_date (BDD) ou data.close_date (jsonb),
+        // Échéance projet — close_date (BDD) ou data.close_date (jsonb),
         // fallback decision_date / expected_close_date. Format ISO conservé
         // pour le tri ; le rendu humain est fait côté affichage.
         close_iso: o.close_date || (o.data && (o.data.close_date || o.data.decision_date || o.data.expected_close_date)) || null,
+        // Échéance contrat concurrent — saisie sur la page Avancer
+        // l'opportunité (« Échéance du contrat actuel (chez le concurrent) »).
+        contract_end_iso: o.contract_end || (o.data && o.data.contract_end) || null,
       })),
     };
   });
@@ -530,7 +533,7 @@ const CRMPipeline = () => {
         {crmView === "list" && (
           <div style={{ padding: "0 24px 24px" }}>
             <div style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 2fr 110px 90px 100px 90px 110px",
+              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1.8fr 110px 90px 90px 70px 110px 110px",
                             padding: "10px 14px", background: "#fafbfc", borderBottom: "1px solid #eef1f5",
                             fontSize: 10.5, fontWeight: 700, color: "#94a3b8",
                             textTransform: "uppercase", letterSpacing: 0.5, gap: 12 }}>
@@ -540,7 +543,8 @@ const CRMPipeline = () => {
                 <div style={{ textAlign: "right" }}>Montant</div>
                 <div style={{ textAlign: "center" }}>Probabilité</div>
                 <div style={{ textAlign: "center" }}>Owner</div>
-                <div style={{ textAlign: "right" }}>Échéance</div>
+                <div style={{ textAlign: "right" }} title="Date de décision potentielle du projet">Échéance projet</div>
+                <div style={{ textAlign: "right" }} title="Date de fin du contrat actuel chez le concurrent">Fin contrat concurrent</div>
               </div>
               {columns.flatMap((col) => col.cards.map((c) => ({ ...c, _stage: col }))).length === 0 && (
                 <div style={{ padding: "30px 12px", textAlign: "center", color: "#94a3b8", fontSize: 12.5 }}>
@@ -564,7 +568,7 @@ const CRMPipeline = () => {
                   return (
                     <div key={c.id} onClick={goto}
                          style={{ display: "grid",
-                                  gridTemplateColumns: "1.5fr 2fr 110px 90px 100px 90px 110px",
+                                  gridTemplateColumns: "1.5fr 1.8fr 110px 90px 90px 70px 110px 110px",
                                   padding: "12px 14px", borderBottom: "1px solid #f1f5f9",
                                   alignItems: "center", gap: 12, cursor: c.id ? "pointer" : "default",
                                   background: "#fff" }}
@@ -601,6 +605,22 @@ const CRMPipeline = () => {
                       </div>
                       {(() => {
                         const ech = fmtClose(c.close_iso);
+                        return (
+                          <div style={{ textAlign: "right", fontSize: 11.5, color: ech.color,
+                                        fontVariantNumeric: "tabular-nums", fontWeight: ech.weight,
+                                        display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
+                            {ech.badge && (
+                              <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3,
+                                             background: ech.color + "1a", color: ech.color, fontWeight: 700 }}>
+                                {ech.badge}
+                              </span>
+                            )}
+                            <span>{ech.label}</span>
+                          </div>
+                        );
+                      })()}
+                      {(() => {
+                        const ech = fmtClose(c.contract_end_iso);
                         return (
                           <div style={{ textAlign: "right", fontSize: 11.5, color: ech.color,
                                         fontVariantNumeric: "tabular-nums", fontWeight: ech.weight,

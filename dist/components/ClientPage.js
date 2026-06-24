@@ -549,21 +549,22 @@ var ClientPage = () => {
   };
   var [pastShowAll, setPastShowAll] = React.useState(false);
   var [pipeView, setPipeView] = React.useState("kanban"); // "kanban" | "list"
-  // Colonnes du kanban repliées (clé = pipeStage.k). Persisté en localStorage.
-  var [collapsedStages, setCollapsedStages] = React.useState(() => {
+  // Colonnes dépliées en vue complète (clé = pipeStage.k). Par défaut compact
+  // (≈ 2 cartes visibles + ascenseur). Bouton ⇣ pour basculer en vue déployée.
+  var [expandedStages, setExpandedStages] = React.useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("hubAstorya.pipeCollapsed.v1") || "{}");
+      return JSON.parse(localStorage.getItem("hubAstorya.pipeExpanded.v1") || "{}");
     } catch (e) {
       return {};
     }
   });
-  var toggleStageCollapsed = k => setCollapsedStages(m => {
+  var toggleStageExpanded = k => setExpandedStages(m => {
     var next = {
       ...m,
       [k]: !m[k]
     };
     try {
-      localStorage.setItem("hubAstorya.pipeCollapsed.v1", JSON.stringify(next));
+      localStorage.setItem("hubAstorya.pipeExpanded.v1", JSON.stringify(next));
     } catch (e) {}
     return next;
   });
@@ -1612,512 +1613,381 @@ var ClientPage = () => {
     style: cliStyles.blockCount
   }, opportunities.length)), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
-  }, "Vue d'ensemble des opportunit\xE9s et contrats actifs pour ce client"))), pipeView === "kanban" && (() => {
-    // Grille adaptative : colonnes repliées = 44 px, dépliées = 1fr.
-    // Bandeau d'actions au-dessus avec « Tout replier / Tout déplier ».
-    var gridCols = pipeStages.map(s => collapsedStages[s.k] ? "44px" : "1fr").join(" ");
-    var anyCollapsed = pipeStages.some(s => collapsedStages[s.k]);
-    var allCollapsed = pipeStages.every(s => collapsedStages[s.k]);
-    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "flex-end",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 8
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        var target = allCollapsed ? {} : Object.fromEntries(pipeStages.map(s => [s.k, true]));
-        setCollapsedStages(target);
-        try {
-          localStorage.setItem("hubAstorya.pipeCollapsed.v1", JSON.stringify(target));
-        } catch (e) {}
+  }, "Vue d'ensemble des opportunit\xE9s et contrats actifs pour ce client"))), pipeView === "kanban" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(5, 1fr)",
+      gap: 10,
+      marginBottom: 14
+    }
+  }, pipeStages.map(s => {
+    var opps = opportunities.filter(o => (o.stage || "qualif") === s.k);
+    var sum = opps.reduce((acc, o) => acc + (parseInt(String(o.amount || "0").replace(/[^\d]/g, "")) || 0), 0);
+    return /*#__PURE__*/React.createElement("div", {
+      key: s.k,
+      onDragOver: e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        e.currentTarget.style.background = s.color + "1a";
       },
-      style: {
-        padding: "4px 10px",
-        fontSize: 11,
-        fontWeight: 600,
-        border: "1px solid #e2e8f0",
-        background: "#fff",
-        color: "#475569",
-        borderRadius: 6,
-        cursor: "pointer"
-      }
-    }, allCollapsed ? "⇔ Tout déplier" : "⇆ Tout replier")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: gridCols,
-        gap: 10,
-        marginBottom: 14,
-        transition: "grid-template-columns 200ms"
-      }
-    }, pipeStages.map(s => {
-      var opps = opportunities.filter(o => (o.stage || "qualif") === s.k);
-      var sum = opps.reduce((acc, o) => acc + (parseInt(String(o.amount || "0").replace(/[^\d]/g, "")) || 0), 0);
-      var isCollapsed = !!collapsedStages[s.k];
-      if (isCollapsed) {
-        // Rendu minimal : barre verticale 44 px avec label en rotation + compteur
-        return /*#__PURE__*/React.createElement("div", {
-          key: s.k,
-          onDragOver: e => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          },
-          onDrop: async e => {
-            // Lors d'un drop sur une colonne repliée, on la déplie automatiquement
-            // pour signaler visuellement la nouvelle position
-            e.preventDefault();
-            var oppId = e.dataTransfer.getData("oppId");
-            if (!oppId || !window.api) return;
-            var dragged = opportunities.find(o => o.ref === oppId || o.id === oppId);
-            if (!dragged) return;
-            if ((dragged.stage || "qualif") === s.k) return;
-            toggleStageCollapsed(s.k);
-            var stageProba = {
-              qualif: 20,
-              discovery: 35,
-              propo: 55,
-              nego: 75,
-              won: 100
-            };
-            try {
-              await window.api.opportunities.update(dragged.id || dragged.ref, {
-                stage: s.k,
-                proba: stageProba[s.k] || 20
-              });
-              if (window.HubToast) window.HubToast.success("✓ Déplacée en « " + s.label + " »");
-              var list = await window.api.opportunities.list({
-                client_id: urlId || display.id
-              });
-              setStoredOpps(list || []);
-            } catch (err) {
-              if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
-            }
-          },
-          onClick: () => toggleStageCollapsed(s.k),
-          title: "Déplier « " + s.label + " » (" + opps.length + ")",
-          style: {
-            background: "#fafbfc",
-            border: "1px solid #eef1f5",
-            borderRadius: 10,
-            padding: "10px 6px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 10,
-            minHeight: 200,
-            cursor: "pointer"
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            width: 7,
-            height: 7,
-            borderRadius: 2,
-            background: s.color
-          }
-        }), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 10,
-            color: "#94a3b8",
-            fontWeight: 700
-          }
-        }, "\u203A"), /*#__PURE__*/React.createElement("span", {
-          style: {
-            writingMode: "vertical-rl",
-            transform: "rotate(180deg)",
-            fontSize: 11.5,
-            fontWeight: 700,
-            color: "#0f172a",
-            letterSpacing: 0.3
-          }
-        }, s.label), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 10,
-            padding: "1px 6px",
-            borderRadius: 999,
-            background: "#fff",
-            color: "#64748b",
-            border: "1px solid #e2e8f0",
-            fontVariantNumeric: "tabular-nums",
-            fontWeight: 700
-          }
-        }, opps.length), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 9.5,
-            color: "#94a3b8",
-            fontVariantNumeric: "tabular-nums",
-            writingMode: "vertical-rl",
-            transform: "rotate(180deg)"
-          }
-        }, opps.length ? (sum / 1000).toFixed(0) + " k€" : "—"));
-      }
-      return /*#__PURE__*/React.createElement("div", {
-        key: s.k,
-        onDragOver: e => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          e.currentTarget.style.background = s.color + "1a";
-        },
-        onDragLeave: e => {
-          e.currentTarget.style.background = "#fafbfc";
-        },
-        onDrop: async e => {
-          e.preventDefault();
-          e.currentTarget.style.background = "#fafbfc";
-          var oppId = e.dataTransfer.getData("oppId");
-          if (!oppId || !window.api) return;
-          var dragged = opportunities.find(o => o.ref === oppId || o.id === oppId);
-          if (!dragged) return;
-          if ((dragged.stage || "qualif") === s.k) return;
-          var stageLabels = {
-            qualif: "Prospect",
-            discovery: "Approche",
-            propo: "Négociation",
-            nego: "Conclusion",
-            won: "Ordre",
-            lost: "Perdu"
-          };
-          var fromLbl = stageLabels[dragged.stage || "qualif"] || dragged.stage;
-          var toLbl = stageLabels[s.k] || s.label;
-          var oppName = dragged.name || dragged.client_name || oppId;
-          var ok = window.HubModal ? await window.HubModal.confirm({
-            title: "Confirmer le déplacement",
-            message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
-            okLabel: "Oui, déplacer",
-            okStyle: "primary"
-          }) : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
-          if (!ok) {
-            if (window.HubToast) window.HubToast.info("Déplacement annulé");
-            return;
-          }
-          var stageProba = {
-            qualif: 20,
-            discovery: 35,
-            propo: 55,
-            nego: 75,
-            won: 100
-          };
-          try {
-            await window.api.opportunities.update(dragged.id || dragged.ref, {
-              stage: s.k,
-              proba: stageProba[s.k] || 20
-            });
-            if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
-            // Reload opportunités pour le client courant
-            try {
-              var list = await window.api.opportunities.list({
-                client_id: urlId || display.id
-              });
-              setStoredOpps(list || []);
-            } catch (e2) {
-              window.location.reload();
-            }
-          } catch (err) {
-            if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
-          }
-        },
-        style: {
-          background: "#fafbfc",
-          border: "1px solid #eef1f5",
-          borderRadius: 10,
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          minHeight: 200,
-          transition: "background 120ms"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 4
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 6
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 7,
-          height: 7,
-          borderRadius: 2,
-          background: s.color
-        }
-      }), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 11.5,
-          fontWeight: 700,
-          color: "#0f172a"
-        }
-      }, s.label), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10,
-          padding: "0 6px",
-          borderRadius: 999,
-          background: "#fff",
-          color: "#64748b",
-          border: "1px solid #e2e8f0",
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 600
-        }
-      }, opps.length)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 6
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10.5,
-          color: "#64748b",
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 500
-        }
-      }, opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €"), /*#__PURE__*/React.createElement("button", {
-        onClick: e => {
-          e.stopPropagation();
-          toggleStageCollapsed(s.k);
-        },
-        title: "Replier « " + s.label + " »",
-        style: {
-          width: 22,
-          height: 22,
-          padding: 0,
-          border: "1px solid #e2e8f0",
-          background: "#fff",
-          color: "#64748b",
-          borderRadius: 5,
-          cursor: "pointer",
-          fontSize: 12,
-          lineHeight: 1,
-          fontWeight: 700
-        }
-      }, "\u2039"))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          maxHeight: 296,
-          overflowY: "auto",
-          paddingRight: 4,
-          marginRight: -4
-        },
-        className: "hub-kanban-scroll"
-      }, opps.length === 0 && /*#__PURE__*/React.createElement("div", {
-        style: {
-          padding: "16px 8px",
-          fontSize: 11,
-          color: "#cbd5e1",
-          textAlign: "center",
-          fontStyle: "italic",
-          border: "1px dashed #e2e8f0",
-          borderRadius: 6
-        }
-      }, "Aucune opportunit\xE9"), opps.map((o, j) => {
-        var openOpp = () => {
-          var cid = urlId || display.id || "";
-          var oppKey = o.ref || o.id;
-          if (!oppKey) {
-            if (window.HubToast) window.HubToast.warn("Référence opportunité manquante");
-            return;
-          }
-          window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(oppKey) + (cid ? "&client=" + encodeURIComponent(cid) : "");
+      onDragLeave: e => {
+        e.currentTarget.style.background = "#fafbfc";
+      },
+      onDrop: async e => {
+        e.preventDefault();
+        e.currentTarget.style.background = "#fafbfc";
+        var oppId = e.dataTransfer.getData("oppId");
+        if (!oppId || !window.api) return;
+        var dragged = opportunities.find(o => o.ref === oppId || o.id === oppId);
+        if (!dragged) return;
+        if ((dragged.stage || "qualif") === s.k) return;
+        var stageLabels = {
+          qualif: "Prospect",
+          discovery: "Approche",
+          propo: "Négociation",
+          nego: "Conclusion",
+          won: "Ordre",
+          lost: "Perdu"
         };
-        var stageColor = s.color;
-        var proba = o.proba || {
+        var fromLbl = stageLabels[dragged.stage || "qualif"] || dragged.stage;
+        var toLbl = stageLabels[s.k] || s.label;
+        var oppName = dragged.name || dragged.client_name || oppId;
+        var ok = window.HubModal ? await window.HubModal.confirm({
+          title: "Confirmer le déplacement",
+          message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
+          okLabel: "Oui, déplacer",
+          okStyle: "primary"
+        }) : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
+        if (!ok) {
+          if (window.HubToast) window.HubToast.info("Déplacement annulé");
+          return;
+        }
+        var stageProba = {
           qualif: 20,
           discovery: 35,
           propo: 55,
           nego: 75,
           won: 100
-        }[o.stage] || 20;
-        var isWon = o.stage === "won";
-        var logoPalette = ["#f59e0b", "#0ea5e9", "#a855f7", "#dc2626", "#10b981", "#6366f1"];
-        var logoBg = logoPalette[j % logoPalette.length];
-        var logo = (o.client_name || display.name || "??").slice(0, 2).toUpperCase();
-        var tagLabel = Array.isArray(o.modules) && o.modules[0] || (o.produit && o.produit.includes("Cyber") ? "Cyber" : o.produit && o.produit.includes("Hub") ? "Hub" : "Suite");
-        var tagBg = tagLabel === "Cyber" ? "#fdecec" : tagLabel === "Hub" ? "#eef2ff" : "#f5efff";
-        var tagColor = tagLabel === "Cyber" ? "#dc2626" : tagLabel === "Hub" ? "#4338ca" : "#7e22ce";
-        return /*#__PURE__*/React.createElement("div", {
-          key: o.ref || j,
-          onClick: openOpp,
-          draggable: !!(o.ref || o.id),
-          onDragStart: e => {
-            var id = o.ref || o.id;
-            if (id) {
-              e.dataTransfer.setData("oppId", id);
-              e.dataTransfer.effectAllowed = "move";
-            }
-          },
-          style: {
-            background: isWon ? "#f0fdf4" : "#fff",
-            border: "1px solid " + (isWon ? "#bbf7d0" : "#eef1f5"),
-            borderRadius: 10,
-            padding: 11,
-            cursor: "grab",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8
+        };
+        try {
+          await window.api.opportunities.update(dragged.id || dragged.ref, {
+            stage: s.k,
+            proba: stageProba[s.k] || 20
+          });
+          if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
+          // Reload opportunités pour le client courant
+          try {
+            var list = await window.api.opportunities.list({
+              client_id: urlId || display.id
+            });
+            setStoredOpps(list || []);
+          } catch (e2) {
+            window.location.reload();
           }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 9
+        } catch (err) {
+          if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+        }
+      },
+      style: {
+        background: "#fafbfc",
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        padding: 10,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        minHeight: 200,
+        transition: "background 120ms"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 2,
+        background: s.color
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, s.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "0 6px",
+        borderRadius: 999,
+        background: "#fff",
+        color: "#64748b",
+        border: "1px solid #e2e8f0",
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600
+      }
+    }, opps.length)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#64748b",
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 500
+      }
+    }, opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €"), opps.length > 2 && /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        toggleStageExpanded(s.k);
+      },
+      title: expandedStages[s.k] ? "Réduire (≈ 2 cartes)" : "Déployer toutes les opportunités (" + opps.length + ")",
+      style: {
+        width: 22,
+        height: 22,
+        padding: 0,
+        border: "1px solid " + (expandedStages[s.k] ? s.color : "#e2e8f0"),
+        background: expandedStages[s.k] ? s.color + "15" : "#fff",
+        color: expandedStages[s.k] ? s.color : "#64748b",
+        borderRadius: 5,
+        cursor: "pointer",
+        fontSize: 11,
+        lineHeight: 1,
+        fontWeight: 700
+      }
+    }, expandedStages[s.k] ? "⇡" : "⇣"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        maxHeight: expandedStages[s.k] ? "none" : 296,
+        overflowY: "auto",
+        paddingRight: 4,
+        marginRight: -4
+      },
+      className: "hub-kanban-scroll"
+    }, opps.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "16px 8px",
+        fontSize: 11,
+        color: "#cbd5e1",
+        textAlign: "center",
+        fontStyle: "italic",
+        border: "1px dashed #e2e8f0",
+        borderRadius: 6
+      }
+    }, "Aucune opportunit\xE9"), opps.map((o, j) => {
+      var openOpp = () => {
+        var cid = urlId || display.id || "";
+        var oppKey = o.ref || o.id;
+        if (!oppKey) {
+          if (window.HubToast) window.HubToast.warn("Référence opportunité manquante");
+          return;
+        }
+        window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(oppKey) + (cid ? "&client=" + encodeURIComponent(cid) : "");
+      };
+      var stageColor = s.color;
+      var proba = o.proba || {
+        qualif: 20,
+        discovery: 35,
+        propo: 55,
+        nego: 75,
+        won: 100
+      }[o.stage] || 20;
+      var isWon = o.stage === "won";
+      var logoPalette = ["#f59e0b", "#0ea5e9", "#a855f7", "#dc2626", "#10b981", "#6366f1"];
+      var logoBg = logoPalette[j % logoPalette.length];
+      var logo = (o.client_name || display.name || "??").slice(0, 2).toUpperCase();
+      var tagLabel = Array.isArray(o.modules) && o.modules[0] || (o.produit && o.produit.includes("Cyber") ? "Cyber" : o.produit && o.produit.includes("Hub") ? "Hub" : "Suite");
+      var tagBg = tagLabel === "Cyber" ? "#fdecec" : tagLabel === "Hub" ? "#eef2ff" : "#f5efff";
+      var tagColor = tagLabel === "Cyber" ? "#dc2626" : tagLabel === "Hub" ? "#4338ca" : "#7e22ce";
+      return /*#__PURE__*/React.createElement("div", {
+        key: o.ref || j,
+        onClick: openOpp,
+        draggable: !!(o.ref || o.id),
+        onDragStart: e => {
+          var id = o.ref || o.id;
+          if (id) {
+            e.dataTransfer.setData("oppId", id);
+            e.dataTransfer.effectAllowed = "move";
           }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: logoBg,
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 10.5,
-            fontWeight: 700,
-            flexShrink: 0
-          }
-        }, logo), /*#__PURE__*/React.createElement("div", {
-          style: {
-            flex: 1,
-            minWidth: 0
-          }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: "#0f172a",
-            lineHeight: 1.3,
-            wordBreak: "break-word"
-          }
-        }, o.name || "—"), /*#__PURE__*/React.createElement("div", {
-          style: {
-            fontSize: 11,
-            color: "#64748b",
-            marginTop: 1
-          }
-        }, o.client_name || display.name || "—"), /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            gap: 4,
-            marginTop: 4
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            display: "inline-block",
-            padding: "1px 6px",
-            borderRadius: 4,
-            fontSize: 10,
-            fontWeight: 600,
-            background: tagBg,
-            color: tagColor
-          }
-        }, tagLabel), isWon && /*#__PURE__*/React.createElement("span", {
-          style: {
-            display: "inline-block",
-            padding: "1px 6px",
-            borderRadius: 4,
-            fontSize: 10,
-            fontWeight: 600,
-            background: "#e8f8f1",
-            color: "#0e7a55"
-          }
-        }, "\u2713 Sign\xE9")))), /*#__PURE__*/React.createElement("div", {
-          style: {
-            fontSize: 18,
-            fontWeight: 600,
-            color: "#0f172a",
-            letterSpacing: -0.4
-          }
-        }, o.amount), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 3
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 10,
-            color: "#94a3b8",
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            fontWeight: 600
-          }
-        }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 11,
-            color: "#0f172a",
-            fontWeight: 600,
-            fontVariantNumeric: "tabular-nums"
-          }
-        }, proba, "%")), /*#__PURE__*/React.createElement("div", {
-          style: {
-            width: "100%",
-            height: 3,
-            background: "#eef1f5",
-            borderRadius: 999,
-            overflow: "hidden"
-          }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            width: proba + "%",
-            height: "100%",
-            background: stageColor,
-            borderRadius: 999
-          }
-        }))), /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginTop: 4,
-            paddingTop: 8,
-            borderTop: "1px solid #f1f5f9"
-          }
-        }, /*#__PURE__*/React.createElement(Avatar, {
-          name: o.owner,
-          size: 20,
-          color: o.ownerColor || stageColor
-        }), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 11,
-            color: "#64748b",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 3
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            color: "#94a3b8"
-          }
-        }, "\u25F7"), "0j")));
-      })), /*#__PURE__*/React.createElement("a", {
-        href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id || urlId || "") + "&stage=" + s.k,
-        style: {
-          display: "block",
-          padding: "8px 10px",
-          marginTop: 4,
-          background: "#fff",
-          border: "1px dashed " + s.color + "55",
-          color: s.color,
-          borderRadius: 6,
-          fontSize: 11.5,
-          fontWeight: 600,
-          textAlign: "center",
-          textDecoration: "none",
-          cursor: "pointer"
         },
-        title: "Créer une opportunité directement en " + s.label
-      }, "+ Ajouter une opportunit\xE9"));
-    })));
-  })(), /*#__PURE__*/React.createElement("div", {
+        style: {
+          background: isWon ? "#f0fdf4" : "#fff",
+          border: "1px solid " + (isWon ? "#bbf7d0" : "#eef1f5"),
+          borderRadius: 10,
+          padding: 11,
+          cursor: "grab",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 9
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: 28,
+          height: 28,
+          borderRadius: 6,
+          background: logoBg,
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 10.5,
+          fontWeight: 700,
+          flexShrink: 0
+        }
+      }, logo), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: "#0f172a",
+          lineHeight: 1.3,
+          wordBreak: "break-word"
+        }
+      }, o.name || "—"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "#64748b",
+          marginTop: 1
+        }
+      }, o.client_name || display.name || "—"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 4,
+          marginTop: 4
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-block",
+          padding: "1px 6px",
+          borderRadius: 4,
+          fontSize: 10,
+          fontWeight: 600,
+          background: tagBg,
+          color: tagColor
+        }
+      }, tagLabel), isWon && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-block",
+          padding: "1px 6px",
+          borderRadius: 4,
+          fontSize: 10,
+          fontWeight: 600,
+          background: "#e8f8f1",
+          color: "#0e7a55"
+        }
+      }, "\u2713 Sign\xE9")))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 18,
+          fontWeight: 600,
+          color: "#0f172a",
+          letterSpacing: -0.4
+        }
+      }, o.amount), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 3
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          fontWeight: 600
+        }
+      }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: "#0f172a",
+          fontWeight: 600,
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, proba, "%")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: "100%",
+          height: 3,
+          background: "#eef1f5",
+          borderRadius: 999,
+          overflow: "hidden"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: proba + "%",
+          height: "100%",
+          background: stageColor,
+          borderRadius: 999
+        }
+      }))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 4,
+          paddingTop: 8,
+          borderTop: "1px solid #f1f5f9"
+        }
+      }, /*#__PURE__*/React.createElement(Avatar, {
+        name: o.owner,
+        size: 20,
+        color: o.ownerColor || stageColor
+      }), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: "#64748b",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#94a3b8"
+        }
+      }, "\u25F7"), "0j")));
+    })), /*#__PURE__*/React.createElement("a", {
+      href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id || urlId || "") + "&stage=" + s.k,
+      style: {
+        display: "block",
+        padding: "8px 10px",
+        marginTop: 4,
+        background: "#fff",
+        border: "1px dashed " + s.color + "55",
+        color: s.color,
+        borderRadius: 6,
+        fontSize: 11.5,
+        fontWeight: 600,
+        textAlign: "center",
+        textDecoration: "none",
+        cursor: "pointer"
+      },
+      title: "Créer une opportunité directement en " + s.label
+    }, "+ Ajouter une opportunit\xE9"));
+  })), /*#__PURE__*/React.createElement("div", {
     style: pipeView === "list" ? {
       display: "flex",
       flexDirection: "column",

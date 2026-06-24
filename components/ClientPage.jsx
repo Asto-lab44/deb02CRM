@@ -400,14 +400,15 @@ const ClientPage = () => {
 
   const [pastShowAll, setPastShowAll] = React.useState(false);
   const [pipeView, setPipeView] = React.useState("kanban"); // "kanban" | "list"
-  // Colonnes du kanban repliées (clé = pipeStage.k). Persisté en localStorage.
-  const [collapsedStages, setCollapsedStages] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem("hubAstorya.pipeCollapsed.v1") || "{}"); }
+  // Colonnes dépliées en vue complète (clé = pipeStage.k). Par défaut compact
+  // (≈ 2 cartes visibles + ascenseur). Bouton ⇣ pour basculer en vue déployée.
+  const [expandedStages, setExpandedStages] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem("hubAstorya.pipeExpanded.v1") || "{}"); }
     catch (e) { return {}; }
   });
-  const toggleStageCollapsed = (k) => setCollapsedStages((m) => {
+  const toggleStageExpanded = (k) => setExpandedStages((m) => {
     const next = { ...m, [k]: !m[k] };
-    try { localStorage.setItem("hubAstorya.pipeCollapsed.v1", JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem("hubAstorya.pipeExpanded.v1", JSON.stringify(next)); } catch (e) {}
     return next;
   });
 
@@ -989,71 +990,11 @@ const ClientPage = () => {
             </div>
 
             {/* KANBAN SPANCO — cohérent avec page CRM principale */}
-            {pipeView === "kanban" && (() => {
-              // Grille adaptative : colonnes repliées = 44 px, dépliées = 1fr.
-              // Bandeau d'actions au-dessus avec « Tout replier / Tout déplier ».
-              const gridCols = pipeStages.map((s) => collapsedStages[s.k] ? "44px" : "1fr").join(" ");
-              const anyCollapsed = pipeStages.some((s) => collapsedStages[s.k]);
-              const allCollapsed = pipeStages.every((s) => collapsedStages[s.k]);
-              return (
-              <>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <button onClick={() => {
-                    const target = allCollapsed ? {} : Object.fromEntries(pipeStages.map((s) => [s.k, true]));
-                    setCollapsedStages(target);
-                    try { localStorage.setItem("hubAstorya.pipeCollapsed.v1", JSON.stringify(target)); } catch (e) {}
-                  }}
-                          style={{ padding: "4px 10px", fontSize: 11, fontWeight: 600, border: "1px solid #e2e8f0",
-                                   background: "#fff", color: "#475569", borderRadius: 6, cursor: "pointer" }}>
-                    {allCollapsed ? "⇔ Tout déplier" : "⇆ Tout replier"}
-                  </button>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 10, marginBottom: 14, transition: "grid-template-columns 200ms" }}>
+            {pipeView === "kanban" && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 14 }}>
                 {pipeStages.map((s) => {
                   const opps = opportunities.filter((o) => (o.stage || "qualif") === s.k);
                   const sum = opps.reduce((acc, o) => acc + (parseInt(String(o.amount || "0").replace(/[^\d]/g, "")) || 0), 0);
-                  const isCollapsed = !!collapsedStages[s.k];
-                  if (isCollapsed) {
-                    // Rendu minimal : barre verticale 44 px avec label en rotation + compteur
-                    return (
-                      <div key={s.k}
-                           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                           onDrop={async (e) => {
-                             // Lors d'un drop sur une colonne repliée, on la déplie automatiquement
-                             // pour signaler visuellement la nouvelle position
-                             e.preventDefault();
-                             const oppId = e.dataTransfer.getData("oppId");
-                             if (!oppId || !window.api) return;
-                             const dragged = opportunities.find((o) => o.ref === oppId || o.id === oppId);
-                             if (!dragged) return;
-                             if ((dragged.stage || "qualif") === s.k) return;
-                             toggleStageCollapsed(s.k);
-                             const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
-                             try {
-                               await window.api.opportunities.update(dragged.id || dragged.ref, { stage: s.k, proba: stageProba[s.k] || 20 });
-                               if (window.HubToast) window.HubToast.success("✓ Déplacée en « " + s.label + " »");
-                               const list = await window.api.opportunities.list({ client_id: urlId || display.id });
-                               setStoredOpps(list || []);
-                             } catch (err) { if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err)); }
-                           }}
-                           onClick={() => toggleStageCollapsed(s.k)}
-                           title={"Déplier « " + s.label + " » (" + opps.length + ")"}
-                           style={{ background: "#fafbfc", border: "1px solid #eef1f5", borderRadius: 10, padding: "10px 6px",
-                                    display: "flex", flexDirection: "column", alignItems: "center", gap: 10, minHeight: 200, cursor: "pointer" }}>
-                        <span style={{ width: 7, height: 7, borderRadius: 2, background: s.color }} />
-                        <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700 }}>›</span>
-                        <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 11.5,
-                                       fontWeight: 700, color: "#0f172a", letterSpacing: 0.3 }}>{s.label}</span>
-                        <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "#fff",
-                                       color: "#64748b", border: "1px solid #e2e8f0", fontVariantNumeric: "tabular-nums",
-                                       fontWeight: 700 }}>{opps.length}</span>
-                        <span style={{ fontSize: 9.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums",
-                                       writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
-                          {opps.length ? (sum / 1000).toFixed(0) + " k€" : "—"}
-                        </span>
-                      </div>
-                    );
-                  }
                   return (
                     <div key={s.k}
                          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.style.background = s.color + "1a"; }}
@@ -1105,17 +1046,20 @@ const ClientPage = () => {
                           <span style={{ fontSize: 10.5, color: "#64748b", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
                             {opps.length ? (sum / 1000).toFixed(0) + " k€" : "0 €"}
                           </span>
-                          <button onClick={(e) => { e.stopPropagation(); toggleStageCollapsed(s.k); }}
-                                  title={"Replier « " + s.label + " »"}
-                                  style={{ width: 22, height: 22, padding: 0, border: "1px solid #e2e8f0",
-                                           background: "#fff", color: "#64748b", borderRadius: 5, cursor: "pointer",
-                                           fontSize: 12, lineHeight: 1, fontWeight: 700 }}>
-                            ‹
-                          </button>
+                          {opps.length > 2 && (
+                            <button onClick={(e) => { e.stopPropagation(); toggleStageExpanded(s.k); }}
+                                    title={expandedStages[s.k] ? "Réduire (≈ 2 cartes)" : ("Déployer toutes les opportunités (" + opps.length + ")")}
+                                    style={{ width: 22, height: 22, padding: 0, border: "1px solid " + (expandedStages[s.k] ? s.color : "#e2e8f0"),
+                                             background: expandedStages[s.k] ? s.color + "15" : "#fff",
+                                             color: expandedStages[s.k] ? s.color : "#64748b", borderRadius: 5, cursor: "pointer",
+                                             fontSize: 11, lineHeight: 1, fontWeight: 700 }}>
+                              {expandedStages[s.k] ? "⇡" : "⇣"}
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 296, overflowY: "auto", paddingRight: 4, marginRight: -4 }}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: expandedStages[s.k] ? "none" : 296, overflowY: "auto", paddingRight: 4, marginRight: -4 }}
                            className="hub-kanban-scroll">
                       {opps.length === 0 && (
                         <div style={{ padding: "16px 8px", fontSize: 11, color: "#cbd5e1", textAlign: "center", fontStyle: "italic", border: "1px dashed #e2e8f0", borderRadius: 6 }}>
@@ -1200,10 +1144,8 @@ const ClientPage = () => {
                     </div>
                   );
                 })}
-                </div>
-              </>
-              );
-            })()}
+              </div>
+            )}
 
             {/* Vue liste (gardée pour l'option d'affichage) */}
             <div style={pipeView === "list" ? { display: "flex", flexDirection: "column", gap: 6 } : { display: "none" }}>

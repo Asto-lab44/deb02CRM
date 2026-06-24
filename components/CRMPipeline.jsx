@@ -66,14 +66,14 @@ const CRMPipeline = () => {
 
   const [searchOpps, setSearchOpps] = React.useState([]);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
-  // Colonnes kanban repliées (clé = stage.key). Persisté en localStorage.
-  const [collapsedCols, setCollapsedCols] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem("hubAstorya.crmKanbanCollapsed.v1") || "{}"); }
+  // Colonnes dépliées en vue complète (clé = stage.key). Par défaut compact.
+  const [expandedCols, setExpandedCols] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem("hubAstorya.crmKanbanExpanded.v1") || "{}"); }
     catch (e) { return {}; }
   });
-  const toggleColCollapsed = (k) => setCollapsedCols((m) => {
+  const toggleColExpanded = (k) => setExpandedCols((m) => {
     const next = { ...m, [k]: !m[k] };
-    try { localStorage.setItem("hubAstorya.crmKanbanCollapsed.v1", JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem("hubAstorya.crmKanbanExpanded.v1", JSON.stringify(next)); } catch (e) {}
     return next;
   });
   React.useEffect(() => {
@@ -473,56 +473,8 @@ const CRMPipeline = () => {
         {/* Filter bar */}
 
         {/* Kanban */}
-        {(() => {
-          const gridCols = columns.map((c) => collapsedCols[c.key] ? "44px" : "1fr").join(" ");
-          const allCollapsed = columns.every((c) => collapsedCols[c.key]);
-          return (
-        <>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "0 24px 6px" }}>
-          <button onClick={() => {
-            const target = allCollapsed ? {} : Object.fromEntries(columns.map((c) => [c.key, true]));
-            setCollapsedCols(target);
-            try { localStorage.setItem("hubAstorya.crmKanbanCollapsed.v1", JSON.stringify(target)); } catch (e) {}
-          }} style={{ padding: "4px 10px", fontSize: 11, fontWeight: 600, border: "1px solid #e2e8f0",
-                     background: "#fff", color: "#475569", borderRadius: 6, cursor: "pointer" }}>
-            {allCollapsed ? "⇔ Tout déplier" : "⇆ Tout replier"}
-          </button>
-        </div>
-        <div style={{ ...crmStyles.kanban, gridTemplateColumns: gridCols, transition: "grid-template-columns 200ms" }}>
-          {columns.map((col) => collapsedCols[col.key] ? (
-            <div key={col.key}
-                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                 onDrop={async (e) => {
-                   e.preventDefault();
-                   const oppId = e.dataTransfer.getData("oppId");
-                   if (!oppId || !window.api) return;
-                   const all = await window.api.opportunities.list();
-                   const dragged = (all || []).find((o) => o.id === oppId || o.ref === oppId);
-                   if (!dragged || dragged.stage === col.key) return;
-                   toggleColCollapsed(col.key);
-                   const stageProba = { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 };
-                   try {
-                     await window.api.opportunities.update(oppId, { stage: col.key, proba: stageProba[col.key] || 20 });
-                     if (window.HubToast) window.HubToast.success("✓ Déplacée en « " + col.label + " »");
-                     const list = await window.api.opportunities.list();
-                     setSearchOpps(list || []);
-                   } catch (err) { if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err)); }
-                 }}
-                 onClick={() => toggleColCollapsed(col.key)}
-                 title={"Déplier « " + col.label + " » (" + col.count + ")"}
-                 style={{ background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: "10px 6px",
-                          display: "flex", flexDirection: "column", alignItems: "center", gap: 10, minHeight: 200, cursor: "pointer" }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: col.color }} />
-              <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700 }}>›</span>
-              <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 12,
-                             fontWeight: 700, color: "#0f172a", letterSpacing: 0.3 }}>{col.label}</span>
-              <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "#fafbfc",
-                             color: "#64748b", border: "1px solid #e2e8f0", fontVariantNumeric: "tabular-nums",
-                             fontWeight: 700 }}>{col.count}</span>
-              <span style={{ fontSize: 9.5, color: "#94a3b8", fontVariantNumeric: "tabular-nums",
-                             writingMode: "vertical-rl", transform: "rotate(180deg)" }}>{col.total}</span>
-            </div>
-          ) : (
+        <div style={crmStyles.kanban}>
+          {columns.map((col) => (
             <div key={col.key}
                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.style.background = col.color + "0d"; }}
                  onDragLeave={(e) => { e.currentTarget.style.background = ""; }}
@@ -575,13 +527,16 @@ const CRMPipeline = () => {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 11.5, color: "#64748b", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{col.total}</span>
-                  <button onClick={(e) => { e.stopPropagation(); toggleColCollapsed(col.key); }}
-                          title={"Replier « " + col.label + " »"}
-                          style={{ width: 22, height: 22, padding: 0, border: "1px solid #e2e8f0",
-                                   background: "#fff", color: "#64748b", borderRadius: 5, cursor: "pointer",
-                                   fontSize: 12, lineHeight: 1, fontWeight: 700 }}>
-                    ‹
-                  </button>
+                  {col.cards.length > 2 && (
+                    <button onClick={(e) => { e.stopPropagation(); toggleColExpanded(col.key); }}
+                            title={expandedCols[col.key] ? "Réduire (≈ 2 cartes)" : ("Déployer toutes les opportunités (" + col.cards.length + ")")}
+                            style={{ width: 22, height: 22, padding: 0, border: "1px solid " + (expandedCols[col.key] ? col.color : "#e2e8f0"),
+                                     background: expandedCols[col.key] ? col.color + "15" : "#fff",
+                                     color: expandedCols[col.key] ? col.color : "#64748b", borderRadius: 5, cursor: "pointer",
+                                     fontSize: 11, lineHeight: 1, fontWeight: 700 }}>
+                      {expandedCols[col.key] ? "⇡" : "⇣"}
+                    </button>
+                  )}
                 </div>
               </div>
               <div style={crmStyles.colBar}>
@@ -589,7 +544,7 @@ const CRMPipeline = () => {
               </div>
 
               {/* cards */}
-              <div style={crmStyles.cards}>
+              <div className="hub-kanban-scroll" style={{ ...crmStyles.cards, maxHeight: expandedCols[col.key] ? "none" : 296 }}>
                 {col.cards.length === 0 && (
                   <div style={{ padding: "16px 12px", fontSize: 11.5, color: "#94a3b8", textAlign: "center", border: "1px dashed #e2e8f0", borderRadius: 8, background: "#fafbfc" }}>
                     Aucune opportunité
@@ -664,9 +619,6 @@ const CRMPipeline = () => {
             </div>
           ))}
         </div>
-        </>
-        );
-        })()}
 
         {/* ─── COMPTES & CONTACTS ─────────────────────────────────────── */}
         <CRMAccountsList />

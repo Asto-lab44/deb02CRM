@@ -85,7 +85,7 @@ var RichDescriptionEditor = ({
     style: {
       ...btnBase,
       fontWeight: 800,
-      fontFamily: "'Inter', serif"
+      fontFamily: "'Inter', system-ui, sans-serif"
     }
   }, "B"), /*#__PURE__*/React.createElement("button", {
     type: "button",
@@ -96,7 +96,7 @@ var RichDescriptionEditor = ({
     style: {
       ...btnBase,
       fontStyle: "italic",
-      fontFamily: "'Inter', serif"
+      fontFamily: "'Inter', system-ui, sans-serif"
     }
   }, "I"), /*#__PURE__*/React.createElement("button", {
     type: "button",

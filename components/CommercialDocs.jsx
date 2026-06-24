@@ -68,10 +68,10 @@ const RichDescriptionEditor = ({ value, onChange, placeholder }) => {
                     borderRadius: "8px 8px 0 0", background: "#f8fafc" }}>
         <button type="button" title="Gras (Ctrl+B)" className="rich-desc-btn"
                 onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")}
-                style={{ ...btnBase, fontWeight: 800, fontFamily: "'Inter', serif" }}>B</button>
+                style={{ ...btnBase, fontWeight: 800, fontFamily: "'Inter', system-ui, sans-serif" }}>B</button>
         <button type="button" title="Italique (Ctrl+I)" className="rich-desc-btn"
                 onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")}
-                style={{ ...btnBase, fontStyle: "italic", fontFamily: "'Inter', serif" }}>I</button>
+                style={{ ...btnBase, fontStyle: "italic", fontFamily: "'Inter', system-ui, sans-serif" }}>I</button>
         <button type="button" title="Souligné (Ctrl+U)" className="rich-desc-btn"
                 onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")}
                 style={{ ...btnBase, textDecoration: "underline", fontWeight: 600 }}>U</button>

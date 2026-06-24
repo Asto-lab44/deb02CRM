@@ -244,3 +244,16 @@ html, body { -webkit-text-size-adjust: 100%; overflow-x: hidden !important; max-
 .hub-kanban-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 .hub-kanban-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 .hub-kanban-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+/* Uniformisation typographique — force Inter sur les éléments natifs
+   qui héritent par défaut du UA stylesheet (input, select, textarea, button) */
+html, body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+input, select, textarea, button, optgroup {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+/* Chiffres tabulaires par défaut sur les champs date / number pour aligner
+   les colonnes de chiffres dans toute l'app */
+input[type="date"], input[type="number"], input[type="time"],
+input[type="datetime-local"], input[type="month"], input[type="week"] {
+  font-variant-numeric: tabular-nums;
+}

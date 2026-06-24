@@ -75,6 +75,24 @@ var CRMPipeline = () => {
   }, []);
   var [searchOpps, setSearchOpps] = React.useState([]);
   var [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  // Colonnes kanban repliées (clé = stage.key). Persisté en localStorage.
+  var [collapsedCols, setCollapsedCols] = React.useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("hubAstorya.crmKanbanCollapsed.v1") || "{}");
+    } catch (e) {
+      return {};
+    }
+  });
+  var toggleColCollapsed = k => setCollapsedCols(m => {
+    var next = {
+      ...m,
+      [k]: !m[k]
+    };
+    try {
+      localStorage.setItem("hubAstorya.crmKanbanCollapsed.v1", JSON.stringify(next));
+    } catch (e) {}
+    return next;
+  });
   React.useEffect(() => {
     if (!userMenuOpen) return;
     var onDoc = () => setUserMenuOpen(false);
@@ -928,295 +946,441 @@ var CRMPipeline = () => {
         marginTop: 2
       }
     }, k.delta)))));
-  })(), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.kanban
-  }, columns.map(col => /*#__PURE__*/React.createElement("div", {
-    key: col.key,
-    onDragOver: e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      e.currentTarget.style.background = col.color + "0d";
-    },
-    onDragLeave: e => {
-      e.currentTarget.style.background = "";
-    },
-    onDrop: async e => {
-      e.preventDefault();
-      e.currentTarget.style.background = "";
-      var oppId = e.dataTransfer.getData("oppId");
-      if (!oppId || !window.api) return;
-      // Garde-fou : ignore le drop sur la colonne d'origine
-      // (évite un appel inutile à l'API et toute notification trompeuse).
-      var allOpps = await window.api.opportunities.list();
-      var dragged = (allOpps || []).find(o => o.id === oppId || o.ref === oppId);
-      if (!dragged) return;
-      if (dragged.stage === col.key) return;
-      // Pop-up de confirmation pour éviter un déplacement par mégarde.
-      var stageLabels = {
-        qualif: "Prospect",
-        discovery: "Approche",
-        propo: "Négociation",
-        nego: "Conclusion",
-        won: "Ordre",
-        lost: "Perdu"
-      };
-      var fromLbl = stageLabels[dragged.stage] || dragged.stage;
-      var toLbl = stageLabels[col.key] || col.label;
-      var oppName = dragged.name || dragged.client_name || oppId;
-      var ok = window.HubModal ? await window.HubModal.confirm({
-        title: "Confirmer le déplacement",
-        message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
-        okLabel: "Oui, déplacer",
-        okStyle: "primary"
-      }) : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
-      if (!ok) {
-        if (window.HubToast) window.HubToast.info("Déplacement annulé — l'opportunité reste en « " + fromLbl + " »");
-        return;
+  })(), (() => {
+    var gridCols = columns.map(c => collapsedCols[c.key] ? "44px" : "1fr").join(" ");
+    var allCollapsed = columns.every(c => collapsedCols[c.key]);
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "flex-end",
+        gap: 8,
+        padding: "0 24px 6px"
       }
-      var stageProba = {
-        qualif: 20,
-        discovery: 35,
-        propo: 55,
-        nego: 75,
-        won: 100
-      };
-      try {
-        await window.api.opportunities.update(oppId, {
-          stage: col.key,
-          proba: stageProba[col.key] || 20
-        });
-        if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
-        // Reload opps
-        var list = await window.api.opportunities.list();
-        setSearchOpps(list || []);
-      } catch (err) {
-        if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var target = allCollapsed ? {} : Object.fromEntries(columns.map(c => [c.key, true]));
+        setCollapsedCols(target);
+        try {
+          localStorage.setItem("hubAstorya.crmKanbanCollapsed.v1", JSON.stringify(target));
+        } catch (e) {}
+      },
+      style: {
+        padding: "4px 10px",
+        fontSize: 11,
+        fontWeight: 600,
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        color: "#475569",
+        borderRadius: 6,
+        cursor: "pointer"
       }
-    },
-    style: crmStyles.column
-  }, /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.colHead
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 8,
-      height: 8,
-      borderRadius: 2,
-      background: col.color
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 600,
-      color: "#0f172a"
-    }
-  }, col.label), /*#__PURE__*/React.createElement("span", {
-    style: crmStyles.colCount
-  }, col.count)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "#64748b",
-      fontVariantNumeric: "tabular-nums",
-      fontWeight: 500
-    }
-  }, col.total)), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.colBar
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: `${Math.min(100, parseInt(col.total))}%`,
-      height: "100%",
-      background: col.color,
-      opacity: 0.7,
-      borderRadius: 999
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: crmStyles.cards
-  }, col.cards.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "16px 12px",
-      fontSize: 11.5,
-      color: "#94a3b8",
-      textAlign: "center",
-      border: "1px dashed #e2e8f0",
-      borderRadius: 8,
-      background: "#fafbfc"
-    }
-  }, "Aucune opportunit\xE9"), col.cards.map((c, i) => {
-    var tag = tagMeta[c.tag] || {
-      bg: "#eef1f5",
-      color: "#475569"
-    };
-    var goto = () => {
-      if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id);
-    };
-    return /*#__PURE__*/React.createElement("div", {
-      key: c.id || i,
-      draggable: !!c.id,
-      onDragStart: e => {
-        if (c.id) {
-          e.dataTransfer.setData("oppId", c.id);
-          e.dataTransfer.effectAllowed = "move";
+    }, allCollapsed ? "⇔ Tout déplier" : "⇆ Tout replier")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...crmStyles.kanban,
+        gridTemplateColumns: gridCols,
+        transition: "grid-template-columns 200ms"
+      }
+    }, columns.map(col => collapsedCols[col.key] ? /*#__PURE__*/React.createElement("div", {
+      key: col.key,
+      onDragOver: e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      },
+      onDrop: async e => {
+        e.preventDefault();
+        var oppId = e.dataTransfer.getData("oppId");
+        if (!oppId || !window.api) return;
+        var all = await window.api.opportunities.list();
+        var dragged = (all || []).find(o => o.id === oppId || o.ref === oppId);
+        if (!dragged || dragged.stage === col.key) return;
+        toggleColCollapsed(col.key);
+        var stageProba = {
+          qualif: 20,
+          discovery: 35,
+          propo: 55,
+          nego: 75,
+          won: 100
+        };
+        try {
+          await window.api.opportunities.update(oppId, {
+            stage: col.key,
+            proba: stageProba[col.key] || 20
+          });
+          if (window.HubToast) window.HubToast.success("✓ Déplacée en « " + col.label + " »");
+          var list = await window.api.opportunities.list();
+          setSearchOpps(list || []);
+        } catch (err) {
+          if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
         }
       },
-      onClick: goto,
+      onClick: () => toggleColCollapsed(col.key),
+      title: "Déplier « " + col.label + " » (" + col.count + ")",
       style: {
-        ...crmStyles.card,
-        ...(c.hot ? crmStyles.cardHot : {}),
-        ...(c.won ? crmStyles.cardWon : {}),
-        cursor: c.id ? "pointer" : "default"
-      }
-    }, c.isNew && /*#__PURE__*/React.createElement("div", {
-      style: crmStyles.newRibbon
-    }, "Nouveau"), /*#__PURE__*/React.createElement("div", {
-      style: {
+        background: "#fff",
+        border: "1px solid #eef1f5",
+        borderRadius: 10,
+        padding: "10px 6px",
         display: "flex",
-        alignItems: "flex-start",
-        gap: 9,
-        marginBottom: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        ...crmStyles.coLogo,
-        background: c.logoBg
-      }
-    }, c.logo), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 600,
-        color: "#0f172a",
-        lineHeight: 1.3,
-        wordBreak: "break-word"
-      }
-    }, c.co), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#64748b",
-        marginTop: 1
-      }
-    }, c.client), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 4,
-        marginTop: 4
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 10,
+        minHeight: 200,
+        cursor: "pointer"
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        ...crmStyles.tagPill,
-        background: tag.bg,
-        color: tag.color
+        width: 8,
+        height: 8,
+        borderRadius: 2,
+        background: col.color
       }
-    }, c.tag), c.hot && /*#__PURE__*/React.createElement("span", {
-      style: {
-        ...crmStyles.tagPill,
-        background: "#fff1d6",
-        color: "#a65f00"
-      }
-    }, "\uD83D\uDD25 Hot"), c.won && /*#__PURE__*/React.createElement("span", {
-      style: {
-        ...crmStyles.tagPill,
-        background: "#e8f8f1",
-        color: "#0e7a55"
-      }
-    }, "\u2713 Sign\xE9")))), /*#__PURE__*/React.createElement("div", {
-      style: crmStyles.cardAmount
-    }, c.amount), c.meeting && /*#__PURE__*/React.createElement("div", {
-      style: crmStyles.meetingNote
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#4f46e5"
-      }
-    }, "\u25F7"), " ", c.meeting), c.warning && /*#__PURE__*/React.createElement("div", {
-      style: crmStyles.warnNote
-    }, /*#__PURE__*/React.createElement("span", null, "\u26A0"), " ", c.warning), /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        marginBottom: 3
-      }
-    }, /*#__PURE__*/React.createElement("span", {
+    }), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
         color: "#94a3b8",
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        fontWeight: 600
+        fontWeight: 700
       }
-    }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("span", {
+    }, "\u203A"), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11,
+        writingMode: "vertical-rl",
+        transform: "rotate(180deg)",
+        fontSize: 12,
+        fontWeight: 700,
         color: "#0f172a",
-        fontWeight: 600,
-        fontVariantNumeric: "tabular-nums"
+        letterSpacing: 0.3
       }
-    }, c.proba, "%")), /*#__PURE__*/React.createElement("div", {
-      style: crmStyles.probaBar
+    }, col.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "1px 6px",
+        borderRadius: 999,
+        background: "#fafbfc",
+        color: "#64748b",
+        border: "1px solid #e2e8f0",
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 700
+      }
+    }, col.count), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        color: "#94a3b8",
+        fontVariantNumeric: "tabular-nums",
+        writingMode: "vertical-rl",
+        transform: "rotate(180deg)"
+      }
+    }, col.total)) : /*#__PURE__*/React.createElement("div", {
+      key: col.key,
+      onDragOver: e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        e.currentTarget.style.background = col.color + "0d";
+      },
+      onDragLeave: e => {
+        e.currentTarget.style.background = "";
+      },
+      onDrop: async e => {
+        e.preventDefault();
+        e.currentTarget.style.background = "";
+        var oppId = e.dataTransfer.getData("oppId");
+        if (!oppId || !window.api) return;
+        // Garde-fou : ignore le drop sur la colonne d'origine
+        // (évite un appel inutile à l'API et toute notification trompeuse).
+        var allOpps = await window.api.opportunities.list();
+        var dragged = (allOpps || []).find(o => o.id === oppId || o.ref === oppId);
+        if (!dragged) return;
+        if (dragged.stage === col.key) return;
+        // Pop-up de confirmation pour éviter un déplacement par mégarde.
+        var stageLabels = {
+          qualif: "Prospect",
+          discovery: "Approche",
+          propo: "Négociation",
+          nego: "Conclusion",
+          won: "Ordre",
+          lost: "Perdu"
+        };
+        var fromLbl = stageLabels[dragged.stage] || dragged.stage;
+        var toLbl = stageLabels[col.key] || col.label;
+        var oppName = dragged.name || dragged.client_name || oppId;
+        var ok = window.HubModal ? await window.HubModal.confirm({
+          title: "Confirmer le déplacement",
+          message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
+          okLabel: "Oui, déplacer",
+          okStyle: "primary"
+        }) : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
+        if (!ok) {
+          if (window.HubToast) window.HubToast.info("Déplacement annulé — l'opportunité reste en « " + fromLbl + " »");
+          return;
+        }
+        var stageProba = {
+          qualif: 20,
+          discovery: 35,
+          propo: 55,
+          nego: 75,
+          won: 100
+        };
+        try {
+          await window.api.opportunities.update(oppId, {
+            stage: col.key,
+            proba: stageProba[col.key] || 20
+          });
+          if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
+          // Reload opps
+          var list = await window.api.opportunities.list();
+          setSearchOpps(list || []);
+        } catch (err) {
+          if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+        }
+      },
+      style: crmStyles.column
+    }, /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.colHead
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        width: `${c.proba}%`,
-        height: "100%",
-        background: col.color,
-        borderRadius: 999
+        display: "flex",
+        alignItems: "center",
+        gap: 8
       }
-    }))), /*#__PURE__*/React.createElement("div", {
-      style: crmStyles.cardFoot
-    }, /*#__PURE__*/React.createElement(Avatar, {
-      name: c.owner,
-      size: 20
-    }), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 8,
+        height: 8,
+        borderRadius: 2,
+        background: col.color
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a"
+      }
+    }, col.label), /*#__PURE__*/React.createElement("span", {
+      style: crmStyles.colCount
+    }, col.count)), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 7,
         alignItems: "center",
-        fontSize: 11,
-        color: "#64748b"
-      }
-    }, c.contacts != null && /*#__PURE__*/React.createElement("span", {
-      title: "Contacts",
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 3
+        gap: 6
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        color: "#94a3b8"
+        fontSize: 11.5,
+        color: "#64748b",
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 500
       }
-    }, "\u25C9"), c.contacts), /*#__PURE__*/React.createElement("span", {
-      title: "Derni\xE8re activit\xE9",
+    }, col.total), /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        toggleColCollapsed(col.key);
+      },
+      title: "Replier « " + col.label + " »",
       style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 3
+        width: 22,
+        height: 22,
+        padding: 0,
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        color: "#64748b",
+        borderRadius: 5,
+        cursor: "pointer",
+        fontSize: 12,
+        lineHeight: 1,
+        fontWeight: 700
       }
-    }, /*#__PURE__*/React.createElement("span", {
+    }, "\u2039"))), /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.colBar
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        color: "#94a3b8"
+        width: `${Math.min(100, parseInt(col.total))}%`,
+        height: "100%",
+        background: col.color,
+        opacity: 0.7,
+        borderRadius: 999
       }
-    }, "\u25F7"), c.days, "j"))));
-  }), /*#__PURE__*/React.createElement("a", {
-    href: "/nouvelle-opportunite?stage=" + col.key,
-    style: {
-      ...crmStyles.addCard,
-      textDecoration: "none",
-      display: "block",
-      textAlign: "center",
-      cursor: "pointer"
-    }
-  }, "+ Ajouter une opportunit\xE9"))))), /*#__PURE__*/React.createElement(CRMAccountsList, null), /*#__PURE__*/React.createElement(CRMActionsList, null)));
+    })), /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.cards
+    }, col.cards.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "16px 12px",
+        fontSize: 11.5,
+        color: "#94a3b8",
+        textAlign: "center",
+        border: "1px dashed #e2e8f0",
+        borderRadius: 8,
+        background: "#fafbfc"
+      }
+    }, "Aucune opportunit\xE9"), col.cards.map((c, i) => {
+      var tag = tagMeta[c.tag] || {
+        bg: "#eef1f5",
+        color: "#475569"
+      };
+      var goto = () => {
+        if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id);
+      };
+      return /*#__PURE__*/React.createElement("div", {
+        key: c.id || i,
+        draggable: !!c.id,
+        onDragStart: e => {
+          if (c.id) {
+            e.dataTransfer.setData("oppId", c.id);
+            e.dataTransfer.effectAllowed = "move";
+          }
+        },
+        onClick: goto,
+        style: {
+          ...crmStyles.card,
+          ...(c.hot ? crmStyles.cardHot : {}),
+          ...(c.won ? crmStyles.cardWon : {}),
+          cursor: c.id ? "pointer" : "default"
+        }
+      }, c.isNew && /*#__PURE__*/React.createElement("div", {
+        style: crmStyles.newRibbon
+      }, "Nouveau"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 9,
+          marginBottom: 8
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          ...crmStyles.coLogo,
+          background: c.logoBg
+        }
+      }, c.logo), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: "#0f172a",
+          lineHeight: 1.3,
+          wordBreak: "break-word"
+        }
+      }, c.co), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "#64748b",
+          marginTop: 1
+        }
+      }, c.client), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 4,
+          marginTop: 4
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          ...crmStyles.tagPill,
+          background: tag.bg,
+          color: tag.color
+        }
+      }, c.tag), c.hot && /*#__PURE__*/React.createElement("span", {
+        style: {
+          ...crmStyles.tagPill,
+          background: "#fff1d6",
+          color: "#a65f00"
+        }
+      }, "\uD83D\uDD25 Hot"), c.won && /*#__PURE__*/React.createElement("span", {
+        style: {
+          ...crmStyles.tagPill,
+          background: "#e8f8f1",
+          color: "#0e7a55"
+        }
+      }, "\u2713 Sign\xE9")))), /*#__PURE__*/React.createElement("div", {
+        style: crmStyles.cardAmount
+      }, c.amount), c.meeting && /*#__PURE__*/React.createElement("div", {
+        style: crmStyles.meetingNote
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#4f46e5"
+        }
+      }, "\u25F7"), " ", c.meeting), c.warning && /*#__PURE__*/React.createElement("div", {
+        style: crmStyles.warnNote
+      }, /*#__PURE__*/React.createElement("span", null, "\u26A0"), " ", c.warning), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 8
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 3
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          fontWeight: 600
+        }
+      }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: "#0f172a",
+          fontWeight: 600,
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, c.proba, "%")), /*#__PURE__*/React.createElement("div", {
+        style: crmStyles.probaBar
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: `${c.proba}%`,
+          height: "100%",
+          background: col.color,
+          borderRadius: 999
+        }
+      }))), /*#__PURE__*/React.createElement("div", {
+        style: crmStyles.cardFoot
+      }, /*#__PURE__*/React.createElement(Avatar, {
+        name: c.owner,
+        size: 20
+      }), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 7,
+          alignItems: "center",
+          fontSize: 11,
+          color: "#64748b"
+        }
+      }, c.contacts != null && /*#__PURE__*/React.createElement("span", {
+        title: "Contacts",
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#94a3b8"
+        }
+      }, "\u25C9"), c.contacts), /*#__PURE__*/React.createElement("span", {
+        title: "Derni\xE8re activit\xE9",
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#94a3b8"
+        }
+      }, "\u25F7"), c.days, "j"))));
+    }), /*#__PURE__*/React.createElement("a", {
+      href: "/nouvelle-opportunite?stage=" + col.key,
+      style: {
+        ...crmStyles.addCard,
+        textDecoration: "none",
+        display: "block",
+        textAlign: "center",
+        cursor: "pointer"
+      }
+    }, "+ Ajouter une opportunit\xE9"))))));
+  })(), /*#__PURE__*/React.createElement(CRMAccountsList, null), /*#__PURE__*/React.createElement(CRMActionsList, null)));
 };
 var crmStyles = {
   frame: {

@@ -1725,7 +1725,11 @@ var crmStyles = {
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    overflow: "hidden"
+    maxHeight: 560,
+    overflowY: "auto",
+    overflowX: "hidden",
+    paddingRight: 4,
+    marginRight: -4
   },
   card: {
     position: "relative",

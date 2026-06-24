@@ -1897,7 +1897,18 @@ var ClientPage = () => {
           lineHeight: 1,
           fontWeight: 700
         }
-      }, "\u2039"))), opps.length === 0 && /*#__PURE__*/React.createElement("div", {
+      }, "\u2039"))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          maxHeight: 540,
+          overflowY: "auto",
+          paddingRight: 4,
+          marginRight: -4
+        },
+        className: "hub-kanban-scroll"
+      }, opps.length === 0 && /*#__PURE__*/React.createElement("div", {
         style: {
           padding: "16px 8px",
           fontSize: 11,
@@ -2087,7 +2098,7 @@ var ClientPage = () => {
             color: "#94a3b8"
           }
         }, "\u25F7"), "0j")));
-      }), /*#__PURE__*/React.createElement("a", {
+      })), /*#__PURE__*/React.createElement("a", {
         href: "/nouvelle-opportunite?client=" + encodeURIComponent(display.id || urlId || "") + "&stage=" + s.k,
         style: {
           display: "block",

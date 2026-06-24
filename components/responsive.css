@@ -237,3 +237,10 @@ html, body { -webkit-text-size-adjust: 100%; overflow-x: hidden !important; max-
     .hub-mobile-burger { top: max(12px, env(safe-area-inset-top)) !important; }
   }
 }
+
+/* Scrollbar discrète pour les colonnes du kanban (Pipe contrats + CRM Pipeline) */
+.hub-kanban-scroll::-webkit-scrollbar { width: 6px; }
+.hub-kanban-scroll::-webkit-scrollbar-track { background: transparent; }
+.hub-kanban-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.hub-kanban-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.hub-kanban-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }

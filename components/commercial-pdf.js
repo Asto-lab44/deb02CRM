@@ -185,10 +185,13 @@
     const pushSubtotal = (label, total, color, bg) => {
       const labelSpan = totalCols - 1;
       const row = [
-        { text: label, colSpan: labelSpan, fillColor: bg, color, bold: true, fontSize: 8, italics: true, margin: [3, 0, 3, 0], alignment: "right", noWrap: true, _subtotal: true },
+        { text: label, colSpan: labelSpan, fillColor: bg, color, bold: true, fontSize: 8, italics: true, margin: [0, 0, 0, 0], alignment: "right", noWrap: true, _subtotal: true },
       ];
       for (let i = 1; i < labelSpan; i++) row.push({});
-      row.push({ text: fmtEUR(total), fillColor: bg, color, bold: true, fontSize: 8.5, margin: [3, 0, 3, 0], alignment: "right", _subtotal: true });
+      // Margin à 0 sur la cellule montant pour que les chiffres soient
+      // strictement alignés avec ceux des lignes d'article (la padding
+      // droite vient du layout du tableau, pas de la cellule).
+      row.push({ text: fmtEUR(total), fillColor: bg, color, bold: true, fontSize: 8.5, margin: [0, 0, 0, 0], alignment: "right", _subtotal: true });
       tableBody.push(row);
     };
     const renderLineRow = (l) => {

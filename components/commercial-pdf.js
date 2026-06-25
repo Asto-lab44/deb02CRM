@@ -253,6 +253,8 @@
     }
     if (oneLines.length > 0) {
       oneLines.forEach(renderLineRow);
+      const oneHt = oneLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
+      pushSubtotal("Sous-total prestations ponctuelles HT", oneHt, "#92400e", "#fef3c7");
     }
     // Lignes texte purement informatives — affichées en queue de tableau
     textLines.forEach(renderLineRow);

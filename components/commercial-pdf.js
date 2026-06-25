@@ -551,10 +551,9 @@
     // ── Bloc CGV au verso — uniquement sur les DEVIS.
     // Source : window.HubAstoryaCGV (chargée depuis components/astorya-cgv.js
     // — données extraites du Word officiel « Conditions générales devis 2025 »).
-    // Mise en page 2 colonnes type CGV verso, compactée pour tenir sur 1 page.
-    // Split par LONGUEUR DE TEXTE (pas par nombre d'articles) pour équilibrer
-    // les deux colonnes. Mêmes tailles (titre 6.5 / corps 5.5) + lineHeight
-    // 1.15 dans les deux colonnes pour une typographie homogène.
+    // Mise en page 2 colonnes type CGV verso, dimensionnée pour remplir la
+    // page d'un verso A4 complet (sans descendre en page 2). Split par
+    // LONGUEUR DE TEXTE pour équilibrer la hauteur des 2 colonnes.
     const cgvBlock = (() => {
       if (!(doc.type === "devis" && Array.isArray(window.HubAstoryaCGV) && window.HubAstoryaCGV.length > 0)) return null;
       const articles = window.HubAstoryaCGV;
@@ -567,21 +566,21 @@
       const renderArt = (art, num) => ({
         stack: [
           { text: "Article " + num + " — " + art.title,
-            fontSize: 6.5, bold: true, color: "#0f172a", margin: [0, 2, 0, 1] },
-          { text: art.body, fontSize: 5.5, alignment: "justify", color: "#334155", lineHeight: 1.15 },
+            fontSize: 8.5, bold: true, color: "#0f172a", margin: [0, 4, 0, 2] },
+          { text: art.body, fontSize: 7, alignment: "justify", color: "#334155", lineHeight: 1.3 },
         ],
       });
       return {
         pageBreak: "before",
         stack: [
-          { text: "CONDITIONS GÉNÉRALES DE VENTE", fontSize: 10, bold: true, color: "#c91c45",
-            alignment: "center", margin: [0, 0, 0, 2] },
+          { text: "CONDITIONS GÉNÉRALES DE VENTE", fontSize: 13, bold: true, color: "#c91c45",
+            alignment: "center", margin: [0, 0, 0, 4] },
           { text: "ASTORYA SGI · 9 rue du Petit Châtelier · 44300 Nantes · SIRET 523 625 804 00027",
-            fontSize: 6, color: "#64748b", alignment: "center", margin: [0, 0, 0, 5] },
+            fontSize: 7.5, color: "#64748b", alignment: "center", margin: [0, 0, 0, 10] },
           {
             columns: [
               { width: "*", stack: articles.slice(0, splitAt).map((art, i) => renderArt(art, i + 1)) },
-              { width: 10, text: " " },
+              { width: 14, text: " " },
               { width: "*", stack: articles.slice(splitAt).map((art, i) => renderArt(art, splitAt + i + 1)) },
             ],
             columnGap: 0,

@@ -2087,14 +2087,13 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                     </div>
                     <div>
                       <label style={cdStyles.miniLbl}>Unité</label>
-                      <select value={l.unit || "u"} onChange={(e) => updateLineField(i, "unit", e.target.value)} style={cdStyles.miniInput}>
-                        <option value="u">u (unité)</option>
-                        <option value="h">h (heure)</option>
-                        <option value="j">j (journée)</option>
-                        <option value="mois">mois</option>
-                        <option value="an">an</option>
-                        <option value="forfait">forfait</option>
-                      </select>
+                      {/* Champ verrouillé : unité = u (unité). Pas de
+                          dropdown pour éviter les saisies hétérogènes
+                          (jours/mois/forfait) sur les lignes du devis. */}
+                      <input value="u (unité)" readOnly disabled
+                             title="Unité verrouillée — toutes les lignes sont comptées en unités"
+                             style={{ ...cdStyles.miniInput, background: "#fafbfc",
+                                      color: "#475569", cursor: "not-allowed" }} />
                     </div>
                     <div style={{ gridColumn: "1 / -1" }}>
                       <label style={cdStyles.miniLbl}>Prix unitaire HT</label>

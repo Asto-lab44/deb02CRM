@@ -3587,23 +3587,18 @@ var CommercialDocEditor = ({
       style: cdStyles.miniInput
     })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
       style: cdStyles.miniLbl
-    }, "Unit\xE9"), /*#__PURE__*/React.createElement("select", {
-      value: l.unit || "u",
-      onChange: e => updateLineField(i, "unit", e.target.value),
-      style: cdStyles.miniInput
-    }, /*#__PURE__*/React.createElement("option", {
-      value: "u"
-    }, "u (unit\xE9)"), /*#__PURE__*/React.createElement("option", {
-      value: "h"
-    }, "h (heure)"), /*#__PURE__*/React.createElement("option", {
-      value: "j"
-    }, "j (journ\xE9e)"), /*#__PURE__*/React.createElement("option", {
-      value: "mois"
-    }, "mois"), /*#__PURE__*/React.createElement("option", {
-      value: "an"
-    }, "an"), /*#__PURE__*/React.createElement("option", {
-      value: "forfait"
-    }, "forfait"))), /*#__PURE__*/React.createElement("div", {
+    }, "Unit\xE9"), /*#__PURE__*/React.createElement("input", {
+      value: "u (unit\xE9)",
+      readOnly: true,
+      disabled: true,
+      title: "Unit\xE9 verrouill\xE9e \u2014 toutes les lignes sont compt\xE9es en unit\xE9s",
+      style: {
+        ...cdStyles.miniInput,
+        background: "#fafbfc",
+        color: "#475569",
+        cursor: "not-allowed"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         gridColumn: "1 / -1"
       }

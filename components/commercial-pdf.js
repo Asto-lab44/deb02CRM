@@ -180,15 +180,15 @@
       tableBody.push(row);
     };
     // Helper : ajoute un sous-total à droite avec libellé à gauche, en
-    // version compacte (marges réduites, fontSize plus petit) pour éviter
-    // qu'il prenne autant d'espace qu'une vraie ligne d'article.
+    // version ultra-compacte (marges verticales 0, paddings cellule
+    // surchargés via layout du tableau).
     const pushSubtotal = (label, total, color, bg) => {
       const labelSpan = totalCols - 1;
       const row = [
-        { text: label, colSpan: labelSpan, fillColor: bg, color, bold: true, fontSize: 8, italics: true, margin: [3, 1, 3, 1], alignment: "right" },
+        { text: label, colSpan: labelSpan, fillColor: bg, color, bold: true, fontSize: 8, italics: true, margin: [3, 0, 3, 0], alignment: "right", noWrap: true, _subtotal: true },
       ];
       for (let i = 1; i < labelSpan; i++) row.push({});
-      row.push({ text: fmtEUR(total), fillColor: bg, color, bold: true, fontSize: 8.5, margin: [3, 1, 3, 1], alignment: "right" });
+      row.push({ text: fmtEUR(total), fillColor: bg, color, bold: true, fontSize: 8.5, margin: [3, 0, 3, 0], alignment: "right", _subtotal: true });
       tableBody.push(row);
     };
     const renderLineRow = (l) => {
@@ -254,7 +254,7 @@
     if (oneLines.length > 0) {
       oneLines.forEach(renderLineRow);
       const oneHt = oneLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
-      pushSubtotal("Sous-total prestations ponctuelles HT", oneHt, "#92400e", "#fef3c7");
+      pushSubtotal("Sous-total prestations ponctuelles HT", oneHt, "#3730a3", "#eef2ff");
     }
     // Lignes texte purement informatives — affichées en queue de tableau
     textLines.forEach(renderLineRow);
@@ -377,7 +377,16 @@
         vLineWidth: () => 0,
         hLineColor: () => "#cbd5e1",
         fillColor: (row) => (row === 0 ? "#f8fafc" : null),
-        paddingTop: () => 6, paddingBottom: () => 6,
+        // Padding vertical réduit pour les lignes sous-total (détectées
+        // via le flag _subtotal sur leur première cellule). 6 → 1 px.
+        paddingTop: (rowIndex, node) => {
+          const cell = node && node.table && node.table.body[rowIndex] && node.table.body[rowIndex][0];
+          return (cell && cell._subtotal) ? 1 : 6;
+        },
+        paddingBottom: (rowIndex, node) => {
+          const cell = node && node.table && node.table.body[rowIndex] && node.table.body[rowIndex][0];
+          return (cell && cell._subtotal) ? 1 : 6;
+        },
         paddingLeft: () => 6, paddingRight: () => 6,
       },
     };

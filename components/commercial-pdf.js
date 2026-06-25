@@ -335,9 +335,9 @@
             logoCell,
             {
               text: typeLabel,
-              fontSize: 30, bold: true, color: "#c91c45",
+              fontSize: 22, bold: true, color: "#c91c45",
               alignment: "right",
-              margin: [0, 26, 4, 4],
+              margin: [0, 32, 4, 4],
             },
           ],
         ],
@@ -654,7 +654,9 @@
             { text: company.email || "", fontSize: 8.5, margin: [0, 2, 0, 0] },
           ],
         },
-        { width: 230, stack: clientLines },
+        // Bloc client décalé légèrement vers la droite (margin-left 40 pt)
+        // pour aérer la séparation visuelle des deux parties.
+        { width: 230, stack: clientLines, margin: [40, 0, 0, 0] },
       ],
       margin: [0, 8, 0, 14],
     };

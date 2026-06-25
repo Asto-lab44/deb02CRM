@@ -2274,6 +2274,16 @@ var CommercialDocEditor = ({
       }
     }
   };
+
+  // Détermine la périodicité par défaut depuis la référence article.
+  // Patterns SKU qui désignent typiquement un service récurrent (abonnement) :
+  // MAINT, HEBE, HOST, HUB, ABO, SUBSC, TEL, M365, 365, EXCH, NAS, HOTLINE,
+  // SUPPORT, INFOG, SAAS. Tout le reste → one-shot par défaut.
+  var detectPeriodicity = ref => {
+    var r = String(ref || "").toUpperCase();
+    if (/MAINT|HEBE|HOST|HUB|ABO|SUBSC|TEL|M365|^365|EXCH|NAS|HOTLINE|SUPPORT|INFOG|SAAS/.test(r)) return "recurring";
+    return "oneshot";
+  };
   var addLine = article => {
     var line = article ? {
       id: "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
@@ -2286,6 +2296,7 @@ var CommercialDocEditor = ({
       unit_price_ht: Number(article.price_ht) || 0,
       discount_pct: 0,
       tva_rate: Number(article.tva_rate) || 20,
+      periodicity: detectPeriodicity(article.ref || ""),
       _new: true
     } : {
       id: "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
@@ -2295,6 +2306,7 @@ var CommercialDocEditor = ({
       unit_price_ht: 0,
       discount_pct: 0,
       tva_rate: 20,
+      periodicity: "oneshot",
       _new: true
     };
     line.total_ht = line.quantity * line.unit_price_ht * (1 - line.discount_pct / 100);
@@ -2383,16 +2395,35 @@ var CommercialDocEditor = ({
   // Totaux calculés à la volée
   var totals = React.useMemo(() => {
     var ht = 0,
-      tva = 0;
+      tva = 0,
+      recurringHt = 0,
+      oneshotHt = 0;
     (d.lines || []).forEach(l => {
       if (l.is_text_only) return;
-      ht += Number(l.total_ht) || 0;
+      var lht = Number(l.total_ht) || 0;
+      ht += lht;
       tva += Number(l.total_tva) || 0;
+      if ((l.periodicity || "oneshot") === "recurring") recurringHt += lht;else oneshotHt += lht;
     });
     return {
       ht: Math.round(ht * 100) / 100,
       tva: Math.round(tva * 100) / 100,
-      ttc: Math.round((ht + tva) * 100) / 100
+      ttc: Math.round((ht + tva) * 100) / 100,
+      recurringHt: Math.round(recurringHt * 100) / 100,
+      oneshotHt: Math.round(oneshotHt * 100) / 100
+    };
+  }, [d.lines]);
+  // Index trié pour le rendu : abonnements d'abord, one-shot ensuite, en
+  // conservant l'ordre d'origine au sein de chaque groupe.
+  var sortedLineIndexes = React.useMemo(() => {
+    var recIdx = [],
+      oneIdx = [];
+    (d.lines || []).forEach((l, i) => {
+      if ((l.periodicity || "oneshot") === "recurring") recIdx.push(i);else oneIdx.push(i);
+    });
+    return {
+      recIdx,
+      oneIdx
     };
   }, [d.lines]);
 
@@ -3297,342 +3328,459 @@ var CommercialDocEditor = ({
       fontSize: 12.5,
       background: "#fafbfc"
     }
-  }, "Aucune ligne pour le moment. Ajoute une ligne libre ou choisis dans le catalogue ci-dessous."), (d.lines || []).map((l, i) => /*#__PURE__*/React.createElement("div", {
-    key: l.id || i,
-    style: {
-      background: "#fff",
-      border: "1px solid #e2e8f0",
-      borderRadius: 10,
-      padding: 12
+  }, "Aucune ligne pour le moment. Ajoute une ligne libre ou choisis dans le catalogue ci-dessous."), (() => {
+    var rendered = [];
+    var lines = d.lines || [];
+    var grpHeader = (label, color, bg, count, subtotal) => /*#__PURE__*/React.createElement("div", {
+      key: "hdr_" + label,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 12px",
+        background: bg,
+        border: "1px solid " + color + "44",
+        borderRadius: 8,
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 800,
+        color: color,
+        letterSpacing: 0.5,
+        textTransform: "uppercase"
+      }
+    }, label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "2px 7px",
+        borderRadius: 999,
+        background: "#fff",
+        color: color,
+        border: "1px solid " + color + "55",
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, count), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }), subtotal != null && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: color,
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, "Sous-total HT : ", fmtEUR(subtotal)));
+    var renderLine = (l, i) => /*#__PURE__*/React.createElement("div", {
+      key: l.id || i,
+      style: {
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 10,
+        padding: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 26,
+        height: 26,
+        borderRadius: 6,
+        background: "#eef2ff",
+        color: "#3730a3",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 11,
+        fontWeight: 700,
+        flexShrink: 0
+      }
+    }, i + 1), (() => {
+      var isRec = (l.periodicity || "oneshot") === "recurring";
+      return /*#__PURE__*/React.createElement("button", {
+        onClick: () => updateLineField(i, "periodicity", isRec ? "oneshot" : "recurring"),
+        title: isRec ? "Passer en prestation one-shot" : "Passer en abonnement récurrent",
+        style: {
+          padding: "4px 10px",
+          border: "1px solid " + (isRec ? "#3730a3" : "#fcd34d"),
+          background: isRec ? "#eef2ff" : "#fef3c7",
+          color: isRec ? "#3730a3" : "#92400e",
+          borderRadius: 999,
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+          cursor: "pointer",
+          flexShrink: 0
+        }
+      }, isRec ? "📦 Abonnement" : "🛠 One-shot");
+    })(), /*#__PURE__*/React.createElement("input", {
+      value: l.ref || "",
+      onChange: e => updateLineField(i, "ref", e.target.value),
+      placeholder: "N\xB0 Article",
+      title: "Num\xE9ro / r\xE9f\xE9rence article \u2014 appara\xEEt dans la colonne \xAB Article \xBB du PDF",
+      style: {
+        width: 140,
+        padding: "8px 10px",
+        border: "1px solid #e2e8f0",
+        borderRadius: 6,
+        fontSize: 12,
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600,
+        color: "#3730a3",
+        textTransform: "uppercase",
+        flexShrink: 0,
+        background: l.ref ? "#eef2ff" : "#fff"
+      }
+    }), /*#__PURE__*/React.createElement("input", {
+      value: l.designation || "",
+      onChange: e => updateLineField(i, "designation", e.target.value),
+      placeholder: "D\xE9signation de la ligne (ex : Astorya Suite \u2014 Licence utilisateur)",
+      readOnly: !!l.article_id,
+      title: l.article_id ? "Désignation héritée du catalogue (réf : " + (l.ref || "—") + "). Pour la modifier, change l'article dans Catalogue & paramètres." : "",
+      style: {
+        flex: 1,
+        padding: "8px 10px",
+        border: "1px solid " + (l.article_id ? "#e2e8f0" : "#e2e8f0"),
+        borderRadius: 6,
+        fontSize: 13,
+        fontFamily: "inherit",
+        fontWeight: 500,
+        color: l.article_id ? "#475569" : "#0f172a",
+        background: l.article_id ? "#fafbfc" : "#fff",
+        cursor: l.article_id ? "not-allowed" : "text"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 130,
+        textAlign: "right",
+        padding: "8px 12px",
+        background: "#f8fafc",
+        border: "1px solid #eef1f5",
+        borderRadius: 6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9.5,
+        fontWeight: 700,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.4
+      }
+    }, "Total HT"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0f172a",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => moveLine(i, -1),
+      disabled: i === 0,
+      title: "Monter cette ligne",
+      style: {
+        width: 32,
+        height: 15,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        color: i === 0 ? "#cbd5e1" : "#475569",
+        fontSize: 10,
+        cursor: i === 0 ? "not-allowed" : "pointer",
+        borderRadius: "6px 6px 0 0",
+        padding: 0,
+        lineHeight: 1,
+        fontWeight: 700
+      }
+    }, "\u25B2"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => moveLine(i, +1),
+      disabled: i === (d.lines || []).length - 1,
+      title: "Descendre cette ligne",
+      style: {
+        width: 32,
+        height: 15,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderTop: 0,
+        color: i === (d.lines || []).length - 1 ? "#cbd5e1" : "#475569",
+        fontSize: 10,
+        cursor: i === (d.lines || []).length - 1 ? "not-allowed" : "pointer",
+        borderRadius: "0 0 6px 6px",
+        padding: 0,
+        lineHeight: 1,
+        fontWeight: 700
+      }
+    }, "\u25BC")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => removeLine(i),
+      title: "Supprimer la ligne",
+      style: {
+        width: 32,
+        height: 32,
+        background: "#fff",
+        border: "1px solid #fecaca",
+        color: "#dc2626",
+        fontSize: 14,
+        cursor: "pointer",
+        borderRadius: 6
+      }
+    }, "\uD83D\uDDD1"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => duplicateLine(i),
+      title: "Dupliquer la ligne en dessous",
+      style: {
+        width: 32,
+        height: 32,
+        background: "#fff",
+        border: "1px solid #c7d2fe",
+        color: "#3730a3",
+        fontSize: 14,
+        cursor: "pointer",
+        borderRadius: 6
+      }
+    }, "\u2398"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 320px",
+        gap: 12,
+        alignItems: "stretch"
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "\uD83D\uDCDD Description (champ libre)"), /*#__PURE__*/React.createElement(RichDescriptionEditor, {
+      value: l.description || "",
+      onChange: html => updateLineField(i, "description", html),
+      placeholder: "Ex. caract\xE9ristiques techniques, conditions, r\xE9f\xE9rences produit\u2026"
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8,
+        alignContent: "start"
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "Qt\xE9"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.001",
+      value: l.quantity,
+      onChange: e => updateLineField(i, "quantity", e.target.value),
+      style: cdStyles.miniInput
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "Unit\xE9"), /*#__PURE__*/React.createElement("select", {
+      value: l.unit || "u",
+      onChange: e => updateLineField(i, "unit", e.target.value),
+      style: cdStyles.miniInput
+    }, /*#__PURE__*/React.createElement("option", {
+      value: "u"
+    }, "u (unit\xE9)"), /*#__PURE__*/React.createElement("option", {
+      value: "h"
+    }, "h (heure)"), /*#__PURE__*/React.createElement("option", {
+      value: "j"
+    }, "j (journ\xE9e)"), /*#__PURE__*/React.createElement("option", {
+      value: "mois"
+    }, "mois"), /*#__PURE__*/React.createElement("option", {
+      value: "an"
+    }, "an"), /*#__PURE__*/React.createElement("option", {
+      value: "forfait"
+    }, "forfait"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        gridColumn: "1 / -1"
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "Prix unitaire HT"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.01",
+      value: l.unit_price_ht,
+      onChange: e => updateLineField(i, "unit_price_ht", e.target.value),
+      style: {
+        ...cdStyles.miniInput,
+        paddingRight: 26
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        right: 8,
+        top: "50%",
+        transform: "translateY(-50%)",
+        fontSize: 11,
+        color: "#94a3b8",
+        pointerEvents: "none"
+      }
+    }, "\u20AC"))))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 220px 180px",
+        gap: 10,
+        marginTop: 8,
+        padding: "8px 10px",
+        background: "#fafbfc",
+        borderRadius: 6,
+        border: "1px dashed #e2e8f0"
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...cdStyles.miniLbl,
+        color: "#94a3b8"
+      }
+    }, "\uD83D\uDD12 R\xE9f\xE9rence constructeur ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 500,
+        fontStyle: "italic"
+      }
+    }, "(interne \u2014 non imprim\xE9e)")), /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: l.manufacturer_ref || "",
+      onChange: e => updateLineField(i, "manufacturer_ref", e.target.value),
+      placeholder: "ex. HP-EB840-G11-A26S0EA",
+      style: {
+        ...cdStyles.miniInput,
+        fontVariantNumeric: "tabular-nums",
+        fontSize: 11.5
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...cdStyles.miniLbl,
+        color: "#94a3b8"
+      }
+    }, "\uD83D\uDD12 Fournisseur ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 500,
+        fontStyle: "italic"
+      }
+    }, "(interne)")), window.HubSupplierCombo ? React.createElement(window.HubSupplierCombo, {
+      value: l.supplier || "",
+      suppliers: suppliers,
+      cellInput: {
+        ...cdStyles.miniInput,
+        fontSize: 12,
+        fontWeight: 600
+      },
+      onChange: v => updateLineField(i, "supplier", v || null),
+      onSuppliersChanged: reloadSuppliers,
+      placeholder: "— Choisir —"
+    }) : /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: l.supplier || "",
+      onChange: e => updateLineField(i, "supplier", e.target.value || null),
+      placeholder: "ex. INMAC, LDLC PRO\u2026",
+      style: cdStyles.miniInput
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...cdStyles.miniLbl,
+        color: "#94a3b8"
+      }
+    }, "\uD83D\uDD12 Prix d'achat indicatif ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 500,
+        fontStyle: "italic"
+      }
+    }, "(interne)")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.01",
+      value: l.purchase_price_indicative == null ? "" : l.purchase_price_indicative,
+      onChange: e => updateLineField(i, "purchase_price_indicative", e.target.value === "" ? null : Number(e.target.value)),
+      placeholder: "ex. 850.00",
+      style: {
+        ...cdStyles.miniInput,
+        paddingRight: 26,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        right: 8,
+        top: "50%",
+        transform: "translateY(-50%)",
+        fontSize: 11,
+        color: "#94a3b8",
+        pointerEvents: "none"
+      }
+    }, "\u20AC")))));
+    // Bloc Abonnements en haut + sous-total, puis bloc One-shot en bas.
+    var recIdx = sortedLineIndexes.recIdx;
+    var oneIdx = sortedLineIndexes.oneIdx;
+    if (recIdx.length > 0) {
+      rendered.push(grpHeader("📦 Abonnements (récurrents)", "#3730a3", "#eef2ff", recIdx.length, totals.recurringHt));
+      recIdx.forEach(idx => rendered.push(renderLine(lines[idx], idx)));
+      // Sous-total abonnements final visible juste avant les one-shot
+      rendered.push(/*#__PURE__*/React.createElement("div", {
+        key: "subtotal_recurring",
+        style: {
+          display: "flex",
+          justifyContent: "flex-end",
+          padding: "10px 14px",
+          background: "linear-gradient(180deg, #eef2ff, #fff)",
+          border: "1px solid #c7d2fe",
+          borderRadius: 8,
+          marginTop: 4
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 24,
+          alignItems: "center"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: "#3730a3",
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          fontWeight: 700
+        }
+      }, "Sous-total abonnements (", recIdx.length, " ligne", recIdx.length > 1 ? "s" : "", ")"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 16,
+          color: "#3730a3",
+          fontWeight: 800,
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, fmtEUR(totals.recurringHt), " ", /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          fontWeight: 500
+        }
+      }, "HT / p\xE9riode")))));
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      marginBottom: 10
+    if (oneIdx.length > 0) {
+      rendered.push(grpHeader("🛠 Prestations one-shot", "#92400e", "#fef3c7", oneIdx.length, totals.oneshotHt));
+      oneIdx.forEach(idx => rendered.push(renderLine(lines[idx], idx)));
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 26,
-      height: 26,
-      borderRadius: 6,
-      background: "#eef2ff",
-      color: "#3730a3",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 11,
-      fontWeight: 700,
-      flexShrink: 0
-    }
-  }, i + 1), /*#__PURE__*/React.createElement("input", {
-    value: l.ref || "",
-    onChange: e => updateLineField(i, "ref", e.target.value),
-    placeholder: "N\xB0 Article",
-    title: "Num\xE9ro / r\xE9f\xE9rence article \u2014 appara\xEEt dans la colonne \xAB Article \xBB du PDF",
-    style: {
-      width: 140,
-      padding: "8px 10px",
-      border: "1px solid #e2e8f0",
-      borderRadius: 6,
-      fontSize: 12,
-      fontVariantNumeric: "tabular-nums",
-      fontWeight: 600,
-      color: "#3730a3",
-      textTransform: "uppercase",
-      flexShrink: 0,
-      background: l.ref ? "#eef2ff" : "#fff"
-    }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: l.designation || "",
-    onChange: e => updateLineField(i, "designation", e.target.value),
-    placeholder: "D\xE9signation de la ligne (ex : Astorya Suite \u2014 Licence utilisateur)",
-    readOnly: !!l.article_id,
-    title: l.article_id ? "Désignation héritée du catalogue (réf : " + (l.ref || "—") + "). Pour la modifier, change l'article dans Catalogue & paramètres." : "",
-    style: {
-      flex: 1,
-      padding: "8px 10px",
-      border: "1px solid " + (l.article_id ? "#e2e8f0" : "#e2e8f0"),
-      borderRadius: 6,
-      fontSize: 13,
-      fontFamily: "inherit",
-      fontWeight: 500,
-      color: l.article_id ? "#475569" : "#0f172a",
-      background: l.article_id ? "#fafbfc" : "#fff",
-      cursor: l.article_id ? "not-allowed" : "text"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      minWidth: 130,
-      textAlign: "right",
-      padding: "8px 12px",
-      background: "#f8fafc",
-      border: "1px solid #eef1f5",
-      borderRadius: 6
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9.5,
-      fontWeight: 700,
-      color: "#94a3b8",
-      textTransform: "uppercase",
-      letterSpacing: 0.4
-    }
-  }, "Total HT"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "#0f172a",
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 2,
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => moveLine(i, -1),
-    disabled: i === 0,
-    title: "Monter cette ligne",
-    style: {
-      width: 32,
-      height: 15,
-      background: "#fff",
-      border: "1px solid #e2e8f0",
-      color: i === 0 ? "#cbd5e1" : "#475569",
-      fontSize: 10,
-      cursor: i === 0 ? "not-allowed" : "pointer",
-      borderRadius: "6px 6px 0 0",
-      padding: 0,
-      lineHeight: 1,
-      fontWeight: 700
-    }
-  }, "\u25B2"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => moveLine(i, +1),
-    disabled: i === (d.lines || []).length - 1,
-    title: "Descendre cette ligne",
-    style: {
-      width: 32,
-      height: 15,
-      background: "#fff",
-      border: "1px solid #e2e8f0",
-      borderTop: 0,
-      color: i === (d.lines || []).length - 1 ? "#cbd5e1" : "#475569",
-      fontSize: 10,
-      cursor: i === (d.lines || []).length - 1 ? "not-allowed" : "pointer",
-      borderRadius: "0 0 6px 6px",
-      padding: 0,
-      lineHeight: 1,
-      fontWeight: 700
-    }
-  }, "\u25BC")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 4,
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => removeLine(i),
-    title: "Supprimer la ligne",
-    style: {
-      width: 32,
-      height: 32,
-      background: "#fff",
-      border: "1px solid #fecaca",
-      color: "#dc2626",
-      fontSize: 14,
-      cursor: "pointer",
-      borderRadius: 6
-    }
-  }, "\uD83D\uDDD1"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => duplicateLine(i),
-    title: "Dupliquer la ligne en dessous",
-    style: {
-      width: 32,
-      height: 32,
-      background: "#fff",
-      border: "1px solid #c7d2fe",
-      color: "#3730a3",
-      fontSize: 14,
-      cursor: "pointer",
-      borderRadius: 6
-    }
-  }, "\u2398"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 320px",
-      gap: 12,
-      alignItems: "stretch"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.miniLbl
-  }, "\uD83D\uDCDD Description (champ libre)"), /*#__PURE__*/React.createElement(RichDescriptionEditor, {
-    value: l.description || "",
-    onChange: html => updateLineField(i, "description", html),
-    placeholder: "Ex. caract\xE9ristiques techniques, conditions, r\xE9f\xE9rences produit\u2026"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 8,
-      alignContent: "start"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.miniLbl
-  }, "Qt\xE9"), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "0.001",
-    value: l.quantity,
-    onChange: e => updateLineField(i, "quantity", e.target.value),
-    style: cdStyles.miniInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.miniLbl
-  }, "Unit\xE9"), /*#__PURE__*/React.createElement("select", {
-    value: l.unit || "u",
-    onChange: e => updateLineField(i, "unit", e.target.value),
-    style: cdStyles.miniInput
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "u"
-  }, "u (unit\xE9)"), /*#__PURE__*/React.createElement("option", {
-    value: "h"
-  }, "h (heure)"), /*#__PURE__*/React.createElement("option", {
-    value: "j"
-  }, "j (journ\xE9e)"), /*#__PURE__*/React.createElement("option", {
-    value: "mois"
-  }, "mois"), /*#__PURE__*/React.createElement("option", {
-    value: "an"
-  }, "an"), /*#__PURE__*/React.createElement("option", {
-    value: "forfait"
-  }, "forfait"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      gridColumn: "1 / -1"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.miniLbl
-  }, "Prix unitaire HT"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "0.01",
-    value: l.unit_price_ht,
-    onChange: e => updateLineField(i, "unit_price_ht", e.target.value),
-    style: {
-      ...cdStyles.miniInput,
-      paddingRight: 26
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      right: 8,
-      top: "50%",
-      transform: "translateY(-50%)",
-      fontSize: 11,
-      color: "#94a3b8",
-      pointerEvents: "none"
-    }
-  }, "\u20AC"))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 220px 180px",
-      gap: 10,
-      marginTop: 8,
-      padding: "8px 10px",
-      background: "#fafbfc",
-      borderRadius: 6,
-      border: "1px dashed #e2e8f0"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...cdStyles.miniLbl,
-      color: "#94a3b8"
-    }
-  }, "\uD83D\uDD12 R\xE9f\xE9rence constructeur ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9,
-      fontWeight: 500,
-      fontStyle: "italic"
-    }
-  }, "(interne \u2014 non imprim\xE9e)")), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    value: l.manufacturer_ref || "",
-    onChange: e => updateLineField(i, "manufacturer_ref", e.target.value),
-    placeholder: "ex. HP-EB840-G11-A26S0EA",
-    style: {
-      ...cdStyles.miniInput,
-      fontVariantNumeric: "tabular-nums",
-      fontSize: 11.5
-    }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...cdStyles.miniLbl,
-      color: "#94a3b8"
-    }
-  }, "\uD83D\uDD12 Fournisseur ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9,
-      fontWeight: 500,
-      fontStyle: "italic"
-    }
-  }, "(interne)")), window.HubSupplierCombo ? React.createElement(window.HubSupplierCombo, {
-    value: l.supplier || "",
-    suppliers: suppliers,
-    cellInput: {
-      ...cdStyles.miniInput,
-      fontSize: 12,
-      fontWeight: 600
-    },
-    onChange: v => updateLineField(i, "supplier", v || null),
-    onSuppliersChanged: reloadSuppliers,
-    placeholder: "— Choisir —"
-  }) : /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    value: l.supplier || "",
-    onChange: e => updateLineField(i, "supplier", e.target.value || null),
-    placeholder: "ex. INMAC, LDLC PRO\u2026",
-    style: cdStyles.miniInput
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...cdStyles.miniLbl,
-      color: "#94a3b8"
-    }
-  }, "\uD83D\uDD12 Prix d'achat indicatif ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9,
-      fontWeight: 500,
-      fontStyle: "italic"
-    }
-  }, "(interne)")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "0.01",
-    value: l.purchase_price_indicative == null ? "" : l.purchase_price_indicative,
-    onChange: e => updateLineField(i, "purchase_price_indicative", e.target.value === "" ? null : Number(e.target.value)),
-    placeholder: "ex. 850.00",
-    style: {
-      ...cdStyles.miniInput,
-      paddingRight: 26,
-      fontVariantNumeric: "tabular-nums"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      right: 8,
-      top: "50%",
-      transform: "translateY(-50%)",
-      fontSize: 11,
-      color: "#94a3b8",
-      pointerEvents: "none"
-    }
-  }, "\u20AC")))))), /*#__PURE__*/React.createElement("div", {
+    return rendered;
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 8px",
       display: "flex",

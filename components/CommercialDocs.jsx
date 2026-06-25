@@ -1233,6 +1233,15 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
     }
   };
 
+  // Détermine la périodicité par défaut depuis la référence article.
+  // Patterns SKU qui désignent typiquement un service récurrent (abonnement) :
+  // MAINT, HEBE, HOST, HUB, ABO, SUBSC, TEL, M365, 365, EXCH, NAS, HOTLINE,
+  // SUPPORT, INFOG, SAAS. Tout le reste → one-shot par défaut.
+  const detectPeriodicity = (ref) => {
+    const r = String(ref || "").toUpperCase();
+    if (/MAINT|HEBE|HOST|HUB|ABO|SUBSC|TEL|M365|^365|EXCH|NAS|HOTLINE|SUPPORT|INFOG|SAAS/.test(r)) return "recurring";
+    return "oneshot";
+  };
   const addLine = (article) => {
     const line = article ? {
       id: "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
@@ -1242,11 +1251,13 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
       unit_price_ht: Number(article.price_ht) || 0,
       discount_pct: 0,
       tva_rate: Number(article.tva_rate) || 20,
+      periodicity: detectPeriodicity(article.ref || ""),
       _new: true,
     } : {
       id: "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
       designation: "",
       quantity: 1, unit: "u", unit_price_ht: 0, discount_pct: 0, tva_rate: 20,
+      periodicity: "oneshot",
       _new: true,
     };
     line.total_ht = line.quantity * line.unit_price_ht * (1 - line.discount_pct / 100);
@@ -1309,13 +1320,32 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
 
   // Totaux calculés à la volée
   const totals = React.useMemo(() => {
-    let ht = 0, tva = 0;
+    let ht = 0, tva = 0, recurringHt = 0, oneshotHt = 0;
     (d.lines || []).forEach((l) => {
       if (l.is_text_only) return;
-      ht += Number(l.total_ht) || 0;
+      const lht = Number(l.total_ht) || 0;
+      ht += lht;
       tva += Number(l.total_tva) || 0;
+      if ((l.periodicity || "oneshot") === "recurring") recurringHt += lht;
+      else oneshotHt += lht;
     });
-    return { ht: Math.round(ht * 100) / 100, tva: Math.round(tva * 100) / 100, ttc: Math.round((ht + tva) * 100) / 100 };
+    return {
+      ht: Math.round(ht * 100) / 100,
+      tva: Math.round(tva * 100) / 100,
+      ttc: Math.round((ht + tva) * 100) / 100,
+      recurringHt: Math.round(recurringHt * 100) / 100,
+      oneshotHt: Math.round(oneshotHt * 100) / 100,
+    };
+  }, [d.lines]);
+  // Index trié pour le rendu : abonnements d'abord, one-shot ensuite, en
+  // conservant l'ordre d'origine au sein de chaque groupe.
+  const sortedLineIndexes = React.useMemo(() => {
+    const recIdx = [], oneIdx = [];
+    (d.lines || []).forEach((l, i) => {
+      if ((l.periodicity || "oneshot") === "recurring") recIdx.push(i);
+      else oneIdx.push(i);
+    });
+    return { recIdx, oneIdx };
   }, [d.lines]);
 
   // Synchronise la commande fournisseur (commande_achat) et le BL liés à
@@ -1956,11 +1986,47 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                 Aucune ligne pour le moment. Ajoute une ligne libre ou choisis dans le catalogue ci-dessous.
               </div>
             )}
-            {(d.lines || []).map((l, i) => (
+            {(() => {
+              const rendered = [];
+              const lines = d.lines || [];
+              const grpHeader = (label, color, bg, count, subtotal) => (
+                <div key={"hdr_" + label} style={{ display: "flex", alignItems: "center", gap: 10,
+                                                   padding: "8px 12px", background: bg, border: "1px solid " + color + "44",
+                                                   borderRadius: 8, marginTop: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: color, letterSpacing: 0.5,
+                                 textTransform: "uppercase" }}>{label}</span>
+                  <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999,
+                                 background: "#fff", color: color, border: "1px solid " + color + "55",
+                                 fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{count}</span>
+                  <span style={{ flex: 1 }} />
+                  {subtotal != null && (
+                    <span style={{ fontSize: 12, color: color, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                      Sous-total HT : {fmtEUR(subtotal)}
+                    </span>
+                  )}
+                </div>
+              );
+              const renderLine = (l, i) => (
               <div key={l.id || i} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
                 {/* Ligne 1 : numéro · n° article · désignation pleine largeur · total · suppr */}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                   <span style={{ width: 26, height: 26, borderRadius: 6, background: "#eef2ff", color: "#3730a3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                  {/* Toggle Abonnement / One-shot — détermine le groupement
+                      visuel et le sous-total abonnements. */}
+                  {(() => {
+                    const isRec = (l.periodicity || "oneshot") === "recurring";
+                    return (
+                      <button onClick={() => updateLineField(i, "periodicity", isRec ? "oneshot" : "recurring")}
+                              title={isRec ? "Passer en prestation one-shot" : "Passer en abonnement récurrent"}
+                              style={{ padding: "4px 10px", border: "1px solid " + (isRec ? "#3730a3" : "#fcd34d"),
+                                       background: isRec ? "#eef2ff" : "#fef3c7",
+                                       color: isRec ? "#3730a3" : "#92400e",
+                                       borderRadius: 999, fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
+                                       textTransform: "uppercase", cursor: "pointer", flexShrink: 0 }}>
+                        {isRec ? "📦 Abonnement" : "🛠 One-shot"}
+                      </button>
+                    );
+                  })()}
                   <input
                     value={l.ref || ""}
                     onChange={(e) => updateLineField(i, "ref", e.target.value)}
@@ -2087,7 +2153,35 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                   </div>
                 </div>
               </div>
-            ))}
+              );
+              // Bloc Abonnements en haut + sous-total, puis bloc One-shot en bas.
+              const recIdx = sortedLineIndexes.recIdx;
+              const oneIdx = sortedLineIndexes.oneIdx;
+              if (recIdx.length > 0) {
+                rendered.push(grpHeader("📦 Abonnements (récurrents)", "#3730a3", "#eef2ff", recIdx.length, totals.recurringHt));
+                recIdx.forEach((idx) => rendered.push(renderLine(lines[idx], idx)));
+                // Sous-total abonnements final visible juste avant les one-shot
+                rendered.push(
+                  <div key="subtotal_recurring" style={{ display: "flex", justifyContent: "flex-end",
+                                                         padding: "10px 14px", background: "linear-gradient(180deg, #eef2ff, #fff)",
+                                                         border: "1px solid #c7d2fe", borderRadius: 8, marginTop: 4 }}>
+                    <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "#3730a3", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+                        Sous-total abonnements ({recIdx.length} ligne{recIdx.length > 1 ? "s" : ""})
+                      </span>
+                      <span style={{ fontSize: 16, color: "#3730a3", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+                        {fmtEUR(totals.recurringHt)} <span style={{ fontSize: 10, fontWeight: 500 }}>HT / période</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              if (oneIdx.length > 0) {
+                rendered.push(grpHeader("🛠 Prestations one-shot", "#92400e", "#fef3c7", oneIdx.length, totals.oneshotHt));
+                oneIdx.forEach((idx) => rendered.push(renderLine(lines[idx], idx)));
+              }
+              return rendered;
+            })()}
             <div style={{ padding: "10px 8px", display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={() => addLine(null)} style={cdStyles.ghostBtn}>+ Ligne libre</button>
               <button onClick={() => setSmartSearchOpen(true)}

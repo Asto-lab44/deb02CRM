@@ -280,28 +280,29 @@
     };
 
     // ───── Bandeau header : logo Astorya à gauche, titre type à droite
-    // Logo : fit augmenté à [300, 85] pour éviter la coupe de "informatique".
+    // Logo dimensionné plus grand (fit [340, 80]) pour un en-tête plus
+    // affirmé. Titre type augmenté à 30 pt pour matcher la nouvelle hauteur.
     const logoCell = (window.AstoryaAssets && window.AstoryaAssets.logoSvg)
-      ? { svg: window.AstoryaAssets.logoSvg, fit: [240, 55], margin: [4, 4, 0, 4], alignment: "left" }
-      : { svg: ASTORYA_LOGO_SVG, fit: [240, 55], margin: [4, 4, 0, 4], alignment: "left" };
+      ? { svg: window.AstoryaAssets.logoSvg, fit: [340, 80], margin: [4, 6, 0, 6], alignment: "left" }
+      : { svg: ASTORYA_LOGO_SVG, fit: [340, 80], margin: [4, 6, 0, 6], alignment: "left" };
     const headerBand = {
       table: {
-        widths: ["*", 140],
+        widths: ["*", 170],
         body: [
           [
             logoCell,
             {
               text: typeLabel,
-              fontSize: 22, bold: true, color: "#c91c45",
+              fontSize: 30, bold: true, color: "#c91c45",
               alignment: "right",
-              margin: [0, 16, 4, 4],
+              margin: [0, 26, 4, 4],
             },
           ],
         ],
       },
       layout: {
         fillColor: () => "#ffffff",
-        hLineWidth: (i, node) => (i === node.table.body.length ? 2 : 0),
+        hLineWidth: (i, node) => (i === node.table.body.length ? 2.4 : 0),
         vLineWidth: () => 0,
         hLineColor: () => "#c91c45",
         paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0,

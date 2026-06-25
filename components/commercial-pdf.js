@@ -626,16 +626,19 @@
       notesBlock || { text: " " },
       logisticsNoteBlock,
       isBL ? null : totalsBlock,
-      // Bloc signature ramené au footer (dernière page) pour qu'il soit
-      // collé en bas de page — voir footer callback. Pas dans le body.
+      // Bloc signature placé dans le body juste avant le saut de page CGV
+      // (et seulement sur les devis). Il flotte naturellement après les
+      // totaux et reste collé au-dessus du verso CGV. unbreakable pour
+      // ne pas se couper en deux pages.
+      (doc.type === "devis") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] } : null,
       cgvBlock,
     ].filter(Boolean);
 
     // Hauteur réservée au footer :
     //  - Non-devis : contacts (~70) + réserve (~25) + pagination ≈ 110px
-    //  - Devis : signature complète (~110) + pagination (~15) ≈ 130px
+    //  - Devis : pagination uniquement (signature dans le body) ≈ 30px
     // On dimensionne selon le type pour optimiser l'espace utile.
-    const FOOTER_HEIGHT = doc.type === "devis" ? 140 : 120;
+    const FOOTER_HEIGHT = doc.type === "devis" ? 30 : 120;
 
     return {
       pageSize: "A4",
@@ -670,10 +673,10 @@
         return {
           margin: [28, 0, 28, 8],
           stack: [
-            // Bloc signature collé en bas de page sur la page des totaux.
-            // Sur les devis avec CGV au verso, c'est pageCount - 1 (l'avant-
-            // dernière). Sinon, dernière page classique.
-            showSignature ? signatureBlock : null,
+            // Sur les devis, la signature est désormais dans le body juste
+            // au-dessus du saut de page CGV (pas dans le footer). Sur les
+            // autres types de docs, signature pinnée en bas de dernière page.
+            (!isDevis && isLastPage) ? signatureBlock : null,
             // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
             // gauche/droite, séparateur fin en haut) — masqué sur les devis
             isDevis ? null : {

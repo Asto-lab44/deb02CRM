@@ -179,14 +179,16 @@
       for (let i = 1; i < totalCols; i++) row.push({});
       tableBody.push(row);
     };
-    // Helper : ajoute un sous-total à droite avec libellé à gauche.
+    // Helper : ajoute un sous-total à droite avec libellé à gauche, en
+    // version compacte (marges réduites, fontSize plus petit) pour éviter
+    // qu'il prenne autant d'espace qu'une vraie ligne d'article.
     const pushSubtotal = (label, total, color, bg) => {
       const labelSpan = totalCols - 1;
       const row = [
-        { text: label, colSpan: labelSpan, fillColor: bg, color, bold: true, fontSize: 9, margin: [4, 3, 4, 3], alignment: "right" },
+        { text: label, colSpan: labelSpan, fillColor: bg, color, bold: true, fontSize: 8, italics: true, margin: [3, 1, 3, 1], alignment: "right" },
       ];
       for (let i = 1; i < labelSpan; i++) row.push({});
-      row.push({ text: fmtEUR(total), fillColor: bg, color, bold: true, fontSize: 10, margin: [4, 3, 4, 3], alignment: "right" });
+      row.push({ text: fmtEUR(total), fillColor: bg, color, bold: true, fontSize: 8.5, margin: [3, 1, 3, 1], alignment: "right" });
       tableBody.push(row);
     };
     const renderLineRow = (l) => {

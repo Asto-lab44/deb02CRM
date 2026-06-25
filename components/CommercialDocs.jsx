@@ -1832,7 +1832,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
           </div>
 
           {/* Lien projet + statut + conditions */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
             <div>
               <label style={cdStyles.lbl}>Rattacher à une opportunité (≤ 30 jours)</label>
               <select value={d.opportunity_id || ""} onChange={(e) => {
@@ -1944,13 +1944,6 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                   </div>
                 );
               })()}
-            </div>
-            <div>
-              <label style={cdStyles.lbl}>Conditions de paiement</label>
-              <select value={d.payment_terms_id || ""} onChange={(e) => setField("payment_terms_id", e.target.value || null)} style={cdStyles.input}>
-                <option value="">— Choisir —</option>
-                {paymentTerms.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-              </select>
             </div>
           </div>
           </fieldset>

@@ -3124,7 +3124,7 @@ var CommercialDocEditor = ({
   }))))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
+      gridTemplateColumns: "1fr 1fr",
       gap: 12,
       marginBottom: 18
     }
@@ -3274,18 +3274,7 @@ var CommercialDocEditor = ({
         cursor: "pointer"
       }
     }, "\uD83D\uDD13 D\xE9bloquer")));
-  })()), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: cdStyles.lbl
-  }, "Conditions de paiement"), /*#__PURE__*/React.createElement("select", {
-    value: d.payment_terms_id || "",
-    onChange: e => setField("payment_terms_id", e.target.value || null),
-    style: cdStyles.input
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\u2014 Choisir \u2014"), paymentTerms.map(p => /*#__PURE__*/React.createElement("option", {
-    key: p.id,
-    value: p.id
-  }, p.label)))))), /*#__PURE__*/React.createElement("h3", {
+  })()))), /*#__PURE__*/React.createElement("h3", {
     style: {
       margin: "0 0 8px",
       fontSize: 14,

@@ -515,14 +515,16 @@
     // ── Bloc CGV au verso — uniquement sur les DEVIS.
     // Source : window.HubAstoryaCGV (chargée depuis components/astorya-cgv.js
     // — données extraites du Word officiel « Conditions générales devis 2025 »).
-    // Mise en page 2 colonnes type CGV verso, taille 7,5 pour tenir sur 1 page.
+    // Mise en page 2 colonnes type CGV verso, compactée pour tenir sur 1 page.
+    // Tailles très réduites (titre 6.5 / corps 5.5) + lineHeight 1.15 +
+    // header titre / sous-titre compressés pour maximiser l'espace utile.
     const cgvBlock = (doc.type === "devis" && Array.isArray(window.HubAstoryaCGV) && window.HubAstoryaCGV.length > 0) ? {
       pageBreak: "before",
       stack: [
-        { text: "CONDITIONS GÉNÉRALES DE VENTE", fontSize: 13, bold: true, color: "#c91c45",
-          alignment: "center", margin: [0, 0, 0, 4] },
+        { text: "CONDITIONS GÉNÉRALES DE VENTE", fontSize: 10, bold: true, color: "#c91c45",
+          alignment: "center", margin: [0, 0, 0, 2] },
         { text: "ASTORYA SGI · 9 rue du Petit Châtelier · 44300 Nantes · SIRET 523 625 804 00027",
-          fontSize: 7.5, color: "#64748b", alignment: "center", margin: [0, 0, 0, 10] },
+          fontSize: 6, color: "#64748b", alignment: "center", margin: [0, 0, 0, 5] },
         {
           columns: [
             {
@@ -531,20 +533,20 @@
                 .map((art, i) => ({
                   stack: [
                     { text: "Article " + (i + 1) + " — " + art.title,
-                      fontSize: 8, bold: true, color: "#0f172a", margin: [0, 4, 0, 2] },
-                    { text: art.body, fontSize: 7, alignment: "justify", color: "#334155", lineHeight: 1.25 },
+                      fontSize: 6.5, bold: true, color: "#0f172a", margin: [0, 2, 0, 1] },
+                    { text: art.body, fontSize: 5.5, alignment: "justify", color: "#334155", lineHeight: 1.15 },
                   ],
                 })),
             },
-            { width: 12, text: " " },
+            { width: 8, text: " " },
             {
               width: "*",
               stack: window.HubAstoryaCGV.slice(Math.ceil(window.HubAstoryaCGV.length / 2))
                 .map((art, i) => ({
                   stack: [
                     { text: "Article " + (Math.ceil(window.HubAstoryaCGV.length / 2) + i + 1) + " — " + art.title,
-                      fontSize: 8, bold: true, color: "#0f172a", margin: [0, 4, 0, 2] },
-                    { text: art.body, fontSize: 7, alignment: "justify", color: "#334155", lineHeight: 1.25 },
+                      fontSize: 6.5, bold: true, color: "#0f172a", margin: [0, 2, 0, 1] },
+                    { text: art.body, fontSize: 5.5, alignment: "justify", color: "#334155", lineHeight: 1.15 },
                   ],
                 })),
             },
@@ -571,16 +573,18 @@
       linesTable,
       notesBlock || { text: " " },
       isBL ? null : totalsBlock,
-      // signatureBlock retiré du body → maintenant dans le footer
-      // uniquement sur la dernière page (voir footer callback).
+      // Bloc signature (« Devis suivi par + IBAN / Bon pour accord ») juste
+      // sous les totaux pour le coller directement aux montants. unbreakable
+      // pour qu'il ne se coupe pas en deux pages.
+      { ...signatureBlock, unbreakable: true, margin: [0, 12, 0, 0] },
       cgvBlock,
     ].filter(Boolean);
 
     // Hauteur réservée au footer :
-    //  - Pages intermédiaires : contacts (~70) + réserve (~25) + pagination ≈ 110px
-    //  - Dernière page : + signature block (~95px) ≈ 205px
-    // On dimensionne au max pour que pdfmake ne tronque pas la dernière page.
-    const FOOTER_HEIGHT = 210;
+    //  - Non-devis : contacts (~70) + réserve (~25) + pagination ≈ 110px
+    //  - Devis : pagination uniquement (signature ramenée dans le body) ≈ 25px
+    // On dimensionne selon le type pour optimiser l'espace utile.
+    const FOOTER_HEIGHT = doc.type === "devis" ? 40 : 120;
 
     return {
       pageSize: "A4",
@@ -602,14 +606,18 @@
         // accord" pour le coller en bas de page (au lieu de flotter au milieu
         // sur les docs courts).
         const isLastPage = currentPage === pageCount;
+        // Devis : on retire le bloc contacts (3 colonnes) et la réserve de
+        // propriété au pied de page — le verso CGV les couvre déjà. On garde
+        // uniquement la signature en dernière page + la pagination discrète.
+        const isDevis = doc.type === "devis";
         return {
           margin: [28, 0, 28, 8],
           stack: [
-            // Bloc signature (seulement dernière page)
-            isLastPage ? signatureBlock : null,
+            // Bloc signature déplacé dans le body juste sous les totaux
+            // (n'apparaît plus dans le footer).
             // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
-            // gauche/droite, séparateur fin en haut)
-            {
+            // gauche/droite, séparateur fin en haut) — masqué sur les devis
+            isDevis ? null : {
               table: {
                 widths: ["*", "*", "*"],
                 body: [
@@ -640,15 +648,16 @@
                 paddingLeft: () => 4, paddingRight: () => 4,
               },
             },
-            // Mention réserve de propriété (chiquotée si présente)
-            company.mention_reserve_propriete ? {
+            // Mention réserve de propriété — masquée sur les devis (couverte
+            // par les CGV au verso, art. 2 Réserve de propriété)
+            (isDevis || !company.mention_reserve_propriete) ? null : {
               text: company.mention_reserve_propriete,
               fontSize: 6.5,
               color: "#555",
               italics: true,
               margin: [0, 6, 0, 0],
-            } : null,
-            // Pagination
+            },
+            // Pagination (toujours visible)
             {
               columns: [
                 { text: "", width: "*" },

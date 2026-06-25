@@ -345,6 +345,15 @@
     };
 
     // ───── Totaux (récap TVA + Total HT/TVA/NET A PAYER)
+    // Note logistique livraison (devis uniquement) — placée juste au-dessus
+    // du tableau TVA / totaux pour bien attirer l'attention du client sur
+    // le délai de retour avant la commande hebdomadaire fournisseur.
+    const logisticsNoteBlock = (doc.type === "devis") ? {
+      text: "Nous achetons le matériel tous les jeudis de chaque semaine, par conséquent, merci de nous faire un retour avant ce jour afin de nous permettre de vous livrer la semaine suivante.",
+      fontSize: 9, italics: true, color: "#475569", alignment: "justify",
+      margin: [0, 14, 0, 10],
+    } : null;
+
     // unbreakable : pdfmake garde tout le bloc sur la même page (évite que
     // le « NET A PAYER » se retrouve seul sur la page suivante).
     const totalsBlock = {
@@ -449,10 +458,37 @@
         {
           width: 240,
           stack: [
-            { text: doc.payment_terms_label || company.conditions_paiement_default || "", fontSize: 9, italics: true, margin: [0, 0, 0, 10] },
-            { text: "Bon pour accord :", bold: true, fontSize: 10 },
-            { text: " ", fontSize: 16 },
-            { text: "Le :", bold: true, fontSize: 10, margin: [0, 14, 0, 0] },
+            // Sur un devis : mention acompte 40 % en gras et cadre signature
+            // encadré. Sur les autres docs : juste le libellé conditions de
+            // paiement classique.
+            doc.type === "devis"
+              ? { text: "Règlement à la commande d'un acompte de 40 %", bold: true, fontSize: 10, margin: [0, 0, 0, 6] }
+              : { text: doc.payment_terms_label || company.conditions_paiement_default || "", fontSize: 9, italics: true, margin: [0, 0, 0, 10] },
+            doc.type === "devis"
+              ? {
+                  // Cadre signature : tableau 1 cellule avec bordure noire,
+                  // « Bon pour accord » en haut + espace blanc + « Le : » en bas
+                  table: {
+                    widths: ["*"],
+                    body: [[
+                      { stack: [
+                          { text: "Bon pour accord :", bold: true, fontSize: 10, margin: [0, 0, 0, 24] },
+                          { text: "Le :", bold: true, fontSize: 10, margin: [0, 0, 0, 4] },
+                        ],
+                        margin: [6, 6, 6, 6],
+                      },
+                    ]],
+                  },
+                  layout: {
+                    hLineWidth: () => 0.7, vLineWidth: () => 0.7,
+                    hLineColor: () => "#0f172a", vLineColor: () => "#0f172a",
+                  },
+                }
+              : { stack: [
+                  { text: "Bon pour accord :", bold: true, fontSize: 10 },
+                  { text: " ", fontSize: 16 },
+                  { text: "Le :", bold: true, fontSize: 10, margin: [0, 14, 0, 0] },
+                ] },
           ],
         },
       ],
@@ -571,6 +607,7 @@
       metaRow,
       linesTable,
       notesBlock || { text: " " },
+      logisticsNoteBlock,
       isBL ? null : totalsBlock,
       // Bloc signature ramené au footer (dernière page) pour qu'il soit
       // collé en bas de page — voir footer callback. Pas dans le body.

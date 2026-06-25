@@ -633,9 +633,9 @@
 
     // Hauteur réservée au footer :
     //  - Non-devis : contacts (~70) + réserve (~25) + pagination ≈ 110px
-    //  - Devis : pagination uniquement (signature ramenée dans le body) ≈ 25px
+    //  - Devis : signature complète (~110) + pagination (~15) ≈ 130px
     // On dimensionne selon le type pour optimiser l'espace utile.
-    const FOOTER_HEIGHT = doc.type === "devis" ? 40 : 120;
+    const FOOTER_HEIGHT = doc.type === "devis" ? 140 : 120;
 
     return {
       pageSize: "A4",

@@ -590,20 +590,38 @@
       };
     })();
 
+    // Ligne unique sous le bandeau rouge : coordonnées Astorya à gauche,
+    // bloc client (destinataire du devis) à droite, alignés en haut.
+    const partiesRow = {
+      columns: [
+        {
+          width: "*",
+          stack: [
+            { text: company.raison_sociale || "ASTORYA", bold: true, fontSize: 10 },
+            { text: company.adresse || "", fontSize: 8.5 },
+            { text: ((company.cp || "") + " " + (company.ville || "")).trim(), fontSize: 8.5 },
+            { text: company.email || "", fontSize: 8.5, margin: [0, 2, 0, 0] },
+          ],
+        },
+        { width: 230, stack: clientLines },
+      ],
+      margin: [0, 8, 0, 14],
+    };
+
     const content = [
       headerBand,
-      // Bloc client en haut droite (positionné absolu via colonnes)
+      partiesRow,
+      // Coordonnées détaillées Astorya (Tel/Site/SIRET/Capital) sous la
+      // ligne parties — disponibles mais discrètes
       {
         columns: [
-          { width: "*", text: "" },
-          {
-            width: 230,
-            stack: clientLines,
-            margin: [0, 8, 0, 0],
-          },
+          { width: "*", stack: [
+              { text: "Tel : " + (company.tel || "") + "    ·    Site : " + (company.site_web || ""), fontSize: 8.5, color: "#475569" },
+              { text: "SIRET : " + (company.siret || "") + "    ·    Capital : " + fmtEUR(company.capital_eur || 0) + " €", fontSize: 8.5, color: "#475569" },
+          ] },
         ],
+        margin: [0, 0, 0, 10],
       },
-      companyBlock,
       metaRow,
       linesTable,
       notesBlock || { text: " " },

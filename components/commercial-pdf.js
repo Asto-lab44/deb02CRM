@@ -171,10 +171,26 @@
       tableBody.push(header);
     }
     let position = 0;
-    (doc.lines || []).forEach((l) => {
+    const totalCols = 1 /*N°*/ + (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 1 : 2);
+    // Helper : ajoute un en-tête de groupe (Abonnements / One-shot) sur
+    // toute la largeur du tableau.
+    const pushGroupHeader = (label, color, bg) => {
+      const row = [{ text: label, colSpan: totalCols, fillColor: bg, color, bold: true, fontSize: 10, margin: [4, 4, 4, 4] }];
+      for (let i = 1; i < totalCols; i++) row.push({});
+      tableBody.push(row);
+    };
+    // Helper : ajoute un sous-total à droite avec libellé à gauche.
+    const pushSubtotal = (label, total, color, bg) => {
+      const labelSpan = totalCols - 1;
+      const row = [
+        { text: label, colSpan: labelSpan, fillColor: bg, color, bold: true, fontSize: 9, margin: [4, 3, 4, 3], alignment: "right" },
+      ];
+      for (let i = 1; i < labelSpan; i++) row.push({});
+      row.push({ text: fmtEUR(total), fillColor: bg, color, bold: true, fontSize: 10, margin: [4, 3, 4, 3], alignment: "right" });
+      tableBody.push(row);
+    };
+    const renderLineRow = (l) => {
       if (l.is_text_only) {
-        // colSpan = nombre total de colonnes - 1 (laisse la 1ʳᵉ vide)
-        const totalCols = 1 /*N°*/ + (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 1 : 2);
         const span = totalCols - 1;
         const row = [
           { text: "", style: "tableCell" },
@@ -220,7 +236,26 @@
             ];
         tableBody.push(row);
       }
-    });
+    };
+    // Rendu groupé : Abonnements (récurrents) en haut + sous-total, puis
+    // Prestations one-shot en bas. Lignes texte rendues en bas de chaque
+    // groupe selon leur position d'origine (préservée par split).
+    const allLines = (doc.lines || []);
+    const recLines = allLines.filter((l) => !l.is_text_only && (l.periodicity || "oneshot") === "recurring");
+    const oneLines = allLines.filter((l) => !l.is_text_only && (l.periodicity || "oneshot") !== "recurring");
+    const textLines = allLines.filter((l) => l.is_text_only);
+    if (recLines.length > 0) {
+      pushGroupHeader("ABONNEMENTS (RÉCURRENTS)", "#3730a3", "#eef2ff");
+      recLines.forEach(renderLineRow);
+      const recHt = recLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
+      pushSubtotal("Sous-total abonnements HT (par période)", recHt, "#3730a3", "#eef2ff");
+    }
+    if (oneLines.length > 0) {
+      pushGroupHeader("PRESTATIONS ONE-SHOT", "#92400e", "#fef3c7");
+      oneLines.forEach(renderLineRow);
+    }
+    // Lignes texte purement informatives — affichées en queue de tableau
+    textLines.forEach(renderLineRow);
 
     // ───── Récap TVA par taux
     const tvaMap = {};

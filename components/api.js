@@ -1662,6 +1662,7 @@
             manufacturer_ref: l.manufacturer_ref || meta.manufacturer_ref || null,
             purchase_price_indicative: l.purchase_price_indicative != null ? l.purchase_price_indicative : (meta.purchase_price_indicative != null ? meta.purchase_price_indicative : null),
             supplier: l.supplier || meta.supplier || null,
+            periodicity: l.periodicity || meta.periodicity || "oneshot",
           };
         });
         return { ...doc, lines: hydrated };
@@ -1851,6 +1852,9 @@
           ...((line.data && typeof line.data === "object") ? line.data : {}),
           manufacturer_ref: line.manufacturer_ref || null,
           purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative),
+          // Périodicité (recurring / oneshot) — affecte le groupement et le
+          // sous-total abonnements dans l'éditeur et le PDF.
+          periodicity: line.periodicity || "oneshot",
         },
       };
       if (s) {
@@ -1867,7 +1871,7 @@
       // Si on les laissait dans le patch, Supabase rejetterait l'update entier
       // avec "column manufacturer_ref does not exist" et la qté ne serait pas
       // persistée — symptôme : "Enregistrer ne fait rien".
-      const INTERNAL_KEYS = ["manufacturer_ref", "purchase_price_indicative"];
+      const INTERNAL_KEYS = ["manufacturer_ref", "purchase_price_indicative", "periodicity"];
       const internal = {};
       const row = {};
       Object.keys(patch || {}).forEach((k) => {

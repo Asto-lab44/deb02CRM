@@ -2590,6 +2590,9 @@ var CommercialDocEditor = ({
           total_ttc: lTotalTtc,
           is_text_only: !!line.is_text_only,
           position: i,
+          // Périodicité (abonnement récurrent / one-shot) — détermine le
+          // groupement et le sous-total sur le PDF + l'éditeur.
+          periodicity: line.periodicity || "oneshot",
           // Champs internes (jamais sur PDF client)
           manufacturer_ref: line.manufacturer_ref || null,
           purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative),

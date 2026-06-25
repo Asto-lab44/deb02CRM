@@ -516,44 +516,43 @@
     // Source : window.HubAstoryaCGV (chargée depuis components/astorya-cgv.js
     // — données extraites du Word officiel « Conditions générales devis 2025 »).
     // Mise en page 2 colonnes type CGV verso, compactée pour tenir sur 1 page.
-    // Tailles très réduites (titre 6.5 / corps 5.5) + lineHeight 1.15 +
-    // header titre / sous-titre compressés pour maximiser l'espace utile.
-    const cgvBlock = (doc.type === "devis" && Array.isArray(window.HubAstoryaCGV) && window.HubAstoryaCGV.length > 0) ? {
-      pageBreak: "before",
-      stack: [
-        { text: "CONDITIONS GÉNÉRALES DE VENTE", fontSize: 10, bold: true, color: "#c91c45",
-          alignment: "center", margin: [0, 0, 0, 2] },
-        { text: "ASTORYA SGI · 9 rue du Petit Châtelier · 44300 Nantes · SIRET 523 625 804 00027",
-          fontSize: 6, color: "#64748b", alignment: "center", margin: [0, 0, 0, 5] },
-        {
-          columns: [
-            {
-              width: "*",
-              stack: window.HubAstoryaCGV.slice(0, Math.ceil(window.HubAstoryaCGV.length / 2))
-                .map((art, i) => ({
-                  stack: [
-                    { text: "Article " + (i + 1) + " — " + art.title,
-                      fontSize: 6.5, bold: true, color: "#0f172a", margin: [0, 2, 0, 1] },
-                    { text: art.body, fontSize: 5.5, alignment: "justify", color: "#334155", lineHeight: 1.15 },
-                  ],
-                })),
-            },
-            { width: 8, text: " " },
-            {
-              width: "*",
-              stack: window.HubAstoryaCGV.slice(Math.ceil(window.HubAstoryaCGV.length / 2))
-                .map((art, i) => ({
-                  stack: [
-                    { text: "Article " + (Math.ceil(window.HubAstoryaCGV.length / 2) + i + 1) + " — " + art.title,
-                      fontSize: 6.5, bold: true, color: "#0f172a", margin: [0, 2, 0, 1] },
-                    { text: art.body, fontSize: 5.5, alignment: "justify", color: "#334155", lineHeight: 1.15 },
-                  ],
-                })),
-            },
-          ],
-        },
-      ],
-    } : null;
+    // Split par LONGUEUR DE TEXTE (pas par nombre d'articles) pour équilibrer
+    // les deux colonnes. Mêmes tailles (titre 6.5 / corps 5.5) + lineHeight
+    // 1.15 dans les deux colonnes pour une typographie homogène.
+    const cgvBlock = (() => {
+      if (!(doc.type === "devis" && Array.isArray(window.HubAstoryaCGV) && window.HubAstoryaCGV.length > 0)) return null;
+      const articles = window.HubAstoryaCGV;
+      const totalLen = articles.reduce((s, a) => s + (a.title || "").length + (a.body || "").length, 0);
+      let acc = 0, splitAt = Math.ceil(articles.length / 2);
+      for (let i = 0; i < articles.length; i++) {
+        acc += (articles[i].title || "").length + (articles[i].body || "").length;
+        if (acc >= totalLen / 2) { splitAt = i + 1; break; }
+      }
+      const renderArt = (art, num) => ({
+        stack: [
+          { text: "Article " + num + " — " + art.title,
+            fontSize: 6.5, bold: true, color: "#0f172a", margin: [0, 2, 0, 1] },
+          { text: art.body, fontSize: 5.5, alignment: "justify", color: "#334155", lineHeight: 1.15 },
+        ],
+      });
+      return {
+        pageBreak: "before",
+        stack: [
+          { text: "CONDITIONS GÉNÉRALES DE VENTE", fontSize: 10, bold: true, color: "#c91c45",
+            alignment: "center", margin: [0, 0, 0, 2] },
+          { text: "ASTORYA SGI · 9 rue du Petit Châtelier · 44300 Nantes · SIRET 523 625 804 00027",
+            fontSize: 6, color: "#64748b", alignment: "center", margin: [0, 0, 0, 5] },
+          {
+            columns: [
+              { width: "*", stack: articles.slice(0, splitAt).map((art, i) => renderArt(art, i + 1)) },
+              { width: 10, text: " " },
+              { width: "*", stack: articles.slice(splitAt).map((art, i) => renderArt(art, splitAt + i + 1)) },
+            ],
+            columnGap: 0,
+          },
+        ],
+      };
+    })();
 
     const content = [
       headerBand,
@@ -573,10 +572,8 @@
       linesTable,
       notesBlock || { text: " " },
       isBL ? null : totalsBlock,
-      // Bloc signature (« Devis suivi par + IBAN / Bon pour accord ») juste
-      // sous les totaux pour le coller directement aux montants. unbreakable
-      // pour qu'il ne se coupe pas en deux pages.
-      { ...signatureBlock, unbreakable: true, margin: [0, 12, 0, 0] },
+      // Bloc signature ramené au footer (dernière page) pour qu'il soit
+      // collé en bas de page — voir footer callback. Pas dans le body.
       cgvBlock,
     ].filter(Boolean);
 
@@ -608,13 +605,21 @@
         const isLastPage = currentPage === pageCount;
         // Devis : on retire le bloc contacts (3 colonnes) et la réserve de
         // propriété au pied de page — le verso CGV les couvre déjà. On garde
-        // uniquement la signature en dernière page + la pagination discrète.
+        // uniquement la signature + la pagination discrète.
         const isDevis = doc.type === "devis";
+        // Si CGV au verso → signature sur l'avant-dernière page (pageCount-1)
+        // pour qu'elle apparaisse sous les totaux, pas sur la page CGV.
+        const hasCgvVerso = isDevis && Array.isArray(window.HubAstoryaCGV) && window.HubAstoryaCGV.length > 0;
+        const showSignature = hasCgvVerso
+          ? (currentPage === pageCount - 1)
+          : isLastPage;
         return {
           margin: [28, 0, 28, 8],
           stack: [
-            // Bloc signature déplacé dans le body juste sous les totaux
-            // (n'apparaît plus dans le footer).
+            // Bloc signature collé en bas de page sur la page des totaux.
+            // Sur les devis avec CGV au verso, c'est pageCount - 1 (l'avant-
+            // dernière). Sinon, dernière page classique.
+            showSignature ? signatureBlock : null,
             // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
             // gauche/droite, séparateur fin en haut) — masqué sur les devis
             isDevis ? null : {

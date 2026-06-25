@@ -288,9 +288,11 @@
 
     // ───── Bloc client (haut droite)
     const clientLines = [];
-    if (doc.client_name) clientLines.push({ text: doc.client_name, bold: true, fontSize: 12 });
-    if (doc.client_address) clientLines.push({ text: doc.client_address, fontSize: 9 });
-    if (doc.client_cp || doc.client_city) clientLines.push({ text: (doc.client_cp || "") + " " + (doc.client_city || ""), fontSize: 9 });
+    // Tailles harmonisées avec le bloc Astorya à gauche (raison sociale
+    // 10 bold, adresse 8.5, infos légales 8).
+    if (doc.client_name) clientLines.push({ text: doc.client_name, bold: true, fontSize: 10 });
+    if (doc.client_address) clientLines.push({ text: doc.client_address, fontSize: 8.5 });
+    if (doc.client_cp || doc.client_city) clientLines.push({ text: (doc.client_cp || "") + " " + (doc.client_city || ""), fontSize: 8.5 });
     if (doc.client_siren) clientLines.push({ text: "SIREN : " + doc.client_siren, fontSize: 8, color: "#666", margin: [0, 4, 0, 0] });
     if (doc.client_tva) clientLines.push({ text: "TVA : " + doc.client_tva, fontSize: 8, color: "#666" });
 
@@ -669,7 +671,15 @@
               { text: "SIRET : " + (company.siret || "") + "    ·    Capital : " + fmtEUR(company.capital_eur || 0) + " €", fontSize: 8.5, color: "#475569" },
           ] },
         ],
-        margin: [0, 0, 0, 10],
+        margin: [0, 0, 0, 6],
+      },
+      // Trait fin gris horizontal entre les coordonnées Astorya/client et
+      // la ligne Date / N° devis / Validité.
+      {
+        canvas: [
+          { type: "line", x1: 0, y1: 0, x2: 535, y2: 0, lineWidth: 0.4, lineColor: "#cbd5e1" },
+        ],
+        margin: [0, 0, 0, 8],
       },
       metaRow,
       linesTable,

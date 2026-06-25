@@ -237,21 +237,19 @@
         tableBody.push(row);
       }
     };
-    // Rendu groupé : Abonnements (récurrents) en haut + sous-total, puis
-    // Prestations one-shot en bas. Lignes texte rendues en bas de chaque
-    // groupe selon leur position d'origine (préservée par split).
+    // Rendu groupé : Abonnements (récurrents) en haut, puis Prestations
+    // one-shot, sans bandeau d'en-tête de groupe (le sous-total
+    // abonnements suffit à matérialiser la séparation).
     const allLines = (doc.lines || []);
     const recLines = allLines.filter((l) => !l.is_text_only && (l.periodicity || "oneshot") === "recurring");
     const oneLines = allLines.filter((l) => !l.is_text_only && (l.periodicity || "oneshot") !== "recurring");
     const textLines = allLines.filter((l) => l.is_text_only);
     if (recLines.length > 0) {
-      pushGroupHeader("ABONNEMENTS (RÉCURRENTS)", "#3730a3", "#eef2ff");
       recLines.forEach(renderLineRow);
       const recHt = recLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
       pushSubtotal("Sous-total abonnements HT (par période)", recHt, "#3730a3", "#eef2ff");
     }
     if (oneLines.length > 0) {
-      pushGroupHeader("PRESTATIONS ONE-SHOT", "#92400e", "#fef3c7");
       oneLines.forEach(renderLineRow);
     }
     // Lignes texte purement informatives — affichées en queue de tableau

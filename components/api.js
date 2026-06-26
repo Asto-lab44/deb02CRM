@@ -3646,5 +3646,104 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport };
+  // ───────────────────────────────────────────────────────────────────
+  // §N. EMAIL TEMPLATES — modèles d'emails réutilisables
+  // ───────────────────────────────────────────────────────────────────
+  //
+  // Table : public.email_templates (id, user_id, name, category, subject,
+  //         body, variables, is_default, created_at, updated_at)
+  //
+  // Variables disponibles : {client_name}, {client_raison_sociale},
+  //   {contact_prenom}, {contact_nom}, {contact_fonction},
+  //   {opportunity_name}, {amount}, {owner_name}, {date_du_jour}
+  //
+  // Méthodes : list, getById, create, update, remove, render(template, ctx)
+  // ───────────────────────────────────────────────────────────────────
+  const emailTemplates = {
+    async list(filter = {}) {
+      const s = supa();
+      if (s) {
+        let q = s.from("email_templates").select("*");
+        if (filter.category) q = q.eq("category", filter.category);
+        const { data, error } = await q.order("position", { ascending: true }).order("name");
+        if (error) console.warn("[api.emailTemplates.list]", error.message);
+        return data || [];
+      }
+      return lsGet("email_templates_v1");
+    },
+    async getById(id) {
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("email_templates").select("*").eq("id", id).maybeSingle();
+        return data;
+      }
+      return lsGet("email_templates_v1").find((t) => t.id === id) || null;
+    },
+    async create(payload) {
+      const id = payload.id || genId("TPL");
+      const full = { id, ...payload, created_at: new Date().toISOString() };
+      const s = supa();
+      if (s) {
+        const user_id = await getCurrentUserId();
+        const { data } = await s.from("email_templates").insert({ ...full, user_id }).select().maybeSingle();
+        return data || full;
+      }
+      const arr = lsGet("email_templates_v1");
+      arr.unshift(full);
+      lsSet("email_templates_v1", arr);
+      return full;
+    },
+    async update(id, patch) {
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("email_templates").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+        return data;
+      }
+      const arr = lsGet("email_templates_v1");
+      const idx = arr.findIndex((t) => t.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], ...patch }; lsSet("email_templates_v1", arr); return arr[idx]; }
+      return null;
+    },
+    async remove(id) {
+      const s = supa();
+      if (s) await s.from("email_templates").delete().eq("id", id);
+      const arr = lsGet("email_templates_v1").filter((t) => t.id !== id);
+      lsSet("email_templates_v1", arr);
+    },
+    // Rendu d'un template avec contexte — remplace {variables} par les
+    // valeurs du contexte. Retourne { subject, body }.
+    render(template, ctx) {
+      const c = ctx || {};
+      const today = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+      const vars = {
+        client_name: c.client_name || c.raison_sociale || "",
+        client_raison_sociale: c.raison_sociale || c.client_name || "",
+        contact_prenom: c.contact_prenom || (c.contact && c.contact.prenom) || "",
+        contact_nom: c.contact_nom || (c.contact && c.contact.nom) || "",
+        contact_fonction: c.contact_fonction || (c.contact && c.contact.fonction) || "",
+        opportunity_name: c.opportunity_name || c.opp_name || "",
+        amount: c.amount || "",
+        owner_name: c.owner_name || c.owner || "",
+        date_du_jour: today,
+      };
+      const apply = (s) => String(s || "").replace(/\{(\w+)\}/g, (_, k) => vars[k] != null ? vars[k] : "{" + k + "}");
+      return {
+        subject: apply(template.subject || ""),
+        body: apply(template.body || ""),
+      };
+    },
+    // Ouvre Outlook Web (OWA) avec le template pré-rempli. Si l'email
+    // destinataire est fourni, il est mis en To. Sinon laissé vide.
+    composeOutlookWeb({ to, template, ctx }) {
+      const rendered = this.render(template, ctx);
+      const url = "https://outlook.office.com/owa/?path=/mail/action/compose"
+        + (to ? "&to=" + encodeURIComponent(to) : "")
+        + "&subject=" + encodeURIComponent(rendered.subject)
+        + "&body=" + encodeURIComponent(rendered.body);
+      window.open(url, "_blank", "noopener");
+      return rendered;
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates };
 })();

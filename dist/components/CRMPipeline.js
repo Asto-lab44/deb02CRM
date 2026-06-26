@@ -2570,17 +2570,32 @@ var CRMActionsList = () => {
         var lastName = (contact && contact.nom || "").trim();
         var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
         // Téléchargement local de la plaquette → l'utilisateur la
-        // glisse dans son mail (mailto: ne supporte pas les pièces
-        // jointes, contrainte sécurité navigateur)
+        // glisse dans son mail (OWA ne supporte pas les pièces jointes
+        // via URL, contrainte sécurité navigateur).
         var link = document.createElement("a");
         link.href = "/assets/Plaquette-Astorya.pdf";
         link.download = "Plaquette-Astorya.pdf";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        // Ouvre Outlook Web (OWA) plutôt que mailto: — fonctionne sur
-        // n'importe quel poste sans nécessiter un client mail local
-        // installé. Onglet séparé pour ne pas perdre la session Hub.
+        // Picker template d'email avec contexte client/contact —
+        // l'utilisateur choisit un modèle, OWA s'ouvre pré-rempli.
+        // Fallback : OWA direct avec sujet/corps plaquette.
+        if (window.HubEmailTemplatePicker) {
+          window.HubEmailTemplatePicker.open({
+            to: email,
+            ctx: {
+              client_name: client && (client.raison_sociale || client.name) || "",
+              raison_sociale: client && (client.raison_sociale || client.name) || "",
+              contact_prenom: contact && contact.prenom || "",
+              contact_nom: contact && contact.nom || "",
+              contact_fonction: contact && contact.fonction || "",
+              owner_name: a.assigned || ""
+            }
+          });
+          if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans Outlook");
+          return;
+        }
         var owaUrl = "https://outlook.office.com/owa/?path=/mail/action/compose" + "&to=" + encodeURIComponent(email) + "&subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") + "&body=" + encodeURIComponent(body);
         window.open(owaUrl, "_blank", "noopener");
         if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail Outlook");

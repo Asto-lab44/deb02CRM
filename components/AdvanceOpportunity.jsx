@@ -377,6 +377,38 @@ const AdvanceOpportunity = () => {
               if (window.HubToast) window.HubToast.error("Erreur création devis : " + (e.message || e));
             }
           }} style={{ ...S.btnGhost, borderColor: "#f59e0b", color: "#b45309", background: "#fef0e6" }}>📄 Créer un devis</button>
+          {/* Picker template email — ouvre la modale puis Outlook Web pré-rempli
+              avec le contexte de l'opportunité courante (client + contact + opp). */}
+          <button onClick={async () => {
+            if (!window.HubEmailTemplatePicker) {
+              if (window.HubToast) window.HubToast.warn("Picker indisponible — recharge la page");
+              return;
+            }
+            let recipient = "", contact = null;
+            if (clientId && window.api && window.api.contacts) {
+              try {
+                const conts = await window.api.contacts.list({ client_id: clientId });
+                contact = (conts || []).find((c) => c.is_principal) || (conts || [])[0] || null;
+                recipient = (contact && contact.email) || "";
+              } catch (e) {}
+            }
+            window.HubEmailTemplatePicker.open({
+              to: recipient,
+              ctx: {
+                client_name: opp.client_name || "",
+                raison_sociale: opp.client_name || "",
+                contact_prenom: (contact && contact.prenom) || "",
+                contact_nom: (contact && contact.nom) || "",
+                contact_fonction: (contact && contact.fonction) || "",
+                opportunity_name: editName || opp.name || "",
+                amount: editAmount ? (Number(editAmount).toLocaleString("fr-FR") + " €") : "",
+                owner_name: opp.owner || "",
+              },
+            });
+          }} style={{ ...S.btnGhost, borderColor: "#a855f7", color: "#7e22ce", background: "#f5efff" }}
+             title="Envoyer un email avec un template — Outlook Web pré-rempli">
+            📧 Email
+          </button>
           {/* Enregistrer la fiche sans avancer l'étape — utile pour mettre à jour
               une date concurrent, un montant, une note... sans déclencher de SPANCO */}
           <button onClick={saveOpp} disabled={savingOpp}

@@ -1342,7 +1342,7 @@ const ClientPage = () => {
                             return (
                               <button
                                  type="button"
-                                 title={recipient ? ("Ouvrir Outlook pour " + recipient) : "Aucun destinataire renseigné"}
+                                 title={recipient ? ("Choisir un template d'email pour " + recipient) : "Aucun destinataire renseigné"}
                                  onClick={(e) => {
                                    if (!recipient) {
                                      if (window.HubToast) window.HubToast.warn("Aucun email — ajoute un contact d'abord");
@@ -1357,7 +1357,24 @@ const ClientPage = () => {
                                    document.body.appendChild(link);
                                    link.click();
                                    document.body.removeChild(link);
-                                   window.open(href, "outlook-compose", "noopener");
+                                   // Picker template avec contexte client + contact
+                                   if (window.HubEmailTemplatePicker) {
+                                     const contact0 = (allContacts && allContacts[0]) || {};
+                                     window.HubEmailTemplatePicker.open({
+                                       to: recipient,
+                                       ctx: {
+                                         client_name: display.name || display.raison_sociale || "",
+                                         raison_sociale: display.raison_sociale || display.name || "",
+                                         contact_prenom: contact0.prenom || "",
+                                         contact_nom: contact0.nom || (contact0.name || "").split(" ").slice(-1)[0] || "",
+                                         contact_fonction: contact0.fonction || "",
+                                         owner_name: display.owner || "",
+                                       },
+                                     });
+                                   } else {
+                                     // Fallback : OWA direct avec sujet plaquette
+                                     window.open(href, "outlook-compose", "noopener");
+                                   }
                                    if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans Outlook comme pièce jointe");
                                  }}
                                  style={{ ...hoverStyle, border: 0 }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}

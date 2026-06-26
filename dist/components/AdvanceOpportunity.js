@@ -551,6 +551,44 @@ var AdvanceOpportunity = () => {
       background: "#fef0e6"
     }
   }, "\uD83D\uDCC4 Cr\xE9er un devis"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!window.HubEmailTemplatePicker) {
+        if (window.HubToast) window.HubToast.warn("Picker indisponible — recharge la page");
+        return;
+      }
+      var recipient = "",
+        contact = null;
+      if (clientId && window.api && window.api.contacts) {
+        try {
+          var conts = await window.api.contacts.list({
+            client_id: clientId
+          });
+          contact = (conts || []).find(c => c.is_principal) || (conts || [])[0] || null;
+          recipient = contact && contact.email || "";
+        } catch (e) {}
+      }
+      window.HubEmailTemplatePicker.open({
+        to: recipient,
+        ctx: {
+          client_name: opp.client_name || "",
+          raison_sociale: opp.client_name || "",
+          contact_prenom: contact && contact.prenom || "",
+          contact_nom: contact && contact.nom || "",
+          contact_fonction: contact && contact.fonction || "",
+          opportunity_name: editName || opp.name || "",
+          amount: editAmount ? Number(editAmount).toLocaleString("fr-FR") + " €" : "",
+          owner_name: opp.owner || ""
+        }
+      });
+    },
+    style: {
+      ...S.btnGhost,
+      borderColor: "#a855f7",
+      color: "#7e22ce",
+      background: "#f5efff"
+    },
+    title: "Envoyer un email avec un template \u2014 Outlook Web pr\xE9-rempli"
+  }, "\uD83D\uDCE7 Email"), /*#__PURE__*/React.createElement("button", {
     onClick: saveOpp,
     disabled: savingOpp,
     style: {

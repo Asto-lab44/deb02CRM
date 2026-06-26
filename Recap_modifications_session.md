@@ -1,423 +1,430 @@
 # Récap des modifications — CRM/ERP web (React 18 + Supabase)
 
-Document conçu pour être passé tel quel à un autre LLM. Il décrit **18 évolutions fonctionnelles** à reproduire sur un projet du même type :
-- Front : **React 18 UMD** (sans bundler) avec JSX **pré-compilé** par un script Babel maison (style `tools/build.js`) qui produit des `dist/components/*.js` chargés en `<script defer>` dans des `*.html`.
-- Backend : **Supabase** (auth + Postgres + RLS + Storage) exposé via un module `window.api`.
-- PDF : **pdfmake** (UMD CDN).
-- Modaux/toasts : helpers globaux `window.HubModal.{confirm,prompt,alert}` et `window.HubToast.{success,error,warn,info}` (fallback natif si absents).
-- Données externes : `recherche-entreprises.api.gouv.fr` (SIRENE/INPI), Pappers (procédures collectives), BODACC.
-
-Pour chaque section : **objectif**, **fichier(s) visé(s)**, **invariants à respecter**. Aucun code intégral — uniquement les contrats d'API et les patterns à adapter à la base cible.
+Document générique réutilisable sur tout projet de la même architecture (React 18 UMD avec JSX pré-compilé + Supabase + pdfmake + helpers globaux modal/toast). 44 évolutions livrées depuis le dernier récap, regroupées en 9 thèmes.
 
 ---
 
-## 1. Email du contact client → Outlook Web (au lieu de `mailto:`)
+## 1. CRM PIPELINE — VUES ET COLONNES
 
-**Fichier** : page de fiche client.
-**Pourquoi** : `mailto:` ouvre un client local non installé sur tous les postes. Outlook Web (OWA) fonctionne partout.
+### 1.1 Toggle vue Kanban / Liste
 
-Sur l'icône Email d'un contact, remplacer `mailto:<email>` par
-```
-https://outlook.office.com/owa/?path=/mail/action/compose&to=<encoded_email>
-```
-en faisant `encodeURIComponent` sur l'email.
+Sur la page Pipeline commercial, ajouter un toggle deux boutons (`⊞` kanban, `☰` liste) dans le header :
+- Persisté en `localStorage` sous une clé propre à l'écran
+- Vue liste : tableau plat trié par stage puis montant décroissant
+- Colonnes : Opportunité, Client, Stage (pastille colorée), Montant, Probabilité, Owner, Échéances (cf. § 1.3)
+- Lignes cliquables → ouvre la page Avancer l'opportunité
 
----
+### 1.2 Vue liste — échéance avec code couleur d'urgence
 
-## 2. Drag-and-drop des opportunités entre colonnes du kanban (fiche client)
+Helper `fmtClose(iso)` qui retourne `{ label, color, weight, badge }` selon :
+- `< 0 j` → rouge + badge « En retard »
+- `≤ 7 j` → orange + badge « J-N »
+- `≤ 30 j` → ambre
+- `> 30 j` → gris ardoise
+- `null` → cellule vide (pas de « — »)
 
-**Fichier** : composant kanban de la fiche client.
+Source : `o.close_date || o.data.close_date || o.data.decision_date || o.data.expected_close_date`.
 
-- Sur chaque carte : `draggable={!!(opp.id)}` + `onDragStart` qui stocke l'id dans `dataTransfer.setData("oppId", id)`.
-- Sur chaque colonne : `onDragOver` (preventDefault + dropEffect `"move"`), `onDragLeave`, `onDrop` :
-  1. Récupère `oppId` depuis `dataTransfer`.
-  2. Ouvre une `HubModal.confirm` (fallback `confirm`) : « Déplacer X de Y vers Z ? ».
-  3. Si OK : `api.opportunities.update(id, { stage: col.key, proba: stageProba[col.key] })`.
-  4. Toast + reload de `api.opportunities.list({ client_id })`.
-- Table de probabilité par stage (à adapter) :
-  ```js
-  { qualif: 20, discovery: 35, propo: 55, nego: 75, won: 100 }
-  ```
+### 1.3 Deux colonnes d'échéance distinctes
 
----
+Ajouter deux colonnes dans la vue liste :
+- **Date de décision potentielle** (champ `close_date`)
+- **Échéance contrat concurrent** (champ `contract_end`)
 
-## 3. Modale « Nouvelle opportunité » en pleine largeur
+Les libellés des colonnes doivent matcher exactement les libellés des champs du formulaire Avancer l'opportunité (cf. § 2.1).
 
-**Fichier** : composant modal de création opportunité.
+### 1.4 Remontée du bloc « Actions à mener »
 
-Style du container : `width: "calc(100vw - 24px)"` + `maxWidth: "none"`. Garder les marges intérieures inchangées.
+Sur la page Pipeline commercial, l'ordre vertical des sections devient :
+1. Kanban / Liste
+2. **Actions à mener** (remontée)
+3. Comptes & contacts (descendue)
 
----
+Le commercial voit ses tâches prioritaires avant la liste des comptes.
 
-## 4. Auto-création d'un devis pré-rempli quand on arrive avec `?client=` ou `?opp=`
+### 1.5 Stepper SPANCO en pilules rectangulaires
 
-**Fichier** : composant de gestion commerciale (éditeur de devis).
-
-- Au mount, lire `URLSearchParams` : `client`, `opp`, `open`.
-- Si `client` ou `opp` présents **et** pas de `open` → créer automatiquement un devis vierge rattaché.
-- Numéro : `DEV-YYYY-NNNN`.
-- Garde-fou anti-doublon : ne pas recréer si un devis pour ce couple `(client, opp)` est déjà ouvert dans la session courante.
-- **Bug à éviter** : `?opp=undefined` arrive si l'appelant ne checke pas `o.ref || o.id` côté lien — verrouiller des deux côtés (lien ET cible).
-
----
-
-## 5. Redesign panneau « Informations compte » de la fiche client
-
-**Fichier** : fiche client.
-
-Remplacer un panneau plat par **3 cartes** à fond pastel et bordure colorée gauche 3 px :
-1. **Suivi commercial** — fond `#eef2ff` (indigo pâle)
-2. **Cycle de vie** — fond `#ecfdf5` (vert pâle)
-3. **Identité légale** — fond `#fafbfc` (gris pâle)
-
-Headers compacts : fontSize 10–11, `text-transform: uppercase`, `letter-spacing: 0.5`.
+Sur les pages d'avancement de stage (workflow SPANCO ou similaire) et sur les pages de création de contrat, remplacer les ronds verticaux par des **pilules rectangulaires colorées** style « workflow Devis → Commande → BL → Facture » :
+- Pleine couleur stage pour les étapes passées + courante
+- Bordure colorée + fond clair pour la cible
+- Halo `box-shadow: 0 0 0 5px <color>33` sur l'étape courante
+- Badge à droite : **VALIDÉ** (passé) / **ACTUELLE** (courant) / **CIBLE** (sélectionné)
+- Icône carrée à gauche (✓ ou Letter)
+- Label + % sous chaque pilule
+- Flèches **→** entre chaque pilule
 
 ---
 
-## 6. Badge auto-complétion ne doit pas chevaucher le bouton ×
+## 2. WORKFLOW D'OPPORTUNITÉ
 
-**Fichier** : formulaire prospect.
+### 2.1 Bouton « 💾 Enregistrer » sans avancer l'étape
 
-Sur le style du badge « 🔍 Auto-complété via base SIRENE » :
+Sur la page d'avancement de stage, ajouter à 3 endroits un bouton qui sauve les champs édités (nom, montant, dates, besoin, concurrent, notes) **sans déclencher de transition** :
+1. Topbar (à côté du bouton « Créer un devis »)
+2. Barre d'action du bas (à gauche du bouton « Confirmer le passage »)
+3. Branche étape finale (à côté du « Marquer comme perdu »)
+
+État `savingOpp` pour disable + spinner pendant la requête. Toast « ✓ Modifications enregistrées ».
+
+### 2.2 Bouton « 🗑 Supprimer l'opportunité »
+
+Topbar de la page d'avancement, disponible à toutes les étapes. Modale de confirmation `HubModal.confirm` style danger, puis appel à une méthode `api.opportunities.remove(id)` qui détache (`UPDATE projects SET opportunity_id = NULL`) puis supprime l'opportunité. Redirection vers la fiche client (ou la page pipeline).
+
+### 2.3 Actions automatiques sur transitions SPANCO
+
+Hook côté client après chaque update d'étape réussi. Les actions sont rattachées au client + à l'opportunité (champ `opp_id`, **pas** `opportunity_id` — cohérence avec le reste du schéma).
+
+| Transition | Action créée | Échéance | Priorité | Tag |
+|---|---|---|---|---|
+| Prospect → Approche | 📝 « Préparation de la rédaction de l'offre commerciale » | J+7 | Haute | « Préparation offre » (bleu) |
+| Approche → Négociation | ✉ « Envoi de l'offre commerciale » | J+5 | Haute | « Offre commerciale » (violet) |
+
+Toast info à la création.
+
+### 2.4 Correction du bug initiales acronymes
+
+L'extraction d'initiales (logo client) cassait sur les acronymes avec parenthèses : « ATPS (ATPS) » → tokens `["ATPS", "(ATPS)"]` → initiales `"A("`.
+
+Nouvelle logique :
+1. Strip des parenthèses (`replace(/\s*\([^)]*\)\s*/g, " ")`)
+2. Si un seul mot → 2 premières lettres
+3. Sinon → première lettre de chaque mot (max 2)
+
+Exemples : `ATPS (ATPS)` → `AT`, `Capexia Conseils (Capexia)` → `CC`, `Pierre Martin` → `PM`.
+
+---
+
+## 3. GESTION COMMERCIALE (DEVIS / COMMANDES / BL / FACTURES)
+
+### 3.1 Note interne technicien
+
+Sous les totaux, bloc dépliable « 🔒 Note interne — visible techniciens uniquement » avec :
+- Fond jaune ocre, bordure pointillée
+- Badge **NON IMPRIMÉE**
+- Textarea 5 lignes (placeholder : configs techniques, accès admin, contraintes infra)
+- Compteur caractères + mention « Note héritée du parent » sur docs transformés
+
+Stockée dans `data.internal_notes` (jsonb). La méthode `transform()` côté API copie ce champ vers l'enfant pour la cascade Devis → Commande → BL → Facture.
+
+### 3.2 Groupement Abonnements / One-shot
+
+Chaque ligne reçoit un champ `periodicity` (`"recurring"` ou `"oneshot"`) :
+- **Toggle pill** par ligne (📦 Abonnement / 🛠 One-shot) dans le rendu éditeur
+- **Auto-détection** depuis la SKU à la création (regex sur `MAINT|HEBE|HOST|HUB|ABO|SUBSC|TEL|M365|EXCH|NAS|HOTLINE|SUPPORT|INFOG|SAAS` → recurring)
+- Tri visuel : récurrents en haut, one-shot en bas
+- **Sous-total HT abonnements** en bandeau indigo entre les deux groupes (calcul `recurringHt`)
+
+Persistance : `periodicity` envoyé dans `normalizedLine` + extrait via `INTERNAL_KEYS` côté `updateLine` (stocké en `data` jsonb pour ne pas nécessiter de colonne SQL). Hydratation au chargement : `l.periodicity = l.periodicity || data.periodicity || "oneshot"`.
+
+### 3.3 Verrouillage du champ Unité
+
+Le sélecteur 6 options (u / h / j / mois / an / forfait) est remplacé par un input read-only + disabled affichant « u (unité) ». Cohérence garantie pour les exports comptables.
+
+### 3.4 Suppression du champ Conditions de paiement
+
+Le sélecteur « À réception / 30 j net / 45 j fdm / etc. » est retiré du bandeau de l'éditeur. Le grid passe de 3 à 2 colonnes (Rattacher / Statut). Le champ `payment_terms_id` reste en BDD pour rétrocompatibilité mais n'est plus modifiable.
+
+### 3.5 Auto-création de devis depuis URL
+
+Quand `/gestion-commerciale` est ouvert avec `?client=` ou `?opp=` (et pas de `&open=`), créer automatiquement un devis vierge pré-rempli. Garde-fou anti-doublon : ne pas recréer si un devis pour ce couple (client, opp) est déjà ouvert dans la session.
+
+---
+
+## 4. PDF DEVIS — REFONTE COMPLÈTE
+
+### 4.1 Bandeau header
+
+- Logo : `fit [240, 55] → [340, 80]` (+40 %)
+- Titre type (DEVIS / FACTURE / …) : 22 pt par défaut, peut être ajusté
+- Largeur cellule titre : 140 → 170 pt
+- Trait rouge sous le bandeau : 2 → 2,4 px
+- Padding cellule logo : 4 → 6 pt vertical
+
+### 4.2 Bloc parties (Astorya / Destinataire)
+
+**Une seule ligne** sous le trait rouge avec deux colonnes :
+- **Gauche** : raison sociale (10 pt bold) + adresse + CP/ville + email (8,5 pt)
+- **Droite** : bloc client (mêmes tailles, **bold 10 pt** pour le nom)
+
+**Décalage à droite** du bloc client : `margin-left: 40 pt` pour aérer la séparation.
+
+Ligne dense en-dessous : Tel · Site · SIRET · Capital (8,5 pt gris ardoise).
+
+### 4.3 Trait fin gris de séparation
+
+Entre la zone parties et la ligne meta (Date · Devis N° · Validité), insérer une fine ligne SVG :
 ```js
-right: (companyName || companySiren) ? 44 : 8
+{ canvas: [{ type: "line", x1: 0, y1: 0, x2: 535, y2: 0, lineWidth: 0.4, lineColor: "#cbd5e1" }] }
 ```
-Le `× 44px` doit être réservé à droite quand un prospect est sélectionné.
 
----
+### 4.4 Tableau des lignes — groupes + sous-totaux
 
-## 7. Réinitialiser à zéro les KPIs placeholder sur les tuiles du home sans données réelles
+Boucle restructurée pour rendre dans cet ordre :
+1. Lignes **récurrentes** (abonnements) — pas d'en-tête de groupe
+2. **Sous-total abonnements HT (par période)** — bandeau compact indigo
+3. Lignes **one-shot** (prestations ponctuelles)
+4. **Sous-total prestations ponctuelles HT** — bandeau compact indigo (même couleur que abonnements pour cohérence)
+5. Lignes texte purement informatives
 
-**Fichier** : home ERP.
+Helpers :
+- `pushSubtotal(label, total, color, bg)` — version ultra-compacte (italique 8 pt, montant 8,5 pt, marges 0, flag `_subtotal: true`)
+- Layout du tableau : `paddingTop/paddingBottom = 1` si `cell._subtotal === true`, sinon 6 px
 
-Remplacer les valeurs mockées (« 12 leads chauds », « 4 tickets P1 »…) par `0` ou `—` pour les tuiles non encore branchées sur des données réelles. Ne **pas** toucher aux tuiles qui ont déjà des vraies KPIs.
+**Alignement strict** : `margin: [0, 0, 0, 0]` sur le montant du sous-total pour qu'il s'aligne sur la colonne « Montant HT » des lignes (la padding droite vient du layout, pas de la cellule).
 
----
+### 4.5 Code TVA + colonne Montant TTC
 
-## 8. PDF commercial — logo complet, header & totaux réduits, signature en footer de dernière page
+Le tableau récap TVA affiche désormais :
+- **Code** = `T<rate>` (`T20`, `T10`, `T5.5`…) au lieu d'un index 1/2/3
+- Taux suffixé « % »
+- **Nouvelle colonne « Montant TTC »** = Base HT + Montant TVA par taux
 
-**Fichiers** : générateur PDF commercial (pdfmake) + module SVG des assets.
+Bloc totaux à droite : ajout d'une ligne **« Total TTC »** entre Total TVA et NET A PAYER.
 
-- **SVG logo** : étendre le `viewBox` (ex : passer de `0 0 1900 600` à `0 0 3300 600`) si la tagline du logo est tronquée. Garder le ratio.
-- **PDF** :
-  - Cellule logo : `fit: [240, 55]` (au lieu de tailles plus grandes).
-  - Header band widths : `["*", 140]`, fontSize 22 pour le titre.
-  - Bloc totaux : width 180, fontSize 9 / 10.5.
-  - Bloc « Suivi par / IBAN / Bon pour accord » : **rendu uniquement** dans le `footer(currentPage, pageCount)` callback **quand** `currentPage === pageCount`. Réserver une hauteur footer suffisante (`~210`).
+### 4.6 Fix carrés vides séparateurs de milliers
 
----
+`Number.prototype.toLocaleString("fr-FR")` utilise NARROW NO-BREAK SPACE (U+202F) comme séparateur de milliers — la police Roboto embarquée par pdfmake ne dessine pas ce glyphe et affiche un carré vide.
 
-## 9. Document légal « mise à disposition gratuite + services payants » + générateurs
-
-**Nouveaux fichiers** :
-- `<nom_doc>.md` (markdown source, ~700 lignes)
-- `<nom_doc>.docx` (généré via **python-docx**)
-- `<nom_doc>.pdf` (généré via **reportlab**, polices DejaVu)
-
-**Structure recommandée** :
-- 3 articles d'introduction (présentation, FAQ, email type)
-- 1 contrat principal avec clauses sécurité (anti-vol code, RGPD)
-- Annexes (RIB, sous-traitants…)
-- **Article 2 bis** : services payants (hébergement + BDD + SSL + maintenance + TMA) → renvoie vers un Contrat de Services séparé.
-- **Article 8 bis** : assurance cyber obligatoire + sauvegarde air-gap non-refusable.
-- **Article 10 bis** : exclusion de responsabilité pour modification du code par tiers (IA générative, dev externe).
-- Grille tarifaire en annexe : 3 formules (ex : Essentiel / Business / Premium) + tarifs restauration (simple / avec données / catastrophe).
-
-**Conversion** :
-- Scripts Python : `md2docx.py` (python-docx) et `md2pdf_rl.py` (reportlab).
-- Police : `/usr/share/fonts/truetype/dejavu/DejaVuSans*.ttf` (l'`Oblique.ttf` n'existe pas sur certains environnements → fallback `DejaVuSans.ttf` pour l'italique).
-- **LibreOffice headless** échoue souvent en environnement managé → utiliser **uniquement** python-docx + reportlab.
-
----
-
-## 10. Module export de réversibilité RGPD — bouton « ⬇ Exporter les données »
-
-**Fichiers** : module API global (`window.api`) + fiche client.
-
-Créer un module `dataExport` :
+Fix dans la fonction `fmtEUR` :
 ```js
-const dataExport = {
-  _toCsv(rows) { /* CSV UTF-8 BOM, séparateur ; */ },
-  async collect(clientId) { /* fetch toutes les tables liées au client */ },
-  _loadJSZip() { /* lazy CDN cdnjs/jszip */ },
-  async downloadZip(clientId, clientName) {
-    // ZIP contenant : data/*.csv (une par table), data_complete.json,
-    // manifest.json (versions + checksums), README.md
-    // Nom : export-<slug-client>-<YYYY-MM-DD>.zip
-  },
-};
-window.api = { ..., dataExport };
+.replace(/[  ]/g, " ")  // NBSP + NNBSP → espace standard
 ```
 
-Bouton « ⬇ Exporter les données » sur la fiche client → `api.dataExport.downloadZip(clientId, clientName)`.
-**Article correspondant** dans le contrat : clause de réversibilité (art. 20 RGPD).
+### 4.7 Note logistique au-dessus du tableau TVA (devis uniquement)
 
----
+Block en italique gris ardoise, justifié, marges 14/10 pt :
 
-## 11. Document séparé « Contrat de Services »
+> « Nous achetons le matériel tous les jeudis de chaque semaine, par conséquent, merci de nous faire un retour avant ce jour afin de nous permettre de vous livrer la semaine suivante. »
 
-**Nouveaux fichiers** : `<nom_doc_services>.md` + `.docx` + `.pdf`.
+### 4.8 Bloc signature reformaté
 
-**Structure** : préambule + **16 articles** + 5 annexes.
+Sur les **devis uniquement**, remplacer le libellé Conditions de paiement par :
+- Texte gras « Règlement à la commande d'un acompte de 40 % »
+- Cadre signature noir 0,7 px encadrant un encart « Bon pour accord : » + espace blanc 24 pt + « Le : »
 
-Articles type :
-1. Objet
-2. Durée et reconduction
-3. Description des prestations (hébergement, BDD, SSL, sauvegardes, maintenance, TMA, support)
-4. Tarification (révision Syntec +5 % max)
-5. SLA (99,5 % / 99,7 %, P1–P4)
-6. Obligations Prestataire
-7. Obligations Client
-8. Responsabilité (plafond 1× CA annuel)
-9. Restauration (3 paliers tarifaires)
-10. PI
-11. Confidentialité
-12. Assurances
-13. Résiliation
-14. Force majeure
-15. Droit / juridiction (siège du prestataire)
-16. Dispositions diverses
+Pour les autres types de docs, garder le libellé classique.
 
-Annexes : SLA détaillé par formule, annexe tarifaire, sous-traitants techniques (héb. + BDD + DNS), mode opératoire support, bon de commande type.
+### 4.9 Positionnement du bloc signature
 
----
-
-## 12. Stepper de workflow type SPANCO sur la page Nouveau contrat
-
-**Fichier** : composant Nouveau contrat.
-
-Remplacer un mini stepper (24 px) par un stepper visuel identique à celui de la page « Avancer opportunité » (qui suit le pattern SPANCO Prospect → Approche → Négociation → Conclusion → Ordre) :
-
-- **5 gros cercles 38 px** colorés (à adapter selon les étapes du workflow contrat) :
-  - Étape 1 (gris `#94a3b8`)
-  - Étape 2 (bleu `#3b82f6`)
-  - Étape 3 (violet `#a855f7`)
-  - Étape 4 (orange `#ea580c`)
-  - Étape 5 (vert `#10b981`)
-- Lettre dans le cercle non-complété, **✓** pour les étapes passées/courante.
-- **Halo coloré** `box-shadow: 0 0 0 5px <color>33` sur l'étape courante.
-- Lignes connectrices positionnées au centre des cercles : `top: 18`, `left: calc(50% + 22px)`, `right: calc(-50% + 22px)`, hauteur 2 px, couleur = stage si passé, sinon `#e2e8f0`.
-- Label + % sous chaque cercle.
-- **Calcul automatique de l'étape courante** = première étape non-`done` (basé sur le remplissage du formulaire).
-
----
-
-## 13. Panneau dépliable « Articles du contrat » dans la section Conditions juridiques
-
-**Fichiers** : composant Nouveau contrat + nouveau fichier de données + HTML correspondant.
-
-**1. Fichier de données** (`components/contract-articles.js`, ou équivalent) :
+**Dans le body** juste avant le saut de page CGV (et seulement sur les devis) :
 ```js
-window.HubContractArticles = [
-  { n: 1, title: "OBJET DU CONTRAT", body: "..." },
-  // ...16 entrées extraites du markdown du Contrat de Services
-];
+(doc.type === "devis") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] } : null
 ```
 
-Extraction depuis le `.md` : script Python qui découpe sur `## ARTICLE N — TITRE`.
+Footer allégé : 30 px sur les devis (juste pagination), 120 px sur les autres docs.
 
-**2. Inclusion HTML** : `<script src="components/contract-articles.js?v=...">` **avant** le composant Nouveau contrat.
+### 4.10 Pied de page allégé sur les devis
 
-**3. Composant Nouveau contrat** :
-- State `contractArticles` initialisé depuis `window.HubContractArticles`, chaque item enrichi de `{ originalBody, edited: false }`.
-- State `expandedArticles` (object `{ [n]: bool }`) et `articlesPanelOpen: true` (**ouvert par défaut**).
-- Helpers : `toggleArticle`, `updateArticleBody`, `resetArticleBody`. Computed : `editedCount`.
+Sur les devis, retirer du footer :
+- Le bloc Contacts 3 colonnes (Commercial / Admin / Compta) — couvert par les CGV au verso
+- La mention Réserve de propriété (art. 2 des CGV)
 
-**4. UI** (insérée dans la section « Conditions juridiques », après les clauses) :
-- Header repliable avec compteur et badge « ● N modifiés » si des articles ont été touchés.
-- Pour chaque article : header cliquable (badge violet « Art. N » + titre + badge MODIFIÉ si edited), **textarea monospace** pleine largeur (`font-family: 'SF Mono', Consolas`), rows auto-calculé : `Math.min(20, Math.max(6, body.split("\n").length + 1))`.
-- Sous chaque textarea : compteur caractères/mots + bouton « ↺ Restaurer le texte original » si edited.
+Ne garder que la pagination. Footer remonté à 30 px.
 
-**5. Persistance** : payload du contrat → `articles_overrides: contractArticles.filter(a => a.edited).map(a => ({ n, title, body }))`.
+### 4.11 CGV au verso (1 page)
 
----
+Block au verso uniquement sur les devis, avec `pageBreak: "before"` :
 
-## 14. Pré-remplissage du contact à partir des dirigeants déclarés (open data)
+- Titre rouge centré « CONDITIONS GÉNÉRALES DE VENTE » 13 pt
+- Sous-titre identité (SIRET, adresse) 7,5 pt
+- **10 articles en 2 colonnes** justifiées
+- **Split par longueur de texte** (somme `title.length + body.length`) au lieu du nombre d'articles, pour équilibrer la hauteur des colonnes
+- Helper `renderArt(art, num)` pour garantir des fontSize/lineHeight strictement identiques dans les deux colonnes
+- Tailles : titre article 8,5 pt bold, corps 7 pt justifié, lineHeight 1,3
+- Gap inter-colonnes : 14 pt
 
-**Fichier** : formulaire prospect.
-
-**Source** : `recherche-entreprises.api.gouv.fr` expose un champ `dirigeants` (open data INSEE/INPI) sur les résultats de recherche.
-
-Dans le handler « picker entreprise » :
-1. Filtrer les dirigeants sur `type_dirigeant === "personne physique"` (fallback : tous).
-2. **Premier dirigeant** → pré-remplir `prenom` (capitalisé), `nom` (UPPER), `fonction` (mappée via helper), `linkedin` slug (`linkedin.com/in/<prenom-nom>`) — **seulement si tous les champs contact sont vides** (ne pas écraser une saisie manuelle).
-3. **Co-dirigeants suivants** (jusqu'à 3) → injecter dans la liste des co-contacts — seulement si liste vide.
-4. State `contactAutoFilled: true` → bandeau bleu indigo en haut de la section contact : « 🔍 Auto-complété depuis les dirigeants déclarés … Email et téléphone restent à renseigner manuellement » + bouton **Effacer** qui reset tout.
-5. Reset `contactAutoFilled` quand on change de prospect / vide la sélection.
-
-**Helper `mapDirigeantQualite(q)`** (libellé INPI → option du dropdown Fonction) :
-- `/président|pdg|directeur général/` → `"CEO / Directeur général"`
-- `/gérant|co-gérant|associé|membre/` → `"Gérant / Dirigeant"`
-- `/daf|directeur financier/` → `"DAF / Directeur financier"`
-- `/directeur général délégué/` → `"COO / Directeur des opérations"`
-- `/secrétaire général/` → `"Secrétaire général"`
-- default `""` (laisse l'utilisateur choisir)
-
-Toast : « ✓ Entreprise + N dirigeants importés depuis SIRENE ».
-
-**Limite réglementaire** : email + téléphone des dirigeants ne sont **pas** des données publiques — laisser vides.
+Source de données : `window.HubAstoryaCGV` exposé par un module JS dédié (extraction d'un Word officiel via `python-docx`).
 
 ---
 
-## 15. Kanban — vue compacte (≈ 2 cartes) + bouton « déployer » par colonne
+## 5. PLANNING COMMERCIAL — NOUVELLE PAGE
 
-**Fichiers** : tous les composants qui rendent un kanban + une feuille CSS partagée.
+### 5.1 Page dédiée `/planning-commercial`
 
-**1. Zone scrollable interne** : la zone qui rend les cartes est wrappée dans :
+Accessible via un bouton « 📅 Planning » dans le header du Pipeline commercial.
+
+### 5.2 Calendrier mensuel style Outlook
+
+- Grille 7 colonnes Lundi → Dimanche
+- Cellules jour 110 px de haut
+- Navigation `‹ Aujourd'hui ›` (boutons mois)
+- Numéro du jour cerclé rouge si aujourd'hui
+- Week-ends et jours hors-mois en fond gris pâle
+- Compteur d'événements en haut à droite de chaque cellule
+
+### 5.3 Événements
+
+Pilules colorées avec bordure gauche colorée :
+- **Violet** : Date de décision potentielle (`close_date`)
+- **Cyan** : Échéance contrat concurrent (`contract_end`)
+
+Pastille couleur stage SPANCO devant le nom. Tooltip au survol (nom + client + type + montant).
+
+### 5.4 Limite + popup détaillé
+
+Maximum **3 événements** par cellule, lien « + N de plus » → modale centrée listant tous les événements du jour, cliquables vers la page d'avancement.
+
+### 5.5 Filtre type d'échéance
+
+Toggle 3 boutons : Toutes / Décision / Concurrent.
+
+### 5.6 Bug timezone à éviter
+
+`new Date(year, month, 1).toISOString()` convertit en UTC et **shift d'un jour** en zone UTC+1/+2 (France été). Symptôme : la navigation mois reste bloquée sur le mois affiché.
+
+Fix : helper `toLocalMonth(d)` qui construit le YYYY-MM depuis `getFullYear()` + `getMonth() + 1` en local. Idem pour `today` et pour les ISO des cellules.
+
+---
+
+## 6. ACTIONS À MENER
+
+### 6.1 Lien vers l'opportunité depuis l'action
+
+Le map des actions doit récupérer :
 ```js
-<div className="hub-kanban-scroll"
-     style={{
-       maxHeight: expanded[col.key] ? "none" : 296,
-       overflowY: "auto",
-       paddingRight: 4,
-       marginRight: -4,
-     }}>
+opp_id: a.opp_id || a.opportunity_id || (a.data && (a.data.opp_id || a.data.opportunity_id)) || null
 ```
 
-**2. Bouton déployer** dans le header de chaque colonne, visible **seulement si `cards.length > 2`** :
-- Icône `⇣` (réduit) / `⇡` (déployé)
-- Style actif : `border: <stage_color>`, `background: <stage_color>15`, `color: <stage_color>`
-- State `expanded` (object `{ [stageKey]: bool }`) **persisté en localStorage** sous une clé unique par écran (ex : `<app>.pipeExpanded.v1`, `<app>.crmKanbanExpanded.v1`).
+(L'API stocke `opp_id` cohérent avec opportunities.create. Garder `opportunity_id` en fallback pour rétrocompat.)
 
-**3. CSS scrollbar discrète** :
-```css
-.hub-kanban-scroll::-webkit-scrollbar { width: 6px; }
-.hub-kanban-scroll::-webkit-scrollbar-track { background: transparent; }
-.hub-kanban-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-.hub-kanban-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-.hub-kanban-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+Le titre de chaque action devient cliquable :
+- Si `opp_id` → ouvre `/avancer-opportunite?opp=…`
+- Sinon si `client_id` → ouvre `/fiche-client?id=…`
+
+Style : souligné pointillé + couleur indigo + tooltip.
+
+### 6.2 Nom du client dans la meta
+
+Injection via `api.clients.list()` au chargement de la liste d'actions. Affiché dans la meta pour distinguer les actions homonymes : « Email d'introduction personnalisé · CAPEXIA ».
+
+### 6.3 Bouton email → Outlook Web (pas mailto:)
+
+L'icône email d'une action ouvre **Outlook Web (OWA)** dans un nouvel onglet au lieu d'un `mailto:` :
+```
+https://outlook.office.com/owa/?path=/mail/action/compose&to=<encoded_email>&subject=...&body=...
 ```
 
-**Anti-pattern à éviter** : **ne pas** ajouter de bouton « replier vers la gauche » qui transforme la colonne en barre verticale 44 px. Testé puis retiré : trop d'éléments concurrents dans le header. Rester sur `grid-template-columns: repeat(N, 1fr)` simple.
+Fonctionne sur tout poste sans client mail local installé.
 
 ---
 
-## 16. PDF du contrat inclut les articles personnalisés
+## 7. FICHE CLIENT
 
-**Fichier** : générateur PDF du contrat.
+### 7.1 Bouton « 🗑 Supprimer le client » avec double confirmation
 
-**1.** Dans `buildDocDefinition(payload)` :
-```js
-const cgvBlock = (Array.isArray(payload.articles) && payload.articles.length > 0)
-  ? buildCustomArticlesBlock(payload.articles, K)
-  : buildCgvBlock(K, kindKey); // legacy générique
-```
+Dans la topbar, à droite du bouton « Exporter les données » :
 
-**2.** Trois helpers à implémenter :
+**1ère modale** — alerte rouge avec :
+- Liste du périmètre supprimé (contacts, opportunités, devis, contrats, projets, tickets, actions, factures)
+- Rappel d'exporter d'abord (article 20 RGPD)
+- Bouton « Continuer » style danger
 
-- `parseInlineRich(line)` — découpe `**gras**`, `*italique*`, `` `code` `` en tokens pdfmake `[{text, bold}, {text, italics}, …]`.
-- `renderArticleBody(body)` — mini-parser markdown :
-  - `### sous-titres` (`fontSize` 10.5 / 10 / 9.5 selon niveau, `bold`, color `#0f172a`, margin `[0,6,0,3]`)
-  - Listes numérotées `1. xxx` → `{ ol: [...] }`
-  - Listes à puces `- xxx` ou `• xxx` → `{ ul: [...] }`
-  - Séparateurs `---` → ignorés
-  - Paragraphes : agrège les lignes consécutives non-vides, `alignment: "justify"`, `margin: [0,0,0,4]`
-- `buildCustomArticlesBlock(articles, K)` — trie par `n`, rend `K.cgvTitle` avec `pageBreak: "before"`, puis pour chaque article : `"ARTICLE N — TITRE"` en style h2, puis le body parsé.
+**2e modale** — saisie obligatoire :
+- Champ texte avec instruction « Tapez SUPPRIMER en majuscules pour confirmer »
+- Match strict sur la chaîne « SUPPRIMER »
 
-**3.** Côté formulaire : ajouter au payload `articles: contractArticles.map(a => ({ n, title, body }))`.
+Si confirmé : appel à `api.clients.remove(id)` (soft-delete via `deleted_at`, fallback hard delete si colonne absente). Toast vert puis redirection après 800 ms.
 
 ---
 
-## 17. Section « Signature & workflow » — bouton aperçu PDF complet contextualisé
+## 8. TYPOGRAPHIE GLOBALE
 
-**Fichier** : composant Nouveau contrat.
+### 8.1 Uniformisation Inter dans toute l'app
 
-Juste après les cartes de mode signature, ajouter un bandeau rosé :
-- Style : `background: linear-gradient(135deg, #fff5f6, #fff)`, `border: 1px solid #fecdd3`, `border-radius: 10`.
-- Titre « 📄 Aperçu du contrat pré-rempli ».
-- Sous-titre **dynamique** selon `signMethod` : « électronique qualifiée DocuSign » / « simple par scan retour » / « manuscrite — original papier ».
-- Bouton rouge primaire `#c91c45` « 📄 Voir l'aperçu PDF complet » qui appelle le générateur PDF (`generateContractPdf()`).
-
-Mettre à jour le subtitle de la FormRow « Mode de signature » : « Sélectionnez puis prévisualisez le contrat complet pré-rempli ci-dessous ».
+1. Corriger toutes les occurrences `'Inter', serif` (mauvais fallback) → `'Inter', system-ui, sans-serif`
+2. Harmoniser la plage de poids Inter chargés depuis Google Fonts : `400;500;600;700;800` sur tous les HTML
+3. Règle CSS globale forçant Inter sur `html, body, input, select, textarea, button, optgroup` (les inputs natifs héritaient parfois de Helvetica/Arial selon le navigateur)
+4. Active `font-variant-numeric: tabular-nums` sur les inputs date/number/time pour aligner les chiffres
 
 ---
 
-## 18. Bouton raccourci « 📑 Articles du contrat » dans la topbar de Nouveau contrat
+## 9. DOCUMENTATION
 
-**Fichier** : composant Nouveau contrat.
+### 9.1 Documentation produit complète
 
-Dans la topbar, avant le bouton rouge « 📄 Aperçu PDF » :
-- Bouton ghost couleur indigo avec label « 📑 Articles du contrat » + badge violet pâle contenant le count.
-- `onClick` :
-  ```js
-  setArticlesPanelOpen(true);
-  setTimeout(() => {
-    document.getElementById("nc-articles-panel")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 50);
-  ```
-- Mettre `id="nc-articles-panel"` sur le conteneur du panneau articles.
+Document Markdown + Word + PDF organisé en 4 parties (Présentation, Modules, Admin, Annexes), 31 chapitres :
+
+- Présentation, modèle économique, architecture technique
+- Sécurité RGPD (chiffrement, RLS, droits utilisateurs, registre sous-traitants)
+- Hébergement, sauvegardes PITR + air-gap, réversibilité article 20
+- 15 modules métier (CRM, workflow opp, gestion commerciale, contrats, planning, tickets, projets, temps, stock, compta, marketing, RH, reporting)
+- Administration (rôles, paramétrage, intégrations externes)
+- Glossaire 18 acronymes, procédures opérationnelles, FAQ, index des routes
+
+### 9.2 Génération PDF avec header/footer
+
+Script reportlab avec `PageTemplate` + `onPage(canvas, doc)` callback :
+
+**Header sur chaque page** :
+- Logo (cercle + a stylisé)
+- Tagline « SOLUTION GLOBALE INFORMATIQUE »
+- Titre doc + version à droite
+- Ligne rouge de séparation
+
+**Footer sur chaque page** :
+- SIRET / APE / TVA + coordonnées
+- Pagination centrée « Page N »
+- Mention confidentielle « Document interne — usage commercial »
+
+Helper `inline(text)` qui **échappe d'abord** les `< > &` avant les substitutions markdown, pour éviter le crash `paraparser` sur les caractères spéciaux.
 
 ---
 
-## Invariants techniques transverses
+## INVARIANTS TECHNIQUES TRANSVERSES
 
 ### Build
-- Toute modification d'un `.jsx` nécessite un **rebuild** : `cd tools && npm run build` (ou équivalent du projet).
-- Le build génère des `dist/components/*.js` — **ne jamais** les éditer à la main.
-- Les fichiers JS purs (helpers non-JSX, données globales) vont directement dans `components/<nom>.js` et sont chargés tels quels.
+- Toute modification de `.jsx` → **rebuild** obligatoire (Babel hors-ligne)
+- Génère des `dist/components/*.js` chargés via `<script defer>`
+- **Ne jamais** éditer les `dist/*` à la main
 
 ### Cache buster
-- Tous les `*.html` chargent les scripts avec une query string `?v=YYYYMMDDHHMM`.
-- À chaque livraison front : bump global via `grep -rl "v=<old>" --include="*.html"` + `sed`.
+- Tous les HTML chargent les scripts avec `?v=YYYYMMDDHHMM`
+- À chaque livraison : bump global via `grep -rl "v=<old>" --include="*.html" | xargs sed`
 
 ### Branches
-- Push systématique sur **les deux branches** : la branche principale (`main` ou `master`) **et** la branche de dev courante (style `claude/<slug>` ou équivalent).
+- Push systématique sur la branche principale ET la branche de dev courante
 
-### Conventions de commit
-- Format Conventional Commits **en français** : `feat(scope): ...`, `fix(scope): ...`, `chore(scope): ...`, `docs: ...`, `refactor(scope): ...`, `ui(scope): ...`.
-- Heredoc obligatoire pour le message multi-ligne.
-- Footer `Co-Authored-By:` si l'environnement le demande.
+### Commits
+- Conventional Commits FR (`feat(scope): …`, `fix(scope): …`, `chore(scope): …`, `ui(scope): …`, `docs(scope): …`)
+- Heredoc obligatoire pour les messages multi-ligne
 
 ### Modaux et toasts
-- **Toujours** utiliser `window.HubModal.confirm/prompt/alert` avec fallback `confirm/prompt/alert` natif.
-- Toasts : `window.HubToast.success/error/warn/info`.
+- **Toujours** `window.HubModal.confirm/prompt/alert` avec fallback natif
+- **Toujours** `window.HubToast.success/error/warn/info`
 
-### Typographie
-- **Sentence case strict** sur les labels FR : première lettre majuscule, le reste minuscule. Pas d'all-caps.
-- Pas de `text-transform: uppercase` sur les en-têtes de liste ou les labels de formulaire (autorisé uniquement sur micro-tags 10 px).
-- Police monospace pour les nombres et dates : `font-variant-numeric: tabular-nums`.
-
-### Dates et nombres
-- Dates affichées : `toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })`.
-- Montants : `Math.round(n).toLocaleString("fr-FR").replace(/,/g, " ") + " €"`.
-- Dates alignées **à droite** dans les listes.
-
-### Sécurité / RGPD
-- Email et téléphone des dirigeants **ne sont jamais** dans l'open data — ne pas les inventer.
-- Clause de réversibilité (art. 20 RGPD) → bouton export ZIP obligatoire.
-- Article cyber-assurance + sauvegarde air-gap → non-négociables côté contrat.
+### Sécurité et RGPD
+- Email et téléphone des dirigeants ne sont **jamais** dans l'open data — ne pas inventer
+- Bouton export ZIP obligatoire sur la fiche client (réversibilité article 20 RGPD)
+- Double confirmation obligatoire pour toute suppression définitive (modale + saisie « SUPPRIMER »)
 
 ### Données externes
-- **SIRENE / INPI** : `https://recherche-entreprises.api.gouv.fr/search?q=<q>&page=1&per_page=6` — gratuit, sans clé.
-- **BODACC** : `https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/...` — gratuit, sans clé, **uniquement procédures collectives** (pas de contact).
-- **Pappers** : token nécessaire — exposer côté proxy back, fallback BODACC si absent ou quota dépassé.
+- **SIRENE / INPI** : `https://recherche-entreprises.api.gouv.fr` (gratuit)
+- **BODACC** : `https://bodacc-datadila.opendatasoft.com` (gratuit, procédures collectives uniquement)
+- **Pappers** : token serveur, fallback BODACC si absent ou quota
+- **3CX Web Client** : deep-link `https://<server>/webclient/#/dialer/<tel>`
+- **Outlook Web** : deep-link compose `https://outlook.office.com/owa/?path=…`
 
-### Stockage local
-- Préférences UI (panneaux dépliés, vues, filtres) → `localStorage` sous clé `<app-prefix>.<feature>.v1`.
-- Toujours `try/catch` autour des `JSON.parse` / `JSON.stringify` (quota navigateur).
+### Persistance UI
+- Préférences (panneaux dépliés, vues, filtres) → `localStorage` sous clé `<app-prefix>.<feature>.v1`
+- Toujours `try/catch` autour des `JSON.parse` / `JSON.stringify` (quota navigateur)
+
+### Champs non standard
+- Ajouter dans `data` jsonb plutôt que d'imposer une migration SQL
+- Helper `INTERNAL_KEYS` dans les `updateLine` / `update` pour extraire ces champs vers `data`
+- Hydrater au chargement : `obj.field = obj.field || obj.data.field || default`
 
 ---
 
-## Liste fonctionnelle (récap)
+## RÉCAPITULATIF FONCTIONNEL
 
-| # | Évolution | Fichier(s) | Type |
-|---|---|---|---|
-| 1 | Email → Outlook Web | fiche client | UX |
-| 2 | Drag-and-drop opportunités | fiche client | feat |
-| 3 | Modale « Nouvelle opportunité » pleine largeur | modal opp | UX |
-| 4 | Devis auto-créé depuis `?client=`/`?opp=` | gestion commerciale | feat |
-| 5 | Refonte panneau « Informations compte » | fiche client | UX |
-| 6 | Badge SIRENE ne chevauche plus × | formulaire prospect | fix |
-| 7 | KPIs placeholder remis à zéro | home ERP | chore |
-| 8 | PDF commercial : logo + totaux + signature footer | gen. PDF commercial | fix |
-| 9 | Document mise à disposition + services | md/docx/pdf | docs |
-| 10 | Export ZIP réversibilité RGPD | api + fiche client | feat |
-| 11 | Contrat de Services séparé | md/docx/pdf | docs |
-| 12 | Stepper SPANCO Nouveau contrat | composant contrat | UI |
-| 13 | Panneau 16 articles dépliable | composant contrat + données | feat |
-| 14 | Auto-fill dirigeants SIRENE | formulaire prospect | feat |
-| 15 | Kanban compact + bouton déployer | kanbans + CSS | feat |
-| 16 | PDF contrat avec articles personnalisés | gen. PDF contrat | feat |
-| 17 | Section signature : aperçu PDF contextualisé | composant contrat | UI |
-| 18 | Bouton topbar « Articles du contrat » | composant contrat | UX |
+| Thème | Évolutions clés |
+|---|---|
+| CRM Pipeline | Toggle Kanban/Liste, 2 colonnes échéance, planning calendrier, stepper SPANCO en pilules, remontée Actions à mener |
+| Workflow Opportunité | Bouton Enregistrer (sans avancer), bouton Supprimer, 2 actions auto sur transitions, fix initiales acronymes |
+| Gestion Commerciale | Note interne technicien (cascade), groupement Abonnements/One-shot avec sous-totaux, verrouillage Unité, retrait Conditions de paiement, auto-création depuis URL |
+| PDF Devis | Refonte complète : header agrandi, parties harmonisées, trait gris séparation, CGV au verso 1 page, sous-totaux compactés, note logistique, signature avec acompte 40 %, code TVA + Montant TTC, fix carrés vides |
+| Planning Commercial | Nouvelle page calendrier style Outlook, événements colorés, filtre, fix timezone |
+| Actions | Lien opp/client cliquable, nom client en meta, Outlook Web compose |
+| Fiche Client | Bouton Supprimer avec double confirmation |
+| Typographie | Inter uniformisé partout, plage de poids harmonisée, CSS global |
+| Documentation | 31 chapitres en 4 parties, PDF avec header/footer, helper inline robuste |

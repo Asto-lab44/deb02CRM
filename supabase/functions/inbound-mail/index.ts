@@ -37,34 +37,85 @@ function genId(prefix: string) {
 }
 
 // ── Matching client en cascade
+// Normalise une raison sociale pour comparaison floue : majuscules,
+// sans accents, sans suffixes juridiques ni ponctuation.
+function normalizeName(s: string): string {
+  return (s || "")
+    .toUpperCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")     // accents
+    .replace(/\b(SARL|SAS|SASU|SA|EURL|SCOP|SCI|SNC|SELARL|SELAS|GIE|ASSOCIATION)\b/g, "")
+    .replace(/[^A-Z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Extrait les champs structurés récurrents du corps (format technicien
+// Astorya : "Société : X", "Clé abonnement : Y", "Numero de série : Z"...).
+// Renvoie { societe, fields: {...} }.
+function parseBodyFields(body: string): { societe: string | null; fields: Record<string, string> } {
+  const fields: Record<string, string> = {};
+  let societe: string | null = null;
+  const lines = (body || "").split(/\r?\n/);
+  for (const line of lines) {
+    const m = line.match(/^\s*([A-Za-zÀ-ÿ' ]+?)\s*:\s*(.+?)\s*$/);
+    if (!m) continue;
+    const key = m[1].trim().toLowerCase();
+    const val = m[2].trim();
+    if (!val) continue;
+    fields[key] = val;
+    if (/soci[ée]t[ée]|client|entreprise|raison sociale/.test(key)) societe = val;
+  }
+  return { societe, fields };
+}
+
 async function matchClient(supabase: any, fromEmail: string, bodyText: string) {
   const email = (fromEmail || "").toLowerCase().trim();
   const domain = email.split("@")[1] || "";
+  const generic = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.fr", "free.fr", "orange.fr", "wanadoo.fr", "laposte.net", "astorya.fr"];
+  const parsed = parseBodyFields(bodyText);
 
-  // 1. Email exact sur un contact
-  if (email) {
+  // 1. Société déclarée dans le corps (ligne « Société : X ») — prioritaire
+  //    car le workflow Astorya envoie l'email depuis une adresse interne.
+  if (parsed.societe) {
+    const target = normalizeName(parsed.societe);
+    const { data: candidates } = await supabase.from("clients").select("id, raison_sociale, name");
+    if (candidates && target) {
+      // a) Égalité normalisée
+      let hit = (candidates as any[]).find((c) => normalizeName(c.raison_sociale || c.name || "") === target);
+      // b) Inclusion (le nom client contient la société ou inversement)
+      if (!hit) {
+        hit = (candidates as any[]).find((c) => {
+          const n = normalizeName(c.raison_sociale || c.name || "");
+          return n && (n.includes(target) || target.includes(n));
+        });
+      }
+      if (hit) return { client_id: hit.id, contact_id: null, method: "body_societe", societe: parsed.societe, fields: parsed.fields };
+    }
+  }
+  // 2. Email exact sur un contact (si expéditeur externe)
+  if (email && !generic.includes(domain)) {
     const { data: contact } = await supabase
       .from("contacts").select("id, client_id").ilike("email", email).maybeSingle();
     if (contact && contact.client_id) {
-      return { client_id: contact.client_id, contact_id: contact.id, method: "email_exact" };
+      return { client_id: contact.client_id, contact_id: contact.id, method: "email_exact", societe: parsed.societe, fields: parsed.fields };
     }
   }
-  // 2. Email exact sur un client
-  if (email) {
+  // 3. Email exact sur un client
+  if (email && !generic.includes(domain)) {
     const { data: client } = await supabase
       .from("clients").select("id").ilike("email", email).maybeSingle();
-    if (client) return { client_id: client.id, contact_id: null, method: "email_exact" };
+    if (client) return { client_id: client.id, contact_id: null, method: "email_exact", societe: parsed.societe, fields: parsed.fields };
   }
-  // 3. Domaine — match sur l'email client ou website
-  if (domain && !["gmail.com", "outlook.com", "hotmail.com", "yahoo.fr", "free.fr", "orange.fr", "wanadoo.fr"].includes(domain)) {
+  // 4. Domaine
+  if (domain && !generic.includes(domain)) {
     const { data: byDomain } = await supabase
       .from("clients").select("id, email, website")
       .or(`email.ilike.%@${domain},website.ilike.%${domain}%`).limit(1).maybeSingle();
-    if (byDomain) return { client_id: byDomain.id, contact_id: null, method: "domain" };
+    if (byDomain) return { client_id: byDomain.id, contact_id: null, method: "domain", societe: parsed.societe, fields: parsed.fields };
   }
-  // 4. Fuzzy sur la raison sociale présente dans le corps (best effort)
-  // (laissé au commercial — on ne devine pas pour éviter les faux positifs)
-  return { client_id: null, contact_id: null, method: "none" };
+  // 5. Aucun match → tâche « Client à identifier » mais on remonte la société
+  //    devinée + les champs parsés pour aider le commercial.
+  return { client_id: null, contact_id: null, method: "none", societe: parsed.societe, fields: parsed.fields };
 }
 
 // ── Extraction IA du besoin
@@ -154,15 +205,26 @@ Deno.serve(async (req: Request) => {
     const match = await matchClient(supabase, fromEmail, bodyText);
     // 2. Extraction IA
     const ai = await extractNeed(subject, bodyText);
-    // 3. Nom du client (pour titre tâche)
+    // 3. Nom du client (pour titre tâche). Si pas de match mais société
+    //    devinée dans le corps → on l'utilise pour le titre + à identifier.
     let clientName = "Client à identifier";
     if (match.client_id) {
       const { data: c } = await supabase.from("clients").select("raison_sociale, name").eq("id", match.client_id).maybeSingle();
       clientName = (c && (c.raison_sociale || c.name)) || clientName;
+    } else if (match.societe) {
+      clientName = match.societe + " (à confirmer)";
     }
 
     const reqId = genId("INB");
     const excerpt = (bodyText || "").slice(0, 280);
+
+    // Champs structurés parsés (clé abonnement, n° série, modèle poste…)
+    // → pré-remplis dans la note du devis et stockés pour le commercial.
+    const fields = match.fields || {};
+    const fieldLines = Object.keys(fields)
+      .filter((k) => !/soci[ée]t[ée]|client|entreprise|raison sociale/.test(k))
+      .map((k) => "• " + k.charAt(0).toUpperCase() + k.slice(1) + " : " + fields[k]);
+    const fieldsNote = fieldLines.length ? "\n\nInfos techniques extraites :\n" + fieldLines.join("\n") : "";
 
     // 4. Crée la tâche « Devis à faire »
     const actionId = genId("EX");
@@ -180,7 +242,7 @@ Deno.serve(async (req: Request) => {
       tag_color: "#ea580c",
       icon: "📋",
       status: "todo",
-      data: { source: "inbound_mail", inbound_id: reqId, from_email: fromEmail, ai_products: ai.products },
+      data: { source: "inbound_mail", inbound_id: reqId, from_email: fromEmail, ai_products: ai.products, societe_hint: match.societe || null, parsed_fields: fields },
     });
 
     // 5. Crée l'entrée inbound_requests
@@ -191,8 +253,10 @@ Deno.serve(async (req: Request) => {
       has_attachments: attachments.length > 0, attachments,
       client_id: match.client_id, contact_id: match.contact_id, match_method: match.method,
       needs_identification: !match.client_id,
-      ai_summary: ai.summary, ai_products: ai.products, ai_urgency: ai.urgency,
-      ai_amount_hint: ai.amount_hint, ai_raw: ai.raw,
+      ai_summary: (ai.summary || "") + fieldsNote,
+      ai_products: ai.products, ai_urgency: ai.urgency,
+      ai_amount_hint: ai.amount_hint,
+      ai_raw: { ...ai.raw, societe_hint: match.societe || null, parsed_fields: fields },
       status: match.client_id ? "client_identifie" : "a_traiter",
       action_id: actionId,
     });

@@ -125,19 +125,24 @@ var InboundRequests = () => {
     load();
   };
   var saveManual = async () => {
-    if (!manual.from_email.trim()) {
-      window.HubToast && window.HubToast.warn("Email expéditeur requis");
+    if (!manual.from_email.trim() && !manual.body_text.trim()) {
+      window.HubToast && window.HubToast.warn("Renseigne au moins l'email expéditeur ou le corps");
       return;
     }
-    // Match auto par email
-    var match = await window.api.inboundRequests.matchClientByEmail(manual.from_email);
+    // Match auto : société dans le corps (prioritaire) → email → domaine
+    var match = await window.api.inboundRequests.matchClientByEmail(manual.from_email, manual.body_text);
+    // Note enrichie avec les champs techniques parsés
+    var fields = match && match.fields || {};
+    var fieldLines = Object.keys(fields).filter(k => !/soci[ée]t[ée]|client|entreprise|raison sociale/.test(k)).map(k => "• " + k.charAt(0).toUpperCase() + k.slice(1) + " : " + fields[k]);
+    var summary = manual.subject + (fieldLines.length ? "\n\nInfos techniques :\n" + fieldLines.join("\n") : "");
     await window.api.inboundRequests.create({
       ...manual,
       client_id: match ? match.client_id : null,
       match_method: match ? match.method : "none",
-      ai_summary: manual.subject
+      ai_summary: summary
     });
-    window.HubToast && window.HubToast.success("✓ Demande enregistrée + tâche « Devis à faire » créée");
+    var matchMsg = match && match.client_id ? " · client identifié automatiquement" : match && match.societe ? " · société « " + match.societe + " » à confirmer" : "";
+    window.HubToast && window.HubToast.success("✓ Demande enregistrée + tâche créée" + matchMsg);
     setShowManual(false);
     setManual({
       from_name: "",

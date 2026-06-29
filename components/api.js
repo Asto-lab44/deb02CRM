@@ -3863,29 +3863,66 @@
       if (s) await s.from("inbound_requests").delete().eq("id", id);
       lsSet("inbound_requests_v1", lsGet("inbound_requests_v1").filter((r) => r.id !== id));
     },
-    // Matching client par email/domaine (utilisé côté Hub pour les saisies
-    // manuelles ; la version Edge Function fait pareil côté serveur).
-    async matchClientByEmail(email) {
+    // Normalise une raison sociale pour comparaison floue.
+    _normalizeName(s) {
+      return String(s || "")
+        .toUpperCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .replace(/\b(SARL|SAS|SASU|SA|EURL|SCOP|SCI|SNC|SELARL|SELAS|GIE|ASSOCIATION)\b/g, "")
+        .replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    },
+    // Parse les champs structurés du corps (« Société : X », « Clé : Y »…).
+    parseBodyFields(body) {
+      const fields = {};
+      let societe = null;
+      String(body || "").split(/\r?\n/).forEach((line) => {
+        const m = line.match(/^\s*([A-Za-zÀ-ÿ' ]+?)\s*:\s*(.+?)\s*$/);
+        if (!m) return;
+        const key = m[1].trim().toLowerCase();
+        const val = m[2].trim();
+        if (!val) return;
+        fields[key] = val;
+        if (/soci[ée]t[ée]|client|entreprise|raison sociale/.test(key)) societe = val;
+      });
+      return { societe, fields };
+    },
+    // Matching client : société dans le corps (prioritaire) → email → domaine.
+    // bodyText optionnel pour le matching par « Société : ».
+    async matchClientByEmail(email, bodyText) {
       const e = (email || "").toLowerCase().trim();
       const domain = e.split("@")[1] || "";
-      if (!e) return null;
+      const generic = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.fr", "free.fr", "orange.fr", "wanadoo.fr", "laposte.net", "astorya.fr"];
       const allClients = await clients.list().catch(() => []);
       const allContacts = (contacts && contacts.list) ? await contacts.list().catch(() => []) : [];
-      // 1. Contact email exact
-      const cont = (allContacts || []).find((c) => (c.email || "").toLowerCase() === e);
-      if (cont && cont.client_id) return { client_id: cont.client_id, method: "email_exact" };
-      // 2. Client email exact
-      const cli = (allClients || []).find((c) => (c.email || "").toLowerCase() === e);
-      if (cli) return { client_id: cli.id, method: "email_exact" };
-      // 3. Domaine (hors webmails grand public)
-      const generic = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.fr", "free.fr", "orange.fr", "wanadoo.fr", "laposte.net"];
+      const parsed = this.parseBodyFields(bodyText || "");
+
+      // 1. Société dans le corps (prioritaire — workflow interne Astorya)
+      if (parsed.societe) {
+        const target = this._normalizeName(parsed.societe);
+        let hit = (allClients || []).find((c) => this._normalizeName(c.raison_sociale || c.name || "") === target);
+        if (!hit) {
+          hit = (allClients || []).find((c) => {
+            const n = this._normalizeName(c.raison_sociale || c.name || "");
+            return n && (n.includes(target) || target.includes(n));
+          });
+        }
+        if (hit) return { client_id: hit.id, method: "body_societe", societe: parsed.societe, fields: parsed.fields };
+      }
+      // 2. Contact email exact (expéditeur externe)
+      if (e && !generic.includes(domain)) {
+        const cont = (allContacts || []).find((c) => (c.email || "").toLowerCase() === e);
+        if (cont && cont.client_id) return { client_id: cont.client_id, method: "email_exact", societe: parsed.societe, fields: parsed.fields };
+        const cli = (allClients || []).find((c) => (c.email || "").toLowerCase() === e);
+        if (cli) return { client_id: cli.id, method: "email_exact", societe: parsed.societe, fields: parsed.fields };
+      }
+      // 3. Domaine
       if (domain && !generic.includes(domain)) {
         const byDom = (allClients || []).find((c) =>
           (c.email || "").toLowerCase().endsWith("@" + domain) ||
           (c.website || "").toLowerCase().includes(domain));
-        if (byDom) return { client_id: byDom.id, method: "domain" };
+        if (byDom) return { client_id: byDom.id, method: "domain", societe: parsed.societe, fields: parsed.fields };
       }
-      return null;
+      return { client_id: null, method: "none", societe: parsed.societe, fields: parsed.fields };
     },
   };
 

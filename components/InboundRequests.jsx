@@ -82,16 +82,28 @@ const InboundRequests = () => {
     load();
   };
   const saveManual = async () => {
-    if (!manual.from_email.trim()) { window.HubToast && window.HubToast.warn("Email expéditeur requis"); return; }
-    // Match auto par email
-    const match = await window.api.inboundRequests.matchClientByEmail(manual.from_email);
+    if (!manual.from_email.trim() && !manual.body_text.trim()) {
+      window.HubToast && window.HubToast.warn("Renseigne au moins l'email expéditeur ou le corps");
+      return;
+    }
+    // Match auto : société dans le corps (prioritaire) → email → domaine
+    const match = await window.api.inboundRequests.matchClientByEmail(manual.from_email, manual.body_text);
+    // Note enrichie avec les champs techniques parsés
+    const fields = (match && match.fields) || {};
+    const fieldLines = Object.keys(fields)
+      .filter((k) => !/soci[ée]t[ée]|client|entreprise|raison sociale/.test(k))
+      .map((k) => "• " + k.charAt(0).toUpperCase() + k.slice(1) + " : " + fields[k]);
+    const summary = manual.subject + (fieldLines.length ? "\n\nInfos techniques :\n" + fieldLines.join("\n") : "");
     await window.api.inboundRequests.create({
       ...manual,
       client_id: match ? match.client_id : null,
       match_method: match ? match.method : "none",
-      ai_summary: manual.subject,
+      ai_summary: summary,
     });
-    window.HubToast && window.HubToast.success("✓ Demande enregistrée + tâche « Devis à faire » créée");
+    const matchMsg = match && match.client_id
+      ? " · client identifié automatiquement"
+      : (match && match.societe ? " · société « " + match.societe + " » à confirmer" : "");
+    window.HubToast && window.HubToast.success("✓ Demande enregistrée + tâche créée" + matchMsg);
     setShowManual(false);
     setManual({ from_name: "", from_email: "", subject: "", body_text: "" });
     load();

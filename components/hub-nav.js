@@ -27,12 +27,16 @@
     new_opp:    "/nouvelle-opportunite",
     new_prospect: "/nouveau-prospect",
     renewals:   "/fins-contrats-concurrents",
+    inbound:    "/demandes-entrantes",
+    planning:   "/planning-commercial",
+    mail_templates: "/templates-email",
   };
 
   // Sidebar par défaut (utilisée par les composants qui veulent une nav globale)
   const PRIMARY_NAV = [
     { key: "home",     label: "Accueil",                     icon: "⌂", href: ROUTES.home },
     { key: "crm",      label: "CRM",                         icon: "▦", href: ROUTES.crm },
+    { key: "inbound",  label: "Demandes entrantes",          icon: "📥", href: ROUTES.inbound, badgeKey: "inbound" },
     { key: "client",   label: "Fiche client",                icon: "◉", href: ROUTES.client },
     { key: "tech",     label: "Ticketing",                   icon: "✎", href: ROUTES.tech },
     { key: "intel",    label: "Intelligence concurrentielle", icon: "◎", href: ROUTES.intel },
@@ -120,6 +124,9 @@
     "/administration-utilisateurs": "settings",
     "/fiche-client": "client",
     "/equipe-commerciale": "sales_team",
+    "/demandes-entrantes": "inbound",
+    "/planning-commercial": "crm",
+    "/templates-email": "settings",
     "/nouvelle-opportunite": "new_opp",
     "/avancer-opportunite": "new_opp",
     "/nouveau-prospect": "new_prospect",

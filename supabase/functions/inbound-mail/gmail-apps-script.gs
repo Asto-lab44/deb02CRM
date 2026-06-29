@@ -19,7 +19,8 @@
 
 // ── Configuration ────────────────────────────────────────────────────
 // Pré-rempli pour le projet Hub Astorya (cqdgecllzyqimfuovrpp).
-var WEBHOOK_URL   = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/inbound-mail";
+// Fonction nommée « clever-worker » côté Supabase (nom auto-généré conservé).
+var WEBHOOK_URL   = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/clever-worker";
 var WEBHOOK_TOKEN = "ipLDKJI9L-6dty4hGEqwvn6424tnInP6"; // doit matcher le secret INBOUND_WEBHOOK_TOKEN de l'Edge Function
 var PROCESSED_LABEL = "TraitéHub";
 var MAX_PER_RUN = 10; // limite par exécution (évite les timeouts)

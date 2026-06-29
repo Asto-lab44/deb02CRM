@@ -155,7 +155,7 @@ const CommercialDocs = () => {
     // bascule sur l'onglet Devis et ouvre un nouveau devis.
     // (La commande fournisseur n'est plus une étape du workflow Sage ;
     // elle est gérée séparément dans la tuile Stock & Catalogue.)
-    { k: "devis",    label: "Devis",            newLabel: "Nouveau devis", color: "#3b82f6", icon: "📄" },
+    { k: "devis",    label: "Devis",            navLabel: "Devis en cours", newLabel: "Nouveau devis", color: "#3b82f6", icon: "📄" },
     { k: "commande", label: "Commandes client", newLabel: "Nouveau devis", color: "#a855f7", icon: "📋" },
     { k: "bl",       label: "Bons livraison",   newLabel: "Nouveau devis", color: "#ea580c", icon: "🚚" },
     { k: "facture",  label: "Factures",         newLabel: "Nouveau devis", color: "#10b981", icon: "💶" },
@@ -495,7 +495,7 @@ const CommercialDocs = () => {
           <div key={t.k} onClick={() => setActiveType(t.k)}
                style={{ ...cdStyles.navItem, ...(activeType === t.k ? cdStyles.navItemActive : {}) }}>
             <span style={{ width: 16, color: activeType === t.k ? t.color : "#94a3b8" }}>{t.icon}</span>
-            <span style={{ flex: 1 }}>{t.label}</span>
+            <span style={{ flex: 1 }}>{t.navLabel || t.label}</span>
             <span style={cdStyles.navCount}>{activeType === t.k ? docs.length : ""}</span>
           </div>
         ))}

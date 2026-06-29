@@ -267,6 +267,7 @@ var CommercialDocs = () => {
   {
     k: "devis",
     label: "Devis",
+    navLabel: "Devis en cours",
     newLabel: "Nouveau devis",
     color: "#3b82f6",
     icon: "📄"
@@ -752,7 +753,7 @@ var CommercialDocs = () => {
     style: {
       flex: 1
     }
-  }, t.label), /*#__PURE__*/React.createElement("span", {
+  }, t.navLabel || t.label), /*#__PURE__*/React.createElement("span", {
     style: cdStyles.navCount
   }, activeType === t.k ? docs.length : ""))), /*#__PURE__*/React.createElement("div", {
     style: cdStyles.navLabel

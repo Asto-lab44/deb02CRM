@@ -355,6 +355,16 @@ var CommercialDocs = () => {
   var [docs, setDocs] = React.useState([]);
   var [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
   var [loading, setLoading] = React.useState(true);
+  // Compteur « Demandes entrantes » = demandes pour lesquelles un devis reste
+  // à faire (statut à_traiter ou client_identifié, pas encore devis_cree).
+  var [inboundCount, setInboundCount] = React.useState(0);
+  React.useEffect(() => {
+    if (!window.api || !window.api.inboundRequests) return;
+    window.api.inboundRequests.list().then(list => {
+      var pending = (list || []).filter(r => r.status === "a_traiter" || r.status === "client_identifie");
+      setInboundCount(pending.length);
+    }).catch(() => {});
+  }, []);
   var [search, setSearch] = React.useState("");
   var [clients, setClients] = React.useState([]);
   var [opps, setOpps] = React.useState([]);
@@ -696,7 +706,35 @@ var CommercialDocs = () => {
     style: {
       fontSize: 14
     }
-  }, "+"), /*#__PURE__*/React.createElement("span", null, TYPES.find(t => t.k === activeType).newLabel)), /*#__PURE__*/React.createElement("div", {
+  }, "+"), /*#__PURE__*/React.createElement("span", null, TYPES.find(t => t.k === activeType).newLabel)), /*#__PURE__*/React.createElement("a", {
+    href: "/demandes-entrantes",
+    style: {
+      ...cdStyles.navItem,
+      textDecoration: "none",
+      color: "inherit",
+      marginTop: 6,
+      border: "1px solid #fed7aa",
+      background: "#fff7ed"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 16
+    }
+  }, "\uD83D\uDCE5"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontWeight: 600
+    }
+  }, "Demandes entrantes"), inboundCount > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "1px 6px",
+      borderRadius: 999,
+      background: "#ea580c",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, inboundCount)), /*#__PURE__*/React.createElement("div", {
     style: cdStyles.navLabel
   }, "Documents"), TYPES.map(t => /*#__PURE__*/React.createElement("div", {
     key: t.k,

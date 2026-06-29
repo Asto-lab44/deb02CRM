@@ -189,6 +189,16 @@ const CommercialDocs = () => {
   const [docs, setDocs] = React.useState([]);
   const [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
   const [loading, setLoading] = React.useState(true);
+  // Compteur « Demandes entrantes » = demandes pour lesquelles un devis reste
+  // à faire (statut à_traiter ou client_identifié, pas encore devis_cree).
+  const [inboundCount, setInboundCount] = React.useState(0);
+  React.useEffect(() => {
+    if (!window.api || !window.api.inboundRequests) return;
+    window.api.inboundRequests.list().then((list) => {
+      const pending = (list || []).filter((r) => r.status === "a_traiter" || r.status === "client_identifie");
+      setInboundCount(pending.length);
+    }).catch(() => {});
+  }, []);
   const [search, setSearch] = React.useState("");
   const [clients, setClients] = React.useState([]);
   const [opps, setOpps] = React.useState([]);
@@ -468,6 +478,17 @@ const CommercialDocs = () => {
           <span style={{ fontSize: 14 }}>+</span>
           <span>{TYPES.find((t) => t.k === activeType).newLabel}</span>
         </button>
+
+        {/* Demandes de devis entrantes — accès direct au-dessus des Documents */}
+        <a href="/demandes-entrantes"
+           style={{ ...cdStyles.navItem, textDecoration: "none", color: "inherit", marginTop: 6,
+                    border: "1px solid #fed7aa", background: "#fff7ed" }}>
+          <span style={{ width: 16 }}>📥</span>
+          <span style={{ flex: 1, fontWeight: 600 }}>Demandes entrantes</span>
+          {inboundCount > 0 && (
+            <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: "#ea580c", color: "#fff", fontWeight: 700 }}>{inboundCount}</span>
+          )}
+        </a>
 
         <div style={cdStyles.navLabel}>Documents</div>
         {TYPES.map((t) => (

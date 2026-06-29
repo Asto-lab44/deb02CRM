@@ -18,8 +18,9 @@
  * ════════════════════════════════════════════════════════════════════ */
 
 // ── Configuration ────────────────────────────────────────────────────
-var WEBHOOK_URL   = "https://<PROJECT_REF>.supabase.co/functions/v1/inbound-mail";
-var WEBHOOK_TOKEN = "<INBOUND_WEBHOOK_TOKEN>"; // doit matcher la variable d'env de l'Edge Function
+// Pré-rempli pour le projet Hub Astorya (cqdgecllzyqimfuovrpp).
+var WEBHOOK_URL   = "https://cqdgecllzyqimfuovrpp.supabase.co/functions/v1/inbound-mail";
+var WEBHOOK_TOKEN = "ipLDKJI9L-6dty4hGEqwvn6424tnInP6"; // doit matcher le secret INBOUND_WEBHOOK_TOKEN de l'Edge Function
 var PROCESSED_LABEL = "TraitéHub";
 var MAX_PER_RUN = 10; // limite par exécution (évite les timeouts)
 

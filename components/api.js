@@ -3756,6 +3756,13 @@
   //            attachClient, matchClientByEmail
   // ───────────────────────────────────────────────────────────────────
   const inboundRequests = {
+    // Filtre localStorage commun
+    _lsList(filter = {}) {
+      let arr = lsGet("inbound_requests_v1");
+      if (filter.status) arr = arr.filter((r) => r.status === filter.status);
+      if (filter.client_id) arr = arr.filter((r) => r.client_id === filter.client_id);
+      return arr;
+    },
     async list(filter = {}) {
       const s = supa();
       if (s) {
@@ -3763,19 +3770,25 @@
         if (filter.status) q = q.eq("status", filter.status);
         if (filter.client_id) q = q.eq("client_id", filter.client_id);
         const { data, error } = await q.order("received_at", { ascending: false });
-        if (error) console.warn("[api.inboundRequests.list]", error.message);
-        return data || [];
+        // Si la table n'existe pas encore (migration non lancée) → fallback
+        // localStorage pour que la saisie manuelle fonctionne sans déploiement.
+        if (error) {
+          console.warn("[api.inboundRequests.list] fallback localStorage:", error.message);
+          return this._lsList(filter);
+        }
+        // Fusionne avec localStorage (demandes créées hors-ligne non encore
+        // synchronisées), en dédupliquant par id.
+        const ls = this._lsList(filter);
+        const seen = new Set((data || []).map((r) => r.id));
+        return [...(data || []), ...ls.filter((r) => !seen.has(r.id))];
       }
-      let arr = lsGet("inbound_requests_v1");
-      if (filter.status) arr = arr.filter((r) => r.status === filter.status);
-      if (filter.client_id) arr = arr.filter((r) => r.client_id === filter.client_id);
-      return arr;
+      return this._lsList(filter);
     },
     async getById(id) {
       const s = supa();
       if (s) {
-        const { data } = await s.from("inbound_requests").select("*").eq("id", id).maybeSingle();
-        return data;
+        const { data, error } = await s.from("inbound_requests").select("*").eq("id", id).maybeSingle();
+        if (!error && data) return data;
       }
       return lsGet("inbound_requests_v1").find((r) => r.id === id) || null;
     },
@@ -3801,16 +3814,18 @@
         status: payload.client_id ? "client_identifie" : "a_traiter",
         created_at: new Date().toISOString(),
       };
-      const s = supa();
-      if (s) {
-        const { data } = await s.from("inbound_requests").insert(full).select().maybeSingle();
-        // Crée aussi la tâche « Devis à faire »
-        await this._createDevisTask(full);
-        return data || full;
-      }
+      // Toujours écrire en localStorage d'abord → garantit l'affichage même
+      // si la table Supabase n'existe pas encore (migration non déployée).
       const arr = lsGet("inbound_requests_v1");
       arr.unshift(full);
       lsSet("inbound_requests_v1", arr);
+      // Tente l'écriture Supabase (best effort, ignore l'erreur table absente)
+      const s = supa();
+      if (s) {
+        const { error } = await s.from("inbound_requests").insert(full).select().maybeSingle();
+        if (error) console.warn("[api.inboundRequests.create] Supabase indispo, conservé en local:", error.message);
+      }
+      // Crée la tâche « Devis à faire » (table actions, qui existe)
       await this._createDevisTask(full);
       return full;
     },
@@ -3840,15 +3855,18 @@
       } catch (e) { console.warn("[inbound._createDevisTask]", e); return null; }
     },
     async update(id, patch) {
-      const s = supa();
-      if (s) {
-        const { data } = await s.from("inbound_requests").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
-        return data;
-      }
+      // Met à jour localStorage systématiquement (source fiable hors-ligne)
       const arr = lsGet("inbound_requests_v1");
       const idx = arr.findIndex((r) => r.id === id);
-      if (idx >= 0) { arr[idx] = { ...arr[idx], ...patch }; lsSet("inbound_requests_v1", arr); return arr[idx]; }
-      return null;
+      let updated = null;
+      if (idx >= 0) { arr[idx] = { ...arr[idx], ...patch }; lsSet("inbound_requests_v1", arr); updated = arr[idx]; }
+      // Best effort Supabase
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("inbound_requests").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+        if (!error && data) return data;
+      }
+      return updated;
     },
     // Rattache un client à une demande non identifiée
     async attachClient(id, client_id) {

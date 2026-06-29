@@ -3,7 +3,7 @@
  * Gmail → Hub Astorya — déclencheur de demandes de devis entrantes
  * ════════════════════════════════════════════════════════════════════
  *
- * À déployer dans Google Apps Script sur le compte devis.astorya@gmail.com :
+ * À déployer dans Google Apps Script sur le compte daviaud13@gmail.com :
  *   1. https://script.google.com → Nouveau projet
  *   2. Coller ce code
  *   3. Renseigner WEBHOOK_URL et WEBHOOK_TOKEN ci-dessous

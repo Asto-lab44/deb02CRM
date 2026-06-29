@@ -529,7 +529,8 @@ const CommercialDocs = () => {
         <div style={cdStyles.kpiRow}>
           <KPI label="Total HT" value={fmtEUR(totals.ht)} color="#3730a3" />
           <KPI label="Total TTC" value={fmtEUR(totals.ttc)} color="#10b981" />
-          <KPI label="En attente" value={totals.pending} color="#f59e0b" />
+          <KPI label="Demandes entrantes en attente" value={inboundCount} color="#ea580c"
+               href="/demandes-entrantes" hint="→ Voir les demandes" />
           <KPI label="Documents" value={totals.count} color="#0ea5e9" />
         </div>
 
@@ -1158,12 +1159,28 @@ const MenuItem = ({ icon, label, onClick, danger }) => (
 );
 const MenuDivider = () => <div style={{ height: 1, background: "#eef1f5", margin: "2px 6px" }} />;
 
-const KPI = ({ label, value, color }) => (
-  <div style={{ flex: 1, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: "12px 14px" }}>
-    <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
-    <div style={{ fontSize: 18, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-  </div>
-);
+const KPI = ({ label, value, color, href, hint }) => {
+  const inner = (
+    <>
+      <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: color || "#0f172a", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      {hint && <div style={{ fontSize: 10.5, color: color || "#64748b", marginTop: 2, fontWeight: 600 }}>{hint}</div>}
+    </>
+  );
+  const base = { flex: 1, background: "#fff", border: "1px solid #eef1f5", borderRadius: 10, padding: "12px 14px" };
+  if (href) {
+    return (
+      <a href={href} title="Voir les demandes entrantes en attente"
+         style={{ ...base, textDecoration: "none", display: "block", cursor: "pointer",
+                  borderColor: "#fed7aa", transition: "box-shadow 120ms" }}
+         onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 2px 10px rgba(234,88,12,0.15)"}
+         onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}>
+        {inner}
+      </a>
+    );
+  }
+  return <div style={base}>{inner}</div>;
+};
 
 // ─────────────────────────────────────────────────────────────────
 // EDITOR : édition d'un doc + ses lignes

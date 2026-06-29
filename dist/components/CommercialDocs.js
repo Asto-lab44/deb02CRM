@@ -802,9 +802,11 @@ var CommercialDocs = () => {
     value: fmtEUR(totals.ttc),
     color: "#10b981"
   }), /*#__PURE__*/React.createElement(KPI, {
-    label: "En attente",
-    value: totals.pending,
-    color: "#f59e0b"
+    label: "Demandes entrantes en attente",
+    value: inboundCount,
+    color: "#ea580c",
+    href: "/demandes-entrantes",
+    hint: "\u2192 Voir les demandes"
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Documents",
     value: totals.count,
@@ -2173,32 +2175,61 @@ var MenuDivider = () => /*#__PURE__*/React.createElement("div", {
 var KPI = ({
   label,
   value,
-  color
-}) => /*#__PURE__*/React.createElement("div", {
-  style: {
+  color,
+  href,
+  hint
+}) => {
+  var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      fontWeight: 600
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      color: color || "#0f172a",
+      marginTop: 4,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, value), hint && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: color || "#64748b",
+      marginTop: 2,
+      fontWeight: 600
+    }
+  }, hint));
+  var base = {
     flex: 1,
     background: "#fff",
     border: "1px solid #eef1f5",
     borderRadius: 10,
     padding: "12px 14px"
+  };
+  if (href) {
+    return /*#__PURE__*/React.createElement("a", {
+      href: href,
+      title: "Voir les demandes entrantes en attente",
+      style: {
+        ...base,
+        textDecoration: "none",
+        display: "block",
+        cursor: "pointer",
+        borderColor: "#fed7aa",
+        transition: "box-shadow 120ms"
+      },
+      onMouseEnter: e => e.currentTarget.style.boxShadow = "0 2px 10px rgba(234,88,12,0.15)",
+      onMouseLeave: e => e.currentTarget.style.boxShadow = "none"
+    }, inner);
   }
-}, /*#__PURE__*/React.createElement("div", {
-  style: {
-    fontSize: 11,
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontWeight: 600
-  }
-}, label), /*#__PURE__*/React.createElement("div", {
-  style: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: color || "#0f172a",
-    marginTop: 4,
-    fontVariantNumeric: "tabular-nums"
-  }
-}, value));
+  return /*#__PURE__*/React.createElement("div", {
+    style: base
+  }, inner);
+};
 
 // ─────────────────────────────────────────────────────────────────
 // EDITOR : édition d'un doc + ses lignes

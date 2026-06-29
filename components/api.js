@@ -3745,5 +3745,149 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates };
+  // ───────────────────────────────────────────────────────────────────
+  // §N. INBOUND REQUESTS — demandes de devis entrantes par email
+  // ───────────────────────────────────────────────────────────────────
+  // Table : public.inbound_requests (alimentée par l'Edge Function
+  // inbound-mail OU manuellement depuis le Hub). Chaque entrée correspond
+  // à un email reçu sur devis.astorya@gmail.com.
+  //
+  // Méthodes : list, getById, create, update, remove, markDevisCreated,
+  //            attachClient, matchClientByEmail
+  // ───────────────────────────────────────────────────────────────────
+  const inboundRequests = {
+    async list(filter = {}) {
+      const s = supa();
+      if (s) {
+        let q = s.from("inbound_requests").select("*");
+        if (filter.status) q = q.eq("status", filter.status);
+        if (filter.client_id) q = q.eq("client_id", filter.client_id);
+        const { data, error } = await q.order("received_at", { ascending: false });
+        if (error) console.warn("[api.inboundRequests.list]", error.message);
+        return data || [];
+      }
+      let arr = lsGet("inbound_requests_v1");
+      if (filter.status) arr = arr.filter((r) => r.status === filter.status);
+      if (filter.client_id) arr = arr.filter((r) => r.client_id === filter.client_id);
+      return arr;
+    },
+    async getById(id) {
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("inbound_requests").select("*").eq("id", id).maybeSingle();
+        return data;
+      }
+      return lsGet("inbound_requests_v1").find((r) => r.id === id) || null;
+    },
+    // Création manuelle depuis le Hub (ex : copier-coller d'un email reçu)
+    async create(payload) {
+      const id = payload.id || genId("INB");
+      const full = {
+        id,
+        from_name: payload.from_name || "",
+        from_email: payload.from_email || "",
+        to_email: payload.to_email || "devis.astorya@gmail.com",
+        subject: payload.subject || "(sans sujet)",
+        body_text: payload.body_text || "",
+        body_excerpt: (payload.body_text || "").slice(0, 280),
+        received_at: payload.received_at || new Date().toISOString(),
+        client_id: payload.client_id || null,
+        match_method: payload.match_method || "manual",
+        needs_identification: !payload.client_id,
+        ai_summary: payload.ai_summary || payload.subject || "",
+        ai_products: payload.ai_products || [],
+        ai_urgency: payload.ai_urgency || "moyenne",
+        ai_amount_hint: payload.ai_amount_hint || null,
+        status: payload.client_id ? "client_identifie" : "a_traiter",
+        created_at: new Date().toISOString(),
+      };
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("inbound_requests").insert(full).select().maybeSingle();
+        // Crée aussi la tâche « Devis à faire »
+        await this._createDevisTask(full);
+        return data || full;
+      }
+      const arr = lsGet("inbound_requests_v1");
+      arr.unshift(full);
+      lsSet("inbound_requests_v1", arr);
+      await this._createDevisTask(full);
+      return full;
+    },
+    // Crée la tâche « 📋 Devis à faire » liée à la demande entrante
+    async _createDevisTask(req) {
+      if (!actions || !actions.create) return null;
+      let clientName = "Client à identifier";
+      if (req.client_id) {
+        try {
+          const c = await clients.getById(req.client_id);
+          clientName = (c && (c.raison_sociale || c.name)) || clientName;
+        } catch (e) {}
+      }
+      try {
+        return await actions.create({
+          client_id: req.client_id || null,
+          type: "task",
+          title: "📋 Devis à faire — " + clientName,
+          meta: (req.ai_summary || req.subject || "") + (req.ai_amount_hint ? " · Montant évoqué : " + req.ai_amount_hint : ""),
+          due: req.ai_urgency === "haute" ? "Urgent — sous 24h" : "Sous 3 jours",
+          priority: req.ai_urgency === "haute" ? "haute" : "moyenne",
+          tag: "Devis entrant",
+          tagColor: "#ea580c",
+          icon: "📋",
+          data: { source: "inbound_mail", inbound_id: req.id, from_email: req.from_email },
+        });
+      } catch (e) { console.warn("[inbound._createDevisTask]", e); return null; }
+    },
+    async update(id, patch) {
+      const s = supa();
+      if (s) {
+        const { data } = await s.from("inbound_requests").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle();
+        return data;
+      }
+      const arr = lsGet("inbound_requests_v1");
+      const idx = arr.findIndex((r) => r.id === id);
+      if (idx >= 0) { arr[idx] = { ...arr[idx], ...patch }; lsSet("inbound_requests_v1", arr); return arr[idx]; }
+      return null;
+    },
+    // Rattache un client à une demande non identifiée
+    async attachClient(id, client_id) {
+      return this.update(id, { client_id, needs_identification: false, status: "client_identifie", match_method: "manual" });
+    },
+    // Marque la demande comme « devis créé »
+    async markDevisCreated(id, devis_id) {
+      return this.update(id, { status: "devis_cree", devis_id });
+    },
+    async remove(id) {
+      const s = supa();
+      if (s) await s.from("inbound_requests").delete().eq("id", id);
+      lsSet("inbound_requests_v1", lsGet("inbound_requests_v1").filter((r) => r.id !== id));
+    },
+    // Matching client par email/domaine (utilisé côté Hub pour les saisies
+    // manuelles ; la version Edge Function fait pareil côté serveur).
+    async matchClientByEmail(email) {
+      const e = (email || "").toLowerCase().trim();
+      const domain = e.split("@")[1] || "";
+      if (!e) return null;
+      const allClients = await clients.list().catch(() => []);
+      const allContacts = (contacts && contacts.list) ? await contacts.list().catch(() => []) : [];
+      // 1. Contact email exact
+      const cont = (allContacts || []).find((c) => (c.email || "").toLowerCase() === e);
+      if (cont && cont.client_id) return { client_id: cont.client_id, method: "email_exact" };
+      // 2. Client email exact
+      const cli = (allClients || []).find((c) => (c.email || "").toLowerCase() === e);
+      if (cli) return { client_id: cli.id, method: "email_exact" };
+      // 3. Domaine (hors webmails grand public)
+      const generic = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.fr", "free.fr", "orange.fr", "wanadoo.fr", "laposte.net"];
+      if (domain && !generic.includes(domain)) {
+        const byDom = (allClients || []).find((c) =>
+          (c.email || "").toLowerCase().endsWith("@" + domain) ||
+          (c.website || "").toLowerCase().includes(domain));
+        if (byDom) return { client_id: byDom.id, method: "domain" };
+      }
+      return null;
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests };
 })();

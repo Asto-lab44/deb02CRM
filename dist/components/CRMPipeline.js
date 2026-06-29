@@ -45,17 +45,23 @@ var CRMPipeline = () => {
   var [sidebarCounts, setSidebarCounts] = React.useState({
     comptes: 0,
     contacts: 0,
-    activites: 0
+    activites: 0,
+    inbound: 0
   });
   React.useEffect(() => {
     if (!window.api) return;
     Promise.all([window.api.clients.list(), window.api.contacts.list(), window.api.actions.list({
       status: "todo"
-    })]).then(([cl, co, ac]) => {
+    }),
+    // Demandes de devis entrantes encore « à traiter »
+    (window.api.inboundRequests ? window.api.inboundRequests.list({
+      status: "a_traiter"
+    }) : Promise.resolve([])).catch(() => [])]).then(([cl, co, ac, inb]) => {
       setSidebarCounts({
         comptes: (cl || []).length,
         contacts: (co || []).length,
-        activites: (ac || []).length
+        activites: (ac || []).length,
+        inbound: (inb || []).length
       });
     }).catch(() => {});
   }, []);
@@ -452,6 +458,15 @@ var CRMPipeline = () => {
     icon: "▦",
     href: "/crm",
     active: isCrmActive("all")
+  }, {
+    label: "Planning",
+    icon: "📅",
+    href: "/planning-commercial"
+  }, {
+    label: "Demandes entrantes",
+    icon: "📥",
+    href: "/demandes-entrantes",
+    count: sidebarCounts.inbound
   }, {
     label: "Comptes",
     icon: "◰",

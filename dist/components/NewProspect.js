@@ -103,6 +103,7 @@ var NewProspect = () => {
     }).slice(0, 5);
   }, [allClients, companyName, companySiren]);
   var [companyNaf, setCompanyNaf] = React.useState("");
+  var [companySiret, setCompanySiret] = React.useState("");
   var [companyTva, setCompanyTva] = React.useState("");
   var [companyAddress, setCompanyAddress] = React.useState("");
   var [companyCity, setCompanyCity] = React.useState("");
@@ -191,6 +192,11 @@ var NewProspect = () => {
     var c = String(s).replace(/\D/g, "");
     return c.length === 9 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6, 9)}` : c;
   };
+  // SIRET = SIREN (9) + NIC (5) = 14 chiffres, format « XXX XXX XXX XXXXX »
+  var formatSiret = s => {
+    var c = String(s || "").replace(/\D/g, "");
+    return c.length === 14 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6, 9)} ${c.slice(9, 14)}` : c;
+  };
 
   // Debounce 300ms sur la recherche
   var siretTimer = React.useRef(null);
@@ -223,6 +229,7 @@ var NewProspect = () => {
     setCompanyName("");
     setCompanySiren("");
     setCompanyNaf("");
+    setCompanySiret("");
     setCompanyTva("");
     setCompanyAddress("");
     setCompanyCity("");
@@ -246,6 +253,8 @@ var NewProspect = () => {
     setCompanyName(name);
     setCompanySiren(formatSiren(siren));
     setCompanyNaf(naf);
+    // SIRET du siège (14 chiffres = SIREN + NIC). Récupéré depuis l'API SIRENE.
+    setCompanySiret(formatSiret(siege.siret || e.siege_siret || ""));
     setCompanyTva(computeTva(siren));
 
     // Adresse — privilégie geo_adresse (concaténée), sinon reconstitue
@@ -364,6 +373,7 @@ var NewProspect = () => {
     id: "ACC-" + Math.floor(Math.random() * 9000 + 1000),
     raison_sociale: companyName,
     siren: companySiren,
+    siret: companySiret,
     naf: companyNaf,
     tva: companyTva,
     adresse: companyAddress,
@@ -529,7 +539,7 @@ var NewProspect = () => {
   var completionPct = React.useMemo(() => {
     var fields = [
     // Société (10)
-    companyName, companySiren, companyNaf, companyTva, companySector, effectif, tier, companyWeb, companyAddress, companyCP,
+    companyName, companySiren, companySiret, companyNaf, companyTva, companySector, effectif, tier, companyWeb, companyAddress, companyCP,
     // Contact principal (6)
     contactPrenom, contactNom, fonction, contactRole, contactEmail, contactPhone];
     var filled = fields.filter(v => {
@@ -538,7 +548,7 @@ var NewProspect = () => {
       return true;
     }).length;
     return Math.round(filled / fields.length * 100);
-  }, [companyName, companySiren, companyNaf, companyTva, companySector, effectif, tier, companyWeb, companyAddress, companyCP, contactPrenom, contactNom, fonction, contactRole, contactEmail, contactPhone]);
+  }, [companyName, companySiren, companySiret, companyNaf, companyTva, companySector, effectif, tier, companyWeb, companyAddress, companyCP, contactPrenom, contactNom, fonction, contactRole, contactEmail, contactPhone]);
   var Avatar = ({
     name,
     size = 22,
@@ -854,6 +864,39 @@ var NewProspect = () => {
       onChange: r => setProcedureCheck(r),
       compact: false
     }))), /*#__PURE__*/React.createElement(FormRow, {
+      label: "SIRET (si\xE8ge)",
+      required: true
+    }, (() => {
+      var digits = (companySiret || "").replace(/\D/g, "");
+      var siretErr = digits.length > 0 && digits.length !== 14;
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+        style: {
+          ...npStyles.input,
+          fontVariantNumeric: "tabular-nums",
+          ...(siretErr ? {
+            borderColor: "#dc2626"
+          } : {})
+        },
+        value: companySiret,
+        placeholder: "14 chiffres",
+        onChange: e => {
+          setCompanySiret(formatSiret(e.target.value));
+          // Si le SIREN est vide, on le déduit des 9 premiers chiffres du SIRET
+          var d = e.target.value.replace(/\D/g, "");
+          if (d.length >= 9 && !(companySiren || "").replace(/\D/g, "")) {
+            setCompanySiren(formatSiren(d.slice(0, 9)));
+            var t = computeTva(d.slice(0, 9));
+            if (t) setCompanyTva(t);
+          }
+        }
+      }), siretErr && /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "#dc2626",
+          marginTop: 4
+        }
+      }, "Le SIRET doit comporter 14 chiffres."));
+    })()), /*#__PURE__*/React.createElement(FormRow, {
       label: "Code NAF"
     }, /*#__PURE__*/React.createElement("input", {
       style: {

@@ -450,6 +450,13 @@ var CommercialDocs = () => {
   React.useEffect(() => {
     reload();
   }, [reload]);
+  // Précharge pdfmake + polices dès l'ouverture du module : le 1er « Aperçu PDF »
+  // est alors instantané et ne nécessite plus de 2e clic (anti-popup).
+  React.useEffect(() => {
+    try {
+      window.HubCommercialPdf && window.HubCommercialPdf.preload && window.HubCommercialPdf.preload();
+    } catch (e) {}
+  }, []);
   React.useEffect(() => {
     (async () => {
       try {
@@ -3026,12 +3033,19 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
+      var win = window.open("", "_blank");
       try {
         await save({
           keepOpen: true
         });
-        if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id);
-      } catch (e) {}
+        if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id, win);else if (win) win.close();
+      } catch (e) {
+        if (win) {
+          try {
+            win.close();
+          } catch (_) {}
+        }
+      }
     },
     style: cdStyles.ghostBtn,
     title: "G\xE9n\xE8re le PDF et l'ouvre"

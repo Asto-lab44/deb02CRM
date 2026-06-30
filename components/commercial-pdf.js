@@ -909,46 +909,66 @@
       resolved = await window.api.commercialDocs.getById(doc);
       if (!resolved) throw new Error("Document introuvable");
     }
-    const company = await window.api.commercialCompany.get();
-    // Résolution du libellé conditions de paiement (depuis payment_terms_id)
-    if (resolved.payment_terms_id && !resolved.payment_terms_label) {
-      try {
-        const terms = await window.api.commercialRefs.paymentTerms();
-        const found = (terms || []).find((t) => t.id === resolved.payment_terms_id);
-        if (found) resolved = { ...resolved, payment_terms_label: found.label };
-      } catch (e) {}
+    // Tous les appels annexes sont INDÉPENDANTS → on les lance EN PARALLÈLE
+    // (au lieu de séquentiellement) pour accélérer la génération du PDF.
+    const needTerms = resolved.payment_terms_id && !resolved.payment_terms_label;
+    const needClient = resolved.client_id && (!resolved.client_address || !resolved.client_city);
+    const needAvoirs = resolved.type === "facture" && !!resolved.id;
+    const [company, terms, client, avs] = await Promise.all([
+      window.api.commercialCompany.get().catch(() => ({})),
+      needTerms ? window.api.commercialRefs.paymentTerms().catch(() => []) : Promise.resolve(null),
+      needClient ? window.api.clients.getById(resolved.client_id).catch(() => null) : Promise.resolve(null),
+      needAvoirs ? window.api.commercialDocs.list({ type: "avoir", parent_doc_id: resolved.id }).catch(() => []) : Promise.resolve(null),
+    ]);
+    // Libellé conditions de paiement
+    if (terms) {
+      const found = terms.find((t) => t.id === resolved.payment_terms_id);
+      if (found) resolved = { ...resolved, payment_terms_label: found.label };
     }
-    // Adresse client : si la pièce n'a pas d'adresse dénormalisée (ancienne
-    // pièce, ou créée avant correctif), on la complète depuis la fiche client.
-    if (resolved.client_id && (!resolved.client_address || !resolved.client_city)) {
-      try {
-        const c = await window.api.clients.getById(resolved.client_id);
-        if (c) resolved = {
-          ...resolved,
-          client_address: resolved.client_address || c.adresse || c.address || "",
-          client_cp: resolved.client_cp || c.cp || c.code_postal || "",
-          client_city: resolved.client_city || c.ville || c.city || "",
-          client_siren: resolved.client_siren || c.siren || "",
-          client_tva: resolved.client_tva || c.tva || c.tva_intra || "",
-        };
-      } catch (e) { /* non bloquant */ }
+    // Adresse client (complétée depuis la fiche si absente de la pièce)
+    if (client) {
+      resolved = {
+        ...resolved,
+        client_address: resolved.client_address || client.adresse || client.address || "",
+        client_cp: resolved.client_cp || client.cp || client.code_postal || "",
+        client_city: resolved.client_city || client.ville || client.city || "",
+        client_siren: resolved.client_siren || client.siren || "",
+        client_tva: resolved.client_tva || client.tva || client.tva_intra || "",
+      };
     }
-    // Facture : récupère les avoirs liés pour les déduire du solde dû au PDF
-    if (resolved.type === "facture" && resolved.id) {
-      try {
-        const avs = await window.api.commercialDocs.list({ type: "avoir", parent_doc_id: resolved.id });
-        const avoirsTtc = (avs || []).reduce((s, a) => s + Math.abs(Number(a.total_ttc) || 0), 0);
-        if (avoirsTtc > 0) resolved = { ...resolved, _avoirsTtc: avoirsTtc, _avoirsCount: (avs || []).length };
-      } catch (e) {}
+    // Avoirs liés (déduits du solde dû sur la facture)
+    if (avs) {
+      const avoirsTtc = avs.reduce((s, a) => s + Math.abs(Number(a.total_ttc) || 0), 0);
+      if (avoirsTtc > 0) resolved = { ...resolved, _avoirsTtc: avoirsTtc, _avoirsCount: avs.length };
     }
     return { doc: resolved, company };
   }
 
   const HubCommercialPdf = {
-    async preview(doc) {
-      const pm = await loadPdfMake();
-      const { doc: d, company } = await _resolveDoc(doc);
-      pm.createPdf(buildDocDefinition(d, company)).open();
+    // Précharge pdfmake + polices (à appeler à l'ouverture de l'éditeur) pour
+    // que le 1er « Aperçu » soit instantané et n'ait pas besoin d'un 2e clic.
+    preload() { try { return loadPdfMake(); } catch (e) { return Promise.resolve(null); } },
+
+    // win (optionnel) : onglet déjà ouvert SYNCHRONEMENT par l'appelant (avant
+    // tout await), pour ne pas être bloqué par l'anti-popup. Sinon on l'ouvre
+    // ici en 1re instruction (OK si preview() est appelé directement au clic).
+    async preview(doc, win) {
+      const target = win || window.open("", "_blank");
+      try {
+        const pm = await loadPdfMake();
+        const { doc: d, company } = await _resolveDoc(doc);
+        await new Promise((resolve) => {
+          pm.createPdf(buildDocDefinition(d, company)).getBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            if (target) { try { target.location.href = url; } catch (e) { window.open(url, "_blank"); } }
+            else { window.open(url, "_blank"); }
+            resolve();
+          });
+        });
+      } catch (e) {
+        if (target) { try { target.close(); } catch (_) {} }
+        throw e;
+      }
     },
     async download(doc) {
       const pm = await loadPdfMake();

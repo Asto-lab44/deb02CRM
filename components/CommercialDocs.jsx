@@ -158,6 +158,7 @@ const CommercialDocs = () => {
     { k: "devis",    label: "Devis",            navLabel: "Devis en cours", newLabel: "Nouveau devis", color: "#3b82f6", icon: "📄" },
     { k: "commande", label: "Commandes client", newLabel: "Nouveau devis", color: "#a855f7", icon: "📋" },
     { k: "bl",       label: "Bons livraison",   newLabel: "Nouveau devis", color: "#ea580c", icon: "🚚" },
+    { k: "facture_acompte", label: "Factures d'acompte", navLabel: "Factures d'acompte", newLabel: "Nouveau devis", color: "#0ea5e9", icon: "💰" },
     { k: "facture",  label: "Factures",         newLabel: "Nouveau devis", color: "#10b981", icon: "💶" },
   ];
 
@@ -1194,6 +1195,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
   const [saving, setSaving] = React.useState(false);
   const [sendOpen, setSendOpen] = React.useState(false);
   const [smartSearchOpen, setSmartSearchOpen] = React.useState(false);
+  const [acompteOpen, setAcompteOpen] = React.useState(false);
 
   const reloadSuppliers = React.useCallback(async () => {
     try { setSuppliers(await window.api.suppliers.list({ active: true }) || []); } catch (e) {}
@@ -1748,6 +1750,14 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id); } catch (e) {} }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); try { await window.api.commercialSends.log({ doc_id: d.id, doc_type: d.type, channel: "download", status: "sent", provider: "browser" }); } catch (e) {} } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); setSendOpen(true); } catch (e) {} }} style={cdStyles.ghostBtn}>✉ Envoyer</button>
+            {/* Facture d'acompte — uniquement depuis un devis (modèle Sage) */}
+            {d.type === "devis" && (
+              <button onClick={() => setAcompteOpen(true)}
+                      title="Générer une facture d'acompte (ex : 40% à la commande)"
+                      style={{ ...cdStyles.ghostBtn, borderColor: "#0ea5e9", color: "#0369a1", background: "#f0f9ff", fontWeight: 600 }}>
+                💰 Facture d'acompte
+              </button>
+            )}
             {(() => {
               // Masque le bouton "Transformer en X" dans 3 cas :
               //  - doc final (facture)
@@ -2309,6 +2319,94 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
         </div>
       </div>
       {sendOpen && <DocSendModal doc={d} onSave={save} onClose={() => setSendOpen(false)} />}
+      {acompteOpen && <AcompteModal doc={d} onClose={() => setAcompteOpen(false)}
+        onCreated={(facAc) => { setAcompteOpen(false);
+          if (window.HubToast) window.HubToast.success("✓ Facture d'acompte " + (facAc.ref || facAc.id) + " créée");
+          if (onOpenDoc) onOpenDoc(facAc.id); else if (onSaved) onSaved();
+        }} />}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// AcompteModal — génère une facture d'acompte depuis un devis (modèle Sage)
+// ─────────────────────────────────────────────────────────────────
+const AcompteModal = ({ doc, onClose, onCreated }) => {
+  const [mode, setMode] = React.useState("pct"); // "pct" | "amount"
+  const [pct, setPct] = React.useState(40);
+  const [amount, setAmount] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const fmt = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " €";
+  const baseHt = Number(doc.total_ht) || 0;
+  const baseTtc = Number(doc.total_ttc) || 0;
+  const rate = baseHt > 0 ? (Number(doc.total_tva) || 0) / baseHt : 0.2;
+  const acHt = mode === "pct" ? Math.round(baseHt * (Number(pct) || 0) / 100 * 100) / 100 : (Number(amount) || 0);
+  const acTtc = Math.round(acHt * (1 + rate) * 100) / 100;
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const opts = mode === "pct" ? { pct: Number(pct) || 0 } : { amount_ht: Number(amount) || 0 };
+      const facAc = await window.api.commercialDocs.createAcompte(doc.id, opts);
+      onCreated(facAc);
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 24, width: "90%", maxWidth: 480, boxShadow: "0 12px 40px rgba(0,0,0,0.3)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }}>💰 Facture d'acompte</h2>
+          <button onClick={onClose} style={{ width: 30, height: 30, border: "none", background: "#f1f5f9", borderRadius: 7, fontSize: 17, cursor: "pointer", fontWeight: 700 }}>×</button>
+        </div>
+        <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 16px" }}>
+          Devis <strong>{doc.ref || doc.id}</strong> · Total {fmt(baseHt)} HT ({fmt(baseTtc)} TTC)
+        </p>
+
+        <div style={{ display: "inline-flex", border: "1px solid #e2e8f0", borderRadius: 8, padding: 2, marginBottom: 14 }}>
+          <button onClick={() => setMode("pct")} style={{ padding: "6px 14px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12.5, fontWeight: 600, background: mode === "pct" ? "#0ea5e9" : "transparent", color: mode === "pct" ? "#fff" : "#64748b" }}>Pourcentage</button>
+          <button onClick={() => setMode("amount")} style={{ padding: "6px 14px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12.5, fontWeight: 600, background: mode === "amount" ? "#0ea5e9" : "transparent", color: mode === "amount" ? "#fff" : "#64748b" }}>Montant fixe HT</button>
+        </div>
+
+        {mode === "pct" ? (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Pourcentage d'acompte</label>
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              {[30, 40, 50].map((v) => (
+                <button key={v} onClick={() => setPct(v)} style={{ padding: "6px 12px", border: "1px solid " + (pct === v ? "#0ea5e9" : "#e2e8f0"), background: pct === v ? "#f0f9ff" : "#fff", color: pct === v ? "#0369a1" : "#475569", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{v} %</button>
+              ))}
+              <input type="number" value={pct} onChange={(e) => setPct(e.target.value)} style={{ width: 70, padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 12.5, fontVariantNumeric: "tabular-nums", textAlign: "right" }} />
+              <span style={{ alignSelf: "center", fontSize: 13, color: "#475569" }}>%</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Montant HT de l'acompte</label>
+            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" style={{ width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, marginTop: 6, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+          </div>
+        )}
+
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
+            <span style={{ color: "#475569" }}>Acompte HT</span>
+            <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmt(acHt)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#0369a1" }}>
+            <span style={{ fontWeight: 700 }}>Net à payer TTC</span>
+            <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{fmt(acTtc)}</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 600 }}>Annuler</button>
+          <button onClick={submit} disabled={busy || acHt <= 0} style={{ padding: "8px 16px", border: "none", background: acHt > 0 ? "#0ea5e9" : "#cbd5e1", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: busy || acHt <= 0 ? "not-allowed" : "pointer" }}>
+            {busy ? "⏳ Création…" : "💰 Créer la facture d'acompte"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

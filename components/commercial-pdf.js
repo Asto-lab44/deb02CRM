@@ -117,8 +117,8 @@
     return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  const TYPE_LABEL = { devis: "DEVIS", commande: "COMMANDE", bl: "BON DE LIVRAISON", facture: "FACTURE", avoir: "AVOIR", commande_achat: "COMMANDE D'ACHAT" };
-  const TYPE_PREFIX_LABEL = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir", commande_achat: "Commande d'achat" };
+  const TYPE_LABEL = { devis: "DEVIS", commande: "COMMANDE", bl: "BON DE LIVRAISON", facture: "FACTURE", facture_acompte: "FACTURE D'ACOMPTE", avoir: "AVOIR", commande_achat: "COMMANDE D'ACHAT" };
+  const TYPE_PREFIX_LABEL = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", facture_acompte: "Facture d'acompte", avoir: "Avoir", commande_achat: "Commande d'achat" };
 
   /** Construit le docDefinition pdfmake à partir du doc + settings société. */
   function buildDocDefinition(doc, company) {
@@ -688,6 +688,11 @@
       notesBlock || { text: " " },
       logisticsNoteBlock,
       isBL ? null : totalsBlock,
+      // Mention légale facture d'acompte (modèle Sage)
+      (doc.type === "facture_acompte") ? {
+        text: "Cette facture d'acompte sera déduite du montant de la facture définitive.",
+        fontSize: 9, italics: true, color: "#475569", margin: [0, 12, 0, 0],
+      } : null,
       // Bloc signature placé dans le body juste avant le saut de page CGV
       // (et seulement sur les devis). Il flotte naturellement après les
       // totaux et reste collé au-dessus du verso CGV. unbreakable pour

@@ -1969,6 +1969,44 @@
           internal_notes: (parent.data && parent.data.internal_notes) || parent.internal_notes || null,
         },
       };
+      // Facture définitive : déduit les acomptes déjà facturés sur le devis
+      // d'origine (modèle Sage — ligne négative « Acompte déjà facturé »).
+      if (new_type === "facture") {
+        try {
+          // Remonte la chaîne jusqu'au devis racine
+          let rootDevisId = null, cur = parent;
+          for (let i = 0; i < 6; i++) {
+            if (cur.type === "devis") { rootDevisId = cur.id; break; }
+            if (!cur.parent_doc_id) break;
+            cur = await this.getById(cur.parent_doc_id);
+            if (!cur) break;
+          }
+          if (rootDevisId) {
+            const s2 = supa();
+            let acomptes = [];
+            if (s2) {
+              const { data } = await s2.from("commercial_docs").select("*")
+                .eq("type", "facture_acompte").eq("parent_doc_id", rootDevisId).is("deleted_at", null);
+              acomptes = data || [];
+            } else {
+              acomptes = lsGet("commercial_docs").filter((d) => d.type === "facture_acompte" && d.parent_doc_id === rootDevisId);
+            }
+            acomptes.forEach((ac) => {
+              const acHt = Number(ac.total_ht) || 0;
+              const acTva = Number(ac.total_tva) || 0;
+              const rate = acHt > 0 ? Math.round((acTva / acHt) * 10000) / 100 : 20;
+              childPayload.lines.push({
+                article_id: null, ref: "ACOMPTE",
+                designation: "Acompte déjà facturé — " + (ac.ref || ac.id),
+                quantity: 1, unit: "forfait", unit_price_ht: -acHt, discount_pct: 0,
+                tva_rate: rate, total_ht: -acHt, total_tva: -acTva,
+                total_ttc: -(acHt + acTva), is_text_only: false, periodicity: "oneshot",
+              });
+            });
+          }
+        } catch (e) { console.warn("[transform] déduction acompte:", e); }
+      }
+
       const child = await this.create(childPayload);
       // Le parent garde son statut métier (accepte / livre / paye) au lieu
       // d'être figé en « transforme ». Le lien parent_doc_id sur l'enfant
@@ -1983,6 +2021,55 @@
         }
       } catch (e) { /* non bloquant */ }
       return child;
+    },
+
+    /** Crée une FACTURE D'ACOMPTE à partir d'un devis (ou commande).
+     *  Modèle Sage : une seule ligne « Acompte de X% sur devis N° » avec la
+     *  TVA proportionnelle. Le pourcentage OU un montant HT fixe.
+     *  opts = { pct } ou { amount_ht }. Défaut : 40%.
+     *  L'acompte est rattaché au devis via parent_doc_id + data.acompte=true. */
+    async createAcompte(parent_id, opts = {}) {
+      const parent = await this.getById(parent_id);
+      if (!parent) throw new Error("Document parent introuvable");
+      const baseHt = Number(parent.total_ht) || 0;
+      // TVA moyenne pondérée du devis (pour rester cohérent multi-taux)
+      const baseTva = Number(parent.total_tva) || 0;
+      const effectiveRate = baseHt > 0 ? Math.round((baseTva / baseHt) * 10000) / 100 : 20;
+      let pct = opts.pct != null ? Number(opts.pct) : null;
+      let acompteHt;
+      if (opts.amount_ht != null) {
+        acompteHt = Number(opts.amount_ht) || 0;
+        pct = baseHt > 0 ? Math.round((acompteHt / baseHt) * 10000) / 100 : null;
+      } else {
+        if (pct == null) pct = 40;
+        acompteHt = Math.round(baseHt * pct / 100 * 100) / 100;
+      }
+      const acompteTva = Math.round(acompteHt * effectiveRate / 100 * 100) / 100;
+      const acompteTtc = Math.round((acompteHt + acompteTva) * 100) / 100;
+      const label = pct != null
+        ? "Acompte de " + pct + " % sur devis " + (parent.ref || parent.id)
+        : "Acompte sur devis " + (parent.ref || parent.id);
+      const line = {
+        article_id: null, ref: "ACOMPTE", designation: label, description: null,
+        quantity: 1, unit: "forfait", unit_price_ht: acompteHt, discount_pct: 0,
+        tva_rate: effectiveRate, total_ht: acompteHt, total_tva: acompteTva,
+        total_ttc: acompteTtc, is_text_only: false, periodicity: "oneshot",
+      };
+      const payload = {
+        type: "facture_acompte",
+        status: "brouillon",
+        client_id: parent.client_id, client_name: parent.client_name,
+        client_address: parent.client_address, client_cp: parent.client_cp, client_city: parent.client_city,
+        client_siren: parent.client_siren, client_tva: parent.client_tva,
+        contact_name: parent.contact_name, contact_email: parent.contact_email,
+        project_id: parent.project_id, opportunity_id: parent.opportunity_id,
+        parent_doc_id: parent_id,
+        title: "Acompte " + (pct != null ? pct + "% " : "") + "— " + (parent.title || parent.client_name || ""),
+        owner: parent.owner,
+        lines: [line],
+        data: { ...(parent.data || {}), acompte: true, acompte_pct: pct, source_devis_ref: parent.ref || parent.id },
+      };
+      return await this.create(payload);
     },
 
     /** (Re)génère le PDF d'un BL existant et l'attache au projet.

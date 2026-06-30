@@ -284,6 +284,13 @@ var CommercialDocs = () => {
     color: "#ea580c",
     icon: "🚚"
   }, {
+    k: "facture_acompte",
+    label: "Factures d'acompte",
+    navLabel: "Factures d'acompte",
+    newLabel: "Nouveau devis",
+    color: "#0ea5e9",
+    icon: "💰"
+  }, {
     k: "facture",
     label: "Factures",
     newLabel: "Nouveau devis",
@@ -2251,6 +2258,7 @@ var CommercialDocEditor = ({
   var [saving, setSaving] = React.useState(false);
   var [sendOpen, setSendOpen] = React.useState(false);
   var [smartSearchOpen, setSmartSearchOpen] = React.useState(false);
+  var [acompteOpen, setAcompteOpen] = React.useState(false);
   var reloadSuppliers = React.useCallback(async () => {
     try {
       setSuppliers((await window.api.suppliers.list({
@@ -2993,7 +3001,17 @@ var CommercialDocEditor = ({
       } catch (e) {}
     },
     style: cdStyles.ghostBtn
-  }, "\u2709 Envoyer"), (() => {
+  }, "\u2709 Envoyer"), d.type === "devis" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAcompteOpen(true),
+    title: "G\xE9n\xE9rer une facture d'acompte (ex : 40% \xE0 la commande)",
+    style: {
+      ...cdStyles.ghostBtn,
+      borderColor: "#0ea5e9",
+      color: "#0369a1",
+      background: "#f0f9ff",
+      fontWeight: 600
+    }
+  }, "\uD83D\uDCB0 Facture d'acompte"), (() => {
     // Masque le bouton "Transformer en X" dans 3 cas :
     //  - doc final (facture)
     //  - doc déjà transformé
@@ -4042,7 +4060,288 @@ var CommercialDocEditor = ({
     doc: d,
     onSave: save,
     onClose: () => setSendOpen(false)
+  }), acompteOpen && /*#__PURE__*/React.createElement(AcompteModal, {
+    doc: d,
+    onClose: () => setAcompteOpen(false),
+    onCreated: facAc => {
+      setAcompteOpen(false);
+      if (window.HubToast) window.HubToast.success("✓ Facture d'acompte " + (facAc.ref || facAc.id) + " créée");
+      if (onOpenDoc) onOpenDoc(facAc.id);else if (onSaved) onSaved();
+    }
   }));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// AcompteModal — génère une facture d'acompte depuis un devis (modèle Sage)
+// ─────────────────────────────────────────────────────────────────
+var AcompteModal = ({
+  doc,
+  onClose,
+  onCreated
+}) => {
+  var [mode, setMode] = React.useState("pct"); // "pct" | "amount"
+  var [pct, setPct] = React.useState(40);
+  var [amount, setAmount] = React.useState("");
+  var [busy, setBusy] = React.useState(false);
+  var fmt = n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).replace(/[  ]/g, " ") + " €";
+  var baseHt = Number(doc.total_ht) || 0;
+  var baseTtc = Number(doc.total_ttc) || 0;
+  var rate = baseHt > 0 ? (Number(doc.total_tva) || 0) / baseHt : 0.2;
+  var acHt = mode === "pct" ? Math.round(baseHt * (Number(pct) || 0) / 100 * 100) / 100 : Number(amount) || 0;
+  var acTtc = Math.round(acHt * (1 + rate) * 100) / 100;
+  var submit = async () => {
+    setBusy(true);
+    try {
+      var opts = mode === "pct" ? {
+        pct: Number(pct) || 0
+      } : {
+        amount_ht: Number(amount) || 0
+      };
+      var facAc = await window.api.commercialDocs.createAcompte(doc.id, opts);
+      onCreated(facAc);
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 24,
+      width: "90%",
+      maxWidth: 480,
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCB0 Facture d'acompte"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 30,
+      height: 30,
+      border: "none",
+      background: "#f1f5f9",
+      borderRadius: 7,
+      fontSize: 17,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "0 0 16px"
+    }
+  }, "Devis ", /*#__PURE__*/React.createElement("strong", null, doc.ref || doc.id), " \xB7 Total ", fmt(baseHt), " HT (", fmt(baseTtc), " TTC)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      padding: 2,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode("pct"),
+    style: {
+      padding: "6px 14px",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 600,
+      background: mode === "pct" ? "#0ea5e9" : "transparent",
+      color: mode === "pct" ? "#fff" : "#64748b"
+    }
+  }, "Pourcentage"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode("amount"),
+    style: {
+      padding: "6px 14px",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 600,
+      background: mode === "amount" ? "#0ea5e9" : "transparent",
+      color: mode === "amount" ? "#fff" : "#64748b"
+    }
+  }, "Montant fixe HT")), mode === "pct" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Pourcentage d'acompte"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 6
+    }
+  }, [30, 40, 50].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setPct(v),
+    style: {
+      padding: "6px 12px",
+      border: "1px solid " + (pct === v ? "#0ea5e9" : "#e2e8f0"),
+      background: pct === v ? "#f0f9ff" : "#fff",
+      color: pct === v ? "#0369a1" : "#475569",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, v, " %")), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: pct,
+    onChange: e => setPct(e.target.value),
+    style: {
+      width: 70,
+      padding: "6px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontVariantNumeric: "tabular-nums",
+      textAlign: "right"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      alignSelf: "center",
+      fontSize: 13,
+      color: "#475569"
+    }
+  }, "%"))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Montant HT de l'acompte"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: amount,
+    onChange: e => setAmount(e.target.value),
+    placeholder: "0.00",
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 13,
+      marginTop: 6,
+      boxSizing: "border-box",
+      fontVariantNumeric: "tabular-nums"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f0f9ff",
+      border: "1px solid #bae6fd",
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12.5,
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#475569"
+    }
+  }, "Acompte HT"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmt(acHt))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 14,
+      color: "#0369a1"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700
+    }
+  }, "Net \xE0 payer TTC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 800,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmt(acTtc)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "8px 14px",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      color: "#475569",
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: submit,
+    disabled: busy || acHt <= 0,
+    style: {
+      padding: "8px 16px",
+      border: "none",
+      background: acHt > 0 ? "#0ea5e9" : "#cbd5e1",
+      color: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: busy || acHt <= 0 ? "not-allowed" : "pointer"
+    }
+  }, busy ? "⏳ Création…" : "💰 Créer la facture d'acompte"))));
 };
 
 // ─────────────────────────────────────────────────────────────────

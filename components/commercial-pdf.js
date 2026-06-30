@@ -820,7 +820,6 @@
       metaRow,
       linesTable,
       notesBlock || { text: " " },
-      logisticsNoteBlock,
       isBL ? null : totalsBlock,
       // Mention légale facture d'acompte (modèle Sage)
       (doc.type === "facture_acompte") ? {
@@ -836,6 +835,8 @@
       // Bas de page légal (factures, factures d'acompte, avoirs) : mentions
       // + coupon de règlement (factures), insécable (jamais coupé entre pages).
       isCreditOrInvoice ? keepTogether(legalFooterBlock, 0) : null,
+      // Note logistique (devis uniquement) — juste au-dessus de « Devis suivi par ».
+      logisticsNoteBlock,
       // Bloc signature (devis / commande / BL), insécable : il reste d'un seul
       // tenant et bascule entier sur la page suivante s'il ne tient pas.
       (doc.type === "devis" || doc.type === "commande" || doc.type === "bl")

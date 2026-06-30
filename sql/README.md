@@ -2,21 +2,26 @@
 
 Ordre d'exécution dans Supabase SQL Editor (snippets distincts, idempotents).
 
-## ⚠️ Pré-requis
+## ⚠️ Pré-requis — exécuter `SCHEMA_COMPLET.sql` EN PREMIER
 
-Les tables **core** suivantes doivent exister dans le projet Supabase **avant** d'exécuter les migrations de ce dossier :
+Les tables **cœur** (clients, contacts, opportunities, actions, contracts,
+contract_templates, delivery_notes, delivery_note_items, notifications, comments,
+tickets, calls, call_transcripts, app_settings, profiles, groups, profile_groups)
+ne sont définies par aucune migration historique : elles sont désormais
+**reconstruites** dans **`SCHEMA_COMPLET.sql`**, à exécuter **avant** toutes les
+migrations datées ci-dessous.
 
-| Table | Utilisée par | Statut |
-|---|---|---|
-| `auth.users` | Toutes les FK `created_by` | Fourni par Supabase Auth |
-| `profiles` | UI Administration, fetchProfiles | Schéma à valider (custom) |
-| `clients` | CRM, fiche client, gestion co. | Schéma à valider (custom) |
-| `contacts` | Fiche client, contact principal | Schéma à valider (custom) |
-| `opportunities` | CRM Pipeline, AdvanceOpp | Schéma à valider (custom) |
-| `actions` | Timeline activité | Schéma à valider (custom) |
-| `contracts` | Fiche client > Contrats | Schéma à valider (custom) |
+> 🧭 **Pour un redéploiement complet sur un nouveau serveur**, suivre
+> **`../DEPLOIEMENT.md`** (procédure pas-à-pas : ordre exact, buckets storage,
+> edge functions, auth, recette).
+>
+> ⚠️ `SCHEMA_COMPLET.sql` est une **reconstruction** déduite du code : la
+> **source de vérité reste l'export du schéma réel** (`pg_dump` / Supabase CLI,
+> cf. DEPLOIEMENT.md §1). En cas de divergence, l'export fait foi.
 
-> Si une de ces tables manque (erreur `42P01: relation does not exist`), il faut la créer manuellement. Les fallbacks localStorage masquent l'absence, mais les écritures ne sont pas persistées en BDD réelle.
+`auth.users` est fourni par Supabase Auth (toutes les FK `created_by` en dépendent).
+Sans `SCHEMA_COMPLET.sql`, une table cœur manquante provoque `42P01: relation does
+not exist` ; le code retombe alors en localStorage (non persisté en base réelle).
 
 ## 📋 Migrations à exécuter (ordre)
 

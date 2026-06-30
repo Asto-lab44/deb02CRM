@@ -593,6 +593,70 @@
       ],
     };
 
+    // ───── Bas de page LÉGAL (factures, factures d'acompte, avoirs) —
+    // modèle Sage : mention TVA, coordonnées bancaires, pénalités de retard,
+    // recouvrement, + coupon de règlement détachable (factures uniquement).
+    const isInvoiceType = doc.type === "facture" || doc.type === "facture_acompte";
+    const isCreditOrInvoice = isInvoiceType || doc.type === "avoir";
+    // Code client : « CLI » + 3 premières lettres du nom (idem liste).
+    const cliCode = (function () {
+      const n = String(doc.client_name || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      return n ? ("CLI" + n.slice(0, 3).padEnd(3, "X")) : (doc.client_id || "—");
+    })();
+    // Montant restant dû = TTC − règlements − avoirs.
+    const remainingDue = (function () {
+      const ttc = Number(doc.total_ttc) || 0;
+      const paid = ((doc.data && doc.data.payments) || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      const av = Number(doc._avoirsTtc) || 0;
+      return Math.round((ttc - paid - av) * 100) / 100;
+    })();
+    // Mentions légales (surchargeables via les réglages société).
+    const mentionPenalites = company.mention_penalites
+      || "Passé la date d'échéance, tout paiement différé entraîne l'application de pénalités de retard ne pouvant toutefois être inférieures à 3 fois le taux d'intérêt légal en vigueur (Loi 2008-776 du 04/08/2008) et d'une indemnité forfaitaire pour frais de recouvrement de 40,00 €.";
+    const mentionRecouvrement = company.mention_recouvrement
+      || ("À défaut de règlement ou d'information de votre part sous 15 jours, votre dossier sera transmis à notre cabinet d'expertise en recouvrement contentieux, qui engagera les démarches de recouvrement"
+          + (company.siren ? " (SIREN " + company.siren + ")" : "") + ".");
+    const couponColumn = isInvoiceType ? {
+      width: 250,
+      stack: [
+        { columns: [ { width: "*", text: "" }, { width: "auto", text: "✂ - - - - - - - - - - - -", fontSize: 8, color: "#94a3b8" } ], margin: [0, 0, 0, 4] },
+        {
+          table: {
+            widths: ["*"],
+            body: [[
+              { stack: [
+                { text: "Coupon à joindre à votre règlement par chèque", bold: true, fontSize: 8.5 },
+                { text: "À l'ordre de " + (company.raison_sociale || "ASTORYA SGI"), fontSize: 8, margin: [0, 0, 0, 6] },
+                { table: { widths: ["auto", "*"], body: [
+                    [{ text: "Code client", fontSize: 8, border: [false, false, false, false] }, { text: ": " + cliCode, fontSize: 8, border: [false, false, false, false] }],
+                    [{ text: "Facture", fontSize: 8, border: [false, false, false, false] }, { text: ": " + doc.id, fontSize: 8, border: [false, false, false, false] }],
+                    [{ text: "Montant dû", fontSize: 8, bold: true, border: [false, false, false, false] }, { text: ": " + fmtEUR(remainingDue), fontSize: 8, bold: true, border: [false, false, false, false] }],
+                    [{ text: "Échéance", fontSize: 8, border: [false, false, false, false] }, { text: ": " + (doc.payment_due ? fmtDate(doc.payment_due) : "—"), fontSize: 8, border: [false, false, false, false] }],
+                    [{ text: "Mode de paiement", fontSize: 8, border: [false, false, false, false] }, { text: ": Virement", fontSize: 8, border: [false, false, false, false] }],
+                  ] }, layout: { defaultBorder: false, paddingTop: () => 1, paddingBottom: () => 1, paddingLeft: () => 0, paddingRight: () => 0 } },
+              ], margin: [8, 8, 8, 8] },
+            ]],
+          },
+          layout: { hLineWidth: () => 0.6, vLineWidth: () => 0.6, hLineColor: () => "#94a3b8", vLineColor: () => "#94a3b8" },
+        },
+      ],
+    } : { width: 0.01, text: "" };
+    const legalFooterBlock = isCreditOrInvoice ? {
+      margin: [0, 14, 0, 0],
+      columns: [
+        { width: "*", stack: [
+          { text: "TVA payée sur les débits", bold: true, fontSize: 9, margin: [0, 0, 0, 8] },
+          { text: "Nos coordonnées bancaires", bold: true, fontSize: 9 },
+          { text: "IBAN  : " + (company.iban || "—"), fontSize: 8.5 },
+          { text: "BIC   : " + (company.bic || "—"), fontSize: 8.5, margin: [0, 0, 0, 8] },
+          { text: mentionPenalites, fontSize: 7, italics: true, color: "#555", margin: [0, 0, 0, 3] },
+          isInvoiceType ? { text: mentionRecouvrement, fontSize: 7, italics: true, color: "#555" } : null,
+        ].filter(Boolean) },
+        { width: 16, text: "" },
+        couponColumn,
+      ],
+    } : null;
+
     // ───── Bas de page : 3 contacts (Commercial / Admin / Compta)
     const contactsBlock = {
       margin: [0, 24, 0, 0],
@@ -746,10 +810,12 @@
           + (doc.data && doc.data.motif ? ". Motif : " + doc.data.motif : "") + ".",
         fontSize: 9, italics: true, color: "#475569", margin: [0, 12, 0, 0],
       } : null,
-      // Bloc signature placé dans le body juste avant le saut de page CGV
-      // (et seulement sur les devis). Il flotte naturellement après les
-      // totaux et reste collé au-dessus du verso CGV. unbreakable pour
-      // ne pas se couper en deux pages.
+      // Bas de page légal (factures, factures d'acompte, avoirs) : mentions
+      // + coupon de règlement (factures). Placé dans le body, juste avant
+      // les contacts du pied de page.
+      isCreditOrInvoice ? { ...legalFooterBlock, unbreakable: true } : null,
+      // Bloc signature placé dans le body (devis & commande) : mention
+      // acompte + cadre « Bon pour accord ». Flotte après les totaux.
       (doc.type === "devis" || doc.type === "commande") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] } : null,
       cgvBlock,
     ].filter(Boolean);
@@ -796,7 +862,7 @@
             // Sur les devis, la signature est désormais dans le body juste
             // au-dessus du saut de page CGV (pas dans le footer). Sur les
             // autres types de docs, signature pinnée en bas de dernière page.
-            (!isDevis && doc.type !== "commande" && isLastPage) ? signatureBlock : null,
+            (doc.type === "bl" && isLastPage) ? signatureBlock : null,
             // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
             // gauche/droite, séparateur fin en haut) — masqué sur les devis
             isDevis ? null : {

@@ -1667,7 +1667,12 @@
           s.from("commercial_docs").select("*").eq("id", id).maybeSingle(),
           s.from("commercial_doc_lines").select("*").eq("doc_id", id).order("position"),
         ]);
-        if (!doc) return null;
+        // Doc absent de Supabase (ex : facture_acompte tombée en localStorage
+        // car la migration de contrainte n'est pas passée) → fallback local.
+        if (!doc) {
+          const local = lsGet("commercial_docs").find((d) => d.id === id);
+          return local ? { ...local, lines: local.lines || [] } : null;
+        }
         // Hydrate les champs internes depuis data jsonb (champs masqués sur PDF)
         const hydrated = (lines || []).map((l) => {
           const meta = (l.data && typeof l.data === "object") ? l.data : {};

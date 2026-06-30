@@ -1751,12 +1751,13 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id); } catch (e) {} }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); try { await window.api.commercialSends.log({ doc_id: d.id, doc_type: d.type, channel: "download", status: "sent", provider: "browser" }); } catch (e) {} } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); setSendOpen(true); } catch (e) {} }} style={cdStyles.ghostBtn}>✉ Envoyer</button>
-            {/* Facture d'acompte — uniquement depuis un devis (modèle Sage) */}
-            {d.type === "devis" && (
+            {/* Règlement / acompte — depuis devis, commande ou BL. Crée une
+                facture d'acompte (modèle Sage), réglée + verrouillée. */}
+            {(d.type === "devis" || d.type === "commande" || d.type === "bl") && (
               <button onClick={() => setAcompteOpen(true)}
-                      title="Générer une facture d'acompte (ex : 40% à la commande)"
+                      title="Enregistrer un règlement d'acompte → crée une facture d'acompte verrouillée"
                       style={{ ...cdStyles.ghostBtn, borderColor: "#0ea5e9", color: "#0369a1", background: "#f0f9ff", fontWeight: 600 }}>
-                💰 Facture d'acompte
+                💰 Règlement (acompte)
               </button>
             )}
             {/* Enregistrer un règlement — sur factures et factures d'acompte */}
@@ -2038,8 +2039,19 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
           </div>
           </fieldset>
 
-          {/* LIGNES — carte par ligne, désignation pleine largeur en haut */}
-          <h3 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Lignes</h3>
+          {/* LIGNES — carte par ligne, désignation pleine largeur en haut.
+              Verrouillées pour facture (figée) et facture_acompte (pièce
+              générée automatiquement, non modifiable). */}
+          <h3 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+            Lignes
+            {d.type === "facture_acompte" && (
+              <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 4, background: "#fef3c7", color: "#92400e", fontWeight: 700 }}>🔒 Acompte verrouillé</span>
+            )}
+          </h3>
+          <fieldset disabled={d.type === "facture_acompte" || d.type === "facture"}
+                    style={{ border: "none", margin: 0, padding: 0, minWidth: 0,
+                             opacity: (d.type === "facture_acompte" || d.type === "facture") ? 0.85 : 1,
+                             pointerEvents: (d.type === "facture_acompte" || d.type === "facture") ? "none" : "auto" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {(d.lines || []).length === 0 && (
               <div style={{ padding: 18, border: "1px dashed #cbd5e1", borderRadius: 8, textAlign: "center", color: "#94a3b8", fontSize: 12.5, background: "#fafbfc" }}>
@@ -2262,6 +2274,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
               />
             )}
           </div>
+          </fieldset>
 
           {/* TOTAUX */}
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
@@ -2475,6 +2488,11 @@ const AcompteModal = ({ doc, onClose, onCreated }) => {
   const [pct, setPct] = React.useState(40);
   const [amount, setAmount] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  // Règlement encaissé (par défaut oui — c'est le cas d'usage « le client a payé »)
+  const [regle, setRegle] = React.useState(true);
+  const [payDate, setPayDate] = React.useState(new Date().toISOString().slice(0, 10));
+  const [payMode, setPayMode] = React.useState("virement");
+  const [payRef, setPayRef] = React.useState("");
   const fmt = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " €";
   const baseHt = Number(doc.total_ht) || 0;
   const baseTtc = Number(doc.total_ttc) || 0;
@@ -2486,6 +2504,7 @@ const AcompteModal = ({ doc, onClose, onCreated }) => {
     setBusy(true);
     try {
       const opts = mode === "pct" ? { pct: Number(pct) || 0 } : { amount_ht: Number(amount) || 0 };
+      if (regle) opts.payment = { date: payDate, mode: payMode, ref: payRef.trim() };
       const facAc = await window.api.commercialDocs.createAcompte(doc.id, opts);
       onCreated(facAc);
     } catch (e) {
@@ -2537,6 +2556,36 @@ const AcompteModal = ({ doc, onClose, onCreated }) => {
             <span style={{ fontWeight: 700 }}>Net à payer TTC</span>
             <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{fmt(acTtc)}</span>
           </div>
+        </div>
+
+        {/* Règlement encaissé → l'acompte sera marqué payé + verrouillé */}
+        <div style={{ border: "1px solid #d1fae5", background: "#ecfdf5", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#047857" }}>
+            <input type="checkbox" checked={regle} onChange={(e) => setRegle(e.target.checked)} />
+            💳 Règlement encaissé (marque la facture d'acompte « payée » + verrouillée)
+          </label>
+          {regle && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+              <div>
+                <label style={cdStyles.lbl}>Date</label>
+                <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} style={cdStyles.input} />
+              </div>
+              <div>
+                <label style={cdStyles.lbl}>Mode</label>
+                <select value={payMode} onChange={(e) => setPayMode(e.target.value)} style={cdStyles.input}>
+                  <option value="virement">Virement</option>
+                  <option value="cheque">Chèque</option>
+                  <option value="cb">Carte bancaire</option>
+                  <option value="especes">Espèces</option>
+                  <option value="prelevement">Prélèvement</option>
+                </select>
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={cdStyles.lbl}>Référence (n° chèque, virement…)</label>
+                <input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Optionnel" style={cdStyles.input} />
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>

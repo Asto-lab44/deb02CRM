@@ -2055,9 +2055,25 @@
         tva_rate: effectiveRate, total_ht: acompteHt, total_tva: acompteTva,
         total_ttc: acompteTtc, is_text_only: false, periodicity: "oneshot",
       };
+      // Si un règlement est fourni (opts.payment {date, mode, ref}), l'acompte
+      // est immédiatement marqué réglé (status payé) + verrouillé (data.locked).
+      const data = { ...(parent.data || {}), acompte: true, acompte_pct: pct, source_devis_ref: parent.ref || parent.id };
+      let status = "brouillon";
+      if (opts.payment) {
+        data.payments = [{
+          id: "PAY_" + Date.now(),
+          amount: acompteTtc,
+          date: opts.payment.date || new Date().toISOString().slice(0, 10),
+          mode: opts.payment.mode || "virement",
+          ref: opts.payment.ref || "",
+          created_at: new Date().toISOString(),
+        }];
+        data.locked = true;
+        status = "paye";
+      }
       const payload = {
         type: "facture_acompte",
-        status: "brouillon",
+        status,
         client_id: parent.client_id, client_name: parent.client_name,
         client_address: parent.client_address, client_cp: parent.client_cp, client_city: parent.client_city,
         client_siren: parent.client_siren, client_tva: parent.client_tva,
@@ -2067,7 +2083,7 @@
         title: "Acompte " + (pct != null ? pct + "% " : "") + "— " + (parent.title || parent.client_name || ""),
         owner: parent.owner,
         lines: [line],
-        data: { ...(parent.data || {}), acompte: true, acompte_pct: pct, source_devis_ref: parent.ref || parent.id },
+        data,
       };
       return await this.create(payload);
     },

@@ -3002,9 +3002,9 @@ var CommercialDocEditor = ({
       } catch (e) {}
     },
     style: cdStyles.ghostBtn
-  }, "\u2709 Envoyer"), d.type === "devis" && /*#__PURE__*/React.createElement("button", {
+  }, "\u2709 Envoyer"), (d.type === "devis" || d.type === "commande" || d.type === "bl") && /*#__PURE__*/React.createElement("button", {
     onClick: () => setAcompteOpen(true),
-    title: "G\xE9n\xE9rer une facture d'acompte (ex : 40% \xE0 la commande)",
+    title: "Enregistrer un r\xE8glement d'acompte \u2192 cr\xE9e une facture d'acompte verrouill\xE9e",
     style: {
       ...cdStyles.ghostBtn,
       borderColor: "#0ea5e9",
@@ -3012,7 +3012,7 @@ var CommercialDocEditor = ({
       background: "#f0f9ff",
       fontWeight: 600
     }
-  }, "\uD83D\uDCB0 Facture d'acompte"), (d.type === "facture" || d.type === "facture_acompte") && /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDCB0 R\xE8glement (acompte)"), (d.type === "facture" || d.type === "facture_acompte") && /*#__PURE__*/React.createElement("button", {
     onClick: () => setPaymentOpen(true),
     title: "Enregistrer un r\xE8glement client (virement, ch\xE8que, CB...)",
     style: {
@@ -3412,9 +3412,31 @@ var CommercialDocEditor = ({
       margin: "0 0 8px",
       fontSize: 14,
       fontWeight: 700,
-      color: "#0f172a"
+      color: "#0f172a",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
     }
-  }, "Lignes"), /*#__PURE__*/React.createElement("div", {
+  }, "Lignes", d.type === "facture_acompte" && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      padding: "2px 8px",
+      borderRadius: 4,
+      background: "#fef3c7",
+      color: "#92400e",
+      fontWeight: 700
+    }
+  }, "\uD83D\uDD12 Acompte verrouill\xE9")), /*#__PURE__*/React.createElement("fieldset", {
+    disabled: d.type === "facture_acompte" || d.type === "facture",
+    style: {
+      border: "none",
+      margin: 0,
+      padding: 0,
+      minWidth: 0,
+      opacity: d.type === "facture_acompte" || d.type === "facture" ? 0.85 : 1,
+      pointerEvents: d.type === "facture_acompte" || d.type === "facture" ? "none" : "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -3927,7 +3949,7 @@ var CommercialDocEditor = ({
       } catch (e) {}
     },
     onClose: () => setSmartSearchOpen(false)
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "flex-end",
@@ -4376,6 +4398,11 @@ var AcompteModal = ({
   var [pct, setPct] = React.useState(40);
   var [amount, setAmount] = React.useState("");
   var [busy, setBusy] = React.useState(false);
+  // Règlement encaissé (par défaut oui — c'est le cas d'usage « le client a payé »)
+  var [regle, setRegle] = React.useState(true);
+  var [payDate, setPayDate] = React.useState(new Date().toISOString().slice(0, 10));
+  var [payMode, setPayMode] = React.useState("virement");
+  var [payRef, setPayRef] = React.useState("");
   var fmt = n => (Number(n) || 0).toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -4392,6 +4419,11 @@ var AcompteModal = ({
         pct: Number(pct) || 0
       } : {
         amount_ht: Number(amount) || 0
+      };
+      if (regle) opts.payment = {
+        date: payDate,
+        mode: payMode,
+        ref: payRef.trim()
       };
       var facAc = await window.api.commercialDocs.createAcompte(doc.id, opts);
       onCreated(facAc);
@@ -4604,6 +4636,69 @@ var AcompteModal = ({
       fontVariantNumeric: "tabular-nums"
     }
   }, fmt(acTtc)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #d1fae5",
+      background: "#ecfdf5",
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#047857"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: regle,
+    onChange: e => setRegle(e.target.checked)
+  }), "\uD83D\uDCB3 R\xE8glement encaiss\xE9 (marque la facture d'acompte \xAB pay\xE9e \xBB + verrouill\xE9e)"), regle && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: payDate,
+    onChange: e => setPayDate(e.target.value),
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Mode"), /*#__PURE__*/React.createElement("select", {
+    value: payMode,
+    onChange: e => setPayMode(e.target.value),
+    style: cdStyles.input
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "virement"
+  }, "Virement"), /*#__PURE__*/React.createElement("option", {
+    value: "cheque"
+  }, "Ch\xE8que"), /*#__PURE__*/React.createElement("option", {
+    value: "cb"
+  }, "Carte bancaire"), /*#__PURE__*/React.createElement("option", {
+    value: "especes"
+  }, "Esp\xE8ces"), /*#__PURE__*/React.createElement("option", {
+    value: "prelevement"
+  }, "Pr\xE9l\xE8vement"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "R\xE9f\xE9rence (n\xB0 ch\xE8que, virement\u2026)"), /*#__PURE__*/React.createElement("input", {
+    value: payRef,
+    onChange: e => setPayRef(e.target.value),
+    placeholder: "Optionnel",
+    style: cdStyles.input
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "flex-end",

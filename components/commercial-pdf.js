@@ -949,26 +949,15 @@
     // que le 1er « Aperçu » soit instantané et n'ait pas besoin d'un 2e clic.
     preload() { try { return loadPdfMake(); } catch (e) { return Promise.resolve(null); } },
 
-    // win (optionnel) : onglet déjà ouvert SYNCHRONEMENT par l'appelant (avant
-    // tout await), pour ne pas être bloqué par l'anti-popup. Sinon on l'ouvre
-    // ici en 1re instruction (OK si preview() est appelé directement au clic).
+    // Ouvre l'aperçu dans un nouvel onglet via pdfmake (.open()). pdfmake est
+    // préchargé (preload) → le 1er clic est rapide. Le 2e argument éventuel
+    // (onglet pré-ouvert) est fermé : on laisse pdfmake gérer l'ouverture, ce
+    // qui évite la page blanche d'un onglet pré-ouvert navigué vers un blob.
     async preview(doc, win) {
-      const target = win || window.open("", "_blank");
-      try {
-        const pm = await loadPdfMake();
-        const { doc: d, company } = await _resolveDoc(doc);
-        await new Promise((resolve) => {
-          pm.createPdf(buildDocDefinition(d, company)).getBlob((blob) => {
-            const url = URL.createObjectURL(blob);
-            if (target) { try { target.location.href = url; } catch (e) { window.open(url, "_blank"); } }
-            else { window.open(url, "_blank"); }
-            resolve();
-          });
-        });
-      } catch (e) {
-        if (target) { try { target.close(); } catch (_) {} }
-        throw e;
-      }
+      if (win) { try { win.close(); } catch (e) {} }
+      const pm = await loadPdfMake();
+      const { doc: d, company } = await _resolveDoc(doc);
+      pm.createPdf(buildDocDefinition(d, company)).open();
     },
     async download(doc) {
       const pm = await loadPdfMake();

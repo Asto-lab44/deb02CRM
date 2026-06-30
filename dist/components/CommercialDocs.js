@@ -3033,19 +3033,12 @@ var CommercialDocEditor = ({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: async () => {
-      var win = window.open("", "_blank");
       try {
         await save({
           keepOpen: true
         });
-        if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id, win);else if (win) win.close();
-      } catch (e) {
-        if (win) {
-          try {
-            win.close();
-          } catch (_) {}
-        }
-      }
+        if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id);
+      } catch (e) {}
     },
     style: cdStyles.ghostBtn,
     title: "G\xE9n\xE8re le PDF et l'ouvre"

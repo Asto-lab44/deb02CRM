@@ -1802,7 +1802,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{d.id}</h2>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={async () => { const win = window.open("", "_blank"); try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id, win); else if (win) win.close(); } catch (e) { if (win) { try { win.close(); } catch (_) {} } } }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
+            <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id); } catch (e) {} }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); try { await window.api.commercialSends.log({ doc_id: d.id, doc_type: d.type, channel: "download", status: "sent", provider: "browser" }); } catch (e) {} } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); setSendOpen(true); } catch (e) {} }} style={cdStyles.ghostBtn}>✉ Envoyer</button>
             {/* Règlement / acompte — à partir de la commande (ou du BL).

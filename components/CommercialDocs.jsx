@@ -206,6 +206,7 @@ const CommercialDocs = () => {
   const [opps, setOpps] = React.useState([]);
   const [previewDocId, setPreviewDocId] = React.useState(null);
   const previewTimerRef = React.useRef(null);
+  const hideTimerRef = React.useRef(null);
   const [editing, setEditing] = React.useState(null); // null ou doc en cours d'édition
 
   const reload = React.useCallback(async () => {
@@ -638,16 +639,32 @@ const CommercialDocs = () => {
             {filtered.map((d) => (
               <div key={d.id}
                    onMouseEnter={() => {
+                     // Annule un éventuel masquage en cours et arme l'affichage.
+                     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
                      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
                      previewTimerRef.current = setTimeout(() => setPreviewDocId(d.id), 180);
                    }}
-                   onMouseLeave={() => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); }}>
+                   onMouseLeave={() => {
+                     // Quitter la ligne masque l'aperçu (retour à la liste seule).
+                     // Masquage différé pour permettre de passer sur le panneau
+                     // (ex. cliquer « Ouvrir ») sans qu'il disparaisse aussitôt.
+                     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+                     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+                     hideTimerRef.current = setTimeout(() => setPreviewDocId(null), 220);
+                   }}>
                 <DocRow doc={d} chain={buildChainFromAny(d)} statusMeta={STATUS_META} fmtEUR={fmtEUR} onOpen={openDoc} onReload={reload} kind={docKind(d)} compact={!!previewedDoc} />
               </div>
             ))}
           </div>
           {previewedDoc && (
+            <div
+              onMouseEnter={() => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); }}
+              onMouseLeave={() => {
+                if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+                hideTimerRef.current = setTimeout(() => setPreviewDocId(null), 220);
+              }}>
             <DocPreviewPane doc={previewedDoc} chain={buildChainFromAny(previewedDoc)} fmtEUR={fmtEUR} onOpen={() => openDoc(previewedDoc.id)} onClose={() => setPreviewDocId(null)} kind={docKind(previewedDoc)} />
+            </div>
           )}
           </div>
           );

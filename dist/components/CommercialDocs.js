@@ -385,6 +385,7 @@ var CommercialDocs = () => {
   var [opps, setOpps] = React.useState([]);
   var [previewDocId, setPreviewDocId] = React.useState(null);
   var previewTimerRef = React.useRef(null);
+  var hideTimerRef = React.useRef(null);
   var [editing, setEditing] = React.useState(null); // null ou doc en cours d'édition
 
   var reload = React.useCallback(async () => {
@@ -1115,11 +1116,18 @@ var CommercialDocs = () => {
     })), filtered.map(d => /*#__PURE__*/React.createElement("div", {
       key: d.id,
       onMouseEnter: () => {
+        // Annule un éventuel masquage en cours et arme l'affichage.
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
         if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
         previewTimerRef.current = setTimeout(() => setPreviewDocId(d.id), 180);
       },
       onMouseLeave: () => {
+        // Quitter la ligne masque l'aperçu (retour à la liste seule).
+        // Masquage différé pour permettre de passer sur le panneau
+        // (ex. cliquer « Ouvrir ») sans qu'il disparaisse aussitôt.
         if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = setTimeout(() => setPreviewDocId(null), 220);
       }
     }, /*#__PURE__*/React.createElement(DocRow, {
       doc: d,
@@ -1130,14 +1138,22 @@ var CommercialDocs = () => {
       onReload: reload,
       kind: docKind(d),
       compact: !!previewedDoc
-    })))), previewedDoc && /*#__PURE__*/React.createElement(DocPreviewPane, {
+    })))), previewedDoc && /*#__PURE__*/React.createElement("div", {
+      onMouseEnter: () => {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      },
+      onMouseLeave: () => {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = setTimeout(() => setPreviewDocId(null), 220);
+      }
+    }, /*#__PURE__*/React.createElement(DocPreviewPane, {
       doc: previewedDoc,
       chain: buildChainFromAny(previewedDoc),
       fmtEUR: fmtEUR,
       onOpen: () => openDoc(previewedDoc.id),
       onClose: () => setPreviewDocId(null),
       kind: docKind(previewedDoc)
-    }));
+    })));
   })()), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
     key: editing.id,
     doc: editing,

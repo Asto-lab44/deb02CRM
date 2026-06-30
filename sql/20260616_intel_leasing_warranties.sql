@@ -79,9 +79,9 @@ ALTER TABLE warranties        ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "leasing_contracts_all_authenticated" ON leasing_contracts;
 CREATE POLICY "leasing_contracts_all_authenticated"
   ON leasing_contracts FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 DROP POLICY IF EXISTS "warranties_all_authenticated" ON warranties;
 CREATE POLICY "warranties_all_authenticated"
   ON warranties FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);

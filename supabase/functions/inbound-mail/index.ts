@@ -184,9 +184,11 @@ async function notifyTeams(title: string, text: string) {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    // Vérif token webhook
-    if (WEBHOOK_TOKEN && req.headers.get("X-Inbound-Token") !== WEBHOOK_TOKEN) {
-      return new Response(JSON.stringify({ ok: false, error: "Token invalide" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    // Vérif token webhook — on REFUSE si le token n'est pas configuré
+    // (sinon un token d'env vide court-circuiterait tout le contrôle et
+    // laisserait la fonction ouverte à des injections de fausses demandes).
+    if (!WEBHOOK_TOKEN || req.headers.get("X-Inbound-Token") !== WEBHOOK_TOKEN) {
+      return new Response(JSON.stringify({ ok: false, error: "Token invalide ou non configuré" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
     }
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
     const payload = await req.json();

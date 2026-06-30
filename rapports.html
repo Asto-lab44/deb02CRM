@@ -28,6 +28,13 @@
   <script src="components/modal.js?v=202606302600"></script>
   <script src="components/access-store.js?v=202606302600"></script>
   <script src="components/activity-tracker.js?v=202606302600"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", function() {
+      if (window.api && window.api.auth && window.HubSupabase && window.HubSupabase.enabled) {
+        window.api.auth.requireAuth();
+      }
+    });
+  </script>
   <script defer src="dist/components/BientotPage.js?v=202606302600"></script>
   <script defer>
     window.addEventListener("DOMContentLoaded", function() {

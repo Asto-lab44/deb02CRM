@@ -37,6 +37,14 @@
   <script src="components/constants.js?v=202606302600"></script>
   <script src="components/toast.js?v=202606302600"></script>
   <script src="components/access-store.js?v=202606302600"></script>
+  <script>
+    // Page de diagnostic — réservée aux utilisateurs authentifiés.
+    if (window.api && window.api.auth && window.HubSupabase && window.HubSupabase.enabled) {
+      window.api.auth.requireAuth();
+    } else if (!window.HubSupabase || !window.HubSupabase.enabled) {
+      window.location.href = "/login";
+    }
+  </script>
   <script src="components/hub-data.js?v=202606302600"></script>
   <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>

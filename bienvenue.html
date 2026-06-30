@@ -22,6 +22,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.js"></script>
   <script src="components/supabase-config.js?v=202606302600"></script>
   <script src="components/supabase-client.js?v=202606302600"></script>
+  <script>
+    // Garde d'authentification : redirige vers /login si pas de session.
+    if (window.HubSupabase && window.HubSupabase.enabled && window.HubSupabase.client) {
+      window.HubSupabase.client.auth.getSession().then(function (r) {
+        if (!r || !r.data || !r.data.session) window.location.href = "/login";
+      }).catch(function () { window.location.href = "/login"; });
+    }
+  </script>
   <script defer src="dist/components/Bienvenue.js?v=202606302600"></script>
 
   <script defer>

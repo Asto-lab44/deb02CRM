@@ -486,13 +486,13 @@
                   ]);
                 }
                 rows.push([
-                  { text: remaining > 0.01 ? "RESTE A PAYER" : "SOLDÉ", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
-                  { text: fmtEUR(Math.max(0, remaining)), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
+                  { text: remaining > 0.01 ? "RESTE A PAYER" : "SOLDÉ", bold: true, fontSize: 9.5, color: "#fff", margin: [3, 2, 0, 2], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
+                  { text: fmtEUR(Math.max(0, remaining)), bold: true, fontSize: 9.5, alignment: "right", color: "#fff", margin: [0, 2, 4, 2], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
                 ]);
               } else {
                 rows.push([
-                  { text: "NET A PAYER", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: "#0f172a" },
-                  { text: fmtEUR(ttc), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: "#0f172a" },
+                  { text: "NET A PAYER", bold: true, fontSize: 9.5, color: "#fff", margin: [3, 2, 0, 2], fillColor: "#0f172a" },
+                  { text: fmtEUR(ttc), bold: true, fontSize: 9.5, alignment: "right", color: "#fff", margin: [0, 2, 4, 2], fillColor: "#0f172a" },
                 ]);
               }
               return rows;
@@ -824,7 +824,7 @@
     //  - Non-devis : contacts (~70) + réserve (~25) + pagination ≈ 110px
     //  - Devis : pagination uniquement (signature dans le body) ≈ 30px
     // On dimensionne selon le type pour optimiser l'espace utile.
-    const FOOTER_HEIGHT = doc.type === "devis" ? 30 : 120;
+    const FOOTER_HEIGHT = doc.type === "devis" ? 30 : doc.type === "bl" ? 120 : 64;
 
     return {
       pageSize: "A4",
@@ -863,39 +863,8 @@
             // au-dessus du saut de page CGV (pas dans le footer). Sur les
             // autres types de docs, signature pinnée en bas de dernière page.
             (doc.type === "bl" && isLastPage) ? signatureBlock : null,
-            // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
-            // gauche/droite, séparateur fin en haut) — masqué sur les devis
-            isDevis ? null : {
-              table: {
-                widths: ["*", "*", "*"],
-                body: [
-                  [
-                    { text: "Service Commercial", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
-                    { text: "Administratif", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
-                    { text: "Comptabilité", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
-                  ],
-                  [
-                    { text: company.contact_commercial_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
-                    { text: company.contact_admin_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
-                    { text: company.contact_compta_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
-                  ],
-                  [
-                    { text: company.contact_commercial_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
-                    { text: company.contact_admin_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
-                    { text: company.contact_compta_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
-                  ],
-                  [
-                    { text: company.contact_commercial_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
-                    { text: company.contact_admin_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
-                    { text: company.contact_compta_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
-                  ],
-                ],
-              },
-              layout: {
-                paddingTop: () => 2, paddingBottom: () => 2,
-                paddingLeft: () => 4, paddingRight: () => 4,
-              },
-            },
+            // Bloc contacts retiré du pied de page (sur demande).
+            null,
             // Mention réserve de propriété — masquée sur les devis (couverte
             // par les CGV au verso, art. 2 Réserve de propriété)
             (isDevis || !company.mention_reserve_propriete) ? null : {

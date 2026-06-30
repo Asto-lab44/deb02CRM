@@ -2934,9 +2934,26 @@ var CommercialDocEditor = ({
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }) + " €";
+
+  // Fermeture sécurisée : si le devis vient d'être créé depuis une
+  // opportunité (rattaché à une opp), on prévient avant de fermer pour
+  // éviter de laisser un devis vide / de croire qu'il faut le recréer.
+  var confirmClose = async () => {
+    var fromOpp = d.type === "devis" && (d.opportunity_id || d.data && d.data.opportunity_id);
+    if (fromOpp) {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Fermer le devis ?",
+        message: "Attention : le devis " + d.id + " a déjà été créé et enregistré. Il reste accessible dans « Devis en cours ». Souhaitez-vous vraiment fermer cette fenêtre ?",
+        okLabel: "Oui, fermer",
+        cancelLabel: "Continuer l'édition"
+      }) : confirm("Le devis " + d.id + " a déjà été créé. Fermer quand même ?");
+      if (!ok) return;
+    }
+    onClose();
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: cdStyles.modalOverlay,
-    onClick: onClose
+    onClick: confirmClose
   }, /*#__PURE__*/React.createElement("div", {
     style: cdStyles.modalCard,
     onClick: e => e.stopPropagation()
@@ -3064,7 +3081,7 @@ var CommercialDocEditor = ({
     disabled: saving,
     style: cdStyles.primaryBtn
   }, saving ? "Enregistrement…" : "Enregistrer"), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
+    onClick: confirmClose,
     style: cdStyles.closeBtn
   }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
     style: cdStyles.modalBody

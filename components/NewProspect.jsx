@@ -31,7 +31,6 @@ const NewProspect = () => {
     window.api.clients.list().then((list) => setAllClients(list || [])).catch(() => {});
   }, []);
   const [source,        setSource]        = React.useState("");
-  const [contactDate,   setContactDate]   = React.useState("");
   const [projectDate,   setProjectDate]   = React.useState("");
   const [concurrent,    setConcurrent]    = React.useState("");
   const [concurrentAmount, setConcurrentAmount] = React.useState("");

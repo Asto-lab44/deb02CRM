@@ -2613,9 +2613,19 @@
       if (Array.isArray(items)) {
         for (const item of items) {
           await s.from("delivery_note_items").update({ verified: !!item.verified }).eq("id", item.id);
-          // Si verified, marque le project_item correspondant comme livré
+          // Si verified, marque le project_item correspondant comme livré.
+          // delivered_qty est une colonne optionnelle (migration
+          // 20260630_project_items_delivered_qty.sql) : si elle n'existe pas
+          // encore, on retombe sur une mise à jour du seul statut pour que la
+          // livraison soit quand même enregistrée (sinon l'update entier
+          // échouait en silence sur « column delivered_qty does not exist »).
           if (item.verified && item.project_item_id) {
-            await s.from("project_items").update({ status: "delivered", delivered_qty: item.quantity }).eq("id", item.project_item_id);
+            const r = await s.from("project_items")
+              .update({ status: "delivered", delivered_qty: item.quantity })
+              .eq("id", item.project_item_id);
+            if (r.error && /delivered_qty|column/i.test(r.error.message || "")) {
+              await s.from("project_items").update({ status: "delivered" }).eq("id", item.project_item_id);
+            }
           }
         }
       }

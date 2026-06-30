@@ -1637,6 +1637,20 @@
           console.warn("[api.commercialDocs.list]", error.message);
           return lsGet("commercial_docs");
         }
+        // Résilience : fusionne les docs tombés en localStorage (insert
+        // Supabase rejeté — ex : type facture_acompte si la migration n'est
+        // pas encore passée), en dédupliquant par id et en respectant les
+        // filtres. Sans ça, un doc non synchronisé reste invisible.
+        let localExtra = lsGet("commercial_docs");
+        if (localExtra.length) {
+          const seen = new Set((data || []).map((d) => d.id));
+          if (filter.type) localExtra = localExtra.filter((d) => d.type === filter.type);
+          if (filter.status) localExtra = localExtra.filter((d) => d.status === filter.status);
+          if (filter.client_id) localExtra = localExtra.filter((d) => d.client_id === filter.client_id);
+          if (filter.parent_doc_id) localExtra = localExtra.filter((d) => d.parent_doc_id === filter.parent_doc_id);
+          localExtra = localExtra.filter((d) => !seen.has(d.id));
+          return [...localExtra, ...(data || [])];
+        }
         return data || [];
       }
       let arr = lsGet("commercial_docs");

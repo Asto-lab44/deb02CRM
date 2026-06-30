@@ -2292,6 +2292,27 @@ var CommercialDocEditor = ({
     })();
   }, [reloadSuppliers]);
 
+  // Avoirs liés à cette facture (déduits du solde dû). On les recharge à
+  // l'ouverture d'une facture pour afficher le crédit dans les totaux.
+  var [linkedAvoirs, setLinkedAvoirs] = React.useState([]);
+  React.useEffect(() => {
+    if (d.type !== "facture" || !d.id) {
+      setLinkedAvoirs([]);
+      return;
+    }
+    (async () => {
+      try {
+        var avs = await window.api.commercialDocs.list({
+          type: "avoir",
+          parent_doc_id: d.id
+        });
+        setLinkedAvoirs(avs || []);
+      } catch (e) {
+        setLinkedAvoirs([]);
+      }
+    })();
+  }, [d.id, d.type]);
+
   // Si on ouvre un doc existant avec un client mais sans contact rempli,
   // on récupère le contact principal pour pré-remplir contact_name + email
   React.useEffect(() => {
@@ -4042,10 +4063,25 @@ var CommercialDocEditor = ({
   }, fmtEUR(totals.ttc))), (() => {
     var payments = d.data && Array.isArray(d.data.payments) ? d.data.payments : [];
     var paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    if (paid <= 0) return null;
-    var remaining = Math.round((totals.ttc - paid) * 100) / 100;
+    // Avoirs liés à cette facture (montants négatifs → crédit client)
+    var avoirsTtc = (linkedAvoirs || []).reduce((s, a) => s + Math.abs(Number(a.total_ttc) || 0), 0);
+    if (paid <= 0 && avoirsTtc <= 0) return null;
+    var remaining = Math.round((totals.ttc - paid - avoirsTtc) * 100) / 100;
     var solde = remaining <= 0.01;
-    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement(React.Fragment, null, avoirsTtc > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 12,
+        color: "#dc2626",
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Avoir(s) \xE9mis (", linkedAvoirs.length, ")"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600
+      }
+    }, "\u2212 ", fmtEUR(avoirsTtc))), paid > 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",

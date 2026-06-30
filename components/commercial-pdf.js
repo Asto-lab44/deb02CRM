@@ -456,17 +456,26 @@
                   { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
                 ],
               ];
-              // Règlements enregistrés (data.payments) → « Déjà réglé » +
-              // « Reste à payer ». Le NET A PAYER reflète alors le reste dû.
+              // Règlements (data.payments) + avoirs liés (_avoirsTtc) →
+              // « Avoir(s) émis » + « Déjà réglé » + « Reste à payer ».
               const payments = (doc.data && Array.isArray(doc.data.payments)) ? doc.data.payments : [];
               const paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+              const avoirsTtc = Number(doc._avoirsTtc) || 0;
               const ttc = Number(doc.total_ttc) || 0;
-              const remaining = Math.round((ttc - paid) * 100) / 100;
-              if (paid > 0) {
-                rows.push([
-                  { text: "Déjà réglé", fontSize: 9, color: "#047857", margin: [3, 3, 0, 3] },
-                  { text: "- " + fmtEUR(paid), fontSize: 9, color: "#047857", alignment: "right", margin: [0, 3, 4, 3] },
-                ]);
+              const remaining = Math.round((ttc - paid - avoirsTtc) * 100) / 100;
+              if (paid > 0 || avoirsTtc > 0) {
+                if (avoirsTtc > 0) {
+                  rows.push([
+                    { text: "Avoir(s) émis", fontSize: 9, color: "#dc2626", margin: [3, 3, 0, 3] },
+                    { text: "- " + fmtEUR(avoirsTtc), fontSize: 9, color: "#dc2626", alignment: "right", margin: [0, 3, 4, 3] },
+                  ]);
+                }
+                if (paid > 0) {
+                  rows.push([
+                    { text: "Déjà réglé", fontSize: 9, color: "#047857", margin: [3, 3, 0, 3] },
+                    { text: "- " + fmtEUR(paid), fontSize: 9, color: "#047857", alignment: "right", margin: [0, 3, 4, 3] },
+                  ]);
+                }
                 rows.push([
                   { text: remaining > 0.01 ? "RESTE A PAYER" : "SOLDÉ", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
                   { text: fmtEUR(Math.max(0, remaining)), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
@@ -844,6 +853,14 @@
         const terms = await window.api.commercialRefs.paymentTerms();
         const found = (terms || []).find((t) => t.id === resolved.payment_terms_id);
         if (found) resolved = { ...resolved, payment_terms_label: found.label };
+      } catch (e) {}
+    }
+    // Facture : récupère les avoirs liés pour les déduire du solde dû au PDF
+    if (resolved.type === "facture" && resolved.id) {
+      try {
+        const avs = await window.api.commercialDocs.list({ type: "avoir", parent_doc_id: resolved.id });
+        const avoirsTtc = (avs || []).reduce((s, a) => s + Math.abs(Number(a.total_ttc) || 0), 0);
+        if (avoirsTtc > 0) resolved = { ...resolved, _avoirsTtc: avoirsTtc, _avoirsCount: (avs || []).length };
       } catch (e) {}
     }
     return { doc: resolved, company };

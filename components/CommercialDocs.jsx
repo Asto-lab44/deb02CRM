@@ -1214,6 +1214,19 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
     })();
   }, [reloadSuppliers]);
 
+  // Avoirs liés à cette facture (déduits du solde dû). On les recharge à
+  // l'ouverture d'une facture pour afficher le crédit dans les totaux.
+  const [linkedAvoirs, setLinkedAvoirs] = React.useState([]);
+  React.useEffect(() => {
+    if (d.type !== "facture" || !d.id) { setLinkedAvoirs([]); return; }
+    (async () => {
+      try {
+        const avs = await window.api.commercialDocs.list({ type: "avoir", parent_doc_id: d.id });
+        setLinkedAvoirs(avs || []);
+      } catch (e) { setLinkedAvoirs([]); }
+    })();
+  }, [d.id, d.type]);
+
   // Si on ouvre un doc existant avec un client mais sans contact rempli,
   // on récupère le contact principal pour pré-remplir contact_name + email
   React.useEffect(() => {
@@ -2321,19 +2334,29 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                 <span>Total TTC</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtEUR(totals.ttc)}</span>
               </div>
-              {/* Règlements enregistrés : déjà réglé + reste à payer */}
+              {/* Règlements + avoirs : déjà réglé, avoirs émis, reste à payer */}
               {(() => {
                 const payments = (d.data && Array.isArray(d.data.payments)) ? d.data.payments : [];
                 const paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-                if (paid <= 0) return null;
-                const remaining = Math.round((totals.ttc - paid) * 100) / 100;
+                // Avoirs liés à cette facture (montants négatifs → crédit client)
+                const avoirsTtc = (linkedAvoirs || []).reduce((s, a) => s + Math.abs(Number(a.total_ttc) || 0), 0);
+                if (paid <= 0 && avoirsTtc <= 0) return null;
+                const remaining = Math.round((totals.ttc - paid - avoirsTtc) * 100) / 100;
                 const solde = remaining <= 0.01;
                 return (
                   <>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#047857", marginTop: 6 }}>
-                      <span>Déjà réglé ({payments.length})</span>
-                      <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>− {fmtEUR(paid)}</span>
-                    </div>
+                    {avoirsTtc > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#dc2626", marginTop: 6 }}>
+                        <span>Avoir(s) émis ({linkedAvoirs.length})</span>
+                        <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>− {fmtEUR(avoirsTtc)}</span>
+                      </div>
+                    )}
+                    {paid > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#047857", marginTop: 6 }}>
+                        <span>Déjà réglé ({payments.length})</span>
+                        <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>− {fmtEUR(paid)}</span>
+                      </div>
+                    )}
                     <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 7,
                                   background: solde ? "#d1fae5" : "#fed7aa",
                                   display: "flex", justifyContent: "space-between",

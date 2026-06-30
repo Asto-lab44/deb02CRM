@@ -1990,6 +1990,7 @@
       };
       // Facture définitive : déduit les acomptes déjà facturés sur le devis
       // d'origine (modèle Sage — ligne négative « Acompte déjà facturé »).
+      let deductedAcomptes = [];
       if (new_type === "facture") {
         try {
           // Collecte TOUS les ids de la chaîne (devis → commande → BL) car
@@ -2017,7 +2018,11 @@
             lsGet("commercial_docs")
               .filter((d) => d.type === "facture_acompte" && chainIds.includes(d.parent_doc_id) && !seenAc.has(d.id))
               .forEach((d) => acomptes.push(d));
-            acomptes.forEach((ac) => {
+            // Idempotence : on ignore les acomptes déjà rattachés à une
+            // facture (data.deducted_into_facture). Sans ce garde-fou, régénérer
+            // la facture depuis le même BL déduirait l'acompte une 2ᵉ fois.
+            deductedAcomptes = acomptes.filter((ac) => !(ac.data && ac.data.deducted_into_facture));
+            deductedAcomptes.forEach((ac) => {
               const acHt = Number(ac.total_ht) || 0;
               const acTva = Number(ac.total_tva) || 0;
               const rate = acHt > 0 ? Math.round((acTva / acHt) * 10000) / 100 : 20;
@@ -2029,11 +2034,22 @@
                 total_ttc: -(acHt + acTva), is_text_only: false, periodicity: "oneshot",
               });
             });
+            childPayload.data.deducted_acompte_ids = deductedAcomptes.map((ac) => ac.id);
           }
         } catch (e) { console.warn("[transform] déduction acompte:", e); }
       }
 
       const child = await this.create(childPayload);
+      // Rattache chaque acompte déduit à cette facture pour l'idempotence :
+      // un acompte ainsi marqué ne sera plus déduit lors d'une éventuelle
+      // régénération de facture depuis la même chaîne de documents.
+      if (child && child.id && deductedAcomptes.length) {
+        for (const ac of deductedAcomptes) {
+          try {
+            await this.update(ac.id, { data: { ...(ac.data || {}), deducted_into_facture: child.id } });
+          } catch (e) { /* non bloquant */ }
+        }
+      }
       // Le parent garde son statut métier (accepte / livre / paye) au lieu
       // d'être figé en « transforme ». Le lien parent_doc_id sur l'enfant
       // matérialise la transformation sans bloquer l'édition du parent.

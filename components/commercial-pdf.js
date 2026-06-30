@@ -521,7 +521,9 @@
         {
           width: "*",
           stack: [
-            { text: "Livraison effectuée par : " + (doc.owner || "—"), bold: true, fontSize: 10, margin: [0, 0, 0, 12] },
+            // Livraison assurée par le technicien en charge du projet : champ
+            // laissé vierge, rempli/signé à la livraison (pas le commercial).
+            { text: "Livraison effectuée par le technicien : ", bold: true, fontSize: 10, margin: [0, 0, 0, 18] },
             { text: "Lieu de livraison", bold: true, fontSize: 9 },
             { text: (doc.delivery_address || doc.client_address || "—"), fontSize: 8.5 },
             { text: ((doc.delivery_cp || doc.client_cp || "") + " " + (doc.delivery_city || doc.client_city || "")).trim(), fontSize: 8.5 },

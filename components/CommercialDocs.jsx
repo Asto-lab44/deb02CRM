@@ -2278,6 +2278,30 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                 <span>Total TTC</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtEUR(totals.ttc)}</span>
               </div>
+              {/* Règlements enregistrés : déjà réglé + reste à payer */}
+              {(() => {
+                const payments = (d.data && Array.isArray(d.data.payments)) ? d.data.payments : [];
+                const paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                if (paid <= 0) return null;
+                const remaining = Math.round((totals.ttc - paid) * 100) / 100;
+                const solde = remaining <= 0.01;
+                return (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#047857", marginTop: 6 }}>
+                      <span>Déjà réglé ({payments.length})</span>
+                      <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>− {fmtEUR(paid)}</span>
+                    </div>
+                    <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 7,
+                                  background: solde ? "#d1fae5" : "#fed7aa",
+                                  display: "flex", justifyContent: "space-between",
+                                  fontSize: 13, fontWeight: 800,
+                                  color: solde ? "#065f46" : "#9a3412" }}>
+                      <span>{solde ? "SOLDÉ ✓" : "Reste à payer"}</span>
+                      <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtEUR(Math.max(0, remaining))}</span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

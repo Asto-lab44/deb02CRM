@@ -3982,7 +3982,43 @@ var CommercialDocEditor = ({
     style: {
       fontVariantNumeric: "tabular-nums"
     }
-  }, fmtEUR(totals.ttc))))), /*#__PURE__*/React.createElement("div", {
+  }, fmtEUR(totals.ttc))), (() => {
+    var payments = d.data && Array.isArray(d.data.payments) ? d.data.payments : [];
+    var paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    if (paid <= 0) return null;
+    var remaining = Math.round((totals.ttc - paid) * 100) / 100;
+    var solde = remaining <= 0.01;
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 12,
+        color: "#047857",
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "D\xE9j\xE0 r\xE9gl\xE9 (", payments.length, ")"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600
+      }
+    }, "\u2212 ", fmtEUR(paid))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 6,
+        padding: "6px 10px",
+        borderRadius: 7,
+        background: solde ? "#d1fae5" : "#fed7aa",
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 13,
+        fontWeight: 800,
+        color: solde ? "#065f46" : "#9a3412"
+      }
+    }, /*#__PURE__*/React.createElement("span", null, solde ? "SOLDÉ ✓" : "Reste à payer"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, fmtEUR(Math.max(0, remaining)))));
+  })())), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       padding: 14,

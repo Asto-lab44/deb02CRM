@@ -441,29 +441,50 @@
           margin: [12, 18, 0, 0],
           table: {
             widths: ["*", 72],
-            body: [
-              [
-                { text: "Total HT", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
-                { text: fmtEUR(doc.total_ht), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
-              ],
-              [
-                { text: "Total TVA", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
-                { text: fmtEUR(doc.total_tva), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
-              ],
-              [
-                { text: "Total TTC", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
-                { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
-              ],
-              [
-                { text: "NET A PAYER", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: "#0f172a" },
-                { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: "#0f172a" },
-              ],
-            ],
+            body: (() => {
+              const rows = [
+                [
+                  { text: "Total HT", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
+                  { text: fmtEUR(doc.total_ht), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
+                ],
+                [
+                  { text: "Total TVA", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
+                  { text: fmtEUR(doc.total_tva), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
+                ],
+                [
+                  { text: "Total TTC", bold: true, fontSize: 9, margin: [3, 3, 0, 3] },
+                  { text: fmtEUR(doc.total_ttc), bold: true, fontSize: 9, alignment: "right", margin: [0, 3, 4, 3] },
+                ],
+              ];
+              // Règlements enregistrés (data.payments) → « Déjà réglé » +
+              // « Reste à payer ». Le NET A PAYER reflète alors le reste dû.
+              const payments = (doc.data && Array.isArray(doc.data.payments)) ? doc.data.payments : [];
+              const paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+              const ttc = Number(doc.total_ttc) || 0;
+              const remaining = Math.round((ttc - paid) * 100) / 100;
+              if (paid > 0) {
+                rows.push([
+                  { text: "Déjà réglé", fontSize: 9, color: "#047857", margin: [3, 3, 0, 3] },
+                  { text: "- " + fmtEUR(paid), fontSize: 9, color: "#047857", alignment: "right", margin: [0, 3, 4, 3] },
+                ]);
+                rows.push([
+                  { text: remaining > 0.01 ? "RESTE A PAYER" : "SOLDÉ", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
+                  { text: fmtEUR(Math.max(0, remaining)), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: remaining > 0.01 ? "#ea580c" : "#065f46" },
+                ]);
+              } else {
+                rows.push([
+                  { text: "NET A PAYER", bold: true, fontSize: 10.5, color: "#fff", margin: [3, 5, 0, 5], fillColor: "#0f172a" },
+                  { text: fmtEUR(ttc), bold: true, fontSize: 10.5, alignment: "right", color: "#fff", margin: [0, 5, 4, 5], fillColor: "#0f172a" },
+                ]);
+              }
+              return rows;
+            })(),
           },
           layout: {
             hLineWidth: () => 0.3, vLineWidth: () => 0.3,
             hLineColor: () => "#0f172a", vLineColor: () => "#0f172a",
-            fillColor: (row) => (row === 3 ? "#0f172a" : null),
+            fillColor: (row, node) => (row === node.table.body.length - 1
+              ? (node.table.body[row][0].fillColor || "#0f172a") : null),
           },
         },
       ],

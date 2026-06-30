@@ -2009,9 +2009,14 @@
               const { data } = await s2.from("commercial_docs").select("*")
                 .eq("type", "facture_acompte").in("parent_doc_id", chainIds).is("deleted_at", null);
               acomptes = data || [];
-            } else {
-              acomptes = lsGet("commercial_docs").filter((d) => d.type === "facture_acompte" && chainIds.includes(d.parent_doc_id));
             }
+            // Fusion localStorage : l'acompte peut n'exister qu'en local si la
+            // migration de contrainte SQL n'est pas passée (insert Supabase
+            // rejeté). On l'inclut quand même pour la déduction. Dédup par id.
+            const seenAc = new Set(acomptes.map((a) => a.id));
+            lsGet("commercial_docs")
+              .filter((d) => d.type === "facture_acompte" && chainIds.includes(d.parent_doc_id) && !seenAc.has(d.id))
+              .forEach((d) => acomptes.push(d));
             acomptes.forEach((ac) => {
               const acHt = Number(ac.total_ht) || 0;
               const acTva = Number(ac.total_tva) || 0;

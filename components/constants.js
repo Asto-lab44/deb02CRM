@@ -138,6 +138,28 @@
     "Autre",
   ];
 
+  // ── Helpers de formatage partagés ──────────────────────────────────
+  // Montant € fr-FR. On normalise l'espace fine insécable (U+202F/U+00A0)
+  // vers un espace standard — utile pour les polices qui n'ont pas ce glyphe
+  // et pour un rendu homogène HTML/PDF.
+  function fmtEUR(n) {
+    return (Number(n) || 0)
+      .toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      .replace(/[  ]/g, " ") + " €";
+  }
+  function fmtDate(s) {
+    if (!s) return "";
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  // Libellés de statut des pièces commerciales (source unique pour la vue).
+  const COMMERCIAL_STATUS = {
+    brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", refuse: "Refusé",
+    transforme: "Transformé (figé)", livre: "Livré", paye: "Payé", annule: "Annulé",
+  };
+
   window.HubConstants = {
     FONCTIONS,
     ROLES_DECISION,
@@ -145,5 +167,8 @@
     TIERS,
     SOURCES,
     CONCURRENTS,
+    fmtEUR,
+    fmtDate,
+    COMMERCIAL_STATUS,
   };
 })();

@@ -681,10 +681,10 @@ var CommercialDocs = () => {
   };
 
   // Format euro fr-FR : la virgule est le séparateur décimal légal, ne PAS la remplacer.
-  var fmtEUR = n => (Number(n) || 0).toLocaleString("fr-FR", {
+  var fmtEUR = window.HubConstants && window.HubConstants.fmtEUR || (n => (Number(n) || 0).toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }) + " €";
+  }) + " €");
   return /*#__PURE__*/React.createElement("div", {
     style: cdStyles.frame
   }, /*#__PURE__*/React.createElement("aside", {
@@ -2904,7 +2904,7 @@ var CommercialDocEditor = ({
       bl: "bon de livraison",
       facture: "facture"
     };
-    var STATUS_PRETTY = {
+    var STATUS_PRETTY = window.HubConstants && window.HubConstants.COMMERCIAL_STATUS || {
       brouillon: "Brouillon",
       envoye: "Envoyé",
       accepte: "Accepté",
@@ -2959,10 +2959,10 @@ var CommercialDocEditor = ({
       if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
     }
   };
-  var fmtEUR = n => (Number(n) || 0).toLocaleString("fr-FR", {
+  var fmtEUR = window.HubConstants && window.HubConstants.fmtEUR || (n => (Number(n) || 0).toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }) + " €";
+  }) + " €");
 
   // Fermeture sécurisée : si le devis vient d'être créé depuis une
   // opportunité (rattaché à une opp), on prévient avant de fermer pour
@@ -3371,7 +3371,7 @@ var CommercialDocEditor = ({
       bl: ["brouillon", "envoye", "livre", "transforme", "annule"],
       facture: ["brouillon", "envoye", "paye", "annule"]
     };
-    var STATUS_LABEL = {
+    var STATUS_LABEL = window.HubConstants && window.HubConstants.COMMERCIAL_STATUS || {
       brouillon: "Brouillon",
       envoye: "Envoyé",
       accepte: "Accepté",
@@ -5242,10 +5242,10 @@ var SmartArticleSearchModal = ({
       if (window.HubToast) window.HubToast.error("Création échouée : " + (e.message || e));
     }
   };
-  var fmtEUR = n => (Number(n) || 0).toLocaleString("fr-FR", {
+  var fmtEUR = window.HubConstants && window.HubConstants.fmtEUR || (n => (Number(n) || 0).toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }) + " €";
+  }) + " €");
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {

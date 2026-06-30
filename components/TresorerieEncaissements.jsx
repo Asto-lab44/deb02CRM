@@ -28,7 +28,7 @@ const TresorerieEncaissements = () => {
     })();
   }, []);
 
-  const fmt = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " €";
+  const fmt = (window.HubConstants && window.HubConstants.fmtEUR) || ((n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " €");
   const clientName = (id) => { const c = clients.find((x) => x.id === id); return c ? (c.raison_sociale || c.name) : (id || "—"); };
   const monthLabel = (() => {
     const [y, m] = month.split("-").map((n) => parseInt(n, 10));

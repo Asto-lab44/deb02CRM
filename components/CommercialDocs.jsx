@@ -462,7 +462,7 @@ const CommercialDocs = () => {
   const closeEditor = () => { setEditing(null); reload(); };
 
   // Format euro fr-FR : la virgule est le séparateur décimal légal, ne PAS la remplacer.
-  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  const fmtEUR = (window.HubConstants && window.HubConstants.fmtEUR) || ((n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €");
 
   return (
     <div style={cdStyles.frame}>
@@ -1692,7 +1692,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
     }
     const TYPE_LABEL = { devis: "devis", commande: "commande client", bl: "BL", facture: "facture" };
     const NEXT_LABEL = { commande: "commande client", bl: "bon de livraison", facture: "facture" };
-    const STATUS_PRETTY = { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", livre: "Livré", refuse: "Refusé", paye: "Payé" };
+    const STATUS_PRETTY = (window.HubConstants && window.HubConstants.COMMERCIAL_STATUS) || { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", livre: "Livré", refuse: "Refusé", paye: "Payé" };
     // Cas "blocage doux" : on propose d'updater le statut puis de transformer.
     if (!canTransform.ok && !canTransform.hard) {
       const reqLbl = canTransform.needStatusLbl;
@@ -1752,7 +1752,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
     }
   };
 
-  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  const fmtEUR = (window.HubConstants && window.HubConstants.fmtEUR) || ((n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €");
 
   // Fermeture sécurisée : si le devis vient d'être créé depuis une
   // opportunité (rattaché à une opp), on prévient avant de fermer pour
@@ -2005,7 +2005,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                   bl:       ["brouillon", "envoye", "livre", "transforme", "annule"],
                   facture:  ["brouillon", "envoye", "paye", "annule"],
                 };
-                const STATUS_LABEL = { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", refuse: "Refusé", transforme: "Transformé (figé)", livre: "Livré", paye: "Payé", annule: "Annulé" };
+                const STATUS_LABEL = (window.HubConstants && window.HubConstants.COMMERCIAL_STATUS) || { brouillon: "Brouillon", envoye: "Envoyé", accepte: "Accepté", refuse: "Refusé", transforme: "Transformé (figé)", livre: "Livré", paye: "Payé", annule: "Annulé" };
                 const NEXT_TYPE = { devis: "commande", commande: "bl", bl: "facture" };
                 const NEXT_NAME = { commande: "commande", bl: "BL", facture: "facture" };
                 const allowed = STATUS_FLOW[d.type] || [];
@@ -2881,7 +2881,7 @@ const SmartArticleSearchModal = ({ articles, onAdd, onCreated, onClose }) => {
     }
   };
 
-  const fmtEUR = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  const fmtEUR = (window.HubConstants && window.HubConstants.fmtEUR) || ((n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €");
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 10001, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 20px", overflowY: "auto" }}>

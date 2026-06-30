@@ -29,10 +29,10 @@ var TresorerieEncaissements = () => {
       setLoading(false);
     })();
   }, []);
-  var fmt = n => (Number(n) || 0).toLocaleString("fr-FR", {
+  var fmt = window.HubConstants && window.HubConstants.fmtEUR || (n => (Number(n) || 0).toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).replace(/[  ]/g, " ") + " €";
+  }).replace(/[  ]/g, " ") + " €");
   var clientName = id => {
     var c = clients.find(x => x.id === id);
     return c ? c.raison_sociale || c.name : id || "—";

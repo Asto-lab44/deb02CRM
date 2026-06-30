@@ -147,14 +147,12 @@
             { text: "Désignation", style: "tableHeader" },
             { text: "Qté\ncommandée", style: "tableHeader", alignment: "right" },
             { text: "Qté\nlivrée", style: "tableHeader", alignment: "center" },
-            { text: "N° de série", style: "tableHeader" },
           ]
         : [
             { text: "N°", style: "tableHeader", alignment: "center" },
             { text: "Désignation", style: "tableHeader" },
             { text: "Qté\ncommandée", style: "tableHeader", alignment: "right" },
             { text: "Qté\nlivrée", style: "tableHeader", alignment: "center" },
-            { text: "N° de série", style: "tableHeader" },
           ];
       tableBody.push(header);
     } else {
@@ -179,7 +177,7 @@
     let position = 0;
     // BL : Qté commandée + Qté livrée + N° de série = 3 colonnes après Désignation ;
     // autres : Qté + P.U. + Montant = 3 également (hors N°/Article/Désignation).
-    const totalCols = 1 /*N°*/ + (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 2 : 2);
+    const totalCols = 1 /*N°*/ + (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 1 : 2);
     // Helper : ajoute un en-tête de groupe (Abonnements / One-shot) sur
     // toute la largeur du tableau.
     const pushGroupHeader = (label, color, bg) => {
@@ -229,8 +227,8 @@
         // Cellule « Qté livrée » laissée vierge : le technicien la remplit à la main.
         const livreeCell = { text: "", style: "tableCell" };
         const row = hasAnyRef
-          ? [numCell, { text: l.ref || "—", style: "tableCellMono" }, { stack: desStack }, qtyCell, livreeCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }]
-          : [numCell, { stack: desStack }, qtyCell, livreeCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }];
+          ? [numCell, { text: l.ref || "—", style: "tableCellMono" }, { stack: desStack }, qtyCell, livreeCell]
+          : [numCell, { stack: desStack }, qtyCell, livreeCell];
         tableBody.push(row);
       } else {
         const row = hasAnyRef
@@ -344,15 +342,17 @@
       : { svg: ASTORYA_LOGO_SVG, fit: [340, 80], margin: [4, 6, 0, 6], alignment: "left" };
     const headerBand = {
       table: {
-        widths: ["*", 170],
+        widths: ["*", 220],
         body: [
           [
             logoCell,
             {
               text: typeLabel,
-              fontSize: 22, bold: true, color: "#c91c45",
-              alignment: "right",
-              margin: [0, 32, 4, 4],
+              // Police réduite pour les titres longs (« BON DE LIVRAISON »,
+              // « FACTURE D'ACOMPTE »…) + noWrap → toujours sur UNE seule ligne.
+              fontSize: typeLabel.length > 10 ? 18 : 22, bold: true, color: "#c91c45",
+              alignment: "right", noWrap: true,
+              margin: [0, typeLabel.length > 10 ? 38 : 32, 4, 4],
             },
           ],
         ],
@@ -384,7 +384,7 @@
     // ───── Tableau lignes
     // Widths adaptés à la présence ou non de la colonne Article
     const linesWidths = isBL
-      ? (hasAnyRef ? [25, 60, "*", 55, 45, 90] : [25, "*", 55, 45, 90])
+      ? (hasAnyRef ? [25, 60, "*", 70, 70] : [25, "*", 70, 70])
       : (hasAnyRef ? [25, 60, "*", 40, 65, 65] : [25, "*", 40, 65, 65]);
     const linesTable = {
       table: {

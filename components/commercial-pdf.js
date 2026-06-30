@@ -373,7 +373,7 @@
         { text: typePrefixLabel + " N° " + doc.id, fontSize: 11, bold: true, alignment: "center" },
         {
           text: doc.type === "devis" ? ("Validité : " + (doc.valid_until ? fmtDate(doc.valid_until) : "—"))
-              : (doc.type === "facture" || doc.type === "facture_acompte") ? ("Échéance : " + (doc.payment_due ? fmtDate(doc.payment_due) : "—"))
+              : (doc.type === "facture" || doc.type === "facture_acompte") ? ("Échéance : " + (doc.payment_due ? fmtDate(doc.payment_due) : "À la livraison"))
               : "",
           fontSize: 10, bold: true, alignment: "right",
         },
@@ -649,7 +649,7 @@
                     [{ text: "Code client", fontSize: 8, border: [false, false, false, false] }, { text: ": " + cliCode, fontSize: 8, border: [false, false, false, false] }],
                     [{ text: "Facture", fontSize: 8, border: [false, false, false, false] }, { text: ": " + doc.id, fontSize: 8, border: [false, false, false, false] }],
                     [{ text: "Montant dû", fontSize: 8, bold: true, border: [false, false, false, false] }, { text: ": " + fmtEUR(remainingDue), fontSize: 8, bold: true, border: [false, false, false, false] }],
-                    [{ text: "Échéance", fontSize: 8, border: [false, false, false, false] }, { text: ": " + (doc.payment_due ? fmtDate(doc.payment_due) : "—"), fontSize: 8, border: [false, false, false, false] }],
+                    [{ text: "Échéance", fontSize: 8, border: [false, false, false, false] }, { text: ": " + (doc.payment_due ? fmtDate(doc.payment_due) : "À la livraison"), fontSize: 8, border: [false, false, false, false] }],
                     [{ text: "Mode de paiement", fontSize: 8, border: [false, false, false, false] }, { text: ": Virement", fontSize: 8, border: [false, false, false, false] }],
                   ] }, layout: { defaultBorder: false, paddingTop: () => 1, paddingBottom: () => 1, paddingLeft: () => 0, paddingRight: () => 0 } },
               ], margin: [8, 8, 8, 8] },
@@ -794,6 +794,18 @@
       margin: [0, 8, 0, 14],
     };
 
+    // Garde un bloc INSÉCABLE entre deux pages, sans le bug de `unbreakable`
+    // (qui plante pdfmake sur les colonnes en fin de document). On enveloppe le
+    // bloc dans une mini-table à 1 ligne avec dontBreakRows:true : la ligne ne
+    // peut pas se couper → le bloc bascule entier sur la page suivante s'il ne
+    // tient pas. Vaut pour la signature (devis/commande/BL) et le bas de page
+    // légal (facture/acompte/avoir).
+    const keepTogether = (block, topMargin) => ({
+      table: { widths: ["*"], dontBreakRows: true, body: [[ { ...block, margin: [0, 0, 0, 0] } ]] },
+      layout: "noBorders",
+      margin: [0, topMargin == null ? 18 : topMargin, 0, 0],
+    });
+
     const content = [
       headerBand,
       partiesRow,
@@ -822,17 +834,12 @@
         fontSize: 9, italics: true, color: "#475569", margin: [0, 12, 0, 0],
       } : null,
       // Bas de page légal (factures, factures d'acompte, avoirs) : mentions
-      // + coupon de règlement (factures). Placé dans le body, juste avant
-      // les contacts du pied de page.
-      isCreditOrInvoice ? { ...legalFooterBlock, unbreakable: true } : null,
-      // Bloc signature placé dans le body (devis & commande) : mention
-      // acompte + cadre « Bon pour accord ». Flotte après les totaux.
-      // Devis : unbreakable OK (suivi du saut de page CGV). Commande & BL :
-      // PAS d'unbreakable — sur un columns complexe en fin de document, il fait
-      // planter pdfmake (« rien ne se passe ») et pousse une page blanche.
-      (doc.type === "devis") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] }
-        : (doc.type === "commande" || doc.type === "bl") ? { ...signatureBlock, margin: [0, 18, 0, 0] }
-        : null,
+      // + coupon de règlement (factures), insécable (jamais coupé entre pages).
+      isCreditOrInvoice ? keepTogether(legalFooterBlock, 0) : null,
+      // Bloc signature (devis / commande / BL), insécable : il reste d'un seul
+      // tenant et bascule entier sur la page suivante s'il ne tient pas.
+      (doc.type === "devis" || doc.type === "commande" || doc.type === "bl")
+        ? keepTogether(signatureBlock) : null,
       cgvBlock,
     ].filter(Boolean);
 

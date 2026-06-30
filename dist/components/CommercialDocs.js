@@ -3427,14 +3427,14 @@ var CommercialDocEditor = ({
       fontWeight: 700
     }
   }, "\uD83D\uDD12 Acompte verrouill\xE9")), /*#__PURE__*/React.createElement("fieldset", {
-    disabled: d.type === "facture_acompte" || d.type === "facture",
+    disabled: d.type === "facture_acompte",
     style: {
       border: "none",
       margin: 0,
       padding: 0,
       minWidth: 0,
-      opacity: d.type === "facture_acompte" || d.type === "facture" ? 0.85 : 1,
-      pointerEvents: d.type === "facture_acompte" || d.type === "facture" ? "none" : "auto"
+      opacity: d.type === "facture_acompte" ? 0.85 : 1,
+      pointerEvents: d.type === "facture_acompte" ? "none" : "auto"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {

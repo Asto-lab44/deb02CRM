@@ -1269,8 +1269,8 @@
   // Méthodes : list, getById, create, update, addLine, updateLine, removeLine
   //            transform (Devis→Commande, Commande→BL, BL→Facture),
   //            nextNumber, recompute, remove (soft)
-  const TYPE_PREFIX = { devis: "DEV", commande: "BC", bl: "BL", facture: "FAC", avoir: "AVO", commande_achat: "CA" };
-  const TYPE_LABEL  = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", avoir: "Avoir", commande_achat: "Commande d'achat" };
+  const TYPE_PREFIX = { devis: "DEV", commande: "BC", bl: "BL", facture: "FAC", facture_acompte: "FAC-AC", avoir: "AVO", commande_achat: "CA" };
+  const TYPE_LABEL  = { devis: "Devis", commande: "Commande", bl: "Bon de livraison", facture: "Facture", facture_acompte: "Facture d'acompte", avoir: "Avoir", commande_achat: "Commande d'achat" };
 
   // Helper partagé : synchronise une COMMANDE vers Projets & Livrables.
   // Idempotent : si un projet existe déjà pour la même commande (data.commande_id)
@@ -1973,23 +1973,25 @@
       // d'origine (modèle Sage — ligne négative « Acompte déjà facturé »).
       if (new_type === "facture") {
         try {
-          // Remonte la chaîne jusqu'au devis racine
-          let rootDevisId = null, cur = parent;
+          // Collecte TOUS les ids de la chaîne (devis → commande → BL) car
+          // l'acompte peut avoir été créé depuis n'importe lequel d'entre eux.
+          const chainIds = [];
+          let cur = parent;
           for (let i = 0; i < 6; i++) {
-            if (cur.type === "devis") { rootDevisId = cur.id; break; }
-            if (!cur.parent_doc_id) break;
-            cur = await this.getById(cur.parent_doc_id);
             if (!cur) break;
+            chainIds.push(cur.id);
+            if (cur.type === "devis" || !cur.parent_doc_id) break;
+            cur = await this.getById(cur.parent_doc_id);
           }
-          if (rootDevisId) {
+          if (chainIds.length) {
             const s2 = supa();
             let acomptes = [];
             if (s2) {
               const { data } = await s2.from("commercial_docs").select("*")
-                .eq("type", "facture_acompte").eq("parent_doc_id", rootDevisId).is("deleted_at", null);
+                .eq("type", "facture_acompte").in("parent_doc_id", chainIds).is("deleted_at", null);
               acomptes = data || [];
             } else {
-              acomptes = lsGet("commercial_docs").filter((d) => d.type === "facture_acompte" && d.parent_doc_id === rootDevisId);
+              acomptes = lsGet("commercial_docs").filter((d) => d.type === "facture_acompte" && chainIds.includes(d.parent_doc_id));
             }
             acomptes.forEach((ac) => {
               const acHt = Number(ac.total_ht) || 0;

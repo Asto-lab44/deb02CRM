@@ -2048,10 +2048,10 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
               <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 4, background: "#fef3c7", color: "#92400e", fontWeight: 700 }}>🔒 Acompte verrouillé</span>
             )}
           </h3>
-          <fieldset disabled={d.type === "facture_acompte" || d.type === "facture"}
+          <fieldset disabled={d.type === "facture_acompte"}
                     style={{ border: "none", margin: 0, padding: 0, minWidth: 0,
-                             opacity: (d.type === "facture_acompte" || d.type === "facture") ? 0.85 : 1,
-                             pointerEvents: (d.type === "facture_acompte" || d.type === "facture") ? "none" : "auto" }}>
+                             opacity: d.type === "facture_acompte" ? 0.85 : 1,
+                             pointerEvents: d.type === "facture_acompte" ? "none" : "auto" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {(d.lines || []).length === 0 && (
               <div style={{ padding: 18, border: "1px dashed #cbd5e1", borderRadius: 8, textAlign: "center", color: "#94a3b8", fontSize: 12.5, background: "#fafbfc" }}>

@@ -145,13 +145,15 @@
             { text: "N°", style: "tableHeader", alignment: "center" },
             { text: "Article", style: "tableHeader" },
             { text: "Désignation", style: "tableHeader" },
-            { text: "Qté", style: "tableHeader", alignment: "right" },
+            { text: "Qté\ncommandée", style: "tableHeader", alignment: "right" },
+            { text: "Qté\nlivrée", style: "tableHeader", alignment: "center" },
             { text: "N° de série", style: "tableHeader" },
           ]
         : [
             { text: "N°", style: "tableHeader", alignment: "center" },
             { text: "Désignation", style: "tableHeader" },
-            { text: "Qté", style: "tableHeader", alignment: "right" },
+            { text: "Qté\ncommandée", style: "tableHeader", alignment: "right" },
+            { text: "Qté\nlivrée", style: "tableHeader", alignment: "center" },
             { text: "N° de série", style: "tableHeader" },
           ];
       tableBody.push(header);
@@ -175,7 +177,9 @@
       tableBody.push(header);
     }
     let position = 0;
-    const totalCols = 1 /*N°*/ + (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 1 : 2);
+    // BL : Qté commandée + Qté livrée + N° de série = 3 colonnes après Désignation ;
+    // autres : Qté + P.U. + Montant = 3 également (hors N°/Article/Désignation).
+    const totalCols = 1 /*N°*/ + (hasAnyRef ? 1 : 0) + 1 + 1 + (isBL ? 2 : 2);
     // Helper : ajoute un en-tête de groupe (Abonnements / One-shot) sur
     // toute la largeur du tableau.
     const pushGroupHeader = (label, color, bg) => {
@@ -222,9 +226,11 @@
       }
       const qtyCell = { text: (Number(l.quantity) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 3 }), style: "tableCell", alignment: "right" };
       if (isBL) {
+        // Cellule « Qté livrée » laissée vierge : le technicien la remplit à la main.
+        const livreeCell = { text: "", style: "tableCell" };
         const row = hasAnyRef
-          ? [numCell, { text: l.ref || "—", style: "tableCellMono" }, { stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }]
-          : [numCell, { stack: desStack }, qtyCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }];
+          ? [numCell, { text: l.ref || "—", style: "tableCellMono" }, { stack: desStack }, qtyCell, livreeCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }]
+          : [numCell, { stack: desStack }, qtyCell, livreeCell, { text: (l.serial_number || l.sn || ""), style: "tableCellMono" }];
         tableBody.push(row);
       } else {
         const row = hasAnyRef
@@ -378,7 +384,7 @@
     // ───── Tableau lignes
     // Widths adaptés à la présence ou non de la colonne Article
     const linesWidths = isBL
-      ? (hasAnyRef ? [25, 60, "*", 40, 110] : [25, "*", 40, 120])
+      ? (hasAnyRef ? [25, 60, "*", 55, 45, 90] : [25, "*", 55, 45, 90])
       : (hasAnyRef ? [25, 60, "*", 40, 65, 65] : [25, "*", 40, 65, 65]);
     const linesTable = {
       table: {

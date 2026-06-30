@@ -2114,6 +2114,59 @@
       return await this.create(payload);
     },
 
+    /** Crée un AVOIR à partir d'une FACTURE (modèle Sage 50).
+     *  L'avoir est TOUJOURS lié à une facture (parent_doc_id).
+     *  - opts.full = true  → avoir total : reprend toutes les lignes de la
+     *    facture en négatif.
+     *  - opts.amount_ht    → avoir partiel d'un montant HT (ligne unique).
+     *  - opts.motif        → motif affiché sur l'avoir.
+     *  Montants négatifs (crédit client). */
+    async createAvoir(facture_id, opts = {}) {
+      const fac = await this.getById(facture_id);
+      if (!fac) throw new Error("Facture introuvable");
+      if (fac.type !== "facture") throw new Error("Un avoir doit être créé depuis une facture.");
+      let lines;
+      if (opts.amount_ht != null && !opts.full) {
+        // Avoir partiel : une ligne négative au montant HT demandé
+        const ht = -Math.abs(Number(opts.amount_ht) || 0);
+        const baseHt = Number(fac.total_ht) || 0;
+        const rate = baseHt !== 0 ? Math.round((Number(fac.total_tva) / baseHt) * 10000) / 100 : 20;
+        const tva = Math.round(ht * rate / 100 * 100) / 100;
+        lines = [{
+          article_id: null, ref: "AVOIR",
+          designation: "Avoir sur facture " + (fac.ref || fac.id) + (opts.motif ? " — " + opts.motif : ""),
+          quantity: 1, unit: "forfait", unit_price_ht: ht, discount_pct: 0,
+          tva_rate: rate, total_ht: ht, total_tva: tva, total_ttc: ht + tva,
+          is_text_only: false, periodicity: "oneshot",
+        }];
+      } else {
+        // Avoir total : reprend toutes les lignes de la facture en négatif
+        lines = (fac.lines || []).filter((l) => !l.is_text_only).map((l) => ({
+          article_id: l.article_id, ref: l.ref, designation: l.designation, description: l.description,
+          quantity: l.quantity, unit: l.unit,
+          unit_price_ht: -(Number(l.unit_price_ht) || 0), discount_pct: l.discount_pct,
+          tva_rate: l.tva_rate,
+          total_ht: -(Number(l.total_ht) || 0), total_tva: -(Number(l.total_tva) || 0),
+          total_ttc: -(Number(l.total_ttc) || 0), is_text_only: false, periodicity: l.periodicity || "oneshot",
+        }));
+      }
+      const payload = {
+        type: "avoir",
+        status: "brouillon",
+        client_id: fac.client_id, client_name: fac.client_name,
+        client_address: fac.client_address, client_cp: fac.client_cp, client_city: fac.client_city,
+        client_siren: fac.client_siren, client_tva: fac.client_tva,
+        contact_name: fac.contact_name, contact_email: fac.contact_email,
+        project_id: fac.project_id, opportunity_id: fac.opportunity_id,
+        parent_doc_id: facture_id,
+        title: "Avoir — " + (fac.title || fac.client_name || ""),
+        owner: fac.owner,
+        lines,
+        data: { ...(fac.data || {}), avoir: true, source_facture_ref: fac.ref || fac.id, motif: opts.motif || null },
+      };
+      return await this.create(payload);
+    },
+
     /** (Re)génère le PDF d'un BL existant et l'attache au projet.
      *  Utile pour les BL créés avant que le hook automatique n'existe. */
     async regenerateBLPdf(bl_id) {

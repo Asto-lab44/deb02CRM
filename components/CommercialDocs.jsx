@@ -160,6 +160,7 @@ const CommercialDocs = () => {
     { k: "bl",       label: "Bons livraison",   newLabel: "Nouveau devis", color: "#ea580c", icon: "🚚" },
     { k: "facture_acompte", label: "Factures d'acompte", navLabel: "Factures d'acompte", newLabel: "Nouveau devis", color: "#0ea5e9", icon: "💰" },
     { k: "facture",  label: "Factures",         newLabel: "Nouveau devis", color: "#10b981", icon: "💶" },
+    { k: "avoir",    label: "Avoirs",           navLabel: "Avoirs", newLabel: "Nouveau devis", color: "#dc2626", icon: "↩" },
   ];
 
   const STATUS_META = {
@@ -1197,6 +1198,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
   const [smartSearchOpen, setSmartSearchOpen] = React.useState(false);
   const [acompteOpen, setAcompteOpen] = React.useState(false);
   const [paymentOpen, setPaymentOpen] = React.useState(false);
+  const [avoirOpen, setAvoirOpen] = React.useState(false);
 
   const reloadSuppliers = React.useCallback(async () => {
     try { setSuppliers(await window.api.suppliers.list({ active: true }) || []); } catch (e) {}
@@ -1786,6 +1788,14 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                       title="Enregistrer un règlement client (virement, chèque, CB...)"
                       style={{ ...cdStyles.ghostBtn, borderColor: "#10b981", color: "#047857", background: "#ecfdf5", fontWeight: 600 }}>
                 💳 Enregistrer un règlement
+              </button>
+            )}
+            {/* Créer un avoir — uniquement depuis une facture (modèle Sage) */}
+            {d.type === "facture" && (
+              <button onClick={() => setAvoirOpen(true)}
+                      title="Créer un avoir lié à cette facture (total ou partiel)"
+                      style={{ ...cdStyles.ghostBtn, borderColor: "#fecaca", color: "#dc2626", background: "#fef2f2", fontWeight: 600 }}>
+                ↩ Créer un avoir
               </button>
             )}
             {(() => {
@@ -2393,6 +2403,89 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
       {paymentOpen && <PaymentModal doc={d} onClose={() => setPaymentOpen(false)}
         onSaved={(updated) => { setPaymentOpen(false); setD(updated);
           if (window.HubToast) window.HubToast.success("✓ Règlement enregistré"); }} />}
+      {avoirOpen && <AvoirModal doc={d} onClose={() => setAvoirOpen(false)}
+        onCreated={(av) => { setAvoirOpen(false);
+          if (window.HubToast) window.HubToast.success("✓ Avoir " + (av.ref || av.id) + " créé");
+          if (onOpenDoc) onOpenDoc(av.id); else if (onSaved) onSaved();
+        }} />}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// AvoirModal — crée un avoir lié à une facture (modèle Sage 50)
+// ─────────────────────────────────────────────────────────────────
+const AvoirModal = ({ doc, onClose, onCreated }) => {
+  const fmt = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " €";
+  const baseHt = Number(doc.total_ht) || 0;
+  const baseTtc = Number(doc.total_ttc) || 0;
+  const rate = baseHt !== 0 ? (Number(doc.total_tva) || 0) / baseHt : 0.2;
+  const [mode, setMode] = React.useState("full"); // "full" | "partial"
+  const [amount, setAmount] = React.useState("");
+  const [motif, setMotif] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const avHt = mode === "full" ? baseHt : (Number(amount) || 0);
+  const avTtc = Math.round(avHt * (1 + rate) * 100) / 100;
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const opts = { motif: motif.trim() };
+      if (mode === "full") opts.full = true; else opts.amount_ht = Number(amount) || 0;
+      const av = await window.api.commercialDocs.createAvoir(doc.id, opts);
+      onCreated(av);
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 24, width: "90%", maxWidth: 480, boxShadow: "0 12px 40px rgba(0,0,0,0.3)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }}>↩ Créer un avoir</h2>
+          <button onClick={onClose} style={{ width: 30, height: 30, border: "none", background: "#f1f5f9", borderRadius: 7, fontSize: 17, cursor: "pointer", fontWeight: 700 }}>×</button>
+        </div>
+        <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 16px" }}>
+          Avoir lié à la facture <strong>{doc.ref || doc.id}</strong> · {fmt(baseHt)} HT ({fmt(baseTtc)} TTC)
+        </p>
+
+        <div style={{ display: "inline-flex", border: "1px solid #e2e8f0", borderRadius: 8, padding: 2, marginBottom: 14 }}>
+          <button onClick={() => setMode("full")} style={{ padding: "6px 14px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12.5, fontWeight: 600, background: mode === "full" ? "#dc2626" : "transparent", color: mode === "full" ? "#fff" : "#64748b" }}>Avoir total</button>
+          <button onClick={() => setMode("partial")} style={{ padding: "6px 14px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12.5, fontWeight: 600, background: mode === "partial" ? "#dc2626" : "transparent", color: mode === "partial" ? "#fff" : "#64748b" }}>Avoir partiel</button>
+        </div>
+
+        {mode === "partial" && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={cdStyles.lbl}>Montant HT à créditer</label>
+            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
+                   style={{ ...cdStyles.input, fontVariantNumeric: "tabular-nums" }} />
+          </div>
+        )}
+        <div style={{ marginBottom: 14 }}>
+          <label style={cdStyles.lbl}>Motif de l'avoir</label>
+          <input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Ex : geste commercial, retour produit, erreur facturation…" style={cdStyles.input} />
+        </div>
+
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
+            <span style={{ color: "#475569" }}>Montant avoir HT</span>
+            <span style={{ fontWeight: 700, color: "#dc2626", fontVariantNumeric: "tabular-nums" }}>− {fmt(avHt)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#dc2626" }}>
+            <span style={{ fontWeight: 700 }}>Crédit TTC</span>
+            <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>− {fmt(avTtc)}</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 600 }}>Annuler</button>
+          <button onClick={submit} disabled={busy || avHt <= 0} style={{ padding: "8px 16px", border: "none", background: avHt > 0 ? "#dc2626" : "#cbd5e1", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: busy || avHt <= 0 ? "not-allowed" : "pointer" }}>
+            {busy ? "⏳ Création…" : "↩ Créer l'avoir"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

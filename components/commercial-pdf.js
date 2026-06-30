@@ -714,6 +714,12 @@
         text: "Cette facture d'acompte sera déduite du montant de la facture définitive.",
         fontSize: 9, italics: true, color: "#475569", margin: [0, 12, 0, 0],
       } : null,
+      // Mention légale avoir (modèle Sage) — référence la facture d'origine
+      (doc.type === "avoir") ? {
+        text: "Avoir émis en référence à la facture " + ((doc.data && doc.data.source_facture_ref) || "—")
+          + (doc.data && doc.data.motif ? ". Motif : " + doc.data.motif : "") + ".",
+        fontSize: 9, italics: true, color: "#475569", margin: [0, 12, 0, 0],
+      } : null,
       // Bloc signature placé dans le body juste avant le saut de page CGV
       // (et seulement sur les devis). Il flotte naturellement après les
       // totaux et reste collé au-dessus du verso CGV. unbreakable pour

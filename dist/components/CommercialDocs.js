@@ -3019,7 +3019,7 @@ var CommercialDocEditor = ({
       } catch (e) {}
     },
     style: cdStyles.ghostBtn
-  }, "\u2709 Envoyer"), (d.type === "devis" || d.type === "commande" || d.type === "bl") && /*#__PURE__*/React.createElement("button", {
+  }, "\u2709 Envoyer"), (d.type === "commande" || d.type === "bl") && /*#__PURE__*/React.createElement("button", {
     onClick: () => setAcompteOpen(true),
     title: "Enregistrer un r\xE8glement d'acompte \u2192 cr\xE9e une facture d'acompte verrouill\xE9e",
     style: {

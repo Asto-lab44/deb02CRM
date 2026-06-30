@@ -1770,9 +1770,10 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id); } catch (e) {} }} style={cdStyles.ghostBtn} title="Génère le PDF et l'ouvre">👁 Aperçu PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id); try { await window.api.commercialSends.log({ doc_id: d.id, doc_type: d.type, channel: "download", status: "sent", provider: "browser" }); } catch (e) {} } catch (e) {} }} style={cdStyles.ghostBtn}>⇩ Télécharger PDF</button>
             <button onClick={async () => { try { await save({ keepOpen: true }); setSendOpen(true); } catch (e) {} }} style={cdStyles.ghostBtn}>✉ Envoyer</button>
-            {/* Règlement / acompte — depuis devis, commande ou BL. Crée une
-                facture d'acompte (modèle Sage), réglée + verrouillée. */}
-            {(d.type === "devis" || d.type === "commande" || d.type === "bl") && (
+            {/* Règlement / acompte — à partir de la commande (ou du BL).
+                Pas sur le devis : un acompte ne se règle qu'une fois la
+                commande passée. Crée une facture d'acompte réglée + verrouillée. */}
+            {(d.type === "commande" || d.type === "bl") && (
               <button onClick={() => setAcompteOpen(true)}
                       title="Enregistrer un règlement d'acompte → crée une facture d'acompte verrouillée"
                       style={{ ...cdStyles.ghostBtn, borderColor: "#0ea5e9", color: "#0369a1", background: "#f0f9ff", fontWeight: 600 }}>

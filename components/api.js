@@ -2022,18 +2022,40 @@
             // facture (data.deducted_into_facture). Sans ce garde-fou, régénérer
             // la facture depuis le même BL déduirait l'acompte une 2ᵉ fois.
             deductedAcomptes = acomptes.filter((ac) => !(ac.data && ac.data.deducted_into_facture));
-            deductedAcomptes.forEach((ac) => {
-              const acHt = Number(ac.total_ht) || 0;
-              const acTva = Number(ac.total_tva) || 0;
-              const rate = acHt > 0 ? Math.round((acTva / acHt) * 10000) / 100 : 20;
-              childPayload.lines.push({
-                article_id: null, ref: "ACOMPTE",
-                designation: "Acompte déjà facturé — " + (ac.ref || ac.id),
-                quantity: 1, unit: "forfait", unit_price_ht: -acHt, discount_pct: 0,
-                tva_rate: rate, total_ht: -acHt, total_tva: -acTva,
-                total_ttc: -(acHt + acTva), is_text_only: false, periodicity: "oneshot",
-              });
-            });
+            for (const ac of deductedAcomptes) {
+              // Reprend les lignes de l'acompte EN NÉGATIF, une par taux de TVA,
+              // pour rester en miroir exact (ventilation TVA conforme). On
+              // hydrate les lignes via getById (le select de chaîne ne les
+              // ramène pas).
+              const full = await this.getById(ac.id);
+              const acLines = ((full && full.lines) || []).filter((l) => !l.is_text_only);
+              if (acLines.length) {
+                const multi = acLines.length > 1;
+                acLines.forEach((l) => {
+                  const lHt = Number(l.total_ht) || 0;
+                  const lTva = Number(l.total_tva) || 0;
+                  childPayload.lines.push({
+                    article_id: null, ref: "ACOMPTE",
+                    designation: "Acompte déjà facturé — " + (ac.ref || ac.id) + (multi ? " (TVA " + (Number(l.tva_rate) || 0) + " %)" : ""),
+                    quantity: 1, unit: "forfait", unit_price_ht: -lHt, discount_pct: 0,
+                    tva_rate: Number(l.tva_rate) || 0, total_ht: -lHt, total_tva: -lTva,
+                    total_ttc: -(lHt + lTva), is_text_only: false, periodicity: "oneshot",
+                  });
+                });
+              } else {
+                // Repli : acompte sans lignes hydratées → ligne unique au taux moyen.
+                const acHt = Number(ac.total_ht) || 0;
+                const acTva = Number(ac.total_tva) || 0;
+                const rate = acHt > 0 ? Math.round((acTva / acHt) * 10000) / 100 : 20;
+                childPayload.lines.push({
+                  article_id: null, ref: "ACOMPTE",
+                  designation: "Acompte déjà facturé — " + (ac.ref || ac.id),
+                  quantity: 1, unit: "forfait", unit_price_ht: -acHt, discount_pct: 0,
+                  tva_rate: rate, total_ht: -acHt, total_tva: -acTva,
+                  total_ttc: -(acHt + acTva), is_text_only: false, periodicity: "oneshot",
+                });
+              }
+            }
             childPayload.data.deducted_acompte_ids = deductedAcomptes.map((ac) => ac.id);
           }
         } catch (e) { console.warn("[transform] déduction acompte:", e); }
@@ -2074,8 +2096,8 @@
       const parent = await this.getById(parent_id);
       if (!parent) throw new Error("Document parent introuvable");
       const baseHt = Number(parent.total_ht) || 0;
-      // TVA moyenne pondérée du devis (pour rester cohérent multi-taux)
       const baseTva = Number(parent.total_tva) || 0;
+      // Taux moyen pondéré — utilisé seulement en repli (devis sans lignes).
       const effectiveRate = baseHt > 0 ? Math.round((baseTva / baseHt) * 10000) / 100 : 20;
       let pct = opts.pct != null ? Number(opts.pct) : null;
       let acompteHt;
@@ -2086,17 +2108,53 @@
         if (pct == null) pct = 40;
         acompteHt = Math.round(baseHt * pct / 100 * 100) / 100;
       }
-      const acompteTva = Math.round(acompteHt * effectiveRate / 100 * 100) / 100;
-      const acompteTtc = Math.round((acompteHt + acompteTva) * 100) / 100;
       const label = pct != null
         ? "Acompte de " + pct + " % sur devis " + (parent.ref || parent.id)
         : "Acompte sur devis " + (parent.ref || parent.id);
-      const line = {
-        article_id: null, ref: "ACOMPTE", designation: label, description: null,
-        quantity: 1, unit: "forfait", unit_price_ht: acompteHt, discount_pct: 0,
-        tva_rate: effectiveRate, total_ht: acompteHt, total_tva: acompteTva,
-        total_ttc: acompteTtc, is_text_only: false, periodicity: "oneshot",
-      };
+      // Ventilation de l'acompte par TAUX de TVA : on répartit le montant au
+      // prorata du HT de chaque taux présent dans le devis. Une ligne par taux
+      // → TVA exacte par taux (conforme Sage), au lieu d'un taux moyen pondéré.
+      const buckets = {};
+      (parent.lines || []).forEach((l) => {
+        if (l.is_text_only) return;
+        const r = Number(l.tva_rate);
+        const key = isNaN(r) ? 20 : r;
+        buckets[key] = (buckets[key] || 0) + (Number(l.total_ht) || 0);
+      });
+      const rates = Object.keys(buckets);
+      let lines = [];
+      if (rates.length === 0 || baseHt <= 0) {
+        // Devis sans lignes exploitables → ligne unique au taux moyen.
+        const tva = Math.round(acompteHt * effectiveRate / 100 * 100) / 100;
+        lines = [{
+          article_id: null, ref: "ACOMPTE", designation: label, description: null,
+          quantity: 1, unit: "forfait", unit_price_ht: acompteHt, discount_pct: 0,
+          tva_rate: effectiveRate, total_ht: acompteHt, total_tva: tva,
+          total_ttc: Math.round((acompteHt + tva) * 100) / 100, is_text_only: false, periodicity: "oneshot",
+        }];
+      } else {
+        const ratio = acompteHt / baseHt;
+        const multi = rates.length > 1;
+        let allocated = 0;
+        rates.forEach((rk, i) => {
+          const r = Number(rk);
+          // La dernière ligne absorbe l'écart d'arrondi pour que la somme des
+          // HT corresponde exactement au montant d'acompte demandé.
+          let ht = (i === rates.length - 1)
+            ? Math.round((acompteHt - allocated) * 100) / 100
+            : Math.round(buckets[rk] * ratio * 100) / 100;
+          allocated = Math.round((allocated + ht) * 100) / 100;
+          const tva = Math.round(ht * r / 100 * 100) / 100;
+          lines.push({
+            article_id: null, ref: "ACOMPTE",
+            designation: label + (multi ? " (TVA " + r + " %)" : ""), description: null,
+            quantity: 1, unit: "forfait", unit_price_ht: ht, discount_pct: 0,
+            tva_rate: r, total_ht: ht, total_tva: tva,
+            total_ttc: Math.round((ht + tva) * 100) / 100, is_text_only: false, periodicity: "oneshot",
+          });
+        });
+      }
+      const acompteTtc = Math.round(lines.reduce((s, l) => s + (Number(l.total_ttc) || 0), 0) * 100) / 100;
       // Si un règlement est fourni (opts.payment {date, mode, ref}), l'acompte
       // est immédiatement marqué réglé (status payé) + verrouillé (data.locked).
       const data = { ...(parent.data || {}), acompte: true, acompte_pct: pct, source_devis_ref: parent.ref || parent.id };
@@ -2124,7 +2182,7 @@
         parent_doc_id: parent_id,
         title: "Acompte " + (pct != null ? pct + "% " : "") + "— " + (parent.title || parent.client_name || ""),
         owner: parent.owner,
-        lines: [line],
+        lines,
         data,
       };
       return await this.create(payload);

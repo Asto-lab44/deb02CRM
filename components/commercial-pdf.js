@@ -18,7 +18,11 @@
   function htmlDescToInlines(html) {
     if (html == null) return "";
     const s = String(html);
-    if (!/<[a-z][\s\S]*?>/i.test(s)) return s; // texte brut, pas de balises
+    // Décode les entités HTML courantes (sinon « &nbsp; » s'affiche tel quel).
+    const decodeEntities = (str) => String(str)
+      .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">").replace(/&#39;|&apos;/gi, "'").replace(/&quot;/gi, '"');
+    if (!/<[a-z][\s\S]*?>/i.test(s)) return decodeEntities(s); // texte brut, pas de balises
     const root = document.createElement("div");
     root.innerHTML = s;
     const out = [];
@@ -251,13 +255,18 @@
     const textLines = allLines.filter((l) => l.is_text_only);
     if (recLines.length > 0) {
       recLines.forEach(renderLineRow);
-      const recHt = recLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
-      pushSubtotal("Sous-total abonnements HT (par période)", recHt, "#3730a3", "#eef2ff");
+      // Aucun montant sur un BL : on n'affiche pas le sous-total chiffré.
+      if (!isBL) {
+        const recHt = recLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
+        pushSubtotal("Sous-total abonnements HT (par période)", recHt, "#3730a3", "#eef2ff");
+      }
     }
     if (oneLines.length > 0) {
       oneLines.forEach(renderLineRow);
-      const oneHt = oneLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
-      pushSubtotal("Sous-total prestations ponctuelles HT", oneHt, "#3730a3", "#eef2ff");
+      if (!isBL) {
+        const oneHt = oneLines.reduce((s, l) => s + (Number(l.total_ht) || 0), 0);
+        pushSubtotal("Sous-total prestations ponctuelles HT", oneHt, "#3730a3", "#eef2ff");
+      }
     }
     // Lignes texte purement informatives — affichées en queue de tableau
     textLines.forEach(renderLineRow);
@@ -358,7 +367,7 @@
         { text: typePrefixLabel + " N° " + doc.id, fontSize: 11, bold: true, alignment: "center" },
         {
           text: doc.type === "devis" ? ("Validité : " + (doc.valid_until ? fmtDate(doc.valid_until) : "—"))
-              : doc.type === "facture" ? ("Échéance : " + (doc.payment_due ? fmtDate(doc.payment_due) : "—"))
+              : (doc.type === "facture" || doc.type === "facture_acompte") ? ("Échéance : " + (doc.payment_due ? fmtDate(doc.payment_due) : "—"))
               : "",
           fontSize: 10, bold: true, alignment: "right",
         },
@@ -540,37 +549,45 @@
         {
           width: 240,
           stack: [
-            // Sur un devis : mention acompte 40 % en gras et cadre signature
-            // encadré. Sur les autres docs : juste le libellé conditions de
-            // paiement classique.
-            doc.type === "devis"
-              ? { text: "Règlement à la commande d'un acompte de 40 %", bold: true, fontSize: 10, margin: [0, 0, 0, 6] }
-              : { text: doc.payment_terms_label || company.conditions_paiement_default || "", fontSize: 9, italics: true, margin: [0, 0, 0, 10] },
-            doc.type === "devis"
-              ? {
-                  // Cadre signature : tableau 1 cellule avec bordure noire,
-                  // « Bon pour accord » en haut + espace blanc + « Le : » en bas
-                  table: {
-                    widths: ["*"],
-                    body: [[
-                      { stack: [
-                          { text: "Bon pour accord :", bold: true, fontSize: 10, margin: [0, 0, 0, 24] },
-                          { text: "Le :", bold: true, fontSize: 10, margin: [0, 0, 0, 4] },
-                        ],
-                        margin: [6, 6, 6, 6],
-                      },
-                    ]],
+            // Bas de page selon le type :
+            //  • Devis & Commande : mention acompte + cadre « Bon pour accord ».
+            //  • Facture & facture d'acompte : conditions/échéance, SANS « bon
+            //    pour accord » (on ne fait pas signer une facture).
+            //  • Avoir : note seule (ni paiement, ni accord).
+            ...(function () {
+              const t = doc.type;
+              if (t === "devis" || t === "commande") {
+                return [
+                  { text: "Règlement à la commande d'un acompte de 40 %", bold: true, fontSize: 10, margin: [0, 0, 0, 6] },
+                  {
+                    table: {
+                      widths: ["*"],
+                      body: [[
+                        { stack: [
+                            { text: "Bon pour accord :", bold: true, fontSize: 10, margin: [0, 0, 0, 24] },
+                            { text: "Le :", bold: true, fontSize: 10, margin: [0, 0, 0, 4] },
+                          ],
+                          margin: [6, 6, 6, 6],
+                        },
+                      ]],
+                    },
+                    layout: {
+                      hLineWidth: () => 0.7, vLineWidth: () => 0.7,
+                      hLineColor: () => "#0f172a", vLineColor: () => "#0f172a",
+                    },
                   },
-                  layout: {
-                    hLineWidth: () => 0.7, vLineWidth: () => 0.7,
-                    hLineColor: () => "#0f172a", vLineColor: () => "#0f172a",
-                  },
-                }
-              : { stack: [
-                  { text: "Bon pour accord :", bold: true, fontSize: 10 },
-                  { text: " ", fontSize: 16 },
-                  { text: "Le :", bold: true, fontSize: 10, margin: [0, 14, 0, 0] },
-                ] },
+                ];
+              }
+              if (t === "facture" || t === "facture_acompte") {
+                return [
+                  { text: doc.payment_terms_label || company.conditions_paiement_default || "À réception", fontSize: 9, italics: true, margin: [0, 0, 0, 4] },
+                ];
+              }
+              // avoir
+              return [
+                { text: "Avoir à déduire de votre prochain règlement ou à rembourser.", fontSize: 9, italics: true, color: "#475569" },
+              ];
+            })(),
           ],
         },
       ],
@@ -733,7 +750,7 @@
       // (et seulement sur les devis). Il flotte naturellement après les
       // totaux et reste collé au-dessus du verso CGV. unbreakable pour
       // ne pas se couper en deux pages.
-      (doc.type === "devis") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] } : null,
+      (doc.type === "devis" || doc.type === "commande") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] } : null,
       cgvBlock,
     ].filter(Boolean);
 
@@ -779,7 +796,7 @@
             // Sur les devis, la signature est désormais dans le body juste
             // au-dessus du saut de page CGV (pas dans le footer). Sur les
             // autres types de docs, signature pinnée en bas de dernière page.
-            (!isDevis && isLastPage) ? signatureBlock : null,
+            (!isDevis && doc.type !== "commande" && isLastPage) ? signatureBlock : null,
             // Contacts : 3 colonnes Commercial / Admin / Compta (sans bordures
             // gauche/droite, séparateur fin en haut) — masqué sur les devis
             isDevis ? null : {
@@ -854,6 +871,21 @@
         const found = (terms || []).find((t) => t.id === resolved.payment_terms_id);
         if (found) resolved = { ...resolved, payment_terms_label: found.label };
       } catch (e) {}
+    }
+    // Adresse client : si la pièce n'a pas d'adresse dénormalisée (ancienne
+    // pièce, ou créée avant correctif), on la complète depuis la fiche client.
+    if (resolved.client_id && (!resolved.client_address || !resolved.client_city)) {
+      try {
+        const c = await window.api.clients.getById(resolved.client_id);
+        if (c) resolved = {
+          ...resolved,
+          client_address: resolved.client_address || c.adresse || c.address || "",
+          client_cp: resolved.client_cp || c.cp || c.code_postal || "",
+          client_city: resolved.client_city || c.ville || c.city || "",
+          client_siren: resolved.client_siren || c.siren || "",
+          client_tva: resolved.client_tva || c.tva || c.tva_intra || "",
+        };
+      } catch (e) { /* non bloquant */ }
     }
     // Facture : récupère les avoirs liés pour les déduire du solde dû au PDF
     if (resolved.type === "facture" && resolved.id) {

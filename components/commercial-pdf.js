@@ -827,7 +827,12 @@
       isCreditOrInvoice ? { ...legalFooterBlock, unbreakable: true } : null,
       // Bloc signature placé dans le body (devis & commande) : mention
       // acompte + cadre « Bon pour accord ». Flotte après les totaux.
-      (doc.type === "devis" || doc.type === "commande" || doc.type === "bl") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] } : null,
+      // Devis : unbreakable OK (suivi du saut de page CGV). Commande & BL :
+      // PAS d'unbreakable — sur un columns complexe en fin de document, il fait
+      // planter pdfmake (« rien ne se passe ») et pousse une page blanche.
+      (doc.type === "devis") ? { ...signatureBlock, unbreakable: true, margin: [0, 18, 0, 0] }
+        : (doc.type === "commande" || doc.type === "bl") ? { ...signatureBlock, margin: [0, 18, 0, 0] }
+        : null,
       cgvBlock,
     ].filter(Boolean);
 

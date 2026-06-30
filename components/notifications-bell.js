@@ -31,6 +31,15 @@
     return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
+  // N'autorise que des liens internes ("/...") ou http(s) — bloque les URLs
+  // de type "javascript:" qui seraient une injection via le champ link.
+  function safeUrl(u) {
+    const v = String(u || "").trim();
+    if (!v) return "#";
+    if (v[0] === "/" || /^https?:\/\//i.test(v)) return v;
+    return "#";
+  }
+
   function fmtTime(iso) {
     if (!iso) return "";
     const d = new Date(iso);
@@ -87,7 +96,7 @@
       list.style.cssText = "max-height:400px;overflow-y:auto;";
       notifs.slice(0, 30).forEach((n) => {
         const row = document.createElement("a");
-        row.href = n.link || "#";
+        row.href = safeUrl(n.link);
         const isUnread = !n.read_at;
         row.style.cssText = "display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid #f8fafc;text-decoration:none;color:inherit;cursor:pointer;background:" + (isUnread ? "#fefce8" : "transparent") + ";transition:background .08s;";
         row.onmouseover = () => { row.style.background = "#f8fafc"; };

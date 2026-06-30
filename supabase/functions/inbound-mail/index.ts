@@ -191,17 +191,32 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ ok: false, error: "Token invalide ou non configuré" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
     }
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
-    const payload = await req.json();
 
-    // Normalisation du payload (gère plusieurs formats de services email)
-    const fromEmail = (payload.from_email || payload.from || payload.sender || "").replace(/.*<(.+)>.*/, "$1").trim();
-    const fromName = payload.from_name || (payload.from && payload.from.replace(/<.*>/, "").trim()) || "";
-    const subject = payload.subject || "(sans sujet)";
-    const bodyText = payload.body_text || payload.text || payload.plain || payload.body || "";
-    const toEmail = payload.to_email || payload.to || "devis.astorya@gmail.com";
-    const attachments = Array.isArray(payload.attachments) ? payload.attachments : [];
+    // Validation des entrées : refuse un corps trop volumineux et un JSON invalide.
+    const MAX_BODY = 1_000_000; // 1 Mo
+    const clen = Number(req.headers.get("content-length") || 0);
+    if (clen && clen > MAX_BODY) {
+      return new Response(JSON.stringify({ ok: false, error: "Payload trop volumineux" }), { status: 413, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    let payload: any;
+    try { payload = await req.json(); }
+    catch { return new Response(JSON.stringify({ ok: false, error: "JSON invalide" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } }); }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return new Response(JSON.stringify({ ok: false, error: "Payload invalide" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
 
-    if (!fromEmail) throw new Error("Expéditeur manquant");
+    // Normalisation + bornage des champs (gère plusieurs formats de services email)
+    const fromEmail = String(payload.from_email || payload.from || payload.sender || "").replace(/.*<(.+)>.*/, "$1").trim().slice(0, 320);
+    const fromName = String(payload.from_name || (payload.from && String(payload.from).replace(/<.*>/, "").trim()) || "").slice(0, 200);
+    const subject = String(payload.subject || "(sans sujet)").slice(0, 1000);
+    const bodyText = String(payload.body_text || payload.text || payload.plain || payload.body || "").slice(0, 50000);
+    const toEmail = String(payload.to_email || payload.to || "devis.astorya@gmail.com").slice(0, 320);
+    const attachments = (Array.isArray(payload.attachments) ? payload.attachments : []).slice(0, 20);
+
+    // Adresse expéditeur obligatoire et de forme plausible.
+    if (!fromEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fromEmail)) {
+      return new Response(JSON.stringify({ ok: false, error: "Expéditeur manquant ou invalide" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
 
     // 1. Matching client
     const match = await matchClient(supabase, fromEmail, bodyText);

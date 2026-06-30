@@ -71,6 +71,21 @@
     try { localStorage.setItem(lsKey(resource), JSON.stringify(arr)); } catch (e) {}
   }
 
+  // Signale à l'utilisateur qu'une écriture est tombée en mode dégradé
+  // (enregistrement local au lieu de Supabase). Anti-spam : 1 toast / 20 s.
+  let _lastDegradedToast = 0;
+  function notifyDegraded(context) {
+    try {
+      const now = Date.now();
+      if (now - _lastDegradedToast < 20000) return;
+      _lastDegradedToast = now;
+      if (window.HubToast && window.HubToast.warn) {
+        window.HubToast.warn("Enregistrement local (serveur indisponible). Vérifiez la connexion.");
+      }
+      console.warn("[mode dégradé localStorage]", context || "");
+    } catch (e) { /* ignore */ }
+  }
+
   /** Génère un ID unique de la forme `PREFIX-{timestamp36}{rand6}`.
    *  Collision-résistant : ~2 milliards de combinaisons pour rand6 + timestamp ms. */
   function genId(prefix) {
@@ -1749,6 +1764,7 @@
           console.warn("[api.commercialDocs.create]", error.message);
           // Fallback local
           const arr = lsGet("commercial_docs"); arr.unshift({ ...full, lines }); lsSet("commercial_docs", arr);
+          notifyDegraded("commercialDocs.create: " + error.message);
           return { ...full, lines };
         }
         // Insertion des lignes

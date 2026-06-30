@@ -781,6 +781,10 @@
             { text: company.adresse || "", fontSize: 8.5 },
             { text: ((company.cp || "") + " " + (company.ville || "")).trim(), fontSize: 8.5 },
             { text: company.email || "", fontSize: 8.5, margin: [0, 2, 0, 0] },
+            // Coordonnées détaillées remontées sous l'adresse (au lieu d'un
+            // bloc séparé qui descendait quand le bloc client était haut).
+            { text: "Tel : " + (company.tel || "") + "    ·    Site : " + (company.site_web || ""), fontSize: 8.5, color: "#475569", margin: [0, 6, 0, 0] },
+            { text: "SIRET : " + (company.siret || "") + "    ·    Capital : " + fmtEUR(company.capital_eur || 0) + " €", fontSize: 8.5, color: "#475569" },
           ],
         },
         // Bloc client décalé légèrement vers la droite (margin-left 40 pt)
@@ -793,17 +797,6 @@
     const content = [
       headerBand,
       partiesRow,
-      // Coordonnées détaillées Astorya (Tel/Site/SIRET/Capital) sous la
-      // ligne parties — disponibles mais discrètes
-      {
-        columns: [
-          { width: "*", stack: [
-              { text: "Tel : " + (company.tel || "") + "    ·    Site : " + (company.site_web || ""), fontSize: 8.5, color: "#475569" },
-              { text: "SIRET : " + (company.siret || "") + "    ·    Capital : " + fmtEUR(company.capital_eur || 0) + " €", fontSize: 8.5, color: "#475569" },
-          ] },
-        ],
-        margin: [0, 0, 0, 6],
-      },
       // Trait fin gris horizontal entre les coordonnées Astorya/client et
       // la ligne Date / N° devis / Validité.
       {

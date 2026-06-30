@@ -1196,6 +1196,7 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
   const [sendOpen, setSendOpen] = React.useState(false);
   const [smartSearchOpen, setSmartSearchOpen] = React.useState(false);
   const [acompteOpen, setAcompteOpen] = React.useState(false);
+  const [paymentOpen, setPaymentOpen] = React.useState(false);
 
   const reloadSuppliers = React.useCallback(async () => {
     try { setSuppliers(await window.api.suppliers.list({ active: true }) || []); } catch (e) {}
@@ -1756,6 +1757,14 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
                       title="Générer une facture d'acompte (ex : 40% à la commande)"
                       style={{ ...cdStyles.ghostBtn, borderColor: "#0ea5e9", color: "#0369a1", background: "#f0f9ff", fontWeight: 600 }}>
                 💰 Facture d'acompte
+              </button>
+            )}
+            {/* Enregistrer un règlement — sur factures et factures d'acompte */}
+            {(d.type === "facture" || d.type === "facture_acompte") && (
+              <button onClick={() => setPaymentOpen(true)}
+                      title="Enregistrer un règlement client (virement, chèque, CB...)"
+                      style={{ ...cdStyles.ghostBtn, borderColor: "#10b981", color: "#047857", background: "#ecfdf5", fontWeight: 600 }}>
+                💳 Enregistrer un règlement
               </button>
             )}
             {(() => {
@@ -2324,6 +2333,112 @@ const CommercialDocEditor = ({ doc, clients, opps, chain, onClose, onSaved, onOp
           if (window.HubToast) window.HubToast.success("✓ Facture d'acompte " + (facAc.ref || facAc.id) + " créée");
           if (onOpenDoc) onOpenDoc(facAc.id); else if (onSaved) onSaved();
         }} />}
+      {paymentOpen && <PaymentModal doc={d} onClose={() => setPaymentOpen(false)}
+        onSaved={(updated) => { setPaymentOpen(false); setD(updated);
+          if (window.HubToast) window.HubToast.success("✓ Règlement enregistré"); }} />}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// PaymentModal — enregistre un règlement client sur une facture
+// ─────────────────────────────────────────────────────────────────
+const PaymentModal = ({ doc, onClose, onSaved }) => {
+  const fmt = (n) => (Number(n) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " €";
+  const ttc = Number(doc.total_ttc) || 0;
+  const existing = (doc.data && Array.isArray(doc.data.payments)) ? doc.data.payments : [];
+  const alreadyPaid = existing.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const remaining = Math.round((ttc - alreadyPaid) * 100) / 100;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const [amount, setAmount] = React.useState(remaining > 0 ? String(remaining) : "");
+  const [date, setDate] = React.useState(today);
+  const [mode, setMode] = React.useState("virement");
+  const [ref, setRef] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  const MODES = [
+    { k: "virement", label: "Virement" },
+    { k: "cheque", label: "Chèque" },
+    { k: "cb", label: "Carte bancaire" },
+    { k: "especes", label: "Espèces" },
+    { k: "prelevement", label: "Prélèvement" },
+  ];
+
+  const save = async () => {
+    const amt = Number(amount) || 0;
+    if (amt <= 0) { window.HubToast && window.HubToast.warn("Montant invalide"); return; }
+    setBusy(true);
+    try {
+      const payment = { id: "PAY_" + Date.now(), amount: amt, date, mode, ref: ref.trim(), created_at: new Date().toISOString() };
+      const payments = [...existing, payment];
+      const totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      // Statut : payé si soldé, sinon « partiel » (on garde le statut courant
+      // sinon, mais on marque payé quand le TTC est atteint).
+      const patch = { data: { ...(doc.data || {}), payments } };
+      if (totalPaid >= ttc - 0.01) patch.status = "paye";
+      const updated = await window.api.commercialDocs.update(doc.id, patch);
+      onSaved(updated || { ...doc, ...patch });
+    } catch (e) {
+      window.HubToast && window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 24, width: "90%", maxWidth: 460, boxShadow: "0 12px 40px rgba(0,0,0,0.3)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }}>💳 Enregistrer un règlement</h2>
+          <button onClick={onClose} style={{ width: 30, height: 30, border: "none", background: "#f1f5f9", borderRadius: 7, fontSize: 17, cursor: "pointer", fontWeight: 700 }}>×</button>
+        </div>
+        <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 14px" }}>
+          {doc.ref || doc.id} · Total TTC <strong>{fmt(ttc)}</strong>
+          {alreadyPaid > 0 && <> · Déjà réglé {fmt(alreadyPaid)} · <span style={{ color: "#ea580c", fontWeight: 700 }}>Reste {fmt(remaining)}</span></>}
+        </p>
+
+        {existing.length > 0 && (
+          <div style={{ marginBottom: 14, border: "1px solid #eef1f5", borderRadius: 8, overflow: "hidden" }}>
+            {existing.map((p, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", fontSize: 11.5, borderBottom: i < existing.length - 1 ? "1px solid #f1f5f9" : "none", background: "#fafbfc" }}>
+                <span>{new Date(p.date).toLocaleDateString("fr-FR")} · {(MODES.find((m) => m.k === p.mode) || {}).label || p.mode}{p.ref ? " · " + p.ref : ""}</span>
+                <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmt(p.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={cdStyles.lbl}>Montant réglé (TTC)</label>
+            <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)}
+                   style={{ ...cdStyles.input, fontVariantNumeric: "tabular-nums" }} />
+          </div>
+          <div>
+            <label style={cdStyles.lbl}>Date du règlement</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={cdStyles.input} />
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div>
+            <label style={cdStyles.lbl}>Mode de règlement</label>
+            <select value={mode} onChange={(e) => setMode(e.target.value)} style={cdStyles.input}>
+              {MODES.map((m) => <option key={m.k} value={m.k}>{m.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={cdStyles.lbl}>Référence (n° chèque, virement…)</label>
+            <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="Optionnel" style={cdStyles.input} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, fontSize: 12.5, color: "#475569", cursor: "pointer", fontWeight: 600 }}>Annuler</button>
+          <button onClick={save} disabled={busy} style={{ padding: "8px 16px", border: "none", background: "#10b981", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
+            {busy ? "⏳…" : "✓ Enregistrer le règlement"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

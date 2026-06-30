@@ -2259,6 +2259,7 @@ var CommercialDocEditor = ({
   var [sendOpen, setSendOpen] = React.useState(false);
   var [smartSearchOpen, setSmartSearchOpen] = React.useState(false);
   var [acompteOpen, setAcompteOpen] = React.useState(false);
+  var [paymentOpen, setPaymentOpen] = React.useState(false);
   var reloadSuppliers = React.useCallback(async () => {
     try {
       setSuppliers((await window.api.suppliers.list({
@@ -3011,7 +3012,17 @@ var CommercialDocEditor = ({
       background: "#f0f9ff",
       fontWeight: 600
     }
-  }, "\uD83D\uDCB0 Facture d'acompte"), (() => {
+  }, "\uD83D\uDCB0 Facture d'acompte"), (d.type === "facture" || d.type === "facture_acompte") && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPaymentOpen(true),
+    title: "Enregistrer un r\xE8glement client (virement, ch\xE8que, CB...)",
+    style: {
+      ...cdStyles.ghostBtn,
+      borderColor: "#10b981",
+      color: "#047857",
+      background: "#ecfdf5",
+      fontWeight: 600
+    }
+  }, "\uD83D\uDCB3 Enregistrer un r\xE8glement"), (() => {
     // Masque le bouton "Transformer en X" dans 3 cas :
     //  - doc final (facture)
     //  - doc déjà transformé
@@ -4068,7 +4079,253 @@ var CommercialDocEditor = ({
       if (window.HubToast) window.HubToast.success("✓ Facture d'acompte " + (facAc.ref || facAc.id) + " créée");
       if (onOpenDoc) onOpenDoc(facAc.id);else if (onSaved) onSaved();
     }
+  }), paymentOpen && /*#__PURE__*/React.createElement(PaymentModal, {
+    doc: d,
+    onClose: () => setPaymentOpen(false),
+    onSaved: updated => {
+      setPaymentOpen(false);
+      setD(updated);
+      if (window.HubToast) window.HubToast.success("✓ Règlement enregistré");
+    }
   }));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// PaymentModal — enregistre un règlement client sur une facture
+// ─────────────────────────────────────────────────────────────────
+var PaymentModal = ({
+  doc,
+  onClose,
+  onSaved
+}) => {
+  var fmt = n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).replace(/[  ]/g, " ") + " €";
+  var ttc = Number(doc.total_ttc) || 0;
+  var existing = doc.data && Array.isArray(doc.data.payments) ? doc.data.payments : [];
+  var alreadyPaid = existing.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  var remaining = Math.round((ttc - alreadyPaid) * 100) / 100;
+  var today = new Date().toISOString().slice(0, 10);
+  var [amount, setAmount] = React.useState(remaining > 0 ? String(remaining) : "");
+  var [date, setDate] = React.useState(today);
+  var [mode, setMode] = React.useState("virement");
+  var [ref, setRef] = React.useState("");
+  var [busy, setBusy] = React.useState(false);
+  var MODES = [{
+    k: "virement",
+    label: "Virement"
+  }, {
+    k: "cheque",
+    label: "Chèque"
+  }, {
+    k: "cb",
+    label: "Carte bancaire"
+  }, {
+    k: "especes",
+    label: "Espèces"
+  }, {
+    k: "prelevement",
+    label: "Prélèvement"
+  }];
+  var save = async () => {
+    var amt = Number(amount) || 0;
+    if (amt <= 0) {
+      window.HubToast && window.HubToast.warn("Montant invalide");
+      return;
+    }
+    setBusy(true);
+    try {
+      var payment = {
+        id: "PAY_" + Date.now(),
+        amount: amt,
+        date,
+        mode,
+        ref: ref.trim(),
+        created_at: new Date().toISOString()
+      };
+      var payments = [...existing, payment];
+      var totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      // Statut : payé si soldé, sinon « partiel » (on garde le statut courant
+      // sinon, mais on marque payé quand le TTC est atteint).
+      var patch = {
+        data: {
+          ...(doc.data || {}),
+          payments
+        }
+      };
+      if (totalPaid >= ttc - 0.01) patch.status = "paye";
+      var updated = await window.api.commercialDocs.update(doc.id, patch);
+      onSaved(updated || {
+        ...doc,
+        ...patch
+      });
+    } catch (e) {
+      window.HubToast && window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 24,
+      width: "90%",
+      maxWidth: 460,
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCB3 Enregistrer un r\xE8glement"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 30,
+      height: 30,
+      border: "none",
+      background: "#f1f5f9",
+      borderRadius: 7,
+      fontSize: 17,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "0 0 14px"
+    }
+  }, doc.ref || doc.id, " \xB7 Total TTC ", /*#__PURE__*/React.createElement("strong", null, fmt(ttc)), alreadyPaid > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 D\xE9j\xE0 r\xE9gl\xE9 ", fmt(alreadyPaid), " \xB7 ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#ea580c",
+      fontWeight: 700
+    }
+  }, "Reste ", fmt(remaining)))), existing.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, existing.map((p, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "6px 10px",
+      fontSize: 11.5,
+      borderBottom: i < existing.length - 1 ? "1px solid #f1f5f9" : "none",
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, new Date(p.date).toLocaleDateString("fr-FR"), " \xB7 ", (MODES.find(m => m.k === p.mode) || {}).label || p.mode, p.ref ? " · " + p.ref : ""), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmt(p.amount))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Montant r\xE9gl\xE9 (TTC)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: amount,
+    onChange: e => setAmount(e.target.value),
+    style: {
+      ...cdStyles.input,
+      fontVariantNumeric: "tabular-nums"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Date du r\xE8glement"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value),
+    style: cdStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Mode de r\xE8glement"), /*#__PURE__*/React.createElement("select", {
+    value: mode,
+    onChange: e => setMode(e.target.value),
+    style: cdStyles.input
+  }, MODES.map(m => /*#__PURE__*/React.createElement("option", {
+    key: m.k,
+    value: m.k
+  }, m.label)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "R\xE9f\xE9rence (n\xB0 ch\xE8que, virement\u2026)"), /*#__PURE__*/React.createElement("input", {
+    value: ref,
+    onChange: e => setRef(e.target.value),
+    placeholder: "Optionnel",
+    style: cdStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "8px 14px",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      color: "#475569",
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: save,
+    disabled: busy,
+    style: {
+      padding: "8px 16px",
+      border: "none",
+      background: "#10b981",
+      color: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: busy ? "wait" : "pointer"
+    }
+  }, busy ? "⏳…" : "✓ Enregistrer le règlement"))));
 };
 
 // ─────────────────────────────────────────────────────────────────

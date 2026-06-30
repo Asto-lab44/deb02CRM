@@ -1961,6 +1961,20 @@
     async transform(parent_id, new_type) {
       const parent = await this.getById(parent_id);
       if (!parent) throw new Error("Document parent introuvable");
+      // ── Cardinalité stricte 1:1 ──────────────────────────────────────
+      // Un document ne peut avoir qu'UN SEUL enfant d'un type donné :
+      // 1 devis → 1 commande, 1 commande → 1 BL, 1 BL → 1 facture. Si un
+      // enfant vivant existe déjà, on le renvoie au lieu d'en créer un
+      // doublon (idempotence). Vaut pour l'éditeur ET l'auto-cascade.
+      // (L'acompte fait exception : un BL/commande peut générer plusieurs
+      //  factures d'acompte successives — non concerné ici car new_type est
+      //  toujours le type SUIVANT de la chaîne, jamais facture_acompte.)
+      try {
+        const siblings = await this.list({ type: new_type, parent_doc_id: parent_id });
+        const liveChild = (siblings || []).find((c) =>
+          c && !c.deleted_at && c.status !== "annule" && c.status !== "refuse");
+        if (liveChild) return liveChild;
+      } catch (e) { /* recherche impossible → on poursuit la création normale */ }
       // Si le parent n'a pas de lignes (commande "from scratch" / commande vide),
       // on remonte la chaîne parent_doc_id jusqu'à trouver un ancêtre avec des
       // lignes — en général le devis d'origine. Comme ça le BL est toujours

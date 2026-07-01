@@ -4672,5 +4672,137 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting };
+  // ───────────────────────────────────────────────────────────────────
+  // §N. ABONNEMENTS / CONTRATS — contrats récurrents facturés périodiquement.
+  //
+  //   Un contrat = { client, type, périodicité, montant, options[], mode de
+  //   règlement, prochaine échéance }. Chaque contrat « vit » avec ses options
+  //   (ajout/retrait). La génération périodique crée UNE facture d'abonnement
+  //   par client (agrège tous ses contrats dus), via commercialDocs (donc PDF +
+  //   comptabilité automatiques), puis avance la prochaine échéance. En
+  //   parallèle, un fichier de prélèvement SEPA (CSV) est produit pour la banque.
+  //
+  //   Stockage : table `contracts` (champs récurrents dans data jsonb). Résilient.
+  // ───────────────────────────────────────────────────────────────────
+  const _addPeriod = (isoDate, periodicity) => {
+    const d = isoDate ? new Date(isoDate) : new Date();
+    const map = { mensuel: 1, bimestriel: 2, trimestriel: 3, semestriel: 6, annuel: 12 };
+    const m = map[periodicity] || 1;
+    d.setMonth(d.getMonth() + m);
+    return d.toISOString().slice(0, 10);
+  };
+  const subscriptions = {
+    /** Liste des contrats d'abonnement (normalisés : champs data remontés). */
+    async list() {
+      const rows = await contracts.list().catch(() => []);
+      return (rows || []).map((c) => {
+        const dd = (c.data && typeof c.data === "object") ? c.data : {};
+        return {
+          id: c.id, client_id: c.client_id || dd.client_id || null,
+          client_name: c.client_name || dd.client_name || "",
+          name: c.name || dd.type_contrat || "Contrat",
+          type_contrat: dd.type_contrat || c.name || "",
+          status: c.status || "active",
+          monthly_eur: Number(c.monthly_eur || dd.monthly_eur || 0),
+          periodicity: dd.periodicity || "mensuel",
+          tva_rate: dd.tva_rate != null ? dd.tva_rate : 20,
+          payment_mode: dd.payment_mode || "prelevement",
+          iban: dd.iban || "", bic: dd.bic || "", rum: dd.rum || "",
+          next_billing: dd.next_billing || c.start_date || null,
+          last_billed: dd.last_billed || null,
+          options: Array.isArray(dd.options) ? dd.options : [],
+          _raw: c,
+        };
+      });
+    },
+    /** Crée ou met à jour un contrat d'abonnement. */
+    async save(sub) {
+      const dataObj = {
+        type_contrat: sub.type_contrat || sub.name || "", periodicity: sub.periodicity || "mensuel",
+        tva_rate: sub.tva_rate != null ? sub.tva_rate : 20, payment_mode: sub.payment_mode || "prelevement",
+        iban: sub.iban || "", bic: sub.bic || "", rum: sub.rum || "",
+        next_billing: sub.next_billing || null, last_billed: sub.last_billed || null,
+        options: Array.isArray(sub.options) ? sub.options : [], client_name: sub.client_name || "",
+      };
+      const monthly = Number(sub.monthly_eur) || (dataObj.options.filter((o) => o.active !== false).reduce((s, o) => s + (Number(o.montant_ht) || 0), 0));
+      const s = supa();
+      if (sub.id) {
+        const row = { client_id: sub.client_id || null, name: sub.type_contrat || sub.name || "Contrat", status: sub.status || "active", monthly_eur: monthly, data: { ...dataObj, ref: sub.id } };
+        if (s) { const { data, error } = await s.from("contracts").update(row).eq("id", sub.id).select().maybeSingle(); if (!error && data) return data; }
+        const arr = lsGet("contracts"); const i = arr.findIndex((c) => c.id === sub.id);
+        if (i >= 0) { arr[i] = { ...arr[i], ...row, id: sub.id }; lsSet("contracts", arr); notifyDegraded("subscriptions.save"); return arr[i]; }
+      }
+      return contracts.create({ client_id: sub.client_id, client_name: sub.client_name, name: sub.type_contrat || sub.name, status: sub.status || "active", monthly_eur: monthly, start: sub.next_billing || null, ...dataObj });
+    },
+    async remove(id) { return contracts.remove(id); },
+    /** Contrats dus pour la période (échéance ≤ `to`), actifs. */
+    async due({ to, ids } = {}) {
+      const end = to || new Date().toISOString().slice(0, 10);
+      let all = (await this.list()).filter((c) => (c.status || "active") === "active" && (!c.next_billing || c.next_billing <= end));
+      if (ids && ids.length) all = all.filter((c) => ids.includes(c.id));
+      return all;
+    },
+    /** Génère UNE facture d'abonnement par client (agrège ses contrats dus),
+     *  via commercialDocs (→ PDF + compta), puis avance la prochaine échéance. */
+    async generateInvoices({ to, ids } = {}) {
+      const end = to || new Date().toISOString().slice(0, 10);
+      const due = await this.due({ to: end, ids });
+      const byClient = {};
+      due.forEach((c) => { const k = c.client_id || ("_" + (c.client_name || "?")); (byClient[k] = byClient[k] || []).push(c); });
+      const invoices = [];
+      for (const k of Object.keys(byClient)) {
+        const group = byClient[k];
+        const cid = group[0].client_id || null;
+        const client = cid ? await clients.getById(cid).catch(() => null) : null;
+        const lines = [];
+        group.forEach((c) => {
+          const opts = c.options.filter((o) => o.active !== false);
+          const rate = c.tva_rate != null ? c.tva_rate : 20;
+          if (opts.length) {
+            opts.forEach((o) => { const ht = Number(o.montant_ht) || 0; const tv = Math.round(ht * (o.tva_rate != null ? o.tva_rate : rate) / 100 * 100) / 100; lines.push({ designation: (c.type_contrat || c.name) + " — " + (o.label || "Option"), quantity: 1, unit: "forfait", unit_price_ht: ht, tva_rate: (o.tva_rate != null ? o.tva_rate : rate), total_ht: ht, total_tva: tv, total_ttc: Math.round((ht + tv) * 100) / 100, periodicity: "recurring" }); });
+          } else {
+            const ht = Number(c.monthly_eur) || 0; const tv = Math.round(ht * rate / 100 * 100) / 100;
+            lines.push({ designation: c.type_contrat || c.name || "Abonnement", quantity: 1, unit: "forfait", unit_price_ht: ht, tva_rate: rate, total_ht: ht, total_tva: tv, total_ttc: Math.round((ht + tv) * 100) / 100, periodicity: "recurring" });
+          }
+        });
+        if (!lines.length) continue;
+        const inv = await commercialDocs.create({
+          type: "facture", status: "brouillon",
+          client_id: cid, client_name: client ? (client.raison_sociale || client.name) : (group[0].client_name || ""),
+          client_address: client ? (client.adresse || client.address || null) : null,
+          client_cp: client ? (client.cp || client.code_postal || null) : null,
+          client_city: client ? (client.ville || client.city || null) : null,
+          client_siren: client ? (client.siren || null) : null,
+          title: "Facture d'abonnement — " + end.slice(0, 7),
+          lines, data: { subscription: true, period: end, contract_ids: group.map((c) => c.id) },
+        });
+        invoices.push(inv);
+        for (const c of group) {
+          await this.save({ ...c, last_billed: end, next_billing: _addPeriod(c.next_billing || end, c.periodicity) });
+        }
+      }
+      return { created: invoices.length, invoices };
+    },
+    /** Export SEPA (prélèvement) — CSV ouvrable dans Excel, pour dépôt banque.
+     *  Contrats en mode « prelevement ». Renvoie { filename, content }. */
+    async sepaExport({ to, ids } = {}) {
+      const end = to || new Date().toISOString().slice(0, 10);
+      const due = (await this.due({ to: end, ids })).filter((c) => (c.payment_mode || "prelevement") === "prelevement");
+      const company = await commercialCompany.get().catch(() => ({}));
+      const sep = ";";
+      const esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+      const rows = [["Client", "IBAN", "BIC", "RUM (mandat)", "Montant TTC", "Echeance", "Libelle", "Creancier"].map(esc).join(sep)];
+      for (const c of due) {
+        const client = c.client_id ? await clients.getById(c.client_id).catch(() => null) : null;
+        const nom = client ? (client.raison_sociale || client.name) : (c.client_name || "");
+        const rate = c.tva_rate != null ? c.tva_rate : 20;
+        const ht = c.options.filter((o) => o.active !== false).reduce((s, o) => s + (Number(o.montant_ht) || 0), 0) || Number(c.monthly_eur) || 0;
+        const ttc = Math.round(ht * (1 + rate / 100) * 100) / 100;
+        rows.push([nom, c.iban, c.bic, c.rum, ttc.toFixed(2).replace(".", ","), end, "Abonnement " + (c.type_contrat || c.name || ""), company.raison_sociale || "ASTORYA SGI"].map(esc).join(sep));
+      }
+      return { filename: "prelevements_SEPA_" + end + ".csv", content: "﻿" + rows.join("\r\n") };
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting, subscriptions };
 })();

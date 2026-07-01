@@ -13,6 +13,7 @@
     projects:   "/projets",
     commercial: "/gestion-commerciale",
     commercial_admin: "/gestion-commerciale-admin",
+    contracts:  "/contrats",
     inventory:  "/stock",
     accounting: "/comptabilite",
     billing:    "/facturation",

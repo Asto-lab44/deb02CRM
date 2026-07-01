@@ -276,6 +276,16 @@ const ERPHome = () => {
     },
     {
       cat: "Finance",
+      key: "contracts",
+      title: "Contrats & abonnements",
+      subtitle: "Contrats récurrents · facturation mensuelle · prélèvement SEPA",
+      icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2h8l4 4v14a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/><path d="M9 12h6M9 16h6M9 8h2"/></svg>,
+      color: "#4f46e5",
+      bg: "#eef2ff",
+      badge: { label: "Facturation récurrente", tone: "info" },
+    },
+    {
+      cat: "Finance",
       key: "treasury",
       title: "Trésorerie",
       subtitle: "Cash flow, banques, échéances",

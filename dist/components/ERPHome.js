@@ -1217,7 +1217,7 @@ var ERPHome = () => {
     style: erpStyles.tileSub
   }, m.subtitle)), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.tileStats
-  }, m.stats.map((s, i) => /*#__PURE__*/React.createElement(React.Fragment, {
+  }, (m.stats || []).map((s, i) => /*#__PURE__*/React.createElement(React.Fragment, {
     key: s.k
   }, /*#__PURE__*/React.createElement("div", {
     style: erpStyles.tileStat
@@ -1225,7 +1225,7 @@ var ERPHome = () => {
     style: erpStyles.tileStatV
   }, s.v), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.tileStatK
-  }, s.k)), i < m.stats.length - 1 && /*#__PURE__*/React.createElement("div", {
+  }, s.k)), i < (m.stats || []).length - 1 && /*#__PURE__*/React.createElement("div", {
     style: erpStyles.tileStatDiv
   })))), /*#__PURE__*/React.createElement("div", {
     style: erpStyles.tileFoot

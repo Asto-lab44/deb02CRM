@@ -597,15 +597,15 @@ const ERPHome = () => {
                       <p style={erpStyles.tileSub}>{m.subtitle}</p>
                     </div>
 
-                    {/* Stats */}
+                    {/* Stats (facultatives) */}
                     <div style={erpStyles.tileStats}>
-                      {m.stats.map((s, i) => (
+                      {(m.stats || []).map((s, i) => (
                         <React.Fragment key={s.k}>
                           <div style={erpStyles.tileStat}>
                             <div style={erpStyles.tileStatV}>{s.v}</div>
                             <div style={erpStyles.tileStatK}>{s.k}</div>
                           </div>
-                          {i < m.stats.length - 1 && <div style={erpStyles.tileStatDiv} />}
+                          {i < (m.stats || []).length - 1 && <div style={erpStyles.tileStatDiv} />}
                         </React.Fragment>
                       ))}
                     </div>

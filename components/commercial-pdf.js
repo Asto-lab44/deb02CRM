@@ -309,30 +309,6 @@
     if (doc.client_siren) clientLines.push({ text: "SIREN : " + doc.client_siren, fontSize: 8, color: "#666", margin: [0, 4, 0, 0] });
     if (doc.client_tva) clientLines.push({ text: "TVA : " + doc.client_tva, fontSize: 8, color: "#666" });
 
-    // ───── Bloc société émettrice (gauche, sous le bandeau)
-    const companyBlock = {
-      columns: [
-        {
-          width: "*",
-          stack: [
-            { text: company.raison_sociale || "ASTORYA", bold: true, fontSize: 10 },
-            { text: company.adresse || "", fontSize: 8.5 },
-            { text: ((company.cp || "") + " " + (company.ville || "")).trim(), fontSize: 8.5 },
-            { text: company.email || "", fontSize: 8.5, margin: [0, 2, 0, 0] },
-          ],
-        },
-        {
-          width: "auto",
-          stack: [
-            { text: "Tel             : " + (company.tel || ""), fontSize: 8.5 },
-            { text: "Site internet   : " + (company.site_web || ""), fontSize: 8.5 },
-            { text: "Siret           : " + (company.siret || ""), fontSize: 8.5 },
-            { text: "Capital         : " + fmtEUR(company.capital_eur || 0) + "€", fontSize: 8.5 },
-          ],
-        },
-      ],
-      margin: [0, 18, 0, 14],
-    };
 
     // ───── Bandeau header : logo Astorya à gauche, titre type à droite
     // Logo dimensionné plus grand (fit [340, 80]) pour un en-tête plus
@@ -676,45 +652,6 @@
         couponColumn,
       ],
     } : null;
-
-    // ───── Bas de page : 3 contacts (Commercial / Admin / Compta)
-    const contactsBlock = {
-      margin: [0, 24, 0, 0],
-      table: {
-        widths: ["*", "*", "*"],
-        body: [
-          [
-            { text: "Service Commercial", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
-            { text: "Administratif", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
-            { text: "Comptabilité", bold: true, fontSize: 9, alignment: "center", border: [false, true, false, false], borderColor: "#0f172a" },
-          ],
-          [
-            { text: company.contact_commercial_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
-            { text: company.contact_admin_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
-            { text: company.contact_compta_nom || "—", fontSize: 9, alignment: "center", border: [false, false, false, false] },
-          ],
-          [
-            { text: company.contact_commercial_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
-            { text: company.contact_admin_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
-            { text: company.contact_compta_tel || "", fontSize: 8.5, alignment: "center", color: "#555", border: [false, false, false, false] },
-          ],
-          [
-            { text: company.contact_commercial_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
-            { text: company.contact_admin_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
-            { text: company.contact_compta_email || "", fontSize: 8.5, alignment: "center", color: "#3730a3", border: [false, false, false, false] },
-          ],
-        ],
-      },
-    };
-
-    // ───── Mention bas de page (réserve de propriété)
-    const reserveBlock = {
-      text: company.mention_reserve_propriete || "",
-      fontSize: 6.5,
-      color: "#555",
-      italics: true,
-      margin: [0, 14, 0, 0],
-    };
 
     // ───── Notes du document (si présentes)
     const notesBlock = doc.notes ? {

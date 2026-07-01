@@ -29,7 +29,7 @@ var ERPHome = () => {
     id: "admin",
     name: "Administrateurs",
     color: "#dc2626",
-    access: ["crm", "intel", "marketing", "tech", "projects", "commercial", "inventory", "accounting", "billing", "treasury", "hr", "time", "reports", "settings"]
+    access: ["crm", "intel", "marketing", "tech", "projects", "commercial", "contracts", "inventory", "accounting", "billing", "treasury", "hr", "time", "reports", "settings"]
   };
   var [activeGroup, setActiveGroup] = React.useState(() => HA && HA.getActiveGroup && HA.getActiveGroup() || defaultGroup);
   var [allGroups, setAllGroups] = React.useState(() => HA && HA.loadGroups && HA.loadGroups() || []);

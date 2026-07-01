@@ -25,7 +25,7 @@ const ERPHome = () => {
   // un useEffect séparé avec un setTimeout pour laisser le temps à
   // _supaSession d'être peuplée. Pas de subscribe → pas de risque de boucle.
   const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
-  const defaultGroup = { id: "admin", name: "Administrateurs", color: "#dc2626", access: ["crm","intel","marketing","tech","projects","commercial","inventory","accounting","billing","treasury","hr","time","reports","settings"] };
+  const defaultGroup = { id: "admin", name: "Administrateurs", color: "#dc2626", access: ["crm","intel","marketing","tech","projects","commercial","contracts","inventory","accounting","billing","treasury","hr","time","reports","settings"] };
   const [activeGroup, setActiveGroup] = React.useState(() => (HA && HA.getActiveGroup && HA.getActiveGroup()) || defaultGroup);
   const [allGroups, setAllGroups] = React.useState(() => (HA && HA.loadGroups && HA.loadGroups()) || []);
   const [localUser, setLocalUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);

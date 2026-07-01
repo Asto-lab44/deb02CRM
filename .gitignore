@@ -1,5 +1,26 @@
-vendor/
-preview-*.html
+# Dépendances
 node_modules/
 tools/node_modules/
+vendor/
+
+# Fichiers de travail / temporaires
+preview-*.html
 .deploy-trigger
+scratchpad/
+*.log
+*.tmp
+
+# Secrets & environnement (ne JAMAIS committer)
+.env
+.env.*
+*.local
+
+# Fichiers OS / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# NB : dist/ est VOLONTAIREMENT versionné (servi tel quel, aucun build côté
+# hébergeur). Ne pas l'ajouter ici.

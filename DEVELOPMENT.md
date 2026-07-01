@@ -1,5 +1,12 @@
 # Hub Astorya — Plan de mise en production
 
+> ⚠️ **DOCUMENT HISTORIQUE (archive).** Ce fichier trace une étape ancienne de
+> la transformation maquette → application et **peut contenir des références
+> périmées** (ex. `supabase/schema.sql` / `supabase/seeds.sql`, qui ne sont plus
+> dans le dépôt). Pour l'état à jour, voir :
+> [`README.md`](README.md) · [`FONCTIONNEMENT.md`](FONCTIONNEMENT.md) ·
+> [`DEPLOIEMENT.md`](DEPLOIEMENT.md) · [`sql/README.md`](sql/README.md).
+
 Document de travail pour suivre l'avancement de la transformation
 maquette → application réelle.
 

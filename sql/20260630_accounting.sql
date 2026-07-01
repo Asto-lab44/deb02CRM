@@ -76,6 +76,10 @@ INSERT INTO accounting_accounts (id, label, kind) VALUES
   ('401000', 'Fournisseurs',                 'fournisseur'),
   ('607000', 'Achats de marchandises',       'achat'),
   ('604000', 'Achats d''études et prestations', 'achat'),
+  ('44551',  'TVA à décaisser',              'tva'),
+  ('44567',  'Crédit de TVA à reporter',     'tva'),
+  ('120000', 'Résultat de l''exercice (bénéfice)', 'resultat'),
+  ('129000', 'Résultat de l''exercice (perte)',    'resultat'),
   ('758000', 'Produits divers de gestion',   'general'),
   ('658000', 'Charges diverses de gestion',  'general')
 ON CONFLICT (id) DO NOTHING;

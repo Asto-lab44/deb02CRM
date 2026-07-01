@@ -4274,6 +4274,8 @@
     { id: "401000", label: "Fournisseurs", kind: "fournisseur" },
     { id: "607000", label: "Achats de marchandises", kind: "achat" },
     { id: "604000", label: "Achats d'études et prestations", kind: "achat" },
+    { id: "120000", label: "Résultat de l'exercice (bénéfice)", kind: "resultat" },
+    { id: "129000", label: "Résultat de l'exercice (perte)", kind: "resultat" },
   ];
   // Compte de TVA collectée selon le taux (ventilation FEC par taux).
   const _tvaAccount = (rate) => {
@@ -4395,6 +4397,47 @@
       const s = supa();
       if (s) { try { await s.from("accounting_entries").delete().eq("id", id); } catch (e) {} }
       lsSet("accounting_entries", lsGet("accounting_entries").filter((e) => e.id !== id));
+      return true;
+    },
+    // Persiste la colonne data (jsonb) d'une écriture (Supabase ou localStorage).
+    async _updateEntryData(id, dataObj) {
+      const s = supa();
+      if (s) { const { error } = await s.from("accounting_entries").update({ data: dataObj }).eq("id", id); if (!error) return true; }
+      const arr = lsGet("accounting_entries"); const i = arr.findIndex((e) => e.id === id);
+      if (i >= 0) { arr[i] = { ...arr[i], data: dataObj }; lsSet("accounting_entries", arr); return true; }
+      return false;
+    },
+    // Prochain code de lettrage alphabétique (A, B, … Z, AA, AB…) non utilisé.
+    async nextLettrageCode() {
+      const used = new Set();
+      (await this.entries()).forEach((e) => ((e.data && e.data.lines) || []).forEach((l) => { if (l.lettrage) used.add(l.lettrage); }));
+      const toAlpha = (n) => { let s = ""; n++; while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); } return s; };
+      for (let i = 0; i < 100000; i++) { const c = toAlpha(i); if (!used.has(c)) return c; }
+      return "L" + Date.now().toString(36);
+    },
+    /** Lettre des lignes (rapprochement). items = [{ entry_id, idx }]. Si code
+     *  omis, on en génère un. Renseigne lettrage + lettrage_date. */
+    async letterLines(items, code) {
+      const lettre = code || await this.nextLettrageCode();
+      const today = new Date().toISOString().slice(0, 10);
+      const byEntry = {}; items.forEach((it) => { (byEntry[it.entry_id] = byEntry[it.entry_id] || []).push(it.idx); });
+      const all = await this.entries();
+      for (const eid of Object.keys(byEntry)) {
+        const e = all.find((x) => x.id === eid); if (!e) continue;
+        const lines = ((e.data && e.data.lines) || []).map((l, i) => byEntry[eid].includes(i) ? { ...l, lettrage: lettre, lettrage_date: today } : l);
+        await this._updateEntryData(eid, { ...(e.data || {}), lines });
+      }
+      return { code: lettre };
+    },
+    /** Délettre les lignes portant un code donné (sur un compte). */
+    async unletterCode(code) {
+      const all = await this.entries();
+      for (const e of all) {
+        const lines0 = (e.data && e.data.lines) || [];
+        if (!lines0.some((l) => l.lettrage === code)) continue;
+        const lines = lines0.map((l) => l.lettrage === code ? { ...l, lettrage: "", lettrage_date: null } : l);
+        await this._updateEntryData(e.id, { ...(e.data || {}), lines });
+      }
       return true;
     },
     /** Génère les écritures de vente/règlement depuis les pièces commerciales.
@@ -4550,6 +4593,36 @@
       await this.createEntry({ journal_code: "OD", entry_date: to || new Date().toISOString().slice(0, 10), label: "Déclaration TVA " + (from || "") + " → " + (to || ""), source_kind: "tva", source_doc_id: srcId, lines });
       return { created: 1 };
     },
+    /** Clôture d'exercice : génère l'écriture d'À-NOUVEAUX au 1er janvier de
+     *  l'année suivante. Reporte les comptes de BILAN (classes 1–5) et
+     *  transfère le résultat (classes 6/7) en 120000 (bénéfice) ou 129000
+     *  (perte). Idempotent (source_doc_id = AN-<année+1>).
+     *  NB : report agrégé par compte (sans détail auxiliaire client/fournisseur). */
+    async generateOpeningEntry(year) {
+      const y = Number(year);
+      const from = y + "-01-01", to = y + "-12-31";
+      const srcId = "AN-" + (y + 1);
+      const all = await this.entries();
+      if (all.some((e) => e.source_kind === "anouveau" && e.source_doc_id === srcId)) return { created: 0, already: true };
+      const bal = await this.balance({ from, to });
+      const lines = []; let produits = 0, charges = 0;
+      bal.forEach((a) => {
+        const cls = String(a.account_id)[0];
+        if (cls >= "1" && cls <= "5") {
+          if (Math.abs(a.solde) < 0.005) return;
+          if (a.solde > 0) lines.push({ account_id: a.account_id, account_label: a.account_label, debit: _r2(a.solde), credit: 0 });
+          else lines.push({ account_id: a.account_id, account_label: a.account_label, debit: 0, credit: _r2(-a.solde) });
+        } else if (cls === "7") { produits += (a.credit - a.debit); }
+        else if (cls === "6") { charges += (a.debit - a.credit); }
+      });
+      const benefice = _r2(produits - charges);
+      if (benefice >= 0) lines.push({ account_id: "120000", account_label: "Résultat de l'exercice (bénéfice)", debit: 0, credit: benefice });
+      else lines.push({ account_id: "129000", account_label: "Résultat de l'exercice (perte)", debit: _r2(-benefice), credit: 0 });
+      const td = _r2(lines.reduce((s, l) => s + l.debit, 0)), tc = _r2(lines.reduce((s, l) => s + l.credit, 0));
+      if (!lines.length || (Math.abs(td) < 0.005 && Math.abs(tc) < 0.005)) return { created: 0, empty: true };
+      await this.createEntry({ journal_code: "OD", entry_date: (y + 1) + "-01-01", label: "À-nouveaux " + (y + 1), source_kind: "anouveau", source_doc_id: srcId, lines });
+      return { created: 1, benefice, equilibre: Math.abs(td - tc) < 0.01 };
+    },
     /** Balance : cumul débit/crédit + solde par compte. */
     async balance({ from, to } = {}) {
       const entries = await this.entries({ from, to });
@@ -4567,10 +4640,10 @@
     async ledger(accountId, { from, to } = {}) {
       const entries = await this.entries({ from, to });
       const out = []; let solde = 0;
-      entries.forEach((e) => ((e.data && e.data.lines) || []).forEach((l) => {
+      entries.forEach((e) => ((e.data && e.data.lines) || []).forEach((l, idx) => {
         if (l.account_id !== accountId) return;
         solde = _r2(solde + (Number(l.debit) || 0) - (Number(l.credit) || 0));
-        out.push({ entry_id: e.id, num: e.num, date: e.entry_date, journal: e.journal_code, piece_ref: e.piece_ref, label: l.label || e.label, aux_num: l.aux_num, debit: _r2(l.debit), credit: _r2(l.credit), lettrage: l.lettrage, solde });
+        out.push({ entry_id: e.id, idx, num: e.num, date: e.entry_date, journal: e.journal_code, piece_ref: e.piece_ref, label: l.label || e.label, aux_num: l.aux_num, debit: _r2(l.debit), credit: _r2(l.credit), lettrage: l.lettrage, solde });
       }));
       return out;
     },

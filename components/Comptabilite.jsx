@@ -24,6 +24,7 @@ const Comptabilite = () => {
   const [ledgerAcc, setLedgerAcc] = React.useState("411000");
   const [ledger, setLedger] = React.useState([]);
   const [vat, setVat] = React.useState(null);
+  const [sel, setSel] = React.useState({}); // lettrage : lignes sélectionnées (clé entry_id|idx)
 
   const reload = React.useCallback(async () => {
     if (!A) return;
@@ -83,6 +84,32 @@ const Comptabilite = () => {
     setBusy("");
   };
 
+  const cloture = async () => {
+    const y = parseInt(String(from).slice(0, 4), 10);
+    if (!(window.HubModal ? await window.HubModal.confirm({ title: "Clôturer l'exercice " + y + " ?", message: "Génère l'écriture d'à-nouveaux au 01/01/" + (y + 1) + " (report des comptes de bilan + résultat de l'exercice)." }) : confirm("Clôturer l'exercice " + y + " ?"))) return;
+    setBusy("clo");
+    try {
+      const r = await A.generateOpeningEntry(y); await reload();
+      (window.HubToast ? window.HubToast.success : alert)(r.already ? "À-nouveaux déjà générés pour " + (y + 1) + "." : (r.created ? "À-nouveaux " + (y + 1) + " générés (" + (r.benefice >= 0 ? "bénéfice" : "perte") + ")." : "Rien à reporter."));
+    } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e)); }
+    setBusy("");
+  };
+
+  const reloadLedger = async () => { const l = await A.ledger(ledgerAcc, { from, to }); setLedger(l || []); };
+  const doLetter = async () => {
+    const items = Object.keys(sel).filter((k) => sel[k]).map((k) => { const p = k.split("|"); return { entry_id: p[0], idx: Number(p[1]) }; });
+    if (items.length < 2) { (window.HubToast ? window.HubToast.warn : alert)("Sélectionnez au moins 2 lignes à lettrer."); return; }
+    setBusy("let");
+    try { await A.letterLines(items); setSel({}); await reloadLedger(); } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e)); }
+    setBusy("");
+  };
+  const doUnletter = async (code) => {
+    if (!code) return; setBusy("unlet");
+    try { await A.unletterCode(code); await reloadLedger(); } catch (e) {}
+    setBusy("");
+  };
+  const selCount = Object.keys(sel).filter((k) => sel[k]).length;
+
   const exportFEC = async () => {
     setBusy("fec");
     try {
@@ -122,6 +149,7 @@ const Comptabilite = () => {
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={genSales} disabled={busy === "gen"} style={S.btnGhost}>{busy === "gen" ? "Génération…" : "↻ Générer les écritures (ventes + achats)"}</button>
           <button onClick={validate} disabled={busy === "val"} style={S.btnGhost}>{busy === "val" ? "Validation…" : "🔒 Valider la période"}</button>
+          <button onClick={cloture} disabled={busy === "clo"} style={S.btnGhost}>{busy === "clo" ? "Clôture…" : "🗓 Clôture exercice"}</button>
           <button onClick={exportFEC} disabled={busy === "fec"} style={S.btnPrimary}>{busy === "fec" ? "Export…" : "⇩ Export FEC"}</button>
         </div>
       </div>
@@ -188,29 +216,42 @@ const Comptabilite = () => {
 
           {tab === "grandlivre" && (
             <section style={S.card}>
-              <div style={{ marginBottom: 10 }}>
-                <select value={ledgerAcc} onChange={(e) => setLedgerAcc(e.target.value)} style={S.select}>
+              <div style={{ marginBottom: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <select value={ledgerAcc} onChange={(e) => { setLedgerAcc(e.target.value); setSel({}); }} style={S.select}>
                   {accounts.map((a) => <option key={a.id} value={a.id}>{a.id} — {a.label}</option>)}
                 </select>
+                <button onClick={doLetter} disabled={busy === "let" || selCount < 2} style={{ ...S.btnGhost, opacity: selCount < 2 ? 0.5 : 1 }}>🔗 Lettrer{selCount ? " (" + selCount + ")" : ""}</button>
+                <span style={{ fontSize: 11.5, color: "#94a3b8" }}>Cochez les lignes non lettrées (facture + règlement) puis « Lettrer ».</span>
               </div>
               <div style={S.rowH}>
-                <span style={{ width: 80 }}>Date</span><span style={{ width: 50 }}>Jal</span>
+                <span style={{ width: 26 }}></span>
+                <span style={{ width: 80 }}>Date</span><span style={{ width: 44 }}>Jal</span>
                 <span style={{ flex: 1 }}>Libellé</span>
-                <span style={{ width: 100, textAlign: "right" }}>Débit</span>
-                <span style={{ width: 100, textAlign: "right" }}>Crédit</span>
-                <span style={{ width: 110, textAlign: "right" }}>Solde</span>
+                <span style={{ width: 44, textAlign: "center" }}>Let.</span>
+                <span style={{ width: 95, textAlign: "right" }}>Débit</span>
+                <span style={{ width: 95, textAlign: "right" }}>Crédit</span>
+                <span style={{ width: 95, textAlign: "right" }}>Solde</span>
               </div>
               {ledger.length === 0 ? <div style={S.empty}>Aucun mouvement.</div> :
-                ledger.map((l, i) => (
-                  <div key={i} style={S.row}>
+                ledger.map((l, i) => {
+                  const key = l.entry_id + "|" + l.idx;
+                  return (
+                  <div key={i} style={{ ...S.row, background: l.lettrage ? "#f0fdf4" : "transparent" }}>
+                    <span style={{ width: 26 }}>
+                      {!l.lettrage && <input type="checkbox" checked={!!sel[key]} onChange={(e) => setSel((s) => ({ ...s, [key]: e.target.checked }))} />}
+                    </span>
                     <span style={{ width: 80, fontVariantNumeric: "tabular-nums" }}>{(l.date || "").split("-").reverse().join("/")}</span>
-                    <span style={{ width: 50, color: "#3730a3" }}>{l.journal}</span>
+                    <span style={{ width: 44, color: "#3730a3" }}>{l.journal}</span>
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.label}{l.piece_ref ? " · " + l.piece_ref : ""}</span>
-                    <span style={S.num}>{l.debit ? fmtEUR(l.debit) : ""}</span>
-                    <span style={S.num}>{l.credit ? fmtEUR(l.credit) : ""}</span>
-                    <span style={{ ...S.num, fontWeight: 700 }}>{fmtEUR(l.solde)}</span>
+                    <span style={{ width: 44, textAlign: "center" }}>
+                      {l.lettrage ? <span title="Cliquer pour délettrer" onClick={() => doUnletter(l.lettrage)} style={{ cursor: "pointer", fontSize: 10.5, fontWeight: 700, color: "#047857", background: "#dcfce7", borderRadius: 4, padding: "1px 5px" }}>{l.lettrage}</span> : ""}
+                    </span>
+                    <span style={S.num2}>{l.debit ? fmtEUR(l.debit) : ""}</span>
+                    <span style={S.num2}>{l.credit ? fmtEUR(l.credit) : ""}</span>
+                    <span style={{ ...S.num2, fontWeight: 700 }}>{fmtEUR(l.solde)}</span>
                   </div>
-                ))}
+                  );
+                })}
             </section>
           )}
 
@@ -282,6 +323,7 @@ const S = {
   rowH: { display: "flex", gap: 10, padding: "6px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #e2e8f0" },
   row: { display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", borderBottom: "1px solid #f1f5f9", fontSize: 12.5 },
   num: { width: 120, textAlign: "right", fontVariantNumeric: "tabular-nums" },
+  num2: { width: 95, textAlign: "right", fontVariantNumeric: "tabular-nums" },
   select: { border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", fontSize: 13, minWidth: 320 },
   empty: { padding: 30, textAlign: "center", color: "#94a3b8", fontSize: 12.5, fontStyle: "italic" },
 };

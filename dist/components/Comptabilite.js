@@ -23,6 +23,8 @@ var Comptabilite = () => {
   var [ledgerAcc, setLedgerAcc] = React.useState("411000");
   var [ledger, setLedger] = React.useState([]);
   var [vat, setVat] = React.useState(null);
+  var [sel, setSel] = React.useState({}); // lettrage : lignes sélectionnées (clé entry_id|idx)
+
   var reload = React.useCallback(async () => {
     if (!A) return;
     setLoading(true);
@@ -113,6 +115,61 @@ var Comptabilite = () => {
     }
     setBusy("");
   };
+  var cloture = async () => {
+    var y = parseInt(String(from).slice(0, 4), 10);
+    if (!(window.HubModal ? await window.HubModal.confirm({
+      title: "Clôturer l'exercice " + y + " ?",
+      message: "Génère l'écriture d'à-nouveaux au 01/01/" + (y + 1) + " (report des comptes de bilan + résultat de l'exercice)."
+    }) : confirm("Clôturer l'exercice " + y + " ?"))) return;
+    setBusy("clo");
+    try {
+      var r = await A.generateOpeningEntry(y);
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)(r.already ? "À-nouveaux déjà générés pour " + (y + 1) + "." : r.created ? "À-nouveaux " + (y + 1) + " générés (" + (r.benefice >= 0 ? "bénéfice" : "perte") + ")." : "Rien à reporter.");
+    } catch (e) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e));
+    }
+    setBusy("");
+  };
+  var reloadLedger = async () => {
+    var l = await A.ledger(ledgerAcc, {
+      from,
+      to
+    });
+    setLedger(l || []);
+  };
+  var doLetter = async () => {
+    var items = Object.keys(sel).filter(k => sel[k]).map(k => {
+      var p = k.split("|");
+      return {
+        entry_id: p[0],
+        idx: Number(p[1])
+      };
+    });
+    if (items.length < 2) {
+      (window.HubToast ? window.HubToast.warn : alert)("Sélectionnez au moins 2 lignes à lettrer.");
+      return;
+    }
+    setBusy("let");
+    try {
+      await A.letterLines(items);
+      setSel({});
+      await reloadLedger();
+    } catch (e) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e));
+    }
+    setBusy("");
+  };
+  var doUnletter = async code => {
+    if (!code) return;
+    setBusy("unlet");
+    try {
+      await A.unletterCode(code);
+      await reloadLedger();
+    } catch (e) {}
+    setBusy("");
+  };
+  var selCount = Object.keys(sel).filter(k => sel[k]).length;
   var exportFEC = async () => {
     setBusy("fec");
     try {
@@ -215,6 +272,10 @@ var Comptabilite = () => {
     disabled: busy === "val",
     style: S.btnGhost
   }, busy === "val" ? "Validation…" : "🔒 Valider la période"), /*#__PURE__*/React.createElement("button", {
+    onClick: cloture,
+    disabled: busy === "clo",
+    style: S.btnGhost
+  }, busy === "clo" ? "Clôture…" : "🗓 Clôture exercice"), /*#__PURE__*/React.createElement("button", {
     onClick: exportFEC,
     disabled: busy === "fec",
     style: S.btnPrimary
@@ -377,24 +438,47 @@ var Comptabilite = () => {
     style: S.card
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 10
+      marginBottom: 10,
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("select", {
     value: ledgerAcc,
-    onChange: e => setLedgerAcc(e.target.value),
+    onChange: e => {
+      setLedgerAcc(e.target.value);
+      setSel({});
+    },
     style: S.select
   }, accounts.map(a => /*#__PURE__*/React.createElement("option", {
     key: a.id,
     value: a.id
-  }, a.id, " \u2014 ", a.label)))), /*#__PURE__*/React.createElement("div", {
+  }, a.id, " \u2014 ", a.label))), /*#__PURE__*/React.createElement("button", {
+    onClick: doLetter,
+    disabled: busy === "let" || selCount < 2,
+    style: {
+      ...S.btnGhost,
+      opacity: selCount < 2 ? 0.5 : 1
+    }
+  }, "\uD83D\uDD17 Lettrer", selCount ? " (" + selCount + ")" : ""), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#94a3b8"
+    }
+  }, "Cochez les lignes non lettr\xE9es (facture + r\xE8glement) puis \xAB Lettrer \xBB.")), /*#__PURE__*/React.createElement("div", {
     style: S.rowH
   }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 26
+    }
+  }), /*#__PURE__*/React.createElement("span", {
     style: {
       width: 80
     }
   }, "Date"), /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 50
+      width: 44
     }
   }, "Jal"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -402,51 +486,90 @@ var Comptabilite = () => {
     }
   }, "Libell\xE9"), /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 100,
+      width: 44,
+      textAlign: "center"
+    }
+  }, "Let."), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 95,
       textAlign: "right"
     }
   }, "D\xE9bit"), /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 100,
+      width: 95,
       textAlign: "right"
     }
   }, "Cr\xE9dit"), /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 110,
+      width: 95,
       textAlign: "right"
     }
   }, "Solde")), ledger.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: S.empty
-  }, "Aucun mouvement.") : ledger.map((l, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: S.row
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 80,
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, (l.date || "").split("-").reverse().join("/")), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 50,
-      color: "#3730a3"
-    }
-  }, l.journal), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, l.label, l.piece_ref ? " · " + l.piece_ref : ""), /*#__PURE__*/React.createElement("span", {
-    style: S.num
-  }, l.debit ? fmtEUR(l.debit) : ""), /*#__PURE__*/React.createElement("span", {
-    style: S.num
-  }, l.credit ? fmtEUR(l.credit) : ""), /*#__PURE__*/React.createElement("span", {
-    style: {
-      ...S.num,
-      fontWeight: 700
-    }
-  }, fmtEUR(l.solde))))), tab === "tva" && /*#__PURE__*/React.createElement("section", {
+  }, "Aucun mouvement.") : ledger.map((l, i) => {
+    var key = l.entry_id + "|" + l.idx;
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        ...S.row,
+        background: l.lettrage ? "#f0fdf4" : "transparent"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 26
+      }
+    }, !l.lettrage && /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: !!sel[key],
+      onChange: e => setSel(s => ({
+        ...s,
+        [key]: e.target.checked
+      }))
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 80,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, (l.date || "").split("-").reverse().join("/")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 44,
+        color: "#3730a3"
+      }
+    }, l.journal), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, l.label, l.piece_ref ? " · " + l.piece_ref : ""), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 44,
+        textAlign: "center"
+      }
+    }, l.lettrage ? /*#__PURE__*/React.createElement("span", {
+      title: "Cliquer pour d\xE9lettrer",
+      onClick: () => doUnletter(l.lettrage),
+      style: {
+        cursor: "pointer",
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "#047857",
+        background: "#dcfce7",
+        borderRadius: 4,
+        padding: "1px 5px"
+      }
+    }, l.lettrage) : ""), /*#__PURE__*/React.createElement("span", {
+      style: S.num2
+    }, l.debit ? fmtEUR(l.debit) : ""), /*#__PURE__*/React.createElement("span", {
+      style: S.num2
+    }, l.credit ? fmtEUR(l.credit) : ""), /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...S.num2,
+        fontWeight: 700
+      }
+    }, fmtEUR(l.solde)));
+  })), tab === "tva" && /*#__PURE__*/React.createElement("section", {
     style: S.card
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -685,6 +808,11 @@ var S = {
   },
   num: {
     width: 120,
+    textAlign: "right",
+    fontVariantNumeric: "tabular-nums"
+  },
+  num2: {
+    width: 95,
     textAlign: "right",
     fontVariantNumeric: "tabular-nums"
   },

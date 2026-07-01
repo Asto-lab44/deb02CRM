@@ -23,6 +23,7 @@ const Comptabilite = () => {
   const [journals, setJournals] = React.useState([]);
   const [ledgerAcc, setLedgerAcc] = React.useState("411000");
   const [ledger, setLedger] = React.useState([]);
+  const [vat, setVat] = React.useState(null);
 
   const reload = React.useCallback(async () => {
     if (!A) return;
@@ -41,6 +42,10 @@ const Comptabilite = () => {
     if (!A || tab !== "grandlivre") return;
     A.ledger(ledgerAcc, { from, to }).then((l) => setLedger(l || [])).catch(() => setLedger([]));
   }, [tab, ledgerAcc, from, to]);
+  React.useEffect(() => {
+    if (!A || tab !== "tva") return;
+    A.vatReport({ from, to }).then((r) => setVat(r)).catch(() => setVat(null));
+  }, [tab, from, to, entries]);
 
   const totDebit = balance.reduce((s, a) => s + a.debit, 0);
   const totCredit = balance.reduce((s, a) => s + a.credit, 0);
@@ -63,6 +68,17 @@ const Comptabilite = () => {
       const r = await A.validate({ from, to });
       await reload();
       (window.HubToast ? window.HubToast.success : alert)((r.validated || 0) + " écriture(s) validée(s).");
+    } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e)); }
+    setBusy("");
+  };
+
+  const genVat = async () => {
+    if (!(window.HubModal ? await window.HubModal.confirm({ title: "Générer l'écriture de TVA ?", message: "Solde les comptes de TVA de la période vers 44551 (à décaisser) / 44567 (crédit). Journal OD." }) : confirm("Générer l'écriture de TVA de la période ?"))) return;
+    setBusy("genvat");
+    try {
+      const r = await A.generateVatEntry({ from, to });
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)(r.already ? "Écriture de TVA déjà générée pour cette période." : (r.created ? "Écriture de TVA générée." : "Rien à générer."));
     } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e)); }
     setBusy("");
   };
@@ -111,7 +127,7 @@ const Comptabilite = () => {
       </div>
 
       <div style={S.tabs}>
-        {[["balance", "Balance"], ["ecritures", "Écritures"], ["grandlivre", "Grand livre"], ["plan", "Plan comptable"]].map(([k, lbl]) => (
+        {[["balance", "Balance"], ["ecritures", "Écritures"], ["grandlivre", "Grand livre"], ["tva", "TVA"], ["plan", "Plan comptable"]].map(([k, lbl]) => (
           <button key={k} onClick={() => setTab(k)} style={{ ...S.tab, ...(tab === k ? S.tabOn : {}) }}>{lbl}</button>
         ))}
       </div>
@@ -195,6 +211,37 @@ const Comptabilite = () => {
                     <span style={{ ...S.num, fontWeight: 700 }}>{fmtEUR(l.solde)}</span>
                   </div>
                 ))}
+            </section>
+          )}
+
+          {tab === "tva" && (
+            <section style={S.card}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Déclaration de TVA — période du {from} au {to}</h2>
+                <button onClick={genVat} disabled={busy === "genvat"} style={S.btnGhost}>{busy === "genvat" ? "…" : "Générer l'écriture de TVA (OD)"}</button>
+              </div>
+              {!vat ? <div style={S.empty}>Calcul…</div> : (
+                <div style={{ maxWidth: 520 }}>
+                  {vat.byAccount.length > 0 && vat.byAccount.map((a) => (
+                    <div key={a.account_id} style={S.row}>
+                      <span style={{ width: 100, color: "#3730a3", fontVariantNumeric: "tabular-nums" }}>{a.account_id}</span>
+                      <span style={{ flex: 1 }}>TVA collectée</span>
+                      <span style={S.num}>{fmtEUR(a.montant)}</span>
+                    </div>
+                  ))}
+                  <div style={{ ...S.row, fontWeight: 700 }}>
+                    <span style={{ flex: 1 }}>TVA collectée (total)</span><span style={S.num}>{fmtEUR(vat.collectee)}</span>
+                  </div>
+                  <div style={S.row}>
+                    <span style={{ flex: 1 }}>TVA déductible (44566)</span><span style={{ ...S.num, color: "#dc2626" }}>− {fmtEUR(vat.deductible)}</span>
+                  </div>
+                  <div style={{ ...S.row, borderTop: "2px solid #e2e8f0", fontWeight: 800, fontSize: 14 }}>
+                    <span style={{ flex: 1 }}>{vat.aDecaisser >= 0 ? "TVA à décaisser (44551)" : "Crédit de TVA à reporter (44567)"}</span>
+                    <span style={{ ...S.num, color: vat.aDecaisser >= 0 ? "#0f172a" : "#047857" }}>{fmtEUR(Math.abs(vat.aDecaisser))}</span>
+                  </div>
+                  <p style={{ fontSize: 11.5, color: "#94a3b8", marginTop: 12 }}>Calcul indicatif basé sur les écritures de la période (comptes 4457* et 44566). À valider par votre expert-comptable avant télédéclaration.</p>
+                </div>
+              )}
             </section>
           )}
 

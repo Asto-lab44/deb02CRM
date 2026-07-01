@@ -22,6 +22,7 @@ var Comptabilite = () => {
   var [journals, setJournals] = React.useState([]);
   var [ledgerAcc, setLedgerAcc] = React.useState("411000");
   var [ledger, setLedger] = React.useState([]);
+  var [vat, setVat] = React.useState(null);
   var reload = React.useCallback(async () => {
     if (!A) return;
     setLoading(true);
@@ -52,6 +53,13 @@ var Comptabilite = () => {
       to
     }).then(l => setLedger(l || [])).catch(() => setLedger([]));
   }, [tab, ledgerAcc, from, to]);
+  React.useEffect(() => {
+    if (!A || tab !== "tva") return;
+    A.vatReport({
+      from,
+      to
+    }).then(r => setVat(r)).catch(() => setVat(null));
+  }, [tab, from, to, entries]);
   var totDebit = balance.reduce((s, a) => s + a.debit, 0);
   var totCredit = balance.reduce((s, a) => s + a.credit, 0);
   var equilibre = Math.abs(totDebit - totCredit) < 0.01;
@@ -82,6 +90,24 @@ var Comptabilite = () => {
       });
       await reload();
       (window.HubToast ? window.HubToast.success : alert)((r.validated || 0) + " écriture(s) validée(s).");
+    } catch (e) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e));
+    }
+    setBusy("");
+  };
+  var genVat = async () => {
+    if (!(window.HubModal ? await window.HubModal.confirm({
+      title: "Générer l'écriture de TVA ?",
+      message: "Solde les comptes de TVA de la période vers 44551 (à décaisser) / 44567 (crédit). Journal OD."
+    }) : confirm("Générer l'écriture de TVA de la période ?"))) return;
+    setBusy("genvat");
+    try {
+      var r = await A.generateVatEntry({
+        from,
+        to
+      });
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)(r.already ? "Écriture de TVA déjà générée pour cette période." : r.created ? "Écriture de TVA générée." : "Rien à générer.");
     } catch (e) {
       (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e));
     }
@@ -194,7 +220,7 @@ var Comptabilite = () => {
     style: S.btnPrimary
   }, busy === "fec" ? "Export…" : "⇩ Export FEC"))), /*#__PURE__*/React.createElement("div", {
     style: S.tabs
-  }, [["balance", "Balance"], ["ecritures", "Écritures"], ["grandlivre", "Grand livre"], ["plan", "Plan comptable"]].map(([k, lbl]) => /*#__PURE__*/React.createElement("button", {
+  }, [["balance", "Balance"], ["ecritures", "Écritures"], ["grandlivre", "Grand livre"], ["tva", "TVA"], ["plan", "Plan comptable"]].map(([k, lbl]) => /*#__PURE__*/React.createElement("button", {
     key: k,
     onClick: () => setTab(k),
     style: {
@@ -420,7 +446,91 @@ var Comptabilite = () => {
       ...S.num,
       fontWeight: 700
     }
-  }, fmtEUR(l.solde))))), tab === "plan" && /*#__PURE__*/React.createElement("section", {
+  }, fmtEUR(l.solde))))), tab === "tva" && /*#__PURE__*/React.createElement("section", {
+    style: S.card
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      margin: 0
+    }
+  }, "D\xE9claration de TVA \u2014 p\xE9riode du ", from, " au ", to), /*#__PURE__*/React.createElement("button", {
+    onClick: genVat,
+    disabled: busy === "genvat",
+    style: S.btnGhost
+  }, busy === "genvat" ? "…" : "Générer l'écriture de TVA (OD)")), !vat ? /*#__PURE__*/React.createElement("div", {
+    style: S.empty
+  }, "Calcul\u2026") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 520
+    }
+  }, vat.byAccount.length > 0 && vat.byAccount.map(a => /*#__PURE__*/React.createElement("div", {
+    key: a.account_id,
+    style: S.row
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 100,
+      color: "#3730a3",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, a.account_id), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "TVA collect\xE9e"), /*#__PURE__*/React.createElement("span", {
+    style: S.num
+  }, fmtEUR(a.montant)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...S.row,
+      fontWeight: 700
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "TVA collect\xE9e (total)"), /*#__PURE__*/React.createElement("span", {
+    style: S.num
+  }, fmtEUR(vat.collectee))), /*#__PURE__*/React.createElement("div", {
+    style: S.row
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "TVA d\xE9ductible (44566)"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      ...S.num,
+      color: "#dc2626"
+    }
+  }, "\u2212 ", fmtEUR(vat.deductible))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...S.row,
+      borderTop: "2px solid #e2e8f0",
+      fontWeight: 800,
+      fontSize: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, vat.aDecaisser >= 0 ? "TVA à décaisser (44551)" : "Crédit de TVA à reporter (44567)"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      ...S.num,
+      color: vat.aDecaisser >= 0 ? "#0f172a" : "#047857"
+    }
+  }, fmtEUR(Math.abs(vat.aDecaisser)))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11.5,
+      color: "#94a3b8",
+      marginTop: 12
+    }
+  }, "Calcul indicatif bas\xE9 sur les \xE9critures de la p\xE9riode (comptes 4457* et 44566). \xC0 valider par votre expert-comptable avant t\xE9l\xE9d\xE9claration."))), tab === "plan" && /*#__PURE__*/React.createElement("section", {
     style: S.card
   }, /*#__PURE__*/React.createElement("div", {
     style: S.rowH

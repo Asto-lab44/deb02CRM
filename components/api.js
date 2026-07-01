@@ -4267,6 +4267,8 @@
     { id: "4457110", label: "TVA collectée 10 %", kind: "tva" },
     { id: "4457155", label: "TVA collectée 5,5 %", kind: "tva" },
     { id: "44566", label: "TVA déductible", kind: "tva" },
+    { id: "44551", label: "TVA à décaisser", kind: "tva" },
+    { id: "44567", label: "Crédit de TVA à reporter", kind: "tva" },
     { id: "512000", label: "Banque", kind: "banque" },
     { id: "530000", label: "Caisse", kind: "caisse" },
     { id: "401000", label: "Fournisseurs", kind: "fournisseur" },
@@ -4516,6 +4518,37 @@
       });
       if (changed) lsSet("accounting_entries", arr);
       return { validated: n + changed };
+    },
+    /** Déclaration de TVA sur la période : TVA collectée (comptes 4457*),
+     *  TVA déductible (44566), et TVA à décaisser = collectée − déductible. */
+    async vatReport({ from, to } = {}) {
+      const entries = await this.entries({ from, to });
+      const byAcc = {}; let collectee = 0, deductible = 0;
+      entries.forEach((e) => ((e.data && e.data.lines) || []).forEach((l) => {
+        const id = String(l.account_id || ""); const d = Number(l.debit) || 0, c = Number(l.credit) || 0;
+        if (id.indexOf("4457") === 0) { const amt = c - d; collectee += amt; byAcc[id] = _r2((byAcc[id] || 0) + amt); }
+        else if (id === "44566") { deductible += (d - c); }
+      }));
+      collectee = _r2(collectee); deductible = _r2(deductible);
+      return { collectee, deductible, aDecaisser: _r2(collectee - deductible),
+        byAccount: Object.keys(byAcc).sort().map((id) => ({ account_id: id, montant: byAcc[id] })) };
+    },
+    /** Génère l'écriture de TVA (journal OD) : solde les comptes de TVA
+     *  collectée/déductible vers 44551 (à décaisser) ou 44567 (crédit à reporter).
+     *  Idempotent sur la période (source_doc_id = TVA-<from>-<to>). */
+    async generateVatEntry({ from, to } = {}) {
+      const srcId = "TVA-" + (from || "") + "-" + (to || "");
+      const existing = await this.entries({ from, to });
+      if (existing.some((e) => e.source_kind === "tva" && e.source_doc_id === srcId)) return { created: 0, already: true };
+      const rep = await this.vatReport({ from, to });
+      const lines = [];
+      rep.byAccount.forEach((a) => { if (a.montant) lines.push({ account_id: a.account_id, account_label: "TVA collectée", debit: _r2(a.montant), credit: 0 }); });
+      if (rep.deductible) lines.push({ account_id: "44566", account_label: "TVA déductible", debit: 0, credit: _r2(rep.deductible) });
+      if (rep.aDecaisser >= 0) lines.push({ account_id: "44551", account_label: "TVA à décaisser", debit: 0, credit: _r2(rep.aDecaisser) });
+      else lines.push({ account_id: "44567", account_label: "Crédit de TVA à reporter", debit: _r2(-rep.aDecaisser), credit: 0 });
+      if (!lines.length) return { created: 0 };
+      await this.createEntry({ journal_code: "OD", entry_date: to || new Date().toISOString().slice(0, 10), label: "Déclaration TVA " + (from || "") + " → " + (to || ""), source_kind: "tva", source_doc_id: srcId, lines });
+      return { created: 1 };
     },
     /** Balance : cumul débit/crédit + solde par compte. */
     async balance({ from, to } = {}) {

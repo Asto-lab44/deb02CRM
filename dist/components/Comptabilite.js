@@ -184,7 +184,7 @@ var Comptabilite = () => {
     onClick: genSales,
     disabled: busy === "gen",
     style: S.btnGhost
-  }, busy === "gen" ? "Génération…" : "↻ Générer depuis les ventes"), /*#__PURE__*/React.createElement("button", {
+  }, busy === "gen" ? "Génération…" : "↻ Générer les écritures (ventes + achats)"), /*#__PURE__*/React.createElement("button", {
     onClick: validate,
     disabled: busy === "val",
     style: S.btnGhost

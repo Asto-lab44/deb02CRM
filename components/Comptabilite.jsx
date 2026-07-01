@@ -104,7 +104,7 @@ const Comptabilite = () => {
           <p style={S.h1sub}>Écritures en partie double · Grand livre · Balance · Export FEC (DGFiP).</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={genSales} disabled={busy === "gen"} style={S.btnGhost}>{busy === "gen" ? "Génération…" : "↻ Générer depuis les ventes"}</button>
+          <button onClick={genSales} disabled={busy === "gen"} style={S.btnGhost}>{busy === "gen" ? "Génération…" : "↻ Générer les écritures (ventes + achats)"}</button>
           <button onClick={validate} disabled={busy === "val"} style={S.btnGhost}>{busy === "val" ? "Validation…" : "🔒 Valider la période"}</button>
           <button onClick={exportFEC} disabled={busy === "fec"} style={S.btnPrimary}>{busy === "fec" ? "Export…" : "⇩ Export FEC"}</button>
         </div>

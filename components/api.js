@@ -4270,6 +4270,8 @@
     { id: "512000", label: "Banque", kind: "banque" },
     { id: "530000", label: "Caisse", kind: "caisse" },
     { id: "401000", label: "Fournisseurs", kind: "fournisseur" },
+    { id: "607000", label: "Achats de marchandises", kind: "achat" },
+    { id: "604000", label: "Achats d'études et prestations", kind: "achat" },
   ];
   // Compte de TVA collectée selon le taux (ventilation FEC par taux).
   const _tvaAccount = (rate) => {
@@ -4281,8 +4283,9 @@
   };
   const _r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
   const _yyyymmdd = (d) => { if (!d) return ""; const t = new Date(d); return isNaN(t.getTime()) ? "" : t.toISOString().slice(0, 10).replace(/-/g, ""); };
-  // Code client auxiliaire (FEC CompAuxNum) : « CLI » + 3 premières lettres.
+  // Code tiers auxiliaire (FEC CompAuxNum) : préfixe + 3 premières lettres.
   const _cliCode = (name) => { const n = String(name || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); return n ? ("CLI" + n.slice(0, 3).padEnd(3, "X")) : ""; };
+  const _frnCode = (name) => { const n = String(name || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); return n ? ("FRN" + n.slice(0, 3).padEnd(3, "X")) : ""; };
 
   const accounting = {
     // ---- Plan comptable ----
@@ -4471,6 +4474,24 @@
             { account_id: "44571", account_label: "TVA collectée", debit: tva, credit: 0 },
             { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: 0, credit: ttc },
           ],
+        });
+        created++;
+      }
+      // Commandes d'achat fournisseur → journal AC
+      //   débit 607 (achats HT) + 44566 (TVA déductible) / crédit 401 (fournisseur TTC)
+      const pos = await commercialDocs.list({ type: "commande_achat" }).catch(() => []);
+      for (const po of pos.filter(inRange)) {
+        const key = "achat:" + po.id + ":";
+        if (seen.has(key)) continue;
+        const ht = _r2(po.total_ht), tva = _r2(po.total_tva), ttc = _r2(po.total_ttc) || _r2(ht + tva);
+        const fn = _frnCode(po.client_name), fl = po.client_name || "Fournisseur";
+        const lines = [{ account_id: "607000", account_label: "Achats de marchandises", debit: ht, credit: 0 }];
+        if (tva) lines.push({ account_id: "44566", account_label: "TVA déductible", debit: tva, credit: 0 });
+        lines.push({ account_id: "401000", account_label: "Fournisseurs", aux_num: fn, aux_label: fl, debit: 0, credit: ttc });
+        await this.createEntry({
+          journal_code: "AC", entry_date: po.doc_date, label: "Achat " + po.id,
+          piece_ref: po.id, piece_date: po.doc_date, source_doc_id: po.id, source_kind: "achat",
+          lines,
         });
         created++;
       }

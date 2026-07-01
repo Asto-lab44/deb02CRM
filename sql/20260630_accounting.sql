@@ -68,11 +68,14 @@ INSERT INTO accounting_accounts (id, label, kind) VALUES
   ('707000', 'Ventes de marchandises',       'vente'),
   ('44571',  'TVA collectée',                'tva'),
   ('445710', 'TVA collectée 20 %',           'tva'),
+  ('4457110','TVA collectée 10 %',           'tva'),
   ('4457155','TVA collectée 5,5 %',          'tva'),
   ('44566',  'TVA déductible',               'tva'),
   ('512000', 'Banque',                       'banque'),
   ('530000', 'Caisse',                       'caisse'),
   ('401000', 'Fournisseurs',                 'fournisseur'),
+  ('607000', 'Achats de marchandises',       'achat'),
+  ('604000', 'Achats d''études et prestations', 'achat'),
   ('758000', 'Produits divers de gestion',   'general'),
   ('658000', 'Charges diverses de gestion',  'general')
 ON CONFLICT (id) DO NOTHING;

@@ -56,6 +56,17 @@ const Comptabilite = () => {
     setBusy("");
   };
 
+  const validate = async () => {
+    if (!(window.HubModal ? await window.HubModal.confirm({ title: "Valider la période ?", message: "Les écritures du " + from + " au " + to + " seront figées (date de validation = aujourd'hui). Action conservée dans le FEC." }) : confirm("Valider (figer) les écritures de la période ?"))) return;
+    setBusy("val");
+    try {
+      const r = await A.validate({ from, to });
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)((r.validated || 0) + " écriture(s) validée(s).");
+    } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e)); }
+    setBusy("");
+  };
+
   const exportFEC = async () => {
     setBusy("fec");
     try {
@@ -94,6 +105,7 @@ const Comptabilite = () => {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={genSales} disabled={busy === "gen"} style={S.btnGhost}>{busy === "gen" ? "Génération…" : "↻ Générer depuis les ventes"}</button>
+          <button onClick={validate} disabled={busy === "val"} style={S.btnGhost}>{busy === "val" ? "Validation…" : "🔒 Valider la période"}</button>
           <button onClick={exportFEC} disabled={busy === "fec"} style={S.btnPrimary}>{busy === "fec" ? "Export…" : "⇩ Export FEC"}</button>
         </div>
       </div>

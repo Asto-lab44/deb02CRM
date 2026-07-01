@@ -69,6 +69,24 @@ var Comptabilite = () => {
     }
     setBusy("");
   };
+  var validate = async () => {
+    if (!(window.HubModal ? await window.HubModal.confirm({
+      title: "Valider la période ?",
+      message: "Les écritures du " + from + " au " + to + " seront figées (date de validation = aujourd'hui). Action conservée dans le FEC."
+    }) : confirm("Valider (figer) les écritures de la période ?"))) return;
+    setBusy("val");
+    try {
+      var r = await A.validate({
+        from,
+        to
+      });
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)((r.validated || 0) + " écriture(s) validée(s).");
+    } catch (e) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e));
+    }
+    setBusy("");
+  };
   var exportFEC = async () => {
     setBusy("fec");
     try {
@@ -167,6 +185,10 @@ var Comptabilite = () => {
     disabled: busy === "gen",
     style: S.btnGhost
   }, busy === "gen" ? "Génération…" : "↻ Générer depuis les ventes"), /*#__PURE__*/React.createElement("button", {
+    onClick: validate,
+    disabled: busy === "val",
+    style: S.btnGhost
+  }, busy === "val" ? "Validation…" : "🔒 Valider la période"), /*#__PURE__*/React.createElement("button", {
     onClick: exportFEC,
     disabled: busy === "fec",
     style: S.btnPrimary

@@ -4263,11 +4263,22 @@
     { id: "706000", label: "Prestations de services", kind: "vente" },
     { id: "707000", label: "Ventes de marchandises", kind: "vente" },
     { id: "44571", label: "TVA collectée", kind: "tva" },
+    { id: "445710", label: "TVA collectée 20 %", kind: "tva" },
+    { id: "4457110", label: "TVA collectée 10 %", kind: "tva" },
+    { id: "4457155", label: "TVA collectée 5,5 %", kind: "tva" },
     { id: "44566", label: "TVA déductible", kind: "tva" },
     { id: "512000", label: "Banque", kind: "banque" },
     { id: "530000", label: "Caisse", kind: "caisse" },
     { id: "401000", label: "Fournisseurs", kind: "fournisseur" },
   ];
+  // Compte de TVA collectée selon le taux (ventilation FEC par taux).
+  const _tvaAccount = (rate) => {
+    const r = Number(rate);
+    if (r === 20) return { id: "445710", label: "TVA collectée 20 %" };
+    if (r === 10) return { id: "4457110", label: "TVA collectée 10 %" };
+    if (r === 5.5) return { id: "4457155", label: "TVA collectée 5,5 %" };
+    return { id: "44571", label: "TVA collectée" + (r ? " " + r + " %" : "") };
+  };
   const _r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
   const _yyyymmdd = (d) => { if (!d) return ""; const t = new Date(d); return isNaN(t.getTime()) ? "" : t.toISOString().slice(0, 10).replace(/-/g, ""); };
   // Code client auxiliaire (FEC CompAuxNum) : « CLI » + 3 premières lettres.
@@ -4393,22 +4404,40 @@
       let created = 0;
       // Factures + factures d'acompte → journal VE
       for (const f of [...facs, ...acs].filter(inRange)) {
+        // Code de lettrage : lie la facture (débit 411) à ses règlements
+        // (crédit 411) — renseigne EcritureLet dans le FEC.
+        const letCode = "L" + String(f.number_seq || f.id).toString().slice(-6);
         const key = "facture:" + f.id + ":";
         if (!seen.has(key)) {
-          const ttc = _r2(f.total_ttc), ht = _r2(f.total_ht), tva = _r2(f.total_tva);
+          const ttc = _r2(f.total_ttc), ht = _r2(f.total_ht);
           const cn = _cliCode(f.client_name), cl = f.client_name || "";
+          // Ventilation de la TVA PAR TAUX (445710 20 %, 4457155 5,5 %, …) à
+          // partir des lignes de la facture ; repli sur un compte agrégé.
+          const full = await commercialDocs.getById(f.id).catch(() => null);
+          const tvaByRate = {};
+          ((full && full.lines) || []).forEach((l) => {
+            if (l.is_text_only) return;
+            const r = Number(l.tva_rate) || 0;
+            tvaByRate[r] = _r2((tvaByRate[r] || 0) + (Number(l.total_tva) || 0));
+          });
+          const lines = [
+            { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: ttc, credit: 0, lettrage: letCode },
+            { account_id: "706000", account_label: "Prestations de services", debit: 0, credit: ht },
+          ];
+          const rates = Object.keys(tvaByRate);
+          if (rates.length) {
+            rates.forEach((rk) => { const a = _tvaAccount(rk); if (tvaByRate[rk]) lines.push({ account_id: a.id, account_label: a.label, debit: 0, credit: tvaByRate[rk] }); });
+          } else {
+            lines.push({ account_id: "44571", account_label: "TVA collectée", debit: 0, credit: _r2(f.total_tva) });
+          }
           await this.createEntry({
             journal_code: "VE", entry_date: f.doc_date, label: "Facture " + f.id,
             piece_ref: f.id, piece_date: f.doc_date, source_doc_id: f.id, source_kind: "facture",
-            lines: [
-              { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: ttc, credit: 0 },
-              { account_id: "706000", account_label: "Prestations de services", debit: 0, credit: ht },
-              { account_id: "44571", account_label: "TVA collectée", debit: 0, credit: tva },
-            ],
+            lines,
           });
           created++;
         }
-        // Règlements encaissés (data.payments) → journal BQ
+        // Règlements encaissés (data.payments) → journal BQ (lettrés avec la facture)
         const pays = (f.data && Array.isArray(f.data.payments)) ? f.data.payments : [];
         for (const p of pays) {
           const pk = "reglement:" + f.id + ":" + (p.id || "");
@@ -4420,7 +4449,7 @@
             piece_ref: f.id, piece_date: f.doc_date, source_doc_id: f.id, source_kind: "reglement",
             lines: [
               { account_id: "512000", account_label: "Banque", debit: amt, credit: 0 },
-              { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: 0, credit: amt },
+              { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: 0, credit: amt, lettrage: letCode },
             ],
           });
           // mémorise l'id du paiement pour l'idempotence
@@ -4446,6 +4475,26 @@
         created++;
       }
       return { created };
+    },
+    /** Validation / clôture : fige les écritures de la période en renseignant
+     *  validated_at (→ colonne ValidDate du FEC). Idempotent. */
+    async validate({ from, to } = {}) {
+      const now = new Date().toISOString();
+      let n = 0;
+      const s = supa();
+      if (s) {
+        let q = s.from("accounting_entries").update({ validated_at: now }).is("validated_at", null);
+        if (from) q = q.gte("entry_date", from);
+        if (to) q = q.lte("entry_date", to);
+        const { data, error } = await q.select("id");
+        if (!error && data) n = data.length;
+      }
+      const arr = lsGet("accounting_entries"); let changed = 0;
+      arr.forEach((e) => {
+        if (!e.validated_at && (!from || (e.entry_date || "") >= from) && (!to || (e.entry_date || "") <= to)) { e.validated_at = now; changed++; }
+      });
+      if (changed) lsSet("accounting_entries", arr);
+      return { validated: n + changed };
     },
     /** Balance : cumul débit/crédit + solde par compte. */
     async balance({ from, to } = {}) {

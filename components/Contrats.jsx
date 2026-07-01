@@ -20,6 +20,9 @@ const Contrats = () => {
   const [q, setQ] = React.useState("");
   const [sel, setSel] = React.useState({});
   const [edit, setEdit] = React.useState(null); // contrat en édition (ou {} = nouveau)
+  const [periodF, setPeriodF] = React.useState("all"); // all | mensuel | annuel
+  const [preview, setPreview] = React.useState(null); // contrat en aperçu facture
+  const fileRef = React.useRef(null);
 
   const periodTo = (() => { const [y, m] = month.split("-").map(Number); return new Date(y, m, 0).toISOString().slice(0, 10); })();
 
@@ -34,7 +37,13 @@ const Contrats = () => {
   React.useEffect(() => { reload(); }, [reload]);
 
   const clientName = (c) => c.client_name || (clients.find((x) => x.id === c.client_id) || {}).raison_sociale || (clients.find((x) => x.id === c.client_id) || {}).name || "—";
-  const filtered = rows.filter((c) => { const t = (clientName(c) + " " + c.type_contrat).toLowerCase(); return !q || t.includes(q.toLowerCase()); });
+  const filtered = rows.filter((c) => {
+    const t = (clientName(c) + " " + c.type_contrat).toLowerCase();
+    if (q && !t.includes(q.toLowerCase())) return false;
+    if (periodF === "annuel" && c.periodicity !== "annuel") return false;
+    if (periodF === "mensuel" && c.periodicity === "annuel") return false;
+    return true;
+  });
   const monthLabel = (() => { const [y, m] = month.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }); })();
   const navMonth = (d) => { const [y, m] = month.split("-").map(Number); const nd = new Date(y, m - 1 + d, 1); setMonth(nd.getFullYear() + "-" + String(nd.getMonth() + 1).padStart(2, "0")); };
   const isDue = (c) => (c.status || "active") === "active" && (!c.next_billing || c.next_billing <= periodTo);
@@ -61,6 +70,42 @@ const Contrats = () => {
     setBusy("sepa");
     try { const { filename, content } = await S.sepaExport({ to: periodTo, ids: selIds.length ? selIds : null }); download(filename, content, "text/csv"); }
     catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur SEPA : " + (e.message || e)); }
+    setBusy("");
+  };
+  const exportSepaXml = async () => {
+    setBusy("xml");
+    try {
+      const { filename, content, count } = await S.sepaXml({ to: periodTo, ids: selIds.length ? selIds : null });
+      if (!count) { (window.HubToast ? window.HubToast.warn : alert)("Aucun prélèvement éligible (IBAN/RUM manquants ou montant nul)."); setBusy(""); return; }
+      download(filename, content, "application/xml");
+      (window.HubToast ? window.HubToast.success : alert)(count + " prélèvement(s) dans le fichier SEPA XML.");
+    } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur SEPA XML : " + (e.message || e)); }
+    setBusy("");
+  };
+  const csvTemplate = () => {
+    const head = "client;type_contrat;montant_ht;periodicity;payment_mode;iban;bic;rum;next_billing";
+    const ex = "ACME SARL;Maintenance PC;70,35;mensuel;prelevement;FR7630004...;BNPAFRPP;RUM-ACME-001;2026-07-01";
+    download("modele_import_contrats.csv", "﻿" + head + "\r\n" + ex, "text/csv");
+  };
+  const importCsv = async (file) => {
+    if (!file) return; setBusy("import");
+    try {
+      const text = await file.text();
+      const lines = text.replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) throw new Error("Fichier vide");
+      const sepChar = lines[0].indexOf(";") >= 0 ? ";" : ",";
+      const heads = lines[0].split(sepChar).map((h) => h.trim().toLowerCase());
+      const idx = (name) => heads.findIndex((h) => h === name || h.indexOf(name) >= 0);
+      const iCli = idx("client"), iType = idx("type"), iMt = idx("montant"), iPer = idx("period"), iMode = idx("mode") >= 0 ? idx("mode") : idx("payment"), iIban = idx("iban"), iBic = idx("bic"), iRum = idx("rum"), iEch = idx("next") >= 0 ? idx("next") : idx("ech");
+      const rows2 = lines.slice(1).map((l) => { const c = l.split(sepChar); return {
+        client_name: iCli >= 0 ? c[iCli] : "", type_contrat: iType >= 0 ? c[iType] : "", montant_ht: iMt >= 0 ? c[iMt] : "0",
+        periodicity: iPer >= 0 ? (c[iPer] || "").trim() : "mensuel", payment_mode: iMode >= 0 ? (c[iMode] || "").trim() : "prelevement",
+        iban: iIban >= 0 ? c[iIban] : "", bic: iBic >= 0 ? c[iBic] : "", rum: iRum >= 0 ? c[iRum] : "", next_billing: iEch >= 0 ? (c[iEch] || "").trim() : "",
+      }; });
+      const r = await S.importRows(rows2, clients);
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)((r.created || 0) + " contrat(s) importé(s).");
+    } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur import : " + (e.message || e)); }
     setBusy("");
   };
   const saveEdit = async (c) => {
@@ -93,9 +138,13 @@ const Contrats = () => {
 
       <div style={ST.titleRow}>
         <div><h1 style={ST.h1}>📄 Contrats & abonnements</h1><p style={ST.sub}>Facturation récurrente par client + prélèvement SEPA.</p></div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { const f = e.target.files[0]; e.target.value = ""; importCsv(f); }} />
+          <button onClick={csvTemplate} style={ST.btnGhost} title="Télécharger un modèle CSV">📄 Modèle</button>
+          <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy === "import"} style={ST.btnGhost}>{busy === "import" ? "Import…" : "⤵ Importer CSV"}</button>
           <button onClick={() => setEdit({ periodicity: "mensuel", payment_mode: "prelevement", tva_rate: 20, status: "active", options: [], next_billing: month + "-01" })} style={ST.btnGhost}>+ Nouveau contrat</button>
-          <button onClick={exportSepa} disabled={busy === "sepa"} style={ST.btnGhost}>{busy === "sepa" ? "…" : "🏦 Export prélèvement SEPA"}</button>
+          <button onClick={exportSepa} disabled={busy === "sepa"} style={ST.btnGhost}>{busy === "sepa" ? "…" : "🏦 SEPA (CSV)"}</button>
+          <button onClick={exportSepaXml} disabled={busy === "xml"} style={ST.btnGhost}>{busy === "xml" ? "…" : "🏦 SEPA XML (pain.008)"}</button>
           <button onClick={genInvoices} disabled={busy === "gen"} style={ST.btnPrimary}>{busy === "gen" ? "Génération…" : "⚡ Générer les factures" + (selIds.length ? " (" + selIds.length + ")" : "")}</button>
         </div>
       </div>
@@ -106,8 +155,13 @@ const Contrats = () => {
         <div style={ST.kpi}><div style={ST.kpiK}>Montant HT à facturer</div><div style={{ ...ST.kpiV, color: "#0e7a55" }}>{fmtEUR(totalDue)}</div></div>
       </div>
 
-      <div style={{ padding: "0 28px 8px" }}>
+      <div style={{ padding: "0 28px 8px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher (client, type de contrat…)" style={ST.search} />
+        <div style={{ display: "inline-flex", gap: 4 }}>
+          {[["all", "Tous"], ["mensuel", "Mensuels/périodiques"], ["annuel", "Annuels"]].map(([k, l]) => (
+            <button key={k} onClick={() => setPeriodF(k)} style={{ ...ST.mini, ...(periodF === k ? { background: "#eef2ff", color: "#4f46e5", borderColor: "#c7d2fe" } : {}) }}>{l}</button>
+          ))}
+        </div>
       </div>
 
       {loading ? <div style={ST.empty}>Chargement…</div> : (
@@ -133,8 +187,9 @@ const Contrats = () => {
                 <span style={{ width: 90, fontSize: 11 }}>{c.payment_mode === "prelevement" ? "Prélèvement" : "Virement"}</span>
                 <span style={{ width: 110, textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtEUR(monthlyOf(c))}</span>
                 <span style={{ width: 150, textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <button onClick={() => setPreview(c)} style={ST.mini}>Aperçu</button>
                   <button onClick={() => setEdit(c)} style={ST.mini}>Éditer</button>
-                  <button onClick={() => removeC(c)} style={{ ...ST.mini, color: "#dc2626" }}>Suppr.</button>
+                  <button onClick={() => removeC(c)} style={{ ...ST.mini, color: "#dc2626" }}>×</button>
                 </span>
               </div>
             ))}
@@ -142,6 +197,32 @@ const Contrats = () => {
       )}
 
       {edit && <ContratModal contrat={edit} clients={clients} onClose={() => setEdit(null)} onSave={saveEdit} busy={busy === "save"} fmtEUR={fmtEUR} />}
+      {preview && (() => {
+        const c = preview; const rate = c.tva_rate != null ? c.tva_rate : 20;
+        const opts = (c.options || []).filter((o) => o.active !== false);
+        const lines = opts.length ? opts.map((o) => ({ label: (c.type_contrat || c.name) + " — " + (o.label || "Option"), ht: Number(o.montant_ht) || 0 })) : [{ label: c.type_contrat || c.name || "Abonnement", ht: Number(c.monthly_eur) || 0 }];
+        const ht = lines.reduce((s, l) => s + l.ht, 0); const ttc = Math.round(ht * (1 + rate / 100) * 100) / 100;
+        return (
+          <div onClick={() => setPreview(null)} style={ST.overlay}>
+            <div onClick={(e) => e.stopPropagation()} style={{ ...ST.modal, maxWidth: 520 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h2 style={{ margin: 0, fontSize: 16 }}>Aperçu facture — {clientName(c)}</h2>
+                <button onClick={() => setPreview(null)} style={ST.x}>×</button>
+              </div>
+              <div style={{ fontSize: 12.5, color: "#64748b", marginBottom: 8 }}>Période {monthLabel} · échéance {c.next_billing ? c.next_billing.split("-").reverse().join("/") : "—"}</div>
+              {lines.map((l, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}>
+                  <span>{l.label}</span><span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtEUR(l.ht)}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, fontSize: 13 }}><span>Total HT</span><strong>{fmtEUR(ht)}</strong></div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b" }}><span>TVA {rate}%</span><span>{fmtEUR(Math.round(ht * rate / 100 * 100) / 100)}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, paddingTop: 8, borderTop: "2px solid #e2e8f0", fontSize: 15, fontWeight: 800 }}><span>Total TTC</span><span>{fmtEUR(ttc)}</span></div>
+              <p style={{ fontSize: 11.5, color: "#94a3b8", marginTop: 12 }}>Aperçu indicatif. « Générer les factures » crée la facture réelle (brouillon) dans la gestion commerciale.</p>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

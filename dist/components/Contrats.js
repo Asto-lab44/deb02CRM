@@ -19,7 +19,9 @@ var Contrats = () => {
   var [q, setQ] = React.useState("");
   var [sel, setSel] = React.useState({});
   var [edit, setEdit] = React.useState(null); // contrat en édition (ou {} = nouveau)
-
+  var [periodF, setPeriodF] = React.useState("all"); // all | mensuel | annuel
+  var [preview, setPreview] = React.useState(null); // contrat en aperçu facture
+  var fileRef = React.useRef(null);
   var periodTo = (() => {
     var [y, m] = month.split("-").map(Number);
     return new Date(y, m, 0).toISOString().slice(0, 10);
@@ -42,7 +44,10 @@ var Contrats = () => {
   var clientName = c => c.client_name || (clients.find(x => x.id === c.client_id) || {}).raison_sociale || (clients.find(x => x.id === c.client_id) || {}).name || "—";
   var filtered = rows.filter(c => {
     var t = (clientName(c) + " " + c.type_contrat).toLowerCase();
-    return !q || t.includes(q.toLowerCase());
+    if (q && !t.includes(q.toLowerCase())) return false;
+    if (periodF === "annuel" && c.periodicity !== "annuel") return false;
+    if (periodF === "mensuel" && c.periodicity === "annuel") return false;
+    return true;
   });
   var monthLabel = (() => {
     var [y, m] = month.split("-").map(Number);
@@ -104,6 +109,75 @@ var Contrats = () => {
       download(filename, content, "text/csv");
     } catch (e) {
       (window.HubToast ? window.HubToast.error : alert)("Erreur SEPA : " + (e.message || e));
+    }
+    setBusy("");
+  };
+  var exportSepaXml = async () => {
+    setBusy("xml");
+    try {
+      var {
+        filename,
+        content,
+        count
+      } = await S.sepaXml({
+        to: periodTo,
+        ids: selIds.length ? selIds : null
+      });
+      if (!count) {
+        (window.HubToast ? window.HubToast.warn : alert)("Aucun prélèvement éligible (IBAN/RUM manquants ou montant nul).");
+        setBusy("");
+        return;
+      }
+      download(filename, content, "application/xml");
+      (window.HubToast ? window.HubToast.success : alert)(count + " prélèvement(s) dans le fichier SEPA XML.");
+    } catch (e) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur SEPA XML : " + (e.message || e));
+    }
+    setBusy("");
+  };
+  var csvTemplate = () => {
+    var head = "client;type_contrat;montant_ht;periodicity;payment_mode;iban;bic;rum;next_billing";
+    var ex = "ACME SARL;Maintenance PC;70,35;mensuel;prelevement;FR7630004...;BNPAFRPP;RUM-ACME-001;2026-07-01";
+    download("modele_import_contrats.csv", "﻿" + head + "\r\n" + ex, "text/csv");
+  };
+  var importCsv = async file => {
+    if (!file) return;
+    setBusy("import");
+    try {
+      var text = await file.text();
+      var lines = text.replace(/^﻿/, "").split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) throw new Error("Fichier vide");
+      var sepChar = lines[0].indexOf(";") >= 0 ? ";" : ",";
+      var heads = lines[0].split(sepChar).map(h => h.trim().toLowerCase());
+      var idx = name => heads.findIndex(h => h === name || h.indexOf(name) >= 0);
+      var iCli = idx("client"),
+        iType = idx("type"),
+        iMt = idx("montant"),
+        iPer = idx("period"),
+        iMode = idx("mode") >= 0 ? idx("mode") : idx("payment"),
+        iIban = idx("iban"),
+        iBic = idx("bic"),
+        iRum = idx("rum"),
+        iEch = idx("next") >= 0 ? idx("next") : idx("ech");
+      var rows2 = lines.slice(1).map(l => {
+        var c = l.split(sepChar);
+        return {
+          client_name: iCli >= 0 ? c[iCli] : "",
+          type_contrat: iType >= 0 ? c[iType] : "",
+          montant_ht: iMt >= 0 ? c[iMt] : "0",
+          periodicity: iPer >= 0 ? (c[iPer] || "").trim() : "mensuel",
+          payment_mode: iMode >= 0 ? (c[iMode] || "").trim() : "prelevement",
+          iban: iIban >= 0 ? c[iIban] : "",
+          bic: iBic >= 0 ? c[iBic] : "",
+          rum: iRum >= 0 ? c[iRum] : "",
+          next_billing: iEch >= 0 ? (c[iEch] || "").trim() : ""
+        };
+      });
+      var r = await S.importRows(rows2, clients);
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)((r.created || 0) + " contrat(s) importé(s).");
+    } catch (e) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur import : " + (e.message || e));
     }
     setBusy("");
   };
@@ -188,9 +262,31 @@ var Contrats = () => {
   }, "Facturation r\xE9currente par client + pr\xE9l\xE8vement SEPA.")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8
+      gap: 8,
+      flexWrap: "wrap",
+      justifyContent: "flex-end"
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("input", {
+    ref: fileRef,
+    type: "file",
+    accept: ".csv,text/csv",
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      var f = e.target.files[0];
+      e.target.value = "";
+      importCsv(f);
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: csvTemplate,
+    style: ST.btnGhost,
+    title: "T\xE9l\xE9charger un mod\xE8le CSV"
+  }, "\uD83D\uDCC4 Mod\xE8le"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => fileRef.current && fileRef.current.click(),
+    disabled: busy === "import",
+    style: ST.btnGhost
+  }, busy === "import" ? "Import…" : "⤵ Importer CSV"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setEdit({
       periodicity: "mensuel",
       payment_mode: "prelevement",
@@ -204,7 +300,11 @@ var Contrats = () => {
     onClick: exportSepa,
     disabled: busy === "sepa",
     style: ST.btnGhost
-  }, busy === "sepa" ? "…" : "🏦 Export prélèvement SEPA"), /*#__PURE__*/React.createElement("button", {
+  }, busy === "sepa" ? "…" : "🏦 SEPA (CSV)"), /*#__PURE__*/React.createElement("button", {
+    onClick: exportSepaXml,
+    disabled: busy === "xml",
+    style: ST.btnGhost
+  }, busy === "xml" ? "…" : "🏦 SEPA XML (pain.008)"), /*#__PURE__*/React.createElement("button", {
     onClick: genInvoices,
     disabled: busy === "gen",
     style: ST.btnPrimary
@@ -236,14 +336,34 @@ var Contrats = () => {
     }
   }, fmtEUR(totalDue)))), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "0 28px 8px"
+      padding: "0 28px 8px",
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
     placeholder: "Rechercher (client, type de contrat\u2026)",
     style: ST.search
-  })), loading ? /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      gap: 4
+    }
+  }, [["all", "Tous"], ["mensuel", "Mensuels/périodiques"], ["annuel", "Annuels"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => setPeriodF(k),
+    style: {
+      ...ST.mini,
+      ...(periodF === k ? {
+        background: "#eef2ff",
+        color: "#4f46e5",
+        borderColor: "#c7d2fe"
+      } : {})
+    }
+  }, l)))), loading ? /*#__PURE__*/React.createElement("div", {
     style: ST.empty
   }, "Chargement\u2026") : /*#__PURE__*/React.createElement("div", {
     style: ST.body
@@ -353,6 +473,9 @@ var Contrats = () => {
       justifyContent: "flex-end"
     }
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPreview(c),
+    style: ST.mini
+  }, "Aper\xE7u"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setEdit(c),
     style: ST.mini
   }, "\xC9diter"), /*#__PURE__*/React.createElement("button", {
@@ -361,14 +484,101 @@ var Contrats = () => {
       ...ST.mini,
       color: "#dc2626"
     }
-  }, "Suppr."))))), edit && /*#__PURE__*/React.createElement(ContratModal, {
+  }, "\xD7"))))), edit && /*#__PURE__*/React.createElement(ContratModal, {
     contrat: edit,
     clients: clients,
     onClose: () => setEdit(null),
     onSave: saveEdit,
     busy: busy === "save",
     fmtEUR: fmtEUR
-  }));
+  }), preview && (() => {
+    var c = preview;
+    var rate = c.tva_rate != null ? c.tva_rate : 20;
+    var opts = (c.options || []).filter(o => o.active !== false);
+    var lines = opts.length ? opts.map(o => ({
+      label: (c.type_contrat || c.name) + " — " + (o.label || "Option"),
+      ht: Number(o.montant_ht) || 0
+    })) : [{
+      label: c.type_contrat || c.name || "Abonnement",
+      ht: Number(c.monthly_eur) || 0
+    }];
+    var ht = lines.reduce((s, l) => s + l.ht, 0);
+    var ttc = Math.round(ht * (1 + rate / 100) * 100) / 100;
+    return /*#__PURE__*/React.createElement("div", {
+      onClick: () => setPreview(null),
+      style: ST.overlay
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: e => e.stopPropagation(),
+      style: {
+        ...ST.modal,
+        maxWidth: 520
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("h2", {
+      style: {
+        margin: 0,
+        fontSize: 16
+      }
+    }, "Aper\xE7u facture \u2014 ", clientName(c)), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setPreview(null),
+      style: ST.x
+    }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "#64748b",
+        marginBottom: 8
+      }
+    }, "P\xE9riode ", monthLabel, " \xB7 \xE9ch\xE9ance ", c.next_billing ? c.next_billing.split("-").reverse().join("/") : "—"), lines.map((l, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        padding: "6px 0",
+        borderBottom: "1px solid #f1f5f9",
+        fontSize: 13
+      }
+    }, /*#__PURE__*/React.createElement("span", null, l.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, fmtEUR(l.ht)))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        paddingTop: 10,
+        fontSize: 13
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Total HT"), /*#__PURE__*/React.createElement("strong", null, fmtEUR(ht))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 13,
+        color: "#64748b"
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "TVA ", rate, "%"), /*#__PURE__*/React.createElement("span", null, fmtEUR(Math.round(ht * rate / 100 * 100) / 100))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginTop: 6,
+        paddingTop: 8,
+        borderTop: "2px solid #e2e8f0",
+        fontSize: 15,
+        fontWeight: 800
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Total TTC"), /*#__PURE__*/React.createElement("span", null, fmtEUR(ttc))), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 11.5,
+        color: "#94a3b8",
+        marginTop: 12
+      }
+    }, "Aper\xE7u indicatif. \xAB G\xE9n\xE9rer les factures \xBB cr\xE9e la facture r\xE9elle (brouillon) dans la gestion commerciale.")));
+  })());
 };
 
 // ── Modal création / édition d'un contrat (avec options +/-) ──────────

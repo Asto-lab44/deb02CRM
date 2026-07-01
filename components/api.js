@@ -4802,6 +4802,84 @@
       }
       return { filename: "prelevements_SEPA_" + end + ".csv", content: "﻿" + rows.join("\r\n") };
     },
+    /** Export SEPA XML (pain.008.001.02) — ordre de prélèvement bancaire (BNP).
+     *  Nécessite l'ICS créancier (réglages société `sepa_ics`) + IBAN/BIC société.
+     *  `collectionDate` = date de prélèvement souhaitée. Renvoie { filename, content, count }. */
+    async sepaXml({ to, ids, collectionDate } = {}) {
+      const end = to || new Date().toISOString().slice(0, 10);
+      const due = (await this.due({ to: end, ids })).filter((c) => (c.payment_mode || "prelevement") === "prelevement");
+      const co = await commercialCompany.get().catch(() => ({}));
+      const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const ics = co.sepa_ics || "FR00ZZZ000000"; // ⚠ à renseigner (Identifiant Créancier SEPA)
+      const cdtrNom = co.raison_sociale || "ASTORYA SGI";
+      const cdtrIban = (co.iban || "").replace(/\s/g, ""), cdtrBic = (co.bic || "").replace(/\s/g, "");
+      const colDate = collectionDate || end;
+      const now = new Date();
+      const stamp = now.toISOString().slice(0, 19);
+      const msgId = "ASTORYA-" + now.getTime();
+      let count = 0, ctrl = 0; const tx = [];
+      for (const c of due) {
+        const client = c.client_id ? await clients.getById(c.client_id).catch(() => null) : null;
+        const nom = client ? (client.raison_sociale || client.name) : (c.client_name || "Client");
+        const rate = c.tva_rate != null ? c.tva_rate : 20;
+        const ht = c.options.filter((o) => o.active !== false).reduce((s, o) => s + (Number(o.montant_ht) || 0), 0) || Number(c.monthly_eur) || 0;
+        const ttc = Math.round(ht * (1 + rate / 100) * 100) / 100;
+        if (ttc <= 0 || !c.iban) continue;
+        count++; ctrl = Math.round((ctrl + ttc) * 100) / 100;
+        tx.push([
+          "      <DrctDbtTxInf>",
+          "        <PmtId><EndToEndId>" + esc((c.rum || "RUM") + "-" + end) + "</EndToEndId></PmtId>",
+          '        <InstdAmt Ccy="EUR">' + ttc.toFixed(2) + "</InstdAmt>",
+          "        <DrctDbtTx><MndtRltdInf><MndtId>" + esc(c.rum || "") + "</MndtId><DtOfSgntr>" + esc(c.mandate_date || c.next_billing || end) + "</DtOfSgntr></MndtRltdInf></DrctDbtTx>",
+          "        <DbtrAgt><FinInstnId>" + (c.bic ? "<BIC>" + esc(c.bic.replace(/\s/g, "")) + "</BIC>" : "<Othr><Id>NOTPROVIDED</Id></Othr>") + "</FinInstnId></DbtrAgt>",
+          "        <Dbtr><Nm>" + esc(nom) + "</Nm></Dbtr>",
+          "        <DbtrAcct><Id><IBAN>" + esc((c.iban || "").replace(/\s/g, "")) + "</IBAN></Id></DbtrAcct>",
+          "        <RmtInf><Ustrd>" + esc("Abonnement " + (c.type_contrat || c.name || "") + " " + end.slice(0, 7)) + "</Ustrd></RmtInf>",
+          "      </DrctDbtTxInf>",
+        ].join("\n"));
+      }
+      const xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02">',
+        "  <CstmrDrctDbtInitn>",
+        "    <GrpHdr><MsgId>" + esc(msgId) + "</MsgId><CreDtTm>" + stamp + "</CreDtTm><NbOfTxs>" + count + "</NbOfTxs><CtrlSum>" + ctrl.toFixed(2) + "</CtrlSum><InitgPty><Nm>" + esc(cdtrNom) + "</Nm></InitgPty></GrpHdr>",
+        "    <PmtInf>",
+        "      <PmtInfId>" + esc(msgId) + "</PmtInfId><PmtMtd>DD</PmtMtd><NbOfTxs>" + count + "</NbOfTxs><CtrlSum>" + ctrl.toFixed(2) + "</CtrlSum>",
+        "      <PmtTpInf><SvcLvl><Cd>SEPA</Cd></SvcLvl><LclInstrm><Cd>CORE</Cd></LclInstrm><SeqTp>RCUR</SeqTp></PmtTpInf>",
+        "      <ReqdColltnDt>" + esc(colDate) + "</ReqdColltnDt>",
+        "      <Cdtr><Nm>" + esc(cdtrNom) + "</Nm></Cdtr>",
+        "      <CdtrAcct><Id><IBAN>" + esc(cdtrIban) + "</IBAN></Id></CdtrAcct>",
+        "      <CdtrAgt><FinInstnId>" + (cdtrBic ? "<BIC>" + esc(cdtrBic) + "</BIC>" : "<Othr><Id>NOTPROVIDED</Id></Othr>") + "</FinInstnId></CdtrAgt>",
+        "      <CdtrSchmeId><Id><PrvtId><Othr><Id>" + esc(ics) + "</Id><SchmeNm><Prtry>SEPA</Prtry></SchmeNm></Othr></PrvtId></Id></CdtrSchmeId>",
+        tx.join("\n"),
+        "    </PmtInf>",
+        "  </CstmrDrctDbtInitn>",
+        "</Document>",
+      ].join("\n");
+      return { filename: "SEPA_pain008_" + end + ".xml", content: xml, count };
+    },
+    /** Import en masse de contrats depuis des lignes normalisées (objets).
+     *  Rapproche le client par nom si client_id absent. Renvoie { created }. */
+    async importRows(rows, clientList) {
+      const cls = clientList || await clients.list().catch(() => []);
+      const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      let created = 0;
+      for (const r of (rows || [])) {
+        if (!r || (!r.client_name && !r.client_id)) continue;
+        let cid = r.client_id || null; const cname = r.client_name || "";
+        if (!cid && cname) { const hit = cls.find((c) => norm(c.raison_sociale || c.name) === norm(cname)); if (hit) cid = hit.id; }
+        await this.save({
+          client_id: cid, client_name: cname, type_contrat: r.type_contrat || r.type || "Abonnement",
+          periodicity: r.periodicity || "mensuel", payment_mode: r.payment_mode || "prelevement",
+          monthly_eur: Number(String(r.montant_ht || r.montant || "0").replace(",", ".")) || 0,
+          tva_rate: r.tva_rate != null ? Number(r.tva_rate) : 20,
+          iban: r.iban || "", bic: r.bic || "", rum: r.rum || "",
+          next_billing: r.next_billing || null, status: "active", options: [],
+        });
+        created++;
+      }
+      return { created };
+    },
   };
 
   window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting, subscriptions };

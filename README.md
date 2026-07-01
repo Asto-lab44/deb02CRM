@@ -91,8 +91,9 @@ décrivant son rôle. `api.js` est découpé en sections numérotées (§1 helpe
 | Ticketing / hotline 3CX | `ticketing.html` | ✅ |
 | Stock (catalogue + parc) | `stock.html` | ✅ |
 | Intelligence concurrentielle | `intelligence-concurrentielle.html` | ✅ |
+| Comptabilité (écritures partie double, grand livre, balance, **export FEC**) | `comptabilite.html` | ✅ |
 | Templates email, planning, temps & activités, admin | … | ✅ |
-| Comptabilité · Facturation · Marketing · Rapports · RH | … | 🚧 |
+| Facturation avancée · Marketing · Rapports · RH | … | 🚧 |
 
 ---
 

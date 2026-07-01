@@ -80,6 +80,7 @@ Sinon, applique le schéma reconstruit + migrations, **dans cet ordre** :
 12. `sql/20260625_inbound_requests.sql`
 13. `sql/20260629_facture_acompte.sql`
 14. `sql/20260630_project_items_delivered_qty.sql`
+14b. `sql/20260630_accounting.sql`  ← module comptabilité (plan comptable, journaux, écritures) + FEC
 15. `sql/20260616_rls_missing_tables.sql`  ← RLS sur les tables cœur (après leur création)
 16. `sql/20260630_security_hardening.sql`  ← durcissement RLS leasing/garanties
 

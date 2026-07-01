@@ -4240,5 +4240,261 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests };
+  // ───────────────────────────────────────────────────────────────────
+  // §N. COMPTABILITÉ — plan comptable, journaux, écritures (partie double),
+  //     Grand livre, Balance, export FEC (DGFiP).
+  //
+  //   Une écriture est ÉQUILIBRÉE (Σ débit = Σ crédit) ; ses lignes vivent
+  //   dans entry.data.lines. Les écritures sont générées automatiquement
+  //   depuis les pièces commerciales :
+  //     • Facture   → Journal VE : débit 411 (TTC) / crédit 706 (HT) + 44571 (TVA)
+  //     • Avoir     → Journal VE : écriture inverse
+  //     • Règlement → Journal BQ : débit 512 (banque) / crédit 411 (client)
+  //   ou saisies à la main (Journal OD). Grand livre / Balance / FEC sont
+  //   CALCULÉS côté application à partir des écritures. Résilient localStorage.
+  // ───────────────────────────────────────────────────────────────────
+  const ACCT_JOURNALS_DEFAULT = [
+    { code: "VE", label: "Ventes" }, { code: "AC", label: "Achats" },
+    { code: "BQ", label: "Banque" }, { code: "CA", label: "Caisse" },
+    { code: "OD", label: "Opérations diverses" },
+  ];
+  const ACCT_ACCOUNTS_DEFAULT = [
+    { id: "411000", label: "Clients", kind: "client" },
+    { id: "706000", label: "Prestations de services", kind: "vente" },
+    { id: "707000", label: "Ventes de marchandises", kind: "vente" },
+    { id: "44571", label: "TVA collectée", kind: "tva" },
+    { id: "44566", label: "TVA déductible", kind: "tva" },
+    { id: "512000", label: "Banque", kind: "banque" },
+    { id: "530000", label: "Caisse", kind: "caisse" },
+    { id: "401000", label: "Fournisseurs", kind: "fournisseur" },
+  ];
+  const _r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+  const _yyyymmdd = (d) => { if (!d) return ""; const t = new Date(d); return isNaN(t.getTime()) ? "" : t.toISOString().slice(0, 10).replace(/-/g, ""); };
+  // Code client auxiliaire (FEC CompAuxNum) : « CLI » + 3 premières lettres.
+  const _cliCode = (name) => { const n = String(name || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); return n ? ("CLI" + n.slice(0, 3).padEnd(3, "X")) : ""; };
+
+  const accounting = {
+    // ---- Plan comptable ----
+    async accounts() {
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("accounting_accounts").select("*").order("id");
+        if (!error && data && data.length) return data;
+      }
+      const local = lsGet("accounting_accounts");
+      return local.length ? local : ACCT_ACCOUNTS_DEFAULT.slice();
+    },
+    async saveAccount(acc) {
+      const row = { id: acc.id, label: acc.label || "", kind: acc.kind || "general" };
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("accounting_accounts").upsert(row).select().maybeSingle();
+        if (!error && data) return data;
+      }
+      const arr = lsGet("accounting_accounts").filter((a) => a.id !== row.id);
+      arr.push(row); lsSet("accounting_accounts", arr); notifyDegraded("accounting.saveAccount");
+      return row;
+    },
+    async removeAccount(id) {
+      const s = supa();
+      if (s) { try { await s.from("accounting_accounts").delete().eq("id", id); } catch (e) {} }
+      lsSet("accounting_accounts", lsGet("accounting_accounts").filter((a) => a.id !== id));
+      return true;
+    },
+    // ---- Journaux ----
+    async journals() {
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("accounting_journals").select("*").order("code");
+        if (!error && data && data.length) return data;
+      }
+      return ACCT_JOURNALS_DEFAULT.slice();
+    },
+    // ---- Écritures ----
+    async entries({ from, to, journal } = {}) {
+      const s = supa();
+      let rows = [];
+      if (s) {
+        let q = s.from("accounting_entries").select("*");
+        if (from) q = q.gte("entry_date", from);
+        if (to) q = q.lte("entry_date", to);
+        if (journal) q = q.eq("journal_code", journal);
+        const { data, error } = await q.order("entry_date").order("num");
+        if (!error && data) rows = data;
+      }
+      // Fusion localStorage (résilience) + filtres
+      let local = lsGet("accounting_entries");
+      const seen = new Set(rows.map((r) => r.id));
+      local = local.filter((r) => !seen.has(r.id));
+      if (from) local = local.filter((r) => (r.entry_date || "") >= from);
+      if (to) local = local.filter((r) => (r.entry_date || "") <= to);
+      if (journal) local = local.filter((r) => r.journal_code === journal);
+      const all = [...rows, ...local];
+      all.sort((a, b) => (a.entry_date || "") < (b.entry_date || "") ? -1 : (a.entry_date > b.entry_date ? 1 : (a.num || 0) - (b.num || 0)));
+      return all;
+    },
+    async _nextNum() {
+      const all = await this.entries();
+      return all.reduce((m, e) => Math.max(m, Number(e.num) || 0), 0) + 1;
+    },
+    /** Crée une écriture équilibrée. payload = { journal_code, entry_date,
+     *  label, piece_ref, piece_date, source_doc_id, source_kind, lines[] }. */
+    async createEntry(payload) {
+      const lines = (payload.lines || []).map((l) => ({
+        account_id: l.account_id, account_label: l.account_label || "",
+        aux_num: l.aux_num || "", aux_label: l.aux_label || "",
+        label: l.label || payload.label || "", debit: _r2(l.debit), credit: _r2(l.credit),
+        lettrage: l.lettrage || "", lettrage_date: l.lettrage_date || null,
+      }));
+      const total_debit = _r2(lines.reduce((s, l) => s + l.debit, 0));
+      const total_credit = _r2(lines.reduce((s, l) => s + l.credit, 0));
+      const num = await this._nextNum();
+      const full = {
+        id: genId("ECR"), num,
+        journal_code: payload.journal_code || "OD",
+        entry_date: payload.entry_date || new Date().toISOString().slice(0, 10),
+        label: payload.label || "",
+        piece_ref: payload.piece_ref || null,
+        piece_date: payload.piece_date || null,
+        source_doc_id: payload.source_doc_id || null,
+        source_kind: payload.source_kind || "manual",
+        total_debit, total_credit,
+        validated_at: null,
+        data: { lines },
+        created_at: new Date().toISOString(),
+      };
+      const s = supa();
+      if (s) {
+        const created_by = await getCurrentUserId();
+        if (created_by) full.created_by = created_by;
+        const { data, error } = await s.from("accounting_entries").insert(full).select().maybeSingle();
+        if (!error && data) return { ...data, data: data.data || { lines } };
+        console.warn("[accounting.createEntry]", error && error.message);
+        notifyDegraded("accounting.createEntry");
+      }
+      const arr = lsGet("accounting_entries"); arr.push(full); lsSet("accounting_entries", arr);
+      return full;
+    },
+    async removeEntry(id) {
+      const s = supa();
+      if (s) { try { await s.from("accounting_entries").delete().eq("id", id); } catch (e) {} }
+      lsSet("accounting_entries", lsGet("accounting_entries").filter((e) => e.id !== id));
+      return true;
+    },
+    /** Génère les écritures de vente/règlement depuis les pièces commerciales.
+     *  Idempotent : ne recrée pas une écriture déjà présente (clé source). */
+    async generateFromSales({ from, to } = {}) {
+      const existing = await this.entries();
+      const seen = new Set(existing.map((e) => (e.source_kind || "") + ":" + (e.source_doc_id || "") + ":" + ((e.data && e.data.pay_id) || "")));
+      const facs = await commercialDocs.list({ type: "facture" }).catch(() => []);
+      const acs = await commercialDocs.list({ type: "facture_acompte" }).catch(() => []);
+      const avs = await commercialDocs.list({ type: "avoir" }).catch(() => []);
+      const inRange = (d) => (!from || (d.doc_date || "") >= from) && (!to || (d.doc_date || "") <= to);
+      let created = 0;
+      // Factures + factures d'acompte → journal VE
+      for (const f of [...facs, ...acs].filter(inRange)) {
+        const key = "facture:" + f.id + ":";
+        if (!seen.has(key)) {
+          const ttc = _r2(f.total_ttc), ht = _r2(f.total_ht), tva = _r2(f.total_tva);
+          const cn = _cliCode(f.client_name), cl = f.client_name || "";
+          await this.createEntry({
+            journal_code: "VE", entry_date: f.doc_date, label: "Facture " + f.id,
+            piece_ref: f.id, piece_date: f.doc_date, source_doc_id: f.id, source_kind: "facture",
+            lines: [
+              { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: ttc, credit: 0 },
+              { account_id: "706000", account_label: "Prestations de services", debit: 0, credit: ht },
+              { account_id: "44571", account_label: "TVA collectée", debit: 0, credit: tva },
+            ],
+          });
+          created++;
+        }
+        // Règlements encaissés (data.payments) → journal BQ
+        const pays = (f.data && Array.isArray(f.data.payments)) ? f.data.payments : [];
+        for (const p of pays) {
+          const pk = "reglement:" + f.id + ":" + (p.id || "");
+          if (seen.has(pk)) continue;
+          const amt = _r2(p.amount);
+          const cn = _cliCode(f.client_name), cl = f.client_name || "";
+          const e = await this.createEntry({
+            journal_code: "BQ", entry_date: (p.date || f.doc_date), label: "Règlement " + f.id,
+            piece_ref: f.id, piece_date: f.doc_date, source_doc_id: f.id, source_kind: "reglement",
+            lines: [
+              { account_id: "512000", account_label: "Banque", debit: amt, credit: 0 },
+              { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: 0, credit: amt },
+            ],
+          });
+          // mémorise l'id du paiement pour l'idempotence
+          if (e) { e.data = { ...(e.data || {}), pay_id: p.id }; try { const s = supa(); if (s) await s.from("accounting_entries").update({ data: e.data }).eq("id", e.id); else { const a = lsGet("accounting_entries"); const i = a.findIndex((x) => x.id === e.id); if (i >= 0) { a[i] = e; lsSet("accounting_entries", a); } } } catch (_) {} }
+          created++;
+        }
+      }
+      // Avoirs → journal VE (inverse)
+      for (const a of avs.filter(inRange)) {
+        const key = "avoir:" + a.id + ":";
+        if (seen.has(key)) continue;
+        const ttc = Math.abs(_r2(a.total_ttc)), ht = Math.abs(_r2(a.total_ht)), tva = Math.abs(_r2(a.total_tva));
+        const cn = _cliCode(a.client_name), cl = a.client_name || "";
+        await this.createEntry({
+          journal_code: "VE", entry_date: a.doc_date, label: "Avoir " + a.id,
+          piece_ref: a.id, piece_date: a.doc_date, source_doc_id: a.id, source_kind: "avoir",
+          lines: [
+            { account_id: "706000", account_label: "Prestations de services", debit: ht, credit: 0 },
+            { account_id: "44571", account_label: "TVA collectée", debit: tva, credit: 0 },
+            { account_id: "411000", account_label: "Clients", aux_num: cn, aux_label: cl, debit: 0, credit: ttc },
+          ],
+        });
+        created++;
+      }
+      return { created };
+    },
+    /** Balance : cumul débit/crédit + solde par compte. */
+    async balance({ from, to } = {}) {
+      const entries = await this.entries({ from, to });
+      const map = {};
+      entries.forEach((e) => ((e.data && e.data.lines) || []).forEach((l) => {
+        const k = l.account_id;
+        if (!map[k]) map[k] = { account_id: k, account_label: l.account_label || k, debit: 0, credit: 0 };
+        map[k].debit += Number(l.debit) || 0;
+        map[k].credit += Number(l.credit) || 0;
+      }));
+      return Object.values(map).map((a) => ({ ...a, debit: _r2(a.debit), credit: _r2(a.credit), solde: _r2(a.debit - a.credit) }))
+        .sort((a, b) => a.account_id < b.account_id ? -1 : 1);
+    },
+    /** Grand livre d'un compte : lignes détaillées + solde progressif. */
+    async ledger(accountId, { from, to } = {}) {
+      const entries = await this.entries({ from, to });
+      const out = []; let solde = 0;
+      entries.forEach((e) => ((e.data && e.data.lines) || []).forEach((l) => {
+        if (l.account_id !== accountId) return;
+        solde = _r2(solde + (Number(l.debit) || 0) - (Number(l.credit) || 0));
+        out.push({ entry_id: e.id, num: e.num, date: e.entry_date, journal: e.journal_code, piece_ref: e.piece_ref, label: l.label || e.label, aux_num: l.aux_num, debit: _r2(l.debit), credit: _r2(l.credit), lettrage: l.lettrage, solde });
+      }));
+      return out;
+    },
+    /** Export FEC (Fichier des Écritures Comptables, format DGFiP) : 18 colonnes
+     *  séparées par TABULATION, décimales à la virgule. Renvoie { filename, content }. */
+    async exportFEC({ from, to } = {}) {
+      const entries = await this.entries({ from, to });
+      const company = await commercialCompany.get().catch(() => ({}));
+      const siren = (company.siret || "").replace(/\s/g, "").slice(0, 9) || "SIREN";
+      const journals = await this.journals();
+      const jl = {}; journals.forEach((j) => { jl[j.code] = j.label; });
+      const amt = (n) => (Number(n) || 0).toFixed(2).replace(".", ",");
+      const COLS = ["JournalCode", "JournalLib", "EcritureNum", "EcritureDate", "CompteNum", "CompteLib", "CompAuxNum", "CompAuxLib", "PieceRef", "PieceDate", "EcritureLib", "Debit", "Credit", "EcritureLet", "DateLet", "ValidDate", "Montantdevise", "Idevise"];
+      const rows = [COLS.join("\t")];
+      entries.forEach((e) => ((e.data && e.data.lines) || []).forEach((l) => {
+        rows.push([
+          e.journal_code, jl[e.journal_code] || e.journal_code, e.num, _yyyymmdd(e.entry_date),
+          l.account_id, l.account_label || "", l.aux_num || "", l.aux_label || "",
+          e.piece_ref || "", _yyyymmdd(e.piece_date), (l.label || e.label || "").replace(/\t/g, " "),
+          amt(l.debit), amt(l.credit), l.lettrage || "", _yyyymmdd(l.lettrage_date),
+          _yyyymmdd(e.validated_at), "", "",
+        ].join("\t"));
+      }));
+      const end = (to || new Date().toISOString().slice(0, 10)).replace(/-/g, "");
+      return { filename: siren + "FEC" + end + ".txt", content: rows.join("\r\n") };
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting };
 })();

@@ -7,6 +7,8 @@
 INSERT INTO commercial_articles (id, ref, name, description, category, unit, price_ht, tva_rate, is_service, is_recurring) VALUES
   ('AST-GIT-INIT',     'AST-GIT-INIT',     'Mise en place du dépôt Git',            'Initialisation du dépôt, branches, premier push, gestion des accès.', 'Déploiement', 'forfait', 150.00, 20.00, true, false),
   ('AST-DEPLOY-VERCEL','AST-DEPLOY-VERCEL','Déploiement sur Vercel',                'Connexion du dépôt, build, variables d''environnement, en-têtes de sécurité, mise en production.', 'Déploiement', 'forfait', 350.00, 20.00, true, false),
+  ('AST-DOMAINE',      'AST-DOMAINE',      'Nom de domaine (achat + paramétrage)',  'Achat/enregistrement du nom de domaine au nom du client (1 an) et configuration initiale.', 'Déploiement', 'forfait', 45.00, 20.00, true, false),
+  ('AST-DOMAINE-RENEW','AST-DOMAINE-RENEW','Renouvellement nom de domaine',         'Renouvellement annuel du nom de domaine (refacturation).', 'Service', 'an', 25.00, 20.00, true, true),
   ('AST-DNS',          'AST-DNS',          'Configuration du nom de domaine (DNS)', 'Enregistrements DNS (A/CNAME), rattachement du domaine, vérification de propagation.', 'Déploiement', 'forfait', 90.00, 20.00, true, false),
   ('AST-SSL',          'AST-SSL',          'Certificat SSL / HTTPS',                'Émission et installation du certificat, forçage HTTPS, redirection http→https.', 'Déploiement', 'forfait', 120.00, 20.00, true, false),
   ('AST-ENV-CONF',     'AST-ENV-CONF',     'Configuration environnement applicatif','Clés de service, connexions base/API, réglages de mise en production.', 'Déploiement', 'forfait', 220.00, 20.00, true, false),

@@ -4028,15 +4028,24 @@
         body: apply(template.body || ""),
       };
     },
-    // Ouvre Outlook Web (OWA) avec le template pré-rempli. Si l'email
-    // destinataire est fourni, il est mis en To. Sinon laissé vide.
+    // Construit un lien mailto: (ouvre le client mail par défaut du poste —
+    // Outlook Desktop s'il est l'application par défaut).
+    mailtoUrl({ to, cc, subject, body }) {
+      const p = [];
+      if (cc) p.push("cc=" + encodeURIComponent(cc));
+      if (subject) p.push("subject=" + encodeURIComponent(subject));
+      if (body) p.push("body=" + encodeURIComponent(body));
+      return "mailto:" + (to || "") + (p.length ? "?" + p.join("&") : "");
+    },
+    // Ouvre le client mail DESKTOP (mailto) pré-rempli.
+    openMail({ to, cc, subject, body }) {
+      try { window.location.href = this.mailtoUrl({ to, cc, subject, body }); } catch (e) {}
+    },
+    // Compose un email depuis un template → ouvre l'Outlook du poste (mailto).
+    // (Nom conservé pour compatibilité ; ouvre désormais l'application desktop.)
     composeOutlookWeb({ to, template, ctx }) {
       const rendered = this.render(template, ctx);
-      const url = "https://outlook.office.com/owa/?path=/mail/action/compose"
-        + (to ? "&to=" + encodeURIComponent(to) : "")
-        + "&subject=" + encodeURIComponent(rendered.subject)
-        + "&body=" + encodeURIComponent(rendered.body);
-      window.open(url, "_blank", "noopener");
+      this.openMail({ to, subject: rendered.subject, body: rendered.body });
       return rendered;
     },
   };
@@ -4882,5 +4891,46 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting, subscriptions };
+  // ───────────────────────────────────────────────────────────────────
+  // §N. DOCUMENTS COMMERCIAUX (pièces jointes) — bibliothèque de liens
+  //     (SharePoint…) proposés à l'envoi d'un devis/facture. On stocke le
+  //     LIEN, pas le binaire. Table commercial_attachments, résilient localStorage.
+  // ───────────────────────────────────────────────────────────────────
+  const salesDocs = {
+    async list() {
+      const s = supa();
+      let rows = [];
+      if (s) {
+        const { data, error } = await s.from("commercial_attachments").select("*").eq("active", true).order("position");
+        if (!error && data) rows = data;
+      }
+      const seen = new Set(rows.map((r) => r.id));
+      const local = lsGet("commercial_attachments").filter((d) => d.active !== false && !seen.has(d.id));
+      return [...rows, ...local].sort((a, b) => (a.position || 0) - (b.position || 0));
+    },
+    async save(d) {
+      const row = {
+        id: d.id || genId("ATT"), name: d.name || "Document", category: d.category || "",
+        url: d.url || "", description: d.description || "", suggest: d.suggest !== false,
+        active: d.active !== false, position: Number(d.position) || 0, updated_at: new Date().toISOString(),
+      };
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("commercial_attachments").upsert(row).select().maybeSingle();
+        if (!error && data) return data;
+        notifyDegraded("salesDocs.save");
+      }
+      const arr = lsGet("commercial_attachments").filter((x) => x.id !== row.id);
+      arr.push(row); lsSet("commercial_attachments", arr);
+      return row;
+    },
+    async remove(id) {
+      const s = supa();
+      if (s) { try { await s.from("commercial_attachments").update({ active: false }).eq("id", id); } catch (e) {} }
+      lsSet("commercial_attachments", lsGet("commercial_attachments").filter((d) => d.id !== id));
+      return true;
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting, subscriptions, salesDocs };
 })();

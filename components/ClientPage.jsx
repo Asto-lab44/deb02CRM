@@ -1330,15 +1330,10 @@ const ClientPage = () => {
                               "",
                               "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe.",
                             ].join("\n");
-                            // Outlook Web compose — ne dépend pas du client mail par défaut du système
-                            // (en particulier utile quand mailto: n'est pas mappé à Outlook).
-                            const params = new URLSearchParams({
-                              path: "/mail/action/compose",
-                              to: recipient,
-                              subject,
-                              body,
-                            });
-                            const href = "https://outlook.office.com/owa/?" + params.toString();
+                            // mailto: → ouvre l'Outlook DESKTOP du poste (application par défaut).
+                            const href = "mailto:" + recipient
+                              + "?subject=" + encodeURIComponent(subject)
+                              + "&body=" + encodeURIComponent(body);
                             return (
                               <button
                                  type="button"
@@ -1372,8 +1367,8 @@ const ClientPage = () => {
                                        },
                                      });
                                    } else {
-                                     // Fallback : OWA direct avec sujet plaquette
-                                     window.open(href, "outlook-compose", "noopener");
+                                     // Fallback : Outlook desktop via mailto
+                                     window.location.href = href;
                                    }
                                    if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans Outlook comme pièce jointe");
                                  }}

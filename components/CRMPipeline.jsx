@@ -1145,11 +1145,10 @@ const CRMActionsList = () => {
                 if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans Outlook");
                 return;
               }
-              const owaUrl = "https://outlook.office.com/owa/?path=/mail/action/compose"
-                + "&to=" + encodeURIComponent(email)
-                + "&subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya")
+              // Ouvre l'OUTLOOK DESKTOP du poste via mailto:
+              window.location.href = "mailto:" + email
+                + "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya")
                 + "&body=" + encodeURIComponent(body);
-              window.open(owaUrl, "_blank", "noopener");
               if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail Outlook");
               return;
             }

@@ -2265,15 +2265,8 @@ var ClientPage = () => {
         var lastName = contactNom.split(" ").slice(-1)[0] || "";
         var subject = "Prise de contact - Plaquette Astorya";
         var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
-        // Outlook Web compose — ne dépend pas du client mail par défaut du système
-        // (en particulier utile quand mailto: n'est pas mappé à Outlook).
-        var params = new URLSearchParams({
-          path: "/mail/action/compose",
-          to: recipient,
-          subject,
-          body
-        });
-        var href = "https://outlook.office.com/owa/?" + params.toString();
+        // mailto: → ouvre l'Outlook DESKTOP du poste (application par défaut).
+        var href = "mailto:" + recipient + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
         return /*#__PURE__*/React.createElement("button", {
           type: "button",
           title: recipient ? "Choisir un template d'email pour " + recipient : "Aucun destinataire renseigné",
@@ -2306,8 +2299,8 @@ var ClientPage = () => {
                 }
               });
             } else {
-              // Fallback : OWA direct avec sujet plaquette
-              window.open(href, "outlook-compose", "noopener");
+              // Fallback : Outlook desktop via mailto
+              window.location.href = href;
             }
             if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans Outlook comme pièce jointe");
           },
@@ -2368,7 +2361,7 @@ var ClientPage = () => {
         var toIso = d => d.toISOString().replace(/\.\d{3}Z$/, "Z");
         var _subject = (a.title || "Rendez-vous") + " — " + (display.name || "");
         var _body = [a.meta || "", "", "Préparé via Hub Astorya"].filter(Boolean).join("\n");
-        var _params = new URLSearchParams({
+        var params = new URLSearchParams({
           subject: _subject,
           body: _body,
           startdt: toIso(start),
@@ -2394,8 +2387,8 @@ var ClientPage = () => {
             var attendees = [];
             if (attendeeEmail) attendees.push(attendeeEmail);
             if (ownerEmail && ownerEmail !== attendeeEmail) attendees.push(ownerEmail);
-            if (attendees.length > 0) _params.set("to", attendees.join(";"));
-            var url = "https://outlook.office.com/calendar/0/deeplink/compose?" + _params.toString();
+            if (attendees.length > 0) params.set("to", attendees.join(";"));
+            var url = "https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString();
             window.open(url, "_blank", "noopener");
             if (window.HubToast) {
               var msg = "📅 RDV avec " + attendeeName + (ownerEmail ? " + " + display.owner + " en copie" : "") + " — Outlook ouvert";

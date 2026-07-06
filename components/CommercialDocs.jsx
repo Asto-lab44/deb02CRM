@@ -3043,6 +3043,30 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
   const [sending, setSending] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [aiInstructions, setAiInstructions] = React.useState("");
+  // Bibliothèque de documents commerciaux (liens SharePoint) à joindre.
+  const [docsLib, setDocsLib] = React.useState([]);
+  const [selDocs, setSelDocs] = React.useState({});
+  const [showAddDoc, setShowAddDoc] = React.useState(false);
+  const [newDoc, setNewDoc] = React.useState({ name: "", url: "", category: "" });
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const lib = (window.api.salesDocs ? await window.api.salesDocs.list() : []) || [];
+        setDocsLib(lib);
+        const pre = {}; lib.forEach((d) => { if (d.suggest !== false) pre[d.id] = true; });
+        setSelDocs(pre);
+      } catch (e) {}
+    })();
+  }, []);
+  const attachedLinks = () => docsLib.filter((d) => selDocs[d.id] && d.url).map((d) => "• " + d.name + " : " + d.url);
+  const saveNewDoc = async () => {
+    if (!newDoc.name || !newDoc.url) { alert("Nom et lien requis"); return; }
+    try {
+      const saved = await window.api.salesDocs.save({ ...newDoc, suggest: true });
+      setDocsLib((l) => [...l, saved]); setSelDocs((s) => ({ ...s, [saved.id]: true }));
+      setNewDoc({ name: "", url: "", category: "" }); setShowAddDoc(false);
+    } catch (e) { alert("Erreur : " + (e.message || e)); }
+  };
 
   const send = async () => {
     if (!recipientEmail) { alert("Email destinataire requis"); return; }
@@ -3073,17 +3097,16 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
         } catch (e) {}
       }
 
-      // Ouvre Outlook (Web ou Desktop) avec subject/body pré-remplis
-      // Office 365 deeplink — fonctionne aussi via le protocol handler outlook:
-      // sur Windows si Outlook Desktop est installé.
-      const bodyWithNote = body + "\n\n[Le PDF a été téléchargé localement — glissez-le en pièce jointe.]";
-      const outlookUrl = "https://outlook.office.com/mail/deeplink/compose"
-        + "?to=" + encodeURIComponent(recipientEmail)
-        + (cc ? "&cc=" + encodeURIComponent(cc) : "")
-        + "&subject=" + encodeURIComponent(subject)
+      // Corps : message + documents joints (liens SharePoint) + note PDF.
+      const links = attachedLinks();
+      const bodyWithNote = body
+        + (links.length ? "\n\nDocuments joints :\n" + links.join("\n") : "")
+        + "\n\n[Le devis PDF a été téléchargé localement — glissez-le en pièce jointe.]";
+      // Ouvre l'OUTLOOK DESKTOP du poste via mailto: (application par défaut).
+      window.location.href = "mailto:" + recipientEmail
+        + "?" + (cc ? "cc=" + encodeURIComponent(cc) + "&" : "")
+        + "subject=" + encodeURIComponent(subject)
         + "&body=" + encodeURIComponent(bodyWithNote);
-      // Ouverture dans un nouvel onglet pour ne pas perdre le contexte Hub
-      window.open(outlookUrl, "_blank", "noopener");
 
       // Log permanent en BDD
       await window.api.commercialSends.log({
@@ -3091,9 +3114,10 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
         channel: "email",
         recipient_email: recipientEmail, recipient_name: recipientName,
         cc: cc || null, subject, body,
-        attachment_url: pdfBase64 ? doc.id + ".pdf" : null,
+        attachment_url: (pdfBase64 ? doc.id + ".pdf" : null),
         status: "sent",
-        provider: "outlook_web",
+        provider: "outlook_desktop",
+        attachments: links,
       });
 
       // Met à jour le statut du doc → "envoye"
@@ -3180,8 +3204,32 @@ const DocSendModal = ({ doc, onSave, onClose }) => {
             />
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} style={{ ...cdStyles.input, resize: "vertical", fontFamily: "inherit" }} />
           </div>
+          {/* Documents commerciaux à joindre (liens SharePoint) */}
+          <div style={{ marginBottom: 12, border: "1px solid #eef1f5", borderRadius: 8, padding: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <label style={{ ...cdStyles.lbl, marginBottom: 0 }}>📎 Documents commerciaux à joindre</label>
+              <button onClick={() => setShowAddDoc((v) => !v)} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 5, cursor: "pointer", color: "#475569" }}>{showAddDoc ? "Annuler" : "+ Ajouter"}</button>
+            </div>
+            {docsLib.length === 0 && !showAddDoc && <div style={{ fontSize: 11.5, color: "#94a3b8" }}>Aucun document dans la bibliothèque. Cliquez « + Ajouter » (nom + lien SharePoint).</div>}
+            {docsLib.map((d) => (
+              <label key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 12.5, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!selDocs[d.id]} onChange={(e) => setSelDocs((s) => ({ ...s, [d.id]: e.target.checked }))} />
+                <span style={{ fontWeight: 600 }}>{d.name}</span>
+                {d.category && <span style={{ fontSize: 10, background: "#eef2ff", color: "#4f46e5", padding: "1px 6px", borderRadius: 4 }}>{d.category}</span>}
+                {d.url && <a href={d.url} target="_blank" rel="noopener" style={{ fontSize: 10.5, color: "#3730a3", marginLeft: "auto" }}>ouvrir</a>}
+              </label>
+            ))}
+            {showAddDoc && (
+              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                <input value={newDoc.name} onChange={(e) => setNewDoc({ ...newDoc, name: e.target.value })} placeholder="Nom du document" style={{ ...cdStyles.input, flex: 1, minWidth: 140 }} />
+                <input value={newDoc.category} onChange={(e) => setNewDoc({ ...newDoc, category: e.target.value })} placeholder="Catégorie" style={{ ...cdStyles.input, width: 110 }} />
+                <input value={newDoc.url} onChange={(e) => setNewDoc({ ...newDoc, url: e.target.value })} placeholder="Lien SharePoint (https://…)" style={{ ...cdStyles.input, flex: "1 1 100%" }} />
+                <button onClick={saveNewDoc} style={cdStyles.primaryBtn}>Enregistrer dans la bibliothèque</button>
+              </div>
+            )}
+          </div>
           <div style={{ padding: 10, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 7, fontSize: 11.5, color: "#92400e", marginBottom: 14 }}>
-            ℹ Outlook s'ouvrira dans un nouvel onglet avec destinataire, objet et corps pré-remplis. Le PDF est téléchargé localement — glissez-le en pièce jointe dans la fenêtre Outlook. Chaque envoi est tracé en BDD pour audit permanent.
+            ℹ **Outlook** (application du poste) s'ouvre avec destinataire, objet et corps pré-remplis (via <code>mailto:</code>). Le devis PDF est téléchargé localement — glissez-le en pièce jointe. Les documents cochés sont ajoutés au corps sous forme de **liens**. Chaque envoi est tracé en BDD.
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <button onClick={onClose} style={cdStyles.ghostBtn}>Annuler</button>

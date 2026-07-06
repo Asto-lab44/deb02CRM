@@ -34,6 +34,7 @@ const CommercialDocsAdmin = () => {
           { k: "articles", label: "Catalogue articles", icon: "📦" },
           { k: "tva",      label: "Taux TVA",           icon: "%" },
           { k: "payment",  label: "Cond. paiement",     icon: "💳" },
+          { k: "documents",label: "Documents joints",   icon: "📎" },
           { k: "counters", label: "Numérotation",       icon: "#" },
           { k: "sends",    label: "Audit envois",       icon: "✉" },
         ].map((t) => (
@@ -48,6 +49,7 @@ const CommercialDocsAdmin = () => {
         {tab === "articles" && <ArticlesTab />}
         {tab === "tva"      && <TvaTab />}
         {tab === "payment"  && <PaymentTab />}
+        {tab === "documents"&& <DocumentsTab />}
         {tab === "counters" && <CountersTab />}
         {tab === "sends"    && <SendsTab />}
       </main>
@@ -197,6 +199,73 @@ const SendsTab = () => {
           ))}
         </div>
       }
+    </div>
+  );
+};
+
+// ── Documents commerciaux (pièces jointes proposées à l'envoi) ──────
+const DocumentsTab = () => {
+  const [list, setList] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [editing, setEditing] = React.useState(null);
+  const reload = async () => { setLoading(true); try { setList(await window.api.salesDocs.list() || []); } catch (e) {} setLoading(false); };
+  React.useEffect(() => { reload(); }, []);
+  const save = async (d) => {
+    if (!d.name || !d.url) { if (window.HubToast) window.HubToast.error("Nom et lien requis"); return; }
+    try { await window.api.salesDocs.save(d); if (window.HubToast) window.HubToast.success("✓ Document enregistré"); setEditing(null); reload(); }
+    catch (e) { if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e)); }
+  };
+  const remove = async (d) => { if (!confirm("Retirer « " + d.name + " » de la bibliothèque ?")) return; try { await window.api.salesDocs.remove(d.id); reload(); } catch (e) {} };
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <div><h1 style={cdaStyles.h1}>Documents commerciaux</h1><p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0" }}>Bibliothèque de documents (liens SharePoint) proposés à l'envoi d'un devis.</p></div>
+        <button onClick={() => setEditing({ name: "", url: "", category: "", description: "", suggest: true, position: (list.length + 1) })} style={cdaStyles.primaryBtn}>+ Nouveau document</button>
+      </div>
+      {loading ? <p style={{ color: "#94a3b8", padding: 16 }}>Chargement…</p> : (
+        <div style={{ marginTop: 12, border: "1px solid #eef1f5", borderRadius: 10, overflow: "hidden" }}>
+          <div style={cdaStyles.tableHead}>
+            <span style={{ flex: 1 }}>Nom</span><span style={{ flex: "0 0 120px" }}>Catégorie</span>
+            <span style={{ flex: "0 0 80px", textAlign: "center" }}>Suggéré</span>
+            <span style={{ flex: "0 0 70px", textAlign: "center" }}>Lien</span>
+            <span style={{ flex: "0 0 130px", textAlign: "right" }}>Actions</span>
+          </div>
+          {list.length === 0 ? <div style={{ padding: 20, color: "#94a3b8", fontSize: 12.5 }}>Aucun document. Cliquez « + Nouveau document ».</div> :
+            list.map((d) => (
+              <div key={d.id} style={cdaStyles.tableRow}>
+                <span style={{ flex: 1, fontWeight: 600 }}>{d.name}<div style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.url}</div></span>
+                <span style={{ flex: "0 0 120px" }}>{d.category ? <span style={{ fontSize: 10.5, background: "#eef2ff", color: "#4f46e5", padding: "1px 8px", borderRadius: 999 }}>{d.category}</span> : ""}</span>
+                <span style={{ flex: "0 0 80px", textAlign: "center" }}>{d.suggest !== false ? "✓" : "—"}</span>
+                <span style={{ flex: "0 0 70px", textAlign: "center" }}>{d.url ? <a href={d.url} target="_blank" rel="noopener" style={{ color: "#3730a3", fontSize: 11.5 }}>ouvrir</a> : ""}</span>
+                <span style={{ flex: "0 0 130px", textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <button onClick={() => setEditing(d)} style={cdaStyles.ghostBtn}>Éditer</button>
+                  <button onClick={() => remove(d)} style={{ ...cdaStyles.ghostBtn, color: "#dc2626" }}>×</button>
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+      {editing && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setEditing(null)}>
+          <div style={{ background: "#fff", borderRadius: 12, padding: 22, width: "100%", maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: "0 0 14px", fontSize: 16 }}>{editing.id ? "Éditer" : "Nouveau"} document</h2>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div><label style={cdaStyles.lbl}>Nom *</label><input value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} style={cdaStyles.input} /></div>
+              <div><label style={cdaStyles.lbl}>Lien SharePoint *</label><input value={editing.url || ""} onChange={(e) => setEditing({ ...editing, url: e.target.value })} placeholder="https://…sharepoint.com/…" style={cdaStyles.input} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div><label style={cdaStyles.lbl}>Catégorie</label><input value={editing.category || ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} placeholder="Plaquette, CGV…" style={cdaStyles.input} /></div>
+                <div><label style={cdaStyles.lbl}>Ordre</label><input type="number" value={editing.position || 0} onChange={(e) => setEditing({ ...editing, position: Number(e.target.value) })} style={cdaStyles.input} /></div>
+              </div>
+              <div><label style={cdaStyles.lbl}>Description</label><input value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} style={cdaStyles.input} /></div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={editing.suggest !== false} onChange={(e) => setEditing({ ...editing, suggest: e.target.checked })} /> Proposé (pré-coché) à l'envoi</label>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setEditing(null)} style={cdaStyles.ghostBtn}>Annuler</button>
+              <button onClick={() => save(editing)} style={cdaStyles.primaryBtn}>Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

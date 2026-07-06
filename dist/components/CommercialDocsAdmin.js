@@ -74,6 +74,10 @@ var CommercialDocsAdmin = () => {
     label: "Cond. paiement",
     icon: "💳"
   }, {
+    k: "documents",
+    label: "Documents joints",
+    icon: "📎"
+  }, {
     k: "counters",
     label: "Numérotation",
     icon: "#"
@@ -95,7 +99,7 @@ var CommercialDocsAdmin = () => {
     }
   }, t.icon), /*#__PURE__*/React.createElement("span", null, t.label)))), /*#__PURE__*/React.createElement("main", {
     style: cdaStyles.main
-  }, tab === "company" && /*#__PURE__*/React.createElement(CompanyTab, null), tab === "articles" && /*#__PURE__*/React.createElement(ArticlesTab, null), tab === "tva" && /*#__PURE__*/React.createElement(TvaTab, null), tab === "payment" && /*#__PURE__*/React.createElement(PaymentTab, null), tab === "counters" && /*#__PURE__*/React.createElement(CountersTab, null), tab === "sends" && /*#__PURE__*/React.createElement(SendsTab, null)));
+  }, tab === "company" && /*#__PURE__*/React.createElement(CompanyTab, null), tab === "articles" && /*#__PURE__*/React.createElement(ArticlesTab, null), tab === "tva" && /*#__PURE__*/React.createElement(TvaTab, null), tab === "payment" && /*#__PURE__*/React.createElement(PaymentTab, null), tab === "documents" && /*#__PURE__*/React.createElement(DocumentsTab, null), tab === "counters" && /*#__PURE__*/React.createElement(CountersTab, null), tab === "sends" && /*#__PURE__*/React.createElement(SendsTab, null)));
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -522,6 +526,287 @@ var SendsTab = () => {
       fontWeight: 600
     }
   }, s.status))))));
+};
+
+// ── Documents commerciaux (pièces jointes proposées à l'envoi) ──────
+var DocumentsTab = () => {
+  var [list, setList] = React.useState([]);
+  var [loading, setLoading] = React.useState(true);
+  var [editing, setEditing] = React.useState(null);
+  var reload = async () => {
+    setLoading(true);
+    try {
+      setList((await window.api.salesDocs.list()) || []);
+    } catch (e) {}
+    setLoading(false);
+  };
+  React.useEffect(() => {
+    reload();
+  }, []);
+  var save = async d => {
+    if (!d.name || !d.url) {
+      if (window.HubToast) window.HubToast.error("Nom et lien requis");
+      return;
+    }
+    try {
+      await window.api.salesDocs.save(d);
+      if (window.HubToast) window.HubToast.success("✓ Document enregistré");
+      setEditing(null);
+      reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var remove = async d => {
+    if (!confirm("Retirer « " + d.name + " » de la bibliothèque ?")) return;
+    try {
+      await window.api.salesDocs.remove(d.id);
+      reload();
+    } catch (e) {}
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: cdaStyles.h1
+  }, "Documents commerciaux"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12.5,
+      color: "#64748b",
+      margin: "4px 0 0"
+    }
+  }, "Biblioth\xE8que de documents (liens SharePoint) propos\xE9s \xE0 l'envoi d'un devis.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditing({
+      name: "",
+      url: "",
+      category: "",
+      description: "",
+      suggest: true,
+      position: list.length + 1
+    }),
+    style: cdaStyles.primaryBtn
+  }, "+ Nouveau document")), loading ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: "#94a3b8",
+      padding: 16
+    }
+  }, "Chargement\u2026") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      border: "1px solid #eef1f5",
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: cdaStyles.tableHead
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Nom"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 120px"
+    }
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 80px",
+      textAlign: "center"
+    }
+  }, "Sugg\xE9r\xE9"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 70px",
+      textAlign: "center"
+    }
+  }, "Lien"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 130px",
+      textAlign: "right"
+    }
+  }, "Actions")), list.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 20,
+      color: "#94a3b8",
+      fontSize: 12.5
+    }
+  }, "Aucun document. Cliquez \xAB + Nouveau document \xBB.") : list.map(d => /*#__PURE__*/React.createElement("div", {
+    key: d.id,
+    style: cdaStyles.tableRow
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontWeight: 600
+    }
+  }, d.name, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, d.url)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 120px"
+    }
+  }, d.category ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      background: "#eef2ff",
+      color: "#4f46e5",
+      padding: "1px 8px",
+      borderRadius: 999
+    }
+  }, d.category) : ""), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 80px",
+      textAlign: "center"
+    }
+  }, d.suggest !== false ? "✓" : "—"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 70px",
+      textAlign: "center"
+    }
+  }, d.url ? /*#__PURE__*/React.createElement("a", {
+    href: d.url,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3",
+      fontSize: 11.5
+    }
+  }, "ouvrir") : ""), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 130px",
+      textAlign: "right",
+      display: "flex",
+      gap: 6,
+      justifyContent: "flex-end"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditing(d),
+    style: cdaStyles.ghostBtn
+  }, "\xC9diter"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => remove(d),
+    style: {
+      ...cdaStyles.ghostBtn,
+      color: "#dc2626"
+    }
+  }, "\xD7"))))), editing && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000
+    },
+    onClick: () => setEditing(null)
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 22,
+      width: "100%",
+      maxWidth: 520
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: "0 0 14px",
+      fontSize: 16
+    }
+  }, editing.id ? "Éditer" : "Nouveau", " document"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Nom *"), /*#__PURE__*/React.createElement("input", {
+    value: editing.name || "",
+    onChange: e => setEditing({
+      ...editing,
+      name: e.target.value
+    }),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Lien SharePoint *"), /*#__PURE__*/React.createElement("input", {
+    value: editing.url || "",
+    onChange: e => setEditing({
+      ...editing,
+      url: e.target.value
+    }),
+    placeholder: "https://\u2026sharepoint.com/\u2026",
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement("input", {
+    value: editing.category || "",
+    onChange: e => setEditing({
+      ...editing,
+      category: e.target.value
+    }),
+    placeholder: "Plaquette, CGV\u2026",
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Ordre"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: editing.position || 0,
+    onChange: e => setEditing({
+      ...editing,
+      position: Number(e.target.value)
+    }),
+    style: cdaStyles.input
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdaStyles.lbl
+  }, "Description"), /*#__PURE__*/React.createElement("input", {
+    value: editing.description || "",
+    onChange: e => setEditing({
+      ...editing,
+      description: e.target.value
+    }),
+    style: cdaStyles.input
+  })), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: editing.suggest !== false,
+    onChange: e => setEditing({
+      ...editing,
+      suggest: e.target.checked
+    })
+  }), " Propos\xE9 (pr\xE9-coch\xE9) \xE0 l'envoi")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8,
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditing(null),
+    style: cdaStyles.ghostBtn
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => save(editing),
+    style: cdaStyles.primaryBtn
+  }, "Enregistrer")))));
 };
 var ArticlesTab = () => {
   var [list, setList] = React.useState([]);

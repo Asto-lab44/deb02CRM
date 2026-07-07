@@ -3437,6 +3437,10 @@ const SUPPLIER_DEFAULTS = [{"id": "SUP-DEDIBOX", "name": "DEDIBOX", "payment_ter
         return active ? arr.filter((r) => r.active !== false) : arr;
       },
 
+      /** Les 109 fournisseurs de référence (tableau compta) — exposés au
+       *  composant pour l'enrichissement d'affichage. */
+      defaults() { return SUPPLIER_DEFAULTS; },
+
       /** Répartition des fournisseurs actifs par niveau d'importance —
        *  alimente la tuile d'accueil. */
       async stats() {
@@ -3519,11 +3523,15 @@ const SUPPLIER_DEFAULTS = [{"id": "SUP-DEDIBOX", "name": "DEDIBOX", "payment_ter
        *  Idempotent, ne supprime jamais. Retourne { created, updated }. */
       async importDefaults() {
         const existing = await this.list({ active: false });
+        // Clé normalisée : majuscules sans espaces ni ponctuation, pour
+        // rapprocher « Free Pro » de « FREE PRO », « Athena global services »
+        // de « ATHENA GLOBAL SERVICES », etc. (évite les doublons).
+        const norm = (n) => String(n || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
         const byName = {};
-        (existing || []).forEach((r) => { byName[(r.name || "").toLowerCase()] = r; });
+        (existing || []).forEach((r) => { byName[norm(r.name)] = r; });
         let created = 0, updated = 0;
         for (const def of SUPPLIER_DEFAULTS) {
-          const cur = byName[(def.name || "").toLowerCase()];
+          const cur = byName[norm(def.name)];
           if (cur) {
             // fusion : les données du tableau ne remplacent PAS ce qui existe déjà
             const mergedData = { ...(def.data || {}), ...(cur.data || {}) };

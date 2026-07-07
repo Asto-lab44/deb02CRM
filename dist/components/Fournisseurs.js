@@ -48,6 +48,32 @@ var Fournisseurs = () => {
   var [tierF, setTierF] = React.useState("all");
   var [sort, setSort] = React.useState("importance"); // importance | name
   var [edit, setEdit] = React.useState(null);
+
+  // Enrichissement d'affichage : si une ligne (venue de la base) n'a pas
+  // encore les détails du tableau compta, on les superpose depuis les défauts
+  // (match sur nom normalisé). Les valeurs déjà saisies priment toujours.
+  var norm = n => String(n || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  var enrich = list => {
+    var defs = A && A.defaults && A.defaults() || [];
+    var byName = {};
+    defs.forEach(d => {
+      byName[norm(d.name)] = d;
+    });
+    return (list || []).map(r => {
+      var d = byName[norm(r.name)];
+      if (!d) return r;
+      var hasDetail = r.data && (r.data.importance || r.data.account_number || r.data.payment_type || r.data.invoice_mailbox);
+      if (hasDetail) return r; // déjà renseigné → on ne touche pas
+      return {
+        ...r,
+        payment_terms: r.payment_terms || d.payment_terms,
+        data: {
+          ...(d.data || {}),
+          ...(r.data || {})
+        }
+      };
+    });
+  };
   var reload = React.useCallback(async () => {
     if (!A) {
       setLoading(false);
@@ -55,9 +81,9 @@ var Fournisseurs = () => {
     }
     setLoading(true);
     try {
-      setRows((await A.list({
+      setRows(enrich((await A.list({
         active: true
-      })) || []);
+      })) || []));
     } catch (e) {
       console.warn(e);
     }

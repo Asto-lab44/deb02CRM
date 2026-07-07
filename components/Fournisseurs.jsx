@@ -27,10 +27,26 @@ const Fournisseurs = () => {
   const [sort, setSort] = React.useState("importance"); // importance | name
   const [edit, setEdit] = React.useState(null);
 
+  // Enrichissement d'affichage : si une ligne (venue de la base) n'a pas
+  // encore les détails du tableau compta, on les superpose depuis les défauts
+  // (match sur nom normalisé). Les valeurs déjà saisies priment toujours.
+  const norm = (n) => String(n || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const enrich = (list) => {
+    const defs = (A && A.defaults && A.defaults()) || [];
+    const byName = {}; defs.forEach((d) => { byName[norm(d.name)] = d; });
+    return (list || []).map((r) => {
+      const d = byName[norm(r.name)];
+      if (!d) return r;
+      const hasDetail = r.data && (r.data.importance || r.data.account_number || r.data.payment_type || r.data.invoice_mailbox);
+      if (hasDetail) return r; // déjà renseigné → on ne touche pas
+      return { ...r, payment_terms: r.payment_terms || d.payment_terms, data: { ...(d.data || {}), ...(r.data || {}) } };
+    });
+  };
+
   const reload = React.useCallback(async () => {
     if (!A) { setLoading(false); return; }
     setLoading(true);
-    try { setRows(await A.list({ active: true }) || []); }
+    try { setRows(enrich(await A.list({ active: true }) || [])); }
     catch (e) { console.warn(e); }
     setLoading(false);
   }, []);

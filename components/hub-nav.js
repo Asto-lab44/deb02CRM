@@ -14,6 +14,7 @@
     commercial: "/gestion-commerciale",
     commercial_admin: "/gestion-commerciale-admin",
     contracts:  "/contrats",
+    routines:   "/routines",
     inventory:  "/stock",
     accounting: "/comptabilite",
     billing:    "/facturation",

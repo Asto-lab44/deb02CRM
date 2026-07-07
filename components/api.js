@@ -4932,5 +4932,107 @@
     },
   };
 
-  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting, subscriptions, salesDocs };
+  // ───────────────────────────────────────────────────────────────────
+  // §N. ROUTINES & CLÔTURES — plan de charge récurrent (compta). Chaque tâche
+  //     a une fréquence (quotidien/hebdo/quinzaine/mensuel) et une tuile liée.
+  //     La complétion est enregistrée PAR PÉRIODE (routine_completions), donc
+  //     une tâche hebdo se « recoche » chaque semaine. Résilient localStorage.
+  // ───────────────────────────────────────────────────────────────────
+  const ROUTINE_DEFAULTS = [
+    ["RT-01","TRESORERIE","Saisir les banques via Bankin","hebdo","accounting"],
+    ["RT-02","TRESORERIE","Rapprochement bancaire","hebdo","accounting"],
+    ["RT-03","TRESORERIE","Lettrage","hebdo","accounting"],
+    ["RT-04","ACHATS","Vérification des factures fournisseur à régler","hebdo","accounting"],
+    ["RT-05","ACHATS","Règlement des factures fournisseur","hebdo","accounting"],
+    ["RT-06","RELANCES","Relance clients","quinzaine","treasury"],
+    ["RT-07","RELANCES","Veille des retours des dossiers Agir","hebdo","accounting"],
+    ["RT-08","CLIENTS","Traitement des mails clients","quotidien","tech"],
+    ["RT-09","FACTURATION","Vérification des abonnements CSP avant le 05","mensuel","contracts"],
+    ["RT-10","FACTURATION","Facturation récurrente : MANATEL + BE CLOUD + ERP + ALSO","mensuel","contracts"],
+    ["RT-11","FACTURATION","Envoi des factures récurrentes","mensuel","commercial"],
+    ["RT-12","FACTURATION","Intégration en comptabilité des écritures récurrentes","mensuel","accounting"],
+    ["RT-13","TRESORERIE","Prélèvements des factures récurrentes (15 du mois)","mensuel","contracts"],
+    ["RT-14","TRESORERIE","Prélèvements des factures ponctuelles","quinzaine","commercial"],
+    ["RT-15","SALARIES","Envoi des éléments de paie à Catherine","mensuel","hr"],
+    ["RT-16","SALARIES","Saisie des écritures comptables de paie","mensuel","accounting"],
+    ["RT-17","FACTURATION","Facturation ponctuelle","hebdo","commercial"],
+    ["RT-18","FACTURATION","Vérification des factures ponctuelles","mensuel","commercial"],
+    ["RT-19","SUIVI","Point chiffre d'affaires à Romain","mensuel","reports"],
+    ["RT-20","SUIVI","Point trésorerie à Romain","mensuel","treasury"],
+    ["RT-21","SUIVI","Point relance","mensuel","treasury"],
+    ["RT-22","FISCAL","Déclaration de TVA","mensuel","accounting"],
+    ["RT-23","CLIENTS","Point résiliation (vérification avec Laurent)","mensuel","contracts"],
+    ["RT-24","CLIENTS","Résiliation des contrats","quotidien","contracts"],
+    ["RT-25","FACTURATION","Facturation Page Pack","mensuel","contracts"],
+    ["RT-26","FACTURATION","Vérification des BL non passés en livrable","mensuel","projects"],
+    ["RT-27","FACTURATION","MAJ des contrats selon les envois des techniciens","quotidien","contracts"],
+    ["RT-28","TRESORERIE","Contrôle des prélèvements et ajustement des rejets","mensuel","treasury"],
+    ["RT-29","CLIENTS","Envoi chez Agir des dossiers non recouvrés > 3 mois","mensuel","accounting"],
+    ["RT-30","ACHATS","Vérification et saisie des NDF","mensuel","accounting"],
+    ["RT-31","ACHATS","Saisie des achats fournisseurs","quotidien","accounting"],
+    ["RT-32","CLIENTS","Suivi des clients en liquidation / redressement","mensuel","intel"],
+  ].map((t, i) => ({ id: t[0], service: t[1], action: t[2], frequency: t[3], module_key: t[4], position: i + 1, active: true }));
+
+  const routines = {
+    async tasks() {
+      const s = supa();
+      if (s) {
+        const { data, error } = await s.from("routine_tasks").select("*").eq("active", true).order("position");
+        if (!error && data && data.length) {
+          const seen = new Set(data.map((d) => d.id));
+          const extra = lsGet("routine_tasks").filter((d) => d.active !== false && !seen.has(d.id));
+          return [...data, ...extra].sort((a, b) => (a.position || 0) - (b.position || 0));
+        }
+      }
+      const local = lsGet("routine_tasks").filter((d) => d.active !== false);
+      const base = local.length ? local : ROUTINE_DEFAULTS.slice();
+      // fusionne les tâches locales personnalisées avec les défauts
+      if (local.length) {
+        const ids = new Set(local.map((d) => d.id));
+        ROUTINE_DEFAULTS.forEach((d) => { if (!ids.has(d.id)) base.push(d); });
+      }
+      return base.sort((a, b) => (a.position || 0) - (b.position || 0));
+    },
+    async saveTask(t) {
+      const row = { id: t.id || genId("RT"), service: t.service || "", action: t.action || "", frequency: t.frequency || "mensuel", module_key: t.module_key || null, assignee: t.assignee || null, position: Number(t.position) || 0, active: t.active !== false };
+      const s = supa();
+      if (s) { const { data, error } = await s.from("routine_tasks").upsert(row).select().maybeSingle(); if (!error && data) return data; notifyDegraded("routines.saveTask"); }
+      const arr = lsGet("routine_tasks").filter((x) => x.id !== row.id); arr.push(row); lsSet("routine_tasks", arr);
+      return row;
+    },
+    async removeTask(id) {
+      const s = supa();
+      if (s) { try { await s.from("routine_tasks").update({ active: false }).eq("id", id); } catch (e) {} }
+      const arr = lsGet("routine_tasks"); const i = arr.findIndex((x) => x.id === id);
+      if (i >= 0) { arr[i].active = false; } else { arr.push({ id, active: false }); }
+      lsSet("routine_tasks", arr); return true;
+    },
+    /** Ensemble des « task_id|period_key » cochés pour les périodes données. */
+    async doneSet(periodKeys) {
+      const s = supa();
+      let rows = [];
+      if (s && periodKeys.length) {
+        const { data } = await s.from("routine_completions").select("task_id,period_key").in("period_key", periodKeys);
+        rows = data || [];
+      }
+      const local = lsGet("routine_completions").filter((c) => periodKeys.includes(c.period_key));
+      const set = new Set();
+      [...rows, ...local].forEach((c) => set.add(c.task_id + "|" + c.period_key));
+      return set;
+    },
+    async setDone(taskId, periodKey, done, byName) {
+      const s = supa();
+      if (done) {
+        const row = { id: genId("RC"), task_id: taskId, period_key: periodKey, done_by: byName || null, done_at: new Date().toISOString() };
+        if (s) { try { await s.from("routine_completions").upsert(row, { onConflict: "task_id,period_key" }); } catch (e) {} }
+        const arr = lsGet("routine_completions").filter((c) => !(c.task_id === taskId && c.period_key === periodKey)); arr.push(row); lsSet("routine_completions", arr);
+      } else {
+        if (s) { try { await s.from("routine_completions").delete().eq("task_id", taskId).eq("period_key", periodKey); } catch (e) {} }
+        lsSet("routine_completions", lsGet("routine_completions").filter((c) => !(c.task_id === taskId && c.period_key === periodKey)));
+      }
+      return true;
+    },
+  };
+
+  window.api = { clients, opportunities, contacts, actions, contracts, contractTemplates, projects, deliveryNotes, notifications, auth, commercialDocs, commercialArticles, commercialRefs, commercialCompany, commercialSends, userActivity, intelTasks, leasingContracts, warranties, suppliers, purchaseMatrix, assets, dataExport, emailTemplates, inboundRequests, accounting, subscriptions, salesDocs, routines };
 })();

@@ -496,6 +496,31 @@ var ERPHome = () => {
     }
   }, {
     cat: "Finance",
+    key: "routines",
+    title: "Routines & clôtures",
+    subtitle: "Plan de charge comptable · quotidien / hebdo / mensuel",
+    icon: /*#__PURE__*/React.createElement("svg", {
+      viewBox: "0 0 24 24",
+      width: "22",
+      height: "22",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M9 11l3 3L22 4"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"
+    })),
+    color: "#0e7a55",
+    bg: "#d1fae5",
+    badge: {
+      label: "Checklist récurrente",
+      tone: "info"
+    }
+  }, {
+    cat: "Finance",
     key: "treasury",
     title: "Trésorerie",
     subtitle: "Cash flow, banques, échéances",

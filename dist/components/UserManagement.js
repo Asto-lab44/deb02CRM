@@ -146,6 +146,12 @@ var UserManagement = () => {
     color: "#4f46e5",
     bg: "#eef2ff"
   }, {
+    key: "routines",
+    cat: "Finance",
+    title: "Routines & clôtures",
+    color: "#0e7a55",
+    bg: "#d1fae5"
+  }, {
     key: "accounting",
     cat: "Finance",
     title: "Comptabilité",

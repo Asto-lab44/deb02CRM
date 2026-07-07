@@ -16,6 +16,7 @@
     contracts:  "/contrats",
     routines:   "/routines",
     inventory:  "/stock",
+    suppliers:  "/fournisseurs",
     accounting: "/comptabilite",
     billing:    "/facturation",
     treasury:   "/tresorerie",

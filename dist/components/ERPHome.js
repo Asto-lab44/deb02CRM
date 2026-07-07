@@ -29,7 +29,7 @@ var ERPHome = () => {
     id: "admin",
     name: "Administrateurs",
     color: "#dc2626",
-    access: ["crm", "intel", "marketing", "tech", "projects", "commercial", "contracts", "inventory", "accounting", "billing", "treasury", "hr", "time", "reports", "settings"]
+    access: ["crm", "intel", "marketing", "tech", "projects", "commercial", "contracts", "inventory", "suppliers", "accounting", "billing", "treasury", "hr", "time", "reports", "settings"]
   };
   var [activeGroup, setActiveGroup] = React.useState(() => HA && HA.getActiveGroup && HA.getActiveGroup() || defaultGroup);
   var [allGroups, setAllGroups] = React.useState(() => HA && HA.loadGroups && HA.loadGroups() || []);
@@ -193,6 +193,26 @@ var ERPHome = () => {
     if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + " k€";
     return Math.round(n) + " €";
   };
+
+  // Stats live pour la tuile Fournisseurs (répartition par importance)
+  var [supplierStats, setSupplierStats] = React.useState({
+    total: 0,
+    strategique: 0,
+    important: 0
+  });
+  React.useEffect(() => {
+    if (!window.api || !window.api.suppliers || !window.api.suppliers.stats) return;
+    (async () => {
+      try {
+        var s = await window.api.suppliers.stats();
+        setSupplierStats({
+          total: s.total || 0,
+          strategique: (s.byImportance || {}).strategique || 0,
+          important: (s.byImportance || {}).important || 0
+        });
+      } catch (e) {}
+    })();
+  }, []);
 
   // Stats live pour la tuile Temps & Activités
   var [activityStats, setActivityStats] = React.useState({
@@ -402,6 +422,41 @@ var ERPHome = () => {
     }, {
       k: "Valeur",
       v: "0 €"
+    }]
+  }, {
+    cat: "Production",
+    key: "suppliers",
+    title: "Fournisseurs",
+    subtitle: "Annuaire · classement par importance · paiements & comptes",
+    icon: /*#__PURE__*/React.createElement("svg", {
+      viewBox: "0 0 24 24",
+      width: "22",
+      height: "22",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M3 21h18M6 21V7l6-4 6 4v14"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"
+    })),
+    color: "#7c3aed",
+    bg: "#f3e8ff",
+    badge: {
+      label: "Classé par importance",
+      tone: "info"
+    },
+    stats: [{
+      k: "Fournisseurs",
+      v: String(supplierStats.total)
+    }, {
+      k: "Stratégiques",
+      v: String(supplierStats.strategique)
+    }, {
+      k: "Importants",
+      v: String(supplierStats.important)
     }]
   },
   // FINANCE

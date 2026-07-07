@@ -81,6 +81,7 @@ const UserManagement = () => {
     { key: "tech",       cat: "Production",  title: "Support technique",             color: "#0ea5e9", bg: "#e0f4fc" },
     { key: "projects",   cat: "Production",  title: "Projets & Livrables",           color: "#a855f7", bg: "#f5efff" },
     { key: "inventory",  cat: "Production",  title: "Stock & Catalogue",             color: "#0891b2", bg: "#cffafe" },
+    { key: "suppliers",  cat: "Production",  title: "Fournisseurs",                  color: "#7c3aed", bg: "#f3e8ff" },
     { key: "contracts",  cat: "Finance",     title: "Contrats & abonnements",        color: "#4f46e5", bg: "#eef2ff" },
     { key: "routines",   cat: "Finance",     title: "Routines & clôtures",           color: "#0e7a55", bg: "#d1fae5" },
     { key: "accounting", cat: "Finance",     title: "Comptabilité",                  color: "#10b981", bg: "#e8f8f1" },

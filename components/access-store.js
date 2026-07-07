@@ -39,7 +39,7 @@
   const ALL_KEYS = [
     "crm", "intel", "marketing",
     "tech", "projects", "commercial", "contracts", "routines",
-    "inventory", "accounting", "billing", "treasury",
+    "inventory", "suppliers", "accounting", "billing", "treasury",
     "hr", "time",
     "reports", "settings",
   ];
@@ -78,7 +78,7 @@
     {
       id: "finance", name: "Finance & Compta", color: "#10b981",
       description: "Comptabilité, facturation, trésorerie et reporting financier.",
-      access: ["accounting", "billing", "treasury", "contracts", "routines", "reports", "hr"],
+      access: ["accounting", "billing", "treasury", "contracts", "routines", "suppliers", "reports", "hr"],
       members: [],
     },
     {
@@ -96,7 +96,7 @@
     {
       id: "ops", name: "Opérations & Produit", color: "#a855f7",
       description: "Roadmap produit, livrables clients, gestion du stock.",
-      access: ["projects", "inventory", "tech", "reports"],
+      access: ["projects", "inventory", "suppliers", "tech", "reports"],
       members: [],
     },
   ];
@@ -140,7 +140,7 @@
   // Migration silencieuse : si un nouveau module est ajouté à ALL_KEYS,
   // on l'injecte automatiquement dans tous les groupes qui ont déjà l'accès
   // étendu (admin/superadmin) pour ne pas masquer les nouvelles tuiles.
-  const NEW_KEYS_AUTO_GRANT = ["commercial", "contracts", "routines"];
+  const NEW_KEYS_AUTO_GRANT = ["commercial", "contracts", "routines", "suppliers"];
 
   function migrateGroups(groups) {
     let mutated = false;

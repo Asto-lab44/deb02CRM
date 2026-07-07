@@ -140,6 +140,12 @@ var UserManagement = () => {
     color: "#0891b2",
     bg: "#cffafe"
   }, {
+    key: "suppliers",
+    cat: "Production",
+    title: "Fournisseurs",
+    color: "#7c3aed",
+    bg: "#f3e8ff"
+  }, {
     key: "contracts",
     cat: "Finance",
     title: "Contrats & abonnements",

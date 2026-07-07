@@ -3510,6 +3510,33 @@ const SUPPLIER_DEFAULTS = [{"id": "SUP-DEDIBOX", "name": "DEDIBOX", "payment_ter
         }
         return { created, skipped: (names || []).length - created };
       },
+
+      /** Importe / met à jour les 109 fournisseurs du tableau compta
+       *  (SUPPLIER_DEFAULTS) dans le backend actif. Match par nom :
+       *   - fournisseur existant → on FUSIONNE data (sans écraser les valeurs
+       *     déjà saisies) et on complète payment_terms si vide ;
+       *   - inconnu → on le crée.
+       *  Idempotent, ne supprime jamais. Retourne { created, updated }. */
+      async importDefaults() {
+        const existing = await this.list({ active: false });
+        const byName = {};
+        (existing || []).forEach((r) => { byName[(r.name || "").toLowerCase()] = r; });
+        let created = 0, updated = 0;
+        for (const def of SUPPLIER_DEFAULTS) {
+          const cur = byName[(def.name || "").toLowerCase()];
+          if (cur) {
+            // fusion : les données du tableau ne remplacent PAS ce qui existe déjà
+            const mergedData = { ...(def.data || {}), ...(cur.data || {}) };
+            const patch = { data: mergedData };
+            if (!cur.payment_terms && def.payment_terms) patch.payment_terms = def.payment_terms;
+            try { await this.update(cur.id, patch); updated++; } catch (e) { /* on continue */ }
+          } else {
+            try { await this.create({ name: def.name, payment_terms: def.payment_terms || null, data: def.data || {} }); created++; }
+            catch (e) { /* doublon racey — on continue */ }
+          }
+        }
+        return { created, updated };
+      },
     };
   })();
 

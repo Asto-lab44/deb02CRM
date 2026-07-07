@@ -76,6 +76,19 @@ const Fournisseurs = () => {
     try { await A.remove(r.id); await reload(); } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e)); }
   };
 
+  const [importing, setImporting] = React.useState(false);
+  const importDefaults = async () => {
+    if (!A.importDefaults) return;
+    if (!confirm("Importer / compléter l'annuaire depuis le tableau compta (109 fournisseurs) ?\n\nLes fournisseurs existants sont enrichis sans écraser vos saisies ; les manquants sont créés.")) return;
+    setImporting(true);
+    try {
+      const r = await A.importDefaults();
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)("Import terminé : " + r.created + " créé(s), " + r.updated + " mis à jour.");
+    } catch (e) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e)); }
+    setImporting(false);
+  };
+
   return (
     <div style={ST.frame}>
       <header style={ST.topbar}>
@@ -83,7 +96,10 @@ const Fournisseurs = () => {
           <a href="/" style={{ color: "#64748b", textDecoration: "none" }}>Accueil</a>
           <span style={{ color: "#cbd5e1" }}>/</span><span style={{ color: "#0f172a", fontWeight: 600 }}>Fournisseurs</span>
         </div>
-        <button onClick={openNew} style={ST.btnPrimary}>+ Nouveau fournisseur</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={importDefaults} disabled={importing} style={{ ...ST.btnGhost, opacity: importing ? 0.6 : 1 }} title="Importer / compléter depuis le tableau compta (109 fournisseurs)">{importing ? "Import…" : "⟳ Importer le tableau compta"}</button>
+          <button onClick={openNew} style={ST.btnPrimary}>+ Nouveau fournisseur</button>
+        </div>
       </header>
 
       <div style={ST.titleRow}>

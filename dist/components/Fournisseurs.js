@@ -130,6 +130,20 @@ var Fournisseurs = () => {
       (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e));
     }
   };
+  var [importing, setImporting] = React.useState(false);
+  var importDefaults = async () => {
+    if (!A.importDefaults) return;
+    if (!confirm("Importer / compléter l'annuaire depuis le tableau compta (109 fournisseurs) ?\n\nLes fournisseurs existants sont enrichis sans écraser vos saisies ; les manquants sont créés.")) return;
+    setImporting(true);
+    try {
+      var r = await A.importDefaults();
+      await reload();
+      (window.HubToast ? window.HubToast.success : alert)("Import terminé : " + r.created + " créé(s), " + r.updated + " mis à jour.");
+    } catch (e) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (e.message || e));
+    }
+    setImporting(false);
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: ST.frame
   }, /*#__PURE__*/React.createElement("header", {
@@ -157,10 +171,23 @@ var Fournisseurs = () => {
       color: "#0f172a",
       fontWeight: 600
     }
-  }, "Fournisseurs")), /*#__PURE__*/React.createElement("button", {
+  }, "Fournisseurs")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: importDefaults,
+    disabled: importing,
+    style: {
+      ...ST.btnGhost,
+      opacity: importing ? 0.6 : 1
+    },
+    title: "Importer / compl\xE9ter depuis le tableau compta (109 fournisseurs)"
+  }, importing ? "Import…" : "⟳ Importer le tableau compta"), /*#__PURE__*/React.createElement("button", {
     onClick: openNew,
     style: ST.btnPrimary
-  }, "+ Nouveau fournisseur")), /*#__PURE__*/React.createElement("div", {
+  }, "+ Nouveau fournisseur"))), /*#__PURE__*/React.createElement("div", {
     style: ST.titleRow
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: ST.h1

@@ -130,6 +130,50 @@ const ClientPage = () => {
   const [addActionOpen, setAddActionOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [editDraft, setEditDraft] = React.useState({});
+
+  // ── Recherche dynamique Pappers / annuaire dans le formulaire d'édition ──
+  const [ppQ, setPpQ] = React.useState("");
+  const [ppResults, setPpResults] = React.useState([]);
+  const [ppOpen, setPpOpen] = React.useState(false);
+  const [ppLoading, setPpLoading] = React.useState(false);
+  const ppTimer = React.useRef();
+  React.useEffect(() => {
+    if (ppTimer.current) clearTimeout(ppTimer.current);
+    const term = ppQ.trim();
+    if (term.length < 3) { setPpResults([]); setPpOpen(false); return; }
+    ppTimer.current = setTimeout(async () => {
+      setPpLoading(true);
+      try {
+        const r = await fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(term) + "&page=1&per_page=6");
+        const j = await r.json();
+        setPpResults(Array.isArray(j.results) ? j.results : []); setPpOpen(true);
+      } catch (e) { setPpResults([]); }
+      setPpLoading(false);
+    }, 300);
+    return () => { if (ppTimer.current) clearTimeout(ppTimer.current); };
+  }, [ppQ]);
+  // Renseigne le brouillon d'édition depuis un résultat d'entreprise.
+  const fillFromCompany = (e) => {
+    const siege = e.siege || {};
+    const siren = String(e.siren || "").replace(/\D/g, "");
+    let addr = siege.geo_adresse || [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(" ") || siege.adresse || "";
+    if (siege.code_postal) addr = addr.replace(siege.code_postal, "").trim();
+    if (siege.libelle_commune) addr = addr.replace(new RegExp(siege.libelle_commune, "i"), "").trim();
+    addr = addr.replace(/[\s,]+$/, "");
+    const tvaKey = siren ? (12 + 3 * (parseInt(siren, 10) % 97)) % 97 : null;
+    setEditDraft((d) => ({ ...d,
+      raison_sociale: e.nom_complet || e.nom_raison_sociale || d.raison_sociale,
+      siren: siren.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"),
+      naf: e.activite_principale || siege.activite_principale || d.naf,
+      tva: tvaKey != null ? "FR" + String(tvaKey).padStart(2, "0") + " " + siren : d.tva,
+      address: addr || d.address,
+      cp: siege.code_postal || d.cp,
+      addressCity: siege.libelle_commune || d.addressCity,
+      matched_name: e.nom_complet || e.nom_raison_sociale || null,
+    }));
+    if (window.HubToast) window.HubToast.success("Champs pré-remplis depuis l'annuaire — vérifiez puis enregistrez.");
+    setPpQ(""); setPpResults([]); setPpOpen(false);
+  };
   const ownerListE = [
     { name: "Romain Daviaud",  role: "Direction · Achat",      color: "#4f46e5" },
     { name: "Augustin Morin",  role: "Direction · Commercial", color: "#10b981" },
@@ -570,6 +614,7 @@ const ClientPage = () => {
       siren: editDraft.siren || null,
       naf: editDraft.naf || null,
       tva: editDraft.tva || null,
+      matched_name: editDraft.matched_name || null,
       besoin: editDraft.besoin || null,
       action: editDraft.action || null,
       fonction: editDraft.fonction || null,
@@ -2149,6 +2194,39 @@ const ClientPage = () => {
             <div style={{ padding: 22, display: "grid", gap: 14 }}>
               {/* ENTREPRISE */}
               <div style={editSection}>01 · Entreprise</div>
+
+              {/* Recherche dynamique Pappers / annuaire officiel : pré-remplit
+                  SIREN, NAF, TVA, adresse, ville en un clic. */}
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>🔎</span>
+                  <input value={ppQ} onChange={(e) => setPpQ(e.target.value)} onFocus={() => ppResults.length && setPpOpen(true)}
+                         placeholder="Rechercher sur Pappers (nom ou SIREN) pour compléter automatiquement…"
+                         style={{ width: "100%", padding: "9px 30px 9px 33px", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 12.5, background: "#f5f7ff", boxSizing: "border-box", outline: "none" }} />
+                  {ppLoading && <span style={{ position: "absolute", right: 11, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>…</span>}
+                  {ppQ && !ppLoading && <button type="button" onClick={() => { setPpQ(""); setPpOpen(false); }} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", border: 0, background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 15 }}>×</button>}
+                </div>
+                {ppOpen && ppResults.length > 0 && (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 12px 30px rgba(15,23,42,0.16)", zIndex: 60, overflow: "hidden" }}>
+                    {ppResults.map((e) => {
+                      const siege = e.siege || {};
+                      return (
+                        <div key={e.siren} onClick={() => fillFromCompany(e)}
+                             style={{ padding: "9px 12px", borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}
+                             onMouseEnter={(ev) => ev.currentTarget.style.background = "#f5f7ff"} onMouseLeave={(ev) => ev.currentTarget.style.background = "#fff"}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nom_complet || e.nom_raison_sociale}</div>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>
+                            SIREN {String(e.siren || "").replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
+                            {siege.libelle_commune && <> · 📍 {siege.libelle_commune}{siege.code_postal ? " (" + siege.code_postal + ")" : ""}</>}
+                            {e.etat_administratif === "C" && <span style={{ color: "#b91c1c", fontWeight: 600 }}> · fermé</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label style={editLabel}>Raison sociale</label>
                 <input value={editDraft.raison_sociale || ""} onChange={(e) => setEditDraft({ ...editDraft, raison_sociale: e.target.value })} style={editInput} />

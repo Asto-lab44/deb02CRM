@@ -155,6 +155,62 @@ var ClientPage = () => {
   var [addActionOpen, setAddActionOpen] = React.useState(false);
   var [editOpen, setEditOpen] = React.useState(false);
   var [editDraft, setEditDraft] = React.useState({});
+
+  // ── Recherche dynamique Pappers / annuaire dans le formulaire d'édition ──
+  var [ppQ, setPpQ] = React.useState("");
+  var [ppResults, setPpResults] = React.useState([]);
+  var [ppOpen, setPpOpen] = React.useState(false);
+  var [ppLoading, setPpLoading] = React.useState(false);
+  var ppTimer = React.useRef();
+  React.useEffect(() => {
+    if (ppTimer.current) clearTimeout(ppTimer.current);
+    var term = ppQ.trim();
+    if (term.length < 3) {
+      setPpResults([]);
+      setPpOpen(false);
+      return;
+    }
+    ppTimer.current = setTimeout(async () => {
+      setPpLoading(true);
+      try {
+        var r = await fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(term) + "&page=1&per_page=6");
+        var j = await r.json();
+        setPpResults(Array.isArray(j.results) ? j.results : []);
+        setPpOpen(true);
+      } catch (e) {
+        setPpResults([]);
+      }
+      setPpLoading(false);
+    }, 300);
+    return () => {
+      if (ppTimer.current) clearTimeout(ppTimer.current);
+    };
+  }, [ppQ]);
+  // Renseigne le brouillon d'édition depuis un résultat d'entreprise.
+  var fillFromCompany = e => {
+    var siege = e.siege || {};
+    var siren = String(e.siren || "").replace(/\D/g, "");
+    var addr = siege.geo_adresse || [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(" ") || siege.adresse || "";
+    if (siege.code_postal) addr = addr.replace(siege.code_postal, "").trim();
+    if (siege.libelle_commune) addr = addr.replace(new RegExp(siege.libelle_commune, "i"), "").trim();
+    addr = addr.replace(/[\s,]+$/, "");
+    var tvaKey = siren ? (12 + 3 * (parseInt(siren, 10) % 97)) % 97 : null;
+    setEditDraft(d => ({
+      ...d,
+      raison_sociale: e.nom_complet || e.nom_raison_sociale || d.raison_sociale,
+      siren: siren.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"),
+      naf: e.activite_principale || siege.activite_principale || d.naf,
+      tva: tvaKey != null ? "FR" + String(tvaKey).padStart(2, "0") + " " + siren : d.tva,
+      address: addr || d.address,
+      cp: siege.code_postal || d.cp,
+      addressCity: siege.libelle_commune || d.addressCity,
+      matched_name: e.nom_complet || e.nom_raison_sociale || null
+    }));
+    if (window.HubToast) window.HubToast.success("Champs pré-remplis depuis l'annuaire — vérifiez puis enregistrez.");
+    setPpQ("");
+    setPpResults([]);
+    setPpOpen(false);
+  };
   var ownerListE = [{
     name: "Romain Daviaud",
     role: "Direction · Achat",
@@ -734,6 +790,7 @@ var ClientPage = () => {
       siren: editDraft.siren || null,
       naf: editDraft.naf || null,
       tva: editDraft.tva || null,
+      matched_name: editDraft.matched_name || null,
       besoin: editDraft.besoin || null,
       action: editDraft.action || null,
       fonction: editDraft.fonction || null,
@@ -3991,7 +4048,111 @@ var ClientPage = () => {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: editSection
-  }, "01 \xB7 Entreprise"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, "01 \xB7 Entreprise"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 11,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 13
+    }
+  }, "\uD83D\uDD0E"), /*#__PURE__*/React.createElement("input", {
+    value: ppQ,
+    onChange: e => setPpQ(e.target.value),
+    onFocus: () => ppResults.length && setPpOpen(true),
+    placeholder: "Rechercher sur Pappers (nom ou SIREN) pour compl\xE9ter automatiquement\u2026",
+    style: {
+      width: "100%",
+      padding: "9px 30px 9px 33px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 8,
+      fontSize: 12.5,
+      background: "#f5f7ff",
+      boxSizing: "border-box",
+      outline: "none"
+    }
+  }), ppLoading && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: 11,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 12,
+      color: "#94a3b8"
+    }
+  }, "\u2026"), ppQ && !ppLoading && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setPpQ("");
+      setPpOpen(false);
+    },
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      border: 0,
+      background: "transparent",
+      color: "#94a3b8",
+      cursor: "pointer",
+      fontSize: 15
+    }
+  }, "\xD7")), ppOpen && ppResults.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 12px 30px rgba(15,23,42,0.16)",
+      zIndex: 60,
+      overflow: "hidden"
+    }
+  }, ppResults.map(e => {
+    var siege = e.siege || {};
+    return /*#__PURE__*/React.createElement("div", {
+      key: e.siren,
+      onClick: () => fillFromCompany(e),
+      style: {
+        padding: "9px 12px",
+        borderBottom: "1px solid #f1f5f9",
+        cursor: "pointer"
+      },
+      onMouseEnter: ev => ev.currentTarget.style.background = "#f5f7ff",
+      onMouseLeave: ev => ev.currentTarget.style.background = "#fff"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, e.nom_complet || e.nom_raison_sociale), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 1
+      }
+    }, "SIREN ", String(e.siren || "").replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"), siege.libelle_commune && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 \uD83D\uDCCD ", siege.libelle_commune, siege.code_postal ? " (" + siege.code_postal + ")" : ""), e.etat_administratif === "C" && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#b91c1c",
+        fontWeight: 600
+      }
+    }, " \xB7 ferm\xE9")));
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: editLabel
   }, "Raison sociale"), /*#__PURE__*/React.createElement("input", {
     value: editDraft.raison_sociale || "",

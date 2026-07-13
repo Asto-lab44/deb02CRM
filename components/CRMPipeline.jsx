@@ -885,6 +885,30 @@ const MATCH_STYLE = {
   bad:  { icon: "⚠", color: "#991b1b", bg: "#fee2e2", label: "Douteux" },
 };
 
+// Construit une fiche client à partir d'un résultat de l'annuaire officiel
+// (recherche-entreprises.api.gouv.fr) : SIREN/SIRET, adresse, NAF, TVA…
+function companyFromResult(e) {
+  const siege = e.siege || {};
+  const siren = String(e.siren || "").replace(/\D/g, "");
+  let addr = siege.geo_adresse || [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(" ") || siege.adresse || "";
+  if (siege.code_postal) addr = addr.replace(siege.code_postal, "").trim();
+  if (siege.libelle_commune) addr = addr.replace(new RegExp(siege.libelle_commune, "i"), "").trim();
+  addr = addr.replace(/[\s,]+$/, "");
+  const name = e.nom_complet || e.nom_raison_sociale || "";
+  const tvaKey = siren ? (12 + 3 * (parseInt(siren, 10) % 97)) % 97 : null;
+  return {
+    raison_sociale: name, name: name,
+    siren: siren.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"),
+    siret: String(siege.siret || "").replace(/(\d{3})(\d{3})(\d{3})(\d{5})/, "$1 $2 $3 $4"),
+    naf: e.activite_principale || siege.activite_principale || "",
+    secteur: e.libelle_activite_principale || siege.libelle_activite_principale || "",
+    adresse: addr, ville: siege.libelle_commune || "", code_postal: siege.code_postal || "",
+    tva: tvaKey != null ? "FR" + String(tvaKey).padStart(2, "0") + " " + siren : "",
+    forme_juridique: e.nature_juridique || "", tranche_effectif: e.tranche_effectif_salarie || "",
+    date_creation: e.date_creation || "", matched_name: name, source: "Recherche Pappers/annuaire",
+  };
+}
+
 // ───── Sous-composant : Comptes & Contacts avec recherche
 const CRMAccountsList = () => {
   const [reviewOnly, setReviewOnly] = React.useState(false);
@@ -908,15 +932,58 @@ const CRMAccountsList = () => {
   const [localProspects, setLocalProspects] = React.useState([]);
   const [supaClients, setSupaClients] = React.useState([]);
 
-  React.useEffect(() => {
+  const loadAccounts = React.useCallback(() => {
     if (!window.api) return;
     window.api.clients.list().then((list) => {
-      const prospects = (list || []).filter((p) => (p.status || "prospect") === "prospect");
-      const clients = (list || []).filter((p) => p.status === "client");
-      setLocalProspects(prospects);
-      setSupaClients(clients);
+      setLocalProspects((list || []).filter((p) => (p.status || "prospect") === "prospect"));
+      setSupaClients((list || []).filter((p) => p.status === "client"));
     }).catch(() => {});
   }, []);
+  React.useEffect(() => { loadAccounts(); }, [loadAccounts]);
+
+  // ── Recherche dynamique Pappers / annuaire officiel ──────────────────
+  // Autocomplétion live d'entreprises (nom ou SIREN). Un clic sur un
+  // résultat crée la fiche (prospect) pré-remplie SIREN/adresse/NAF/TVA.
+  const [coQ, setCoQ] = React.useState("");
+  const [coResults, setCoResults] = React.useState([]);
+  const [coOpen, setCoOpen] = React.useState(false);
+  const [coLoading, setCoLoading] = React.useState(false);
+  const [coAdding, setCoAdding] = React.useState(null);
+  const coTimer = React.useRef();
+  React.useEffect(() => {
+    if (coTimer.current) clearTimeout(coTimer.current);
+    const term = coQ.trim();
+    if (term.length < 3) { setCoResults([]); setCoOpen(false); return; }
+    coTimer.current = setTimeout(async () => {
+      setCoLoading(true);
+      try {
+        const r = await fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(term) + "&page=1&per_page=6");
+        const j = await r.json();
+        setCoResults(Array.isArray(j.results) ? j.results : []);
+        setCoOpen(true);
+      } catch (e) { setCoResults([]); }
+      setCoLoading(false);
+    }, 300);
+    return () => { if (coTimer.current) clearTimeout(coTimer.current); };
+  }, [coQ]);
+
+  const addCompany = async (e) => {
+    if (!window.api || !window.api.clients) return;
+    setCoAdding(e.siren);
+    try {
+      const payload = Object.assign(companyFromResult(e), { status: "prospect", pappers_enriched: true });
+      const created = await window.api.clients.create(payload);
+      if (created && created.siren && window.HubPappers && window.HubPappers.checkSiren) {
+        try {
+          const p = await window.HubPappers.checkSiren(created.siren);
+          if (p && p.status !== "error") await window.api.clients.update(created.id, { pappers: { status: p.status, procedures: p.procedures || p.procedures_collectives || null, dirigeants: p.dirigeants || null, checked_at: p.checked_at || null } });
+        } catch (e2) { /* Pappers optionnel */ }
+      }
+      if (window.HubToast) window.HubToast.success((payload.raison_sociale || "Entreprise") + " ajouté" + (window.HubTestMode ? " au bac à sable" : ""));
+      setCoQ(""); setCoResults([]); setCoOpen(false); loadAccounts();
+    } catch (err) { (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (err.message || err)); }
+    setCoAdding(null);
+  };
 
   // Auto-scroll vers la section ciblée par le hash URL (Comptes, Contacts, Activités)
   React.useEffect(() => {
@@ -1002,6 +1069,43 @@ const CRMAccountsList = () => {
         </div>
       </div>
 
+      {/* Recherche dynamique Pappers / annuaire officiel — ajout rapide de compte */}
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <div style={{ position: "relative" }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14 }}>🔎</span>
+          <input value={coQ} onChange={(e) => setCoQ(e.target.value)} onFocus={() => coResults.length && setCoOpen(true)}
+                 placeholder="Recherche dynamique Pappers — tapez un nom d'entreprise ou un SIREN pour l'ajouter…"
+                 style={{ width: "100%", padding: "10px 12px 10px 36px", border: "1px solid #c7d2fe", borderRadius: 10, fontSize: 13, outline: "none", background: "#f5f7ff", boxSizing: "border-box" }} />
+          {coLoading && <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>…</span>}
+          {coQ && !coLoading && <button onClick={() => { setCoQ(""); setCoOpen(false); }} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", border: 0, background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 16 }}>×</button>}
+        </div>
+        {coOpen && coResults.length > 0 && (
+          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 12px 32px rgba(15,23,42,0.14)", zIndex: 50, overflow: "hidden" }}>
+            {coResults.map((e) => {
+              const siege = e.siege || {};
+              return (
+                <div key={e.siren} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", borderBottom: "1px solid #f1f5f9", cursor: "default" }}
+                     onMouseEnter={(ev) => ev.currentTarget.style.background = "#f8fafc"} onMouseLeave={(ev) => ev.currentTarget.style.background = "#fff"}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nom_complet || e.nom_raison_sociale}</div>
+                    <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 1 }}>
+                      SIREN {String(e.siren || "").replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
+                      {siege.libelle_commune && <> · 📍 {siege.libelle_commune}{siege.code_postal ? " (" + siege.code_postal + ")" : ""}</>}
+                      {e.etat_administratif === "C" && <span style={{ color: "#b91c1c", fontWeight: 600 }}> · fermé</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => addCompany(e)} disabled={coAdding === e.siren}
+                          style={{ flexShrink: 0, padding: "6px 12px", border: 0, borderRadius: 8, background: "#4f46e5", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", opacity: coAdding === e.siren ? 0.7 : 1 }}>
+                    {coAdding === e.siren ? "Ajout…" : "+ Ajouter"}
+                  </button>
+                </div>
+              );
+            })}
+            <div style={{ padding: "6px 12px", fontSize: 10.5, color: "#94a3b8", background: "#fafbfc" }}>Source : annuaire officiel + Pappers · l'ajout crée un prospect pré-rempli.</div>
+          </div>
+        )}
+      </div>
+
       {filtered.length === 0 ? (
         <div style={{ padding: "40px 24px", textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 10, border: "1px dashed #e2e8f0" }}>
           {merged.length === 0 ? "Aucun compte pour l'instant. Créez votre premier prospect via le bouton ci-dessus." : "Aucun compte ne correspond à la recherche."}
@@ -1045,7 +1149,7 @@ const CRMAccountsList = () => {
                   {c.contact_principal.fonction && <span style={{ color: "#94a3b8" }}> · {c.contact_principal.fonction}</span>}
                 </div>
               )}
-              {/* Ajout CRM test : CA 2023-2024, agence et abonnements (issus de
+              {/* Ajout CRM test : CA 2023-2024 et abonnements (issus de
                   l'import Excel). N'apparaît que si ces champs sont présents. */}
               {(Number(c.ca_2324) > 0 || (c.abonnements && c.abonnements.length)) && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
@@ -1053,7 +1157,6 @@ const CRMAccountsList = () => {
                     {Number(c.ca_2324) > 0 && (
                       <span style={{ fontWeight: 700, color: "#0f172a" }}>💶 {Number(c.ca_2324).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} € <span style={{ fontWeight: 500, color: "#94a3b8" }}>CA 23-24</span></span>
                     )}
-                    {c.agence_label && <span title="Agence Astorya qui suit le client (≠ ville du client)" style={{ background: "#eef2ff", color: "#3730a3", padding: "1px 7px", borderRadius: 999, fontWeight: 600 }}>🏢 Agence {c.agence_label}</span>}
                   </div>
                   {c.abonnements && c.abonnements.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 7 }}>

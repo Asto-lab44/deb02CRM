@@ -2125,6 +2125,36 @@ var MATCH_STYLE = {
   }
 };
 
+// Construit une fiche client à partir d'un résultat de l'annuaire officiel
+// (recherche-entreprises.api.gouv.fr) : SIREN/SIRET, adresse, NAF, TVA…
+function companyFromResult(e) {
+  var siege = e.siege || {};
+  var siren = String(e.siren || "").replace(/\D/g, "");
+  var addr = siege.geo_adresse || [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(" ") || siege.adresse || "";
+  if (siege.code_postal) addr = addr.replace(siege.code_postal, "").trim();
+  if (siege.libelle_commune) addr = addr.replace(new RegExp(siege.libelle_commune, "i"), "").trim();
+  addr = addr.replace(/[\s,]+$/, "");
+  var name = e.nom_complet || e.nom_raison_sociale || "";
+  var tvaKey = siren ? (12 + 3 * (parseInt(siren, 10) % 97)) % 97 : null;
+  return {
+    raison_sociale: name,
+    name: name,
+    siren: siren.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"),
+    siret: String(siege.siret || "").replace(/(\d{3})(\d{3})(\d{3})(\d{5})/, "$1 $2 $3 $4"),
+    naf: e.activite_principale || siege.activite_principale || "",
+    secteur: e.libelle_activite_principale || siege.libelle_activite_principale || "",
+    adresse: addr,
+    ville: siege.libelle_commune || "",
+    code_postal: siege.code_postal || "",
+    tva: tvaKey != null ? "FR" + String(tvaKey).padStart(2, "0") + " " + siren : "",
+    forme_juridique: e.nature_juridique || "",
+    tranche_effectif: e.tranche_effectif_salarie || "",
+    date_creation: e.date_creation || "",
+    matched_name: name,
+    source: "Recherche Pappers/annuaire"
+  };
+}
+
 // ───── Sous-composant : Comptes & Contacts avec recherche
 var CRMAccountsList = () => {
   var [reviewOnly, setReviewOnly] = React.useState(false);
@@ -2155,15 +2185,82 @@ var CRMAccountsList = () => {
   var [search, setSearch] = React.useState("");
   var [localProspects, setLocalProspects] = React.useState([]);
   var [supaClients, setSupaClients] = React.useState([]);
-  React.useEffect(() => {
+  var loadAccounts = React.useCallback(() => {
     if (!window.api) return;
     window.api.clients.list().then(list => {
-      var prospects = (list || []).filter(p => (p.status || "prospect") === "prospect");
-      var clients = (list || []).filter(p => p.status === "client");
-      setLocalProspects(prospects);
-      setSupaClients(clients);
+      setLocalProspects((list || []).filter(p => (p.status || "prospect") === "prospect"));
+      setSupaClients((list || []).filter(p => p.status === "client"));
     }).catch(() => {});
   }, []);
+  React.useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
+
+  // ── Recherche dynamique Pappers / annuaire officiel ──────────────────
+  // Autocomplétion live d'entreprises (nom ou SIREN). Un clic sur un
+  // résultat crée la fiche (prospect) pré-remplie SIREN/adresse/NAF/TVA.
+  var [coQ, setCoQ] = React.useState("");
+  var [coResults, setCoResults] = React.useState([]);
+  var [coOpen, setCoOpen] = React.useState(false);
+  var [coLoading, setCoLoading] = React.useState(false);
+  var [coAdding, setCoAdding] = React.useState(null);
+  var coTimer = React.useRef();
+  React.useEffect(() => {
+    if (coTimer.current) clearTimeout(coTimer.current);
+    var term = coQ.trim();
+    if (term.length < 3) {
+      setCoResults([]);
+      setCoOpen(false);
+      return;
+    }
+    coTimer.current = setTimeout(async () => {
+      setCoLoading(true);
+      try {
+        var r = await fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(term) + "&page=1&per_page=6");
+        var j = await r.json();
+        setCoResults(Array.isArray(j.results) ? j.results : []);
+        setCoOpen(true);
+      } catch (e) {
+        setCoResults([]);
+      }
+      setCoLoading(false);
+    }, 300);
+    return () => {
+      if (coTimer.current) clearTimeout(coTimer.current);
+    };
+  }, [coQ]);
+  var addCompany = async e => {
+    if (!window.api || !window.api.clients) return;
+    setCoAdding(e.siren);
+    try {
+      var payload = Object.assign(companyFromResult(e), {
+        status: "prospect",
+        pappers_enriched: true
+      });
+      var created = await window.api.clients.create(payload);
+      if (created && created.siren && window.HubPappers && window.HubPappers.checkSiren) {
+        try {
+          var p = await window.HubPappers.checkSiren(created.siren);
+          if (p && p.status !== "error") await window.api.clients.update(created.id, {
+            pappers: {
+              status: p.status,
+              procedures: p.procedures || p.procedures_collectives || null,
+              dirigeants: p.dirigeants || null,
+              checked_at: p.checked_at || null
+            }
+          });
+        } catch (e2) {/* Pappers optionnel */}
+      }
+      if (window.HubToast) window.HubToast.success((payload.raison_sociale || "Entreprise") + " ajouté" + (window.HubTestMode ? " au bac à sable" : ""));
+      setCoQ("");
+      setCoResults([]);
+      setCoOpen(false);
+      loadAccounts();
+    } catch (err) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (err.message || err));
+    }
+    setCoAdding(null);
+  };
 
   // Auto-scroll vers la section ciblée par le hash URL (Comptes, Contacts, Activités)
   React.useEffect(() => {
@@ -2351,7 +2448,140 @@ var CRMAccountsList = () => {
       whiteSpace: "nowrap",
       flexShrink: 0
     }
-  }, "+ Nouveau prospect"))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "+ Nouveau prospect"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 14
+    }
+  }, "\uD83D\uDD0E"), /*#__PURE__*/React.createElement("input", {
+    value: coQ,
+    onChange: e => setCoQ(e.target.value),
+    onFocus: () => coResults.length && setCoOpen(true),
+    placeholder: "Recherche dynamique Pappers \u2014 tapez un nom d'entreprise ou un SIREN pour l'ajouter\u2026",
+    style: {
+      width: "100%",
+      padding: "10px 12px 10px 36px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      fontSize: 13,
+      outline: "none",
+      background: "#f5f7ff",
+      boxSizing: "border-box"
+    }
+  }), coLoading && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 12,
+      color: "#94a3b8"
+    }
+  }, "\u2026"), coQ && !coLoading && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setCoQ("");
+      setCoOpen(false);
+    },
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      border: 0,
+      background: "transparent",
+      color: "#94a3b8",
+      cursor: "pointer",
+      fontSize: 16
+    }
+  }, "\xD7")), coOpen && coResults.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      boxShadow: "0 12px 32px rgba(15,23,42,0.14)",
+      zIndex: 50,
+      overflow: "hidden"
+    }
+  }, coResults.map(e => {
+    var siege = e.siege || {};
+    return /*#__PURE__*/React.createElement("div", {
+      key: e.siren,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        padding: "10px 12px",
+        borderBottom: "1px solid #f1f5f9",
+        cursor: "default"
+      },
+      onMouseEnter: ev => ev.currentTarget.style.background = "#f8fafc",
+      onMouseLeave: ev => ev.currentTarget.style.background = "#fff"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, e.nom_complet || e.nom_raison_sociale), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#64748b",
+        marginTop: 1
+      }
+    }, "SIREN ", String(e.siren || "").replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"), siege.libelle_commune && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 \uD83D\uDCCD ", siege.libelle_commune, siege.code_postal ? " (" + siege.code_postal + ")" : ""), e.etat_administratif === "C" && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#b91c1c",
+        fontWeight: 600
+      }
+    }, " \xB7 ferm\xE9"))), /*#__PURE__*/React.createElement("button", {
+      onClick: () => addCompany(e),
+      disabled: coAdding === e.siren,
+      style: {
+        flexShrink: 0,
+        padding: "6px 12px",
+        border: 0,
+        borderRadius: 8,
+        background: "#4f46e5",
+        color: "#fff",
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: "pointer",
+        opacity: coAdding === e.siren ? 0.7 : 1
+      }
+    }, coAdding === e.siren ? "Ajout…" : "+ Ajouter"));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "6px 12px",
+      fontSize: 10.5,
+      color: "#94a3b8",
+      background: "#fafbfc"
+    }
+  }, "Source : annuaire officiel + Pappers \xB7 l'ajout cr\xE9e un prospect pr\xE9-rempli."))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "40px 24px",
       textAlign: "center",
@@ -2495,16 +2725,7 @@ var CRMAccountsList = () => {
         fontWeight: 500,
         color: "#94a3b8"
       }
-    }, "CA 23-24")), c.agence_label && /*#__PURE__*/React.createElement("span", {
-      title: "Agence Astorya qui suit le client (\u2260 ville du client)",
-      style: {
-        background: "#eef2ff",
-        color: "#3730a3",
-        padding: "1px 7px",
-        borderRadius: 999,
-        fontWeight: 600
-      }
-    }, "\uD83C\uDFE2 Agence ", c.agence_label)), c.abonnements && c.abonnements.length > 0 && /*#__PURE__*/React.createElement("div", {
+    }, "CA 23-24"))), c.abonnements && c.abonnements.length > 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         flexWrap: "wrap",

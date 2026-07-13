@@ -54,10 +54,25 @@
     ].join(";");
     var sep = (window.location.search ? "&" : "?");
     var exitHref = window.location.pathname + window.location.search + sep + "test=0";
+    var pill = "color:#fff;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px;text-decoration:none;font-weight:700;cursor:pointer;border:0;font:inherit;";
     bar.innerHTML =
-      "<span>🧪 MODE TEST — CRM bac à sable (données isolées, aucune écriture en production)</span>" +
-      '<a href="' + exitHref + '" style="color:#fff;background:rgba(255,255,255,.18);' +
-      'padding:3px 10px;border-radius:999px;text-decoration:none;font-weight:700;">Quitter le mode test</a>';
+      "<span>🧪 MODE TEST — CRM bac à sable (données isolées, aucune écriture en production)</span>";
+    // Bouton de (ré)import des clients — présent seulement là où le jeu de
+    // données est chargé (page CRM).
+    if (window.CRMTestData && window.CRMTestData.clients) {
+      var n = window.CRMTestData.clients.length;
+      var reimport = document.createElement("button");
+      reimport.textContent = "↻ Réimporter les clients (" + n + ")";
+      reimport.style.cssText = pill;
+      reimport.onclick = function () {
+        if (!confirm("Réimporter les " + n + " clients depuis l'Excel dans le bac à sable ?\n\nCela remplace les clients de test actuels (la production n'est pas touchée).")) return;
+        if (window.CRMTestReseed) { window.CRMTestReseed(true); window.location.reload(); }
+      };
+      bar.appendChild(reimport);
+    }
+    var exit = document.createElement("a");
+    exit.href = exitHref; exit.textContent = "Quitter le mode test"; exit.style.cssText = pill;
+    bar.appendChild(exit);
     document.body.appendChild(bar);
     // Décale le contenu pour ne pas masquer la 1re ligne.
     var pad = document.createElement("style");

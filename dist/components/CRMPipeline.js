@@ -2205,16 +2205,19 @@ var CRMAccountsList = () => {
       });
     }
   }
+  // Mappe les colonnes Supabase (name/city/industry) vers les noms FR utilisés
+  // à l'affichage, SANS écraser les champs déjà présents sur les fiches locales
+  // (bac à sable enrichi : ville/secteur viennent de l'annuaire, pas de c.city).
   for (var c of supaClients) {
     if (!ids.has(c.id)) {
       ids.add(c.id);
       merged.push({
         ...c,
         _source: "supabase",
-        raison_sociale: c.name,
-        ville: c.city,
-        secteur: c.industry,
-        site_web: c.website
+        raison_sociale: c.raison_sociale || c.name,
+        ville: c.ville || c.city,
+        secteur: c.secteur || c.industry,
+        site_web: c.site_web || c.website
       });
     }
   }
@@ -2493,6 +2496,7 @@ var CRMAccountsList = () => {
         color: "#94a3b8"
       }
     }, "CA 23-24")), c.agence_label && /*#__PURE__*/React.createElement("span", {
+      title: "Agence Astorya qui suit le client (\u2260 ville du client)",
       style: {
         background: "#eef2ff",
         color: "#3730a3",
@@ -2500,7 +2504,7 @@ var CRMAccountsList = () => {
         borderRadius: 999,
         fontWeight: 600
       }
-    }, "\uD83C\uDFE2 ", c.agence_label)), c.abonnements && c.abonnements.length > 0 && /*#__PURE__*/React.createElement("div", {
+    }, "\uD83C\uDFE2 Agence ", c.agence_label)), c.abonnements && c.abonnements.length > 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         flexWrap: "wrap",

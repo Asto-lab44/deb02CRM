@@ -947,7 +947,10 @@ const CRMAccountsList = () => {
   const ids = new Set();
   const merged = [];
   for (const p of localProspects) { if (!ids.has(p.id)) { ids.add(p.id); merged.push({ ...p, _source: "local" }); } }
-  for (const c of supaClients)    { if (!ids.has(c.id)) { ids.add(c.id); merged.push({ ...c, _source: "supabase", raison_sociale: c.name, ville: c.city, secteur: c.industry, site_web: c.website }); } }
+  // Mappe les colonnes Supabase (name/city/industry) vers les noms FR utilisés
+  // à l'affichage, SANS écraser les champs déjà présents sur les fiches locales
+  // (bac à sable enrichi : ville/secteur viennent de l'annuaire, pas de c.city).
+  for (const c of supaClients)    { if (!ids.has(c.id)) { ids.add(c.id); merged.push({ ...c, _source: "supabase", raison_sociale: c.raison_sociale || c.name, ville: c.ville || c.city, secteur: c.secteur || c.industry, site_web: c.site_web || c.website }); } }
 
   // Filtrage live
   const q = search.trim().toLowerCase();
@@ -1050,7 +1053,7 @@ const CRMAccountsList = () => {
                     {Number(c.ca_2324) > 0 && (
                       <span style={{ fontWeight: 700, color: "#0f172a" }}>💶 {Number(c.ca_2324).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} € <span style={{ fontWeight: 500, color: "#94a3b8" }}>CA 23-24</span></span>
                     )}
-                    {c.agence_label && <span style={{ background: "#eef2ff", color: "#3730a3", padding: "1px 7px", borderRadius: 999, fontWeight: 600 }}>🏢 {c.agence_label}</span>}
+                    {c.agence_label && <span title="Agence Astorya qui suit le client (≠ ville du client)" style={{ background: "#eef2ff", color: "#3730a3", padding: "1px 7px", borderRadius: 999, fontWeight: 600 }}>🏢 Agence {c.agence_label}</span>}
                   </div>
                   {c.abonnements && c.abonnements.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 7 }}>

@@ -2128,6 +2128,30 @@ var MATCH_STYLE = {
 // ───── Sous-composant : Comptes & Contacts avec recherche
 var CRMAccountsList = () => {
   var [reviewOnly, setReviewOnly] = React.useState(false);
+  var [enrichMsg, setEnrichMsg] = React.useState(null);
+  var isTest = typeof window !== "undefined" && window.HubTestMode;
+  var runEnrich = () => {
+    if (!window.CRMTestEnrich) {
+      alert("Enrichissement indisponible (rechargez la page du CRM test).");
+      return;
+    }
+    if (!confirm("Compléter les fiches du bac à sable (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\n1 à 2 min. La production n'est pas touchée.")) return;
+    setEnrichMsg("Démarrage…");
+    window.CRMTestEnrich(p => setEnrichMsg("Enrichissement " + p.done + "/" + p.total + "…")).then(res => {
+      setEnrichMsg(null);
+      alert("Terminé : " + res.enriched + " fiches complétées" + (res.failed ? ", " + res.failed + " sans correspondance" : "") + ".");
+      window.location.reload();
+    }).catch(e => {
+      setEnrichMsg(null);
+      alert("Erreur : " + (e.message || e));
+    });
+  };
+  var runReseed = () => {
+    if (!window.CRMTestReseed) return;
+    if (!confirm("Réimporter les clients depuis l'Excel dans le bac à sable ? Cela remplace les clients de test actuels.")) return;
+    window.CRMTestReseed(true);
+    window.location.reload();
+  };
   var [search, setSearch] = React.useState("");
   var [localProspects, setLocalProspects] = React.useState([]);
   var [supaClients, setSupaClients] = React.useState([]);
@@ -2236,9 +2260,40 @@ var CRMAccountsList = () => {
       display: "flex",
       alignItems: "center",
       gap: 8,
-      flexShrink: 0
+      flexShrink: 0,
+      flexWrap: "wrap"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, isTest && /*#__PURE__*/React.createElement("button", {
+    onClick: runEnrich,
+    disabled: !!enrichMsg,
+    title: "Compl\xE9ter les fiches du bac \xE0 sable via l'annuaire officiel + Pappers",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      cursor: enrichMsg ? "default" : "pointer",
+      border: 0,
+      background: "#b91c1c",
+      color: "#fff",
+      opacity: enrichMsg ? 0.8 : 1
+    }
+  }, enrichMsg ? "⏳ " + enrichMsg : "🔎 Enrichir via Pappers"), isTest && /*#__PURE__*/React.createElement("button", {
+    onClick: runReseed,
+    title: "R\xE9importer les clients depuis l'Excel",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 600,
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      color: "#475569"
+    }
+  }, "\u21BB R\xE9importer"), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       width: 320

@@ -888,6 +888,22 @@ const MATCH_STYLE = {
 // ───── Sous-composant : Comptes & Contacts avec recherche
 const CRMAccountsList = () => {
   const [reviewOnly, setReviewOnly] = React.useState(false);
+  const [enrichMsg, setEnrichMsg] = React.useState(null);
+  const isTest = typeof window !== "undefined" && window.HubTestMode;
+
+  const runEnrich = () => {
+    if (!window.CRMTestEnrich) { alert("Enrichissement indisponible (rechargez la page du CRM test)."); return; }
+    if (!confirm("Compléter les fiches du bac à sable (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\n1 à 2 min. La production n'est pas touchée.")) return;
+    setEnrichMsg("Démarrage…");
+    window.CRMTestEnrich((p) => setEnrichMsg("Enrichissement " + p.done + "/" + p.total + "…"))
+      .then((res) => { setEnrichMsg(null); alert("Terminé : " + res.enriched + " fiches complétées" + (res.failed ? ", " + res.failed + " sans correspondance" : "") + "."); window.location.reload(); })
+      .catch((e) => { setEnrichMsg(null); alert("Erreur : " + (e.message || e)); });
+  };
+  const runReseed = () => {
+    if (!window.CRMTestReseed) return;
+    if (!confirm("Réimporter les clients depuis l'Excel dans le bac à sable ? Cela remplace les clients de test actuels.")) return;
+    window.CRMTestReseed(true); window.location.reload();
+  };
   const [search, setSearch] = React.useState("");
   const [localProspects, setLocalProspects] = React.useState([]);
   const [supaClients, setSupaClients] = React.useState([]);
@@ -952,7 +968,20 @@ const CRMAccountsList = () => {
             {merged.length} compte{merged.length > 1 ? "s" : ""} ({localProspects.length} créé{localProspects.length > 1 ? "s" : ""} récemment · {supaClients.length} en base)
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+          {isTest && (
+            <button onClick={runEnrich} disabled={!!enrichMsg}
+                    title="Compléter les fiches du bac à sable via l'annuaire officiel + Pappers"
+                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: enrichMsg ? "default" : "pointer", border: 0, background: "#b91c1c", color: "#fff", opacity: enrichMsg ? 0.8 : 1 }}>
+              {enrichMsg ? "⏳ " + enrichMsg : "🔎 Enrichir via Pappers"}
+            </button>
+          )}
+          {isTest && (
+            <button onClick={runReseed} title="Réimporter les clients depuis l'Excel"
+                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#475569" }}>
+              ↻ Réimporter
+            </button>
+          )}
           <div style={{ position: "relative", width: 320 }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
             <input value={search} onChange={(e) => setSearch(e.target.value)}

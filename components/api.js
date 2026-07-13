@@ -39,13 +39,23 @@
   // ───────────────────────────────────────────────────────────────────
 
   /** Renvoie le client Supabase si configuré, sinon null. */
-  function supa() {
+  /** Client Supabase brut, indépendant du mode test — réservé à
+   *  l'authentification (le mode test isole les DONNÉES, pas la connexion). */
+  function supaRaw() {
     return window.HubSupabase && window.HubSupabase.enabled ? window.HubSupabase.client : null;
+  }
+
+  function supa() {
+    // Mode test (bac à sable) : on coupe Supabase pour forcer le stockage
+    // 100 % localStorage, sur un espace de noms séparé (voir lsKey). Aucune
+    // donnée de production n'est lue ni écrite. Voir components/test-mode.js.
+    if (window.HubTestMode) return null;
+    return supaRaw();
   }
 
   /** Renvoie l'UUID de l'utilisateur connecté à Supabase Auth, sinon null. */
   async function getCurrentUserId() {
-    const s = supa();
+    const s = supaRaw();
     if (!s) return null;
     try {
       const { data } = await s.auth.getSession();
@@ -63,7 +73,7 @@
 
   // localStorage helpers — chaque ressource est sérialisée sous la clé
   // `hubAstorya.<resource>.v1` (un tableau JSON).
-  function lsKey(resource) { return "hubAstorya." + resource + ".v1"; }
+  function lsKey(resource) { return "hubAstorya." + (window.HubTestMode ? "test." : "") + resource + ".v1"; }
   function lsGet(resource) {
     try { return JSON.parse(localStorage.getItem(lsKey(resource)) || "[]"); } catch (e) { return []; }
   }
@@ -2743,7 +2753,7 @@
   //                     (à appeler en début de page protégée)
   const auth = {
     async getUser() {
-      const s = supa();
+      const s = supaRaw();
       if (!s) return null;
       try {
         const { data } = await s.auth.getSession();
@@ -2752,17 +2762,18 @@
     },
 
     async signOut() {
-      const s = supa();
+      const s = supaRaw();
       if (s) await s.auth.signOut();
       try { localStorage.removeItem("hubAstorya.localUser"); } catch (e) {}
     },
 
     /**
      * Redirige vers /login si pas connecté (sauf si Supabase non configuré).
-     * À appeler en début de page protégée.
+     * À appeler en début de page protégée. Utilise le client brut : le mode
+     * test isole les données mais conserve l'authentification réelle.
      */
     async requireAuth() {
-      const s = supa();
+      const s = supaRaw();
       if (!s) { window.location.href = "/login"; return null; }
       try {
         const { data } = await s.auth.getSession();

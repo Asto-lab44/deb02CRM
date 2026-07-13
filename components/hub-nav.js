@@ -7,6 +7,7 @@
   const ROUTES = {
     home:       "/",
     crm:        "/crm",
+    crm_test:   "/crm?test=1",
     intel:      "/intelligence-concurrentielle",
     marketing:  "/marketing",
     tech:       "/ticketing",

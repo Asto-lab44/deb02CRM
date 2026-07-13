@@ -25,7 +25,7 @@ const ERPHome = () => {
   // un useEffect séparé avec un setTimeout pour laisser le temps à
   // _supaSession d'être peuplée. Pas de subscribe → pas de risque de boucle.
   const HA = (typeof window !== "undefined" && window.HubAccess) ? window.HubAccess : null;
-  const defaultGroup = { id: "admin", name: "Administrateurs", color: "#dc2626", access: ["crm","intel","marketing","tech","projects","commercial","contracts","inventory","suppliers","accounting","billing","treasury","hr","time","reports","settings"] };
+  const defaultGroup = { id: "admin", name: "Administrateurs", color: "#dc2626", access: ["crm","crm_test","intel","marketing","tech","projects","commercial","contracts","inventory","suppliers","accounting","billing","treasury","hr","time","reports","settings"] };
   const [activeGroup, setActiveGroup] = React.useState(() => (HA && HA.getActiveGroup && HA.getActiveGroup()) || defaultGroup);
   const [allGroups, setAllGroups] = React.useState(() => (HA && HA.loadGroups && HA.loadGroups()) || []);
   const [localUser, setLocalUser] = React.useState(() => HA && HA.getCurrentUser ? HA.getCurrentUser() : null);
@@ -186,6 +186,21 @@ const ERPHome = () => {
         { k: "Signées", v: String(crmStats.won) },
       ],
       trendUp: true,
+    },
+    {
+      cat: "Commercial",
+      key: "crm_test",
+      title: "CRM (test)",
+      subtitle: "Bac à sable · données isolées · aucun impact prod",
+      icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6M10 3v6l-4 8a2 2 0 002 3h8a2 2 0 002-3l-4-8V3"/><path d="M7 14h10"/></svg>,
+      color: "#b91c1c",
+      bg: "#fef2f2",
+      badge: { label: "Bac à sable", tone: "warn" },
+      stats: [
+        { k: "Environnement", v: "Test" },
+        { k: "Données", v: "Isolées" },
+        { k: "Stockage", v: "Local" },
+      ],
     },
     {
       cat: "Commercial",

@@ -37,7 +37,7 @@
   /** Les 13 modules ERP/CRM disponibles. Sert de "feature flag" par groupe :
    *  un groupe a un sous-ensemble de ces clés dans son `access` array. */
   const ALL_KEYS = [
-    "crm", "intel", "marketing",
+    "crm", "crm_test", "intel", "marketing",
     "tech", "projects", "commercial", "contracts", "routines",
     "inventory", "suppliers", "accounting", "billing", "treasury",
     "hr", "time",
@@ -66,7 +66,7 @@
     {
       id: "commercial", name: "Commercial", color: "#0ea5e9",
       description: "Équipes vente et avant-vente — pipeline, comptes, opportunités.",
-      access: ["crm", "intel", "marketing", "billing", "reports"],
+      access: ["crm", "crm_test", "intel", "marketing", "billing", "reports"],
       members: [],
     },
     {
@@ -140,7 +140,7 @@
   // Migration silencieuse : si un nouveau module est ajouté à ALL_KEYS,
   // on l'injecte automatiquement dans tous les groupes qui ont déjà l'accès
   // étendu (admin/superadmin) pour ne pas masquer les nouvelles tuiles.
-  const NEW_KEYS_AUTO_GRANT = ["commercial", "contracts", "routines", "suppliers"];
+  const NEW_KEYS_AUTO_GRANT = ["commercial", "contracts", "routines", "suppliers", "crm_test"];
 
   function migrateGroups(groups) {
     let mutated = false;

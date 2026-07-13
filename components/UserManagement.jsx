@@ -76,6 +76,7 @@ const UserManagement = () => {
   // ───── modules ERP (mêmes clés que l'Accueil ERP)
   const modules = [
     { key: "crm",        cat: "Commercial",  title: "CRM",                           color: "#4f46e5", bg: "#eef2ff" },
+    { key: "crm_test",   cat: "Commercial",  title: "CRM (test) — bac à sable",      color: "#b91c1c", bg: "#fef2f2" },
     { key: "intel",      cat: "Commercial",  title: "Intelligence concurrentielle",  color: "#dc2626", bg: "#fdecec" },
     { key: "marketing",  cat: "Commercial",  title: "Marketing & Campagnes",         color: "#ec4899", bg: "#fdf2f8" },
     { key: "tech",       cat: "Production",  title: "Support technique",             color: "#0ea5e9", bg: "#e0f4fc" },

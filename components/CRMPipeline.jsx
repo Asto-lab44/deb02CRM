@@ -1052,6 +1052,12 @@ const CRMAccountsList = () => {
               ↻ Réimporter
             </button>
           )}
+          {isTest && (
+            <a href="/clients-hors-44?test=1" title="Clients hors Loire-Atlantique (44)"
+               style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#475569", textDecoration: "none" }}>
+              📍 Hors 44
+            </a>
+          )}
           <div style={{ position: "relative", width: 320 }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
             <input value={search} onChange={(e) => setSearch(e.target.value)}

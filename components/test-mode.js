@@ -69,6 +69,26 @@
         if (window.CRMTestReseed) { window.CRMTestReseed(true); window.location.reload(); }
       };
       bar.appendChild(reimport);
+
+      // Enrichissement Pappers / annuaire ouvert (page CRM uniquement).
+      if (window.CRMTestEnrich) {
+        var enr = document.createElement("button");
+        enr.textContent = "🔎 Enrichir via Pappers";
+        enr.style.cssText = pill;
+        enr.onclick = function () {
+          if (enr.disabled) return;
+          if (!confirm("Compléter les fiches clients du bac à sable (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\nCela peut prendre 1 à 2 minutes. La production n'est pas touchée.")) return;
+          enr.disabled = true; enr.style.opacity = "0.75";
+          window.CRMTestEnrich(function (p) {
+            enr.textContent = "⏳ Enrichissement " + p.done + "/" + p.total + "…";
+          }).then(function (res) {
+            enr.textContent = "✓ " + res.enriched + " enrichis";
+            alert("Enrichissement terminé : " + res.enriched + " fiches complétées" + (res.failed ? ", " + res.failed + " sans correspondance" : "") + ".");
+            window.location.reload();
+          }).catch(function (e) { enr.disabled = false; enr.style.opacity = "1"; alert("Erreur : " + (e.message || e)); });
+        };
+        bar.appendChild(enr);
+      }
     }
     var exit = document.createElement("a");
     exit.href = exitHref; exit.textContent = "Quitter le mode test"; exit.style.cssText = pill;

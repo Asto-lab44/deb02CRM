@@ -967,6 +967,25 @@ const CRMAccountsList = () => {
                   {c.contact_principal.fonction && <span style={{ color: "#94a3b8" }}> · {c.contact_principal.fonction}</span>}
                 </div>
               )}
+              {/* Ajout CRM test : CA 2023-2024, agence et abonnements (issus de
+                  l'import Excel). N'apparaît que si ces champs sont présents. */}
+              {(Number(c.ca_2324) > 0 || (c.abonnements && c.abonnements.length)) && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11.5, color: "#475569" }}>
+                    {Number(c.ca_2324) > 0 && (
+                      <span style={{ fontWeight: 700, color: "#0f172a" }}>💶 {Number(c.ca_2324).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} € <span style={{ fontWeight: 500, color: "#94a3b8" }}>CA 23-24</span></span>
+                    )}
+                    {c.agence_label && <span style={{ background: "#eef2ff", color: "#3730a3", padding: "1px 7px", borderRadius: 999, fontWeight: 600 }}>🏢 {c.agence_label}</span>}
+                  </div>
+                  {c.abonnements && c.abonnements.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 7 }}>
+                      {c.abonnements.map((a) => (
+                        <span key={a} style={{ fontSize: 10, fontWeight: 600, background: "#ecfeff", color: "#0e7490", border: "1px solid #a5f3fc", padding: "1px 7px", borderRadius: 6 }}>{a}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </a>
           );
           const bandHeader = (label, count, color, bg) => (

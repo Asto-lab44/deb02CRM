@@ -2075,8 +2075,59 @@ var crmStyles = {
   }
 };
 
+// Confiance du rapprochement « nom Excel » ↔ « nom trouvé » (enrichissement
+// Pappers / annuaire). Sert au contrôle visuel des correspondances douteuses.
+var _normName = s => String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Z0-9]+/g, " ").trim();
+function matchInfo(excelName, foundName) {
+  if (!foundName) return {
+    level: "none"
+  };
+  var a = _normName(excelName),
+    b = _normName(foundName);
+  if (!a || !b) return {
+    level: "none"
+  };
+  if (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0) return {
+    level: "ok"
+  };
+  var ta = a.split(" ").filter(t => t.length > 2);
+  var tb = new Set(b.split(" ").filter(t => t.length > 2));
+  var common = ta.filter(t => tb.has(t)).length;
+  var ratio = common / Math.max(ta.length, 1);
+  if (ratio >= 0.5) return {
+    level: "ok"
+  };
+  if (ratio > 0) return {
+    level: "warn"
+  };
+  return {
+    level: "bad"
+  };
+}
+var MATCH_STYLE = {
+  ok: {
+    icon: "✓",
+    color: "#065f46",
+    bg: "#dcfce7",
+    label: "Correspondance fiable"
+  },
+  warn: {
+    icon: "⚠",
+    color: "#92400e",
+    bg: "#fef3c7",
+    label: "À vérifier"
+  },
+  bad: {
+    icon: "⚠",
+    color: "#991b1b",
+    bg: "#fee2e2",
+    label: "Douteux"
+  }
+};
+
 // ───── Sous-composant : Comptes & Contacts avec recherche
 var CRMAccountsList = () => {
+  var [reviewOnly, setReviewOnly] = React.useState(false);
   var [search, setSearch] = React.useState("");
   var [localProspects, setLocalProspects] = React.useState([]);
   var [supaClients, setSupaClients] = React.useState([]);
@@ -2147,6 +2198,10 @@ var CRMAccountsList = () => {
   // Filtrage live
   var q = search.trim().toLowerCase();
   var filtered = q ? merged.filter(c => [c.raison_sociale, c.ville, c.siren, c.secteur, c.site_web].some(v => String(v || "").toLowerCase().includes(q))) : merged;
+  // Rapprochements à vérifier (nom Excel ≠ nom trouvé lors de l'enrichissement).
+  var needsReview = c => c.matched_name && ["warn", "bad"].includes(matchInfo(c.raison_sociale || c.name, c.matched_name).level);
+  var reviewCount = merged.filter(needsReview).length;
+  if (reviewOnly) filtered = filtered.filter(needsReview);
   return /*#__PURE__*/React.createElement("section", {
     id: "comptes-section",
     style: {
@@ -2210,7 +2265,22 @@ var CRMAccountsList = () => {
       background: "#fff",
       boxSizing: "border-box"
     }
-  })), /*#__PURE__*/React.createElement("a", {
+  })), reviewCount > 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReviewOnly(v => !v),
+    title: "Afficher les rapprochements Excel \u2194 Pappers \xE0 v\xE9rifier",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+      cursor: "pointer",
+      border: "1px solid " + (reviewOnly ? "#d97706" : "#fcd34d"),
+      background: reviewOnly ? "#d97706" : "#fffbeb",
+      color: reviewOnly ? "#fff" : "#92400e"
+    }
+  }, "\u26A0 \xC0 v\xE9rifier (", reviewCount, ")"), /*#__PURE__*/React.createElement("a", {
     href: "/nouveau-prospect",
     style: {
       padding: "8px 14px",
@@ -2286,7 +2356,38 @@ var CRMAccountsList = () => {
         marginTop: 2,
         fontVariantNumeric: "tabular-nums"
       }
-    }, "SIREN ", c.siren)), /*#__PURE__*/React.createElement("span", {
+    }, "SIREN ", c.siren), c.matched_name && (() => {
+      var mi = MATCH_STYLE[matchInfo(c.raison_sociale || c.name, c.matched_name).level];
+      if (!mi) return null;
+      var same = _normName(c.raison_sociale || c.name) === _normName(c.matched_name);
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 5,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 11
+        },
+        title: mi.label + " — nom officiel : " + c.matched_name
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          fontWeight: 700,
+          background: mi.bg,
+          color: mi.color,
+          padding: "1px 6px",
+          borderRadius: 999,
+          whiteSpace: "nowrap"
+        }
+      }, mi.icon, " ", mi.label), !same && /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#64748b",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, "\u2192 ", c.matched_name));
+    })()), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
         padding: "2px 7px",

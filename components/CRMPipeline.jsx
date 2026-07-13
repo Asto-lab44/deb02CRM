@@ -863,8 +863,31 @@ const crmStyles = {
   addCard: { padding: "8px", border: "1px dashed #cbd5e1", background: "transparent", borderRadius: 8, fontSize: 11.5, color: "#94a3b8", cursor: "pointer", fontWeight: 500 },
 };
 
+// Confiance du rapprochement « nom Excel » ↔ « nom trouvé » (enrichissement
+// Pappers / annuaire). Sert au contrôle visuel des correspondances douteuses.
+const _normName = (s) => String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Z0-9]+/g, " ").trim();
+function matchInfo(excelName, foundName) {
+  if (!foundName) return { level: "none" };
+  const a = _normName(excelName), b = _normName(foundName);
+  if (!a || !b) return { level: "none" };
+  if (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0) return { level: "ok" };
+  const ta = a.split(" ").filter((t) => t.length > 2);
+  const tb = new Set(b.split(" ").filter((t) => t.length > 2));
+  const common = ta.filter((t) => tb.has(t)).length;
+  const ratio = common / Math.max(ta.length, 1);
+  if (ratio >= 0.5) return { level: "ok" };
+  if (ratio > 0) return { level: "warn" };
+  return { level: "bad" };
+}
+const MATCH_STYLE = {
+  ok:   { icon: "✓", color: "#065f46", bg: "#dcfce7", label: "Correspondance fiable" },
+  warn: { icon: "⚠", color: "#92400e", bg: "#fef3c7", label: "À vérifier" },
+  bad:  { icon: "⚠", color: "#991b1b", bg: "#fee2e2", label: "Douteux" },
+};
+
 // ───── Sous-composant : Comptes & Contacts avec recherche
 const CRMAccountsList = () => {
+  const [reviewOnly, setReviewOnly] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [localProspects, setLocalProspects] = React.useState([]);
   const [supaClients, setSupaClients] = React.useState([]);
@@ -912,9 +935,13 @@ const CRMAccountsList = () => {
 
   // Filtrage live
   const q = search.trim().toLowerCase();
-  const filtered = q ? merged.filter((c) =>
+  let filtered = q ? merged.filter((c) =>
     [c.raison_sociale, c.ville, c.siren, c.secteur, c.site_web].some((v) => String(v || "").toLowerCase().includes(q))
   ) : merged;
+  // Rapprochements à vérifier (nom Excel ≠ nom trouvé lors de l'enrichissement).
+  const needsReview = (c) => c.matched_name && ["warn", "bad"].includes(matchInfo(c.raison_sociale || c.name, c.matched_name).level);
+  const reviewCount = merged.filter(needsReview).length;
+  if (reviewOnly) filtered = filtered.filter(needsReview);
 
   return (
     <section id="comptes-section" style={{ background: "#fff", borderTop: "1px solid #eef1f5", padding: "20px 24px" }}>
@@ -932,6 +959,13 @@ const CRMAccountsList = () => {
                    placeholder="Rechercher (raison sociale, ville, SIREN…)"
                    style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }} />
           </div>
+          {reviewCount > 0 && (
+            <button onClick={() => setReviewOnly((v) => !v)}
+                    title="Afficher les rapprochements Excel ↔ Pappers à vérifier"
+                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer", border: "1px solid " + (reviewOnly ? "#d97706" : "#fcd34d"), background: reviewOnly ? "#d97706" : "#fffbeb", color: reviewOnly ? "#fff" : "#92400e" }}>
+              ⚠ À vérifier ({reviewCount})
+            </button>
+          )}
           <a href="/nouveau-prospect" style={{ padding: "8px 14px", background: "#4f46e5", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>+ Nouveau prospect</a>
         </div>
       </div>
@@ -956,6 +990,18 @@ const CRMAccountsList = () => {
                     {c.ville && <> · 📍 {c.ville}</>}
                   </div>
                   {c.siren && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>SIREN {c.siren}</div>}
+                  {/* Contrôle du rapprochement enrichissement : nom Excel vs nom trouvé */}
+                  {c.matched_name && (() => {
+                    const mi = MATCH_STYLE[matchInfo(c.raison_sociale || c.name, c.matched_name).level];
+                    if (!mi) return null;
+                    const same = _normName(c.raison_sociale || c.name) === _normName(c.matched_name);
+                    return (
+                      <div style={{ marginTop: 5, display: "flex", alignItems: "center", gap: 6, fontSize: 11 }} title={mi.label + " — nom officiel : " + c.matched_name}>
+                        <span style={{ fontSize: 9.5, fontWeight: 700, background: mi.bg, color: mi.color, padding: "1px 6px", borderRadius: 999, whiteSpace: "nowrap" }}>{mi.icon} {mi.label}</span>
+                        {!same && <span style={{ color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>→ {c.matched_name}</span>}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, fontWeight: 700, background: isProspect(c) ? "#fef3c7" : "#dcfce7", color: isProspect(c) ? "#78350f" : "#065f46", textTransform: "uppercase", letterSpacing: 0.4 }}>
                   {isProspect(c) ? "Prospect" : "Client"}

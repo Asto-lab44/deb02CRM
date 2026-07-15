@@ -69,6 +69,21 @@ function extractEmails(html) {
   return [...found].filter((e) => !/\.(png|jpe?g|gif|svg|webp|css|js)$/.test(e) && !/(sentry|wixpress|example\.com|@sentry|\.png|u002)/.test(e));
 }
 
+// Repère sur une page les liens vers « contact » / « mentions légales » etc.
+// pour aller y chercher l'email même si le chemin d'URL n'est pas standard.
+function extractContactLinks(html, base) {
+  const links = new Set();
+  const re = /href\s*=\s*["']([^"'#]+)["']/gi;
+  let m;
+  while ((m = re.exec(html)) && links.size < 8) {
+    const href = m[1];
+    if (/(contact|mentions?[-_ ]?l[ée]gal|mentions|informations?[-_ ]?l[ée]gal|coordonn|nous[-_ ]?contacter|qui[-_ ]?sommes)/i.test(href)) {
+      try { links.add(new URL(href, base).href); } catch (e) {}
+    }
+  }
+  return [...links];
+}
+
 function pickBest(emails, domain) {
   const onDom = domain ? emails.filter((e) => e.split("@")[1] && (e.endsWith("@" + domain) || e.endsWith("." + domain))) : [];
   const pool = onDom.length ? onDom : emails;
@@ -233,24 +248,34 @@ export default async function handler(req, res) {
 
   const hostOf = (w) => { try { return new URL(normBase(w)).hostname.replace(/^www\./, ""); } catch (e) { return null; } };
 
-  // ── 2. Site de confiance connu → on lit le site pour un email, sinon contact@domaine
+  // ── 2. Site de confiance connu → on lit le site (accueil + contact + mentions
+  //       légales, y compris les liens découverts) pour en extraire un email.
   if (website && websiteTrusted) {
     const base = normBase(website);
     const domain = hostOf(website);
-    let all = [], siretUrl = null;
-    for (const p of LEGAL_PATHS) {
+    let all = [], siretUrl = null, sourceUrl = null;
+    const tried = new Set();
+    const onDomOf = (arr) => [...new Set(arr)].filter((e) => domain && (e.endsWith("@" + domain) || e.endsWith("." + domain)));
+    // File de pages : accueil d'abord, puis chemins standards.
+    let queue = [base].concat(LEGAL_PATHS.filter((p) => p).map((p) => base + p));
+    for (let i = 0; i < queue.length; i++) {
       if (timeLeft() < 1500) break;
-      const html = await fetchText(base + p, Math.min(2800, timeLeft() - 800));
+      const url = queue[i];
+      if (tried.has(url)) continue; tried.add(url);
+      const html = await fetchText(url, Math.min(2800, timeLeft() - 800));
       if (!html) continue;
       const emails = extractEmails(html);
-      all.push(...emails);
-      if (targetSiret && digits(html).includes(targetSiret)) siretUrl = base + p;
-      if (emails.length && siretUrl) break;
+      if (emails.length) { all.push(...emails); if (!sourceUrl) sourceUrl = url; }
+      if (targetSiret && digits(html).includes(targetSiret)) siretUrl = url;
+      // La page d'accueil : on enrichit la file avec les liens contact/mentions.
+      if (i === 0) { extractContactLinks(html, base).forEach((l) => { if (!tried.has(l)) queue.push(l); }); }
+      // Stop dès qu'on a un email sur le domaine (ou SIRET confirmé).
+      if (onDomOf(all).length && (siretUrl || i > 0)) break;
     }
-    const onDom = [...new Set(all)].filter((e) => domain && (e.endsWith("@" + domain) || e.endsWith("." + domain)));
+    const onDom = onDomOf(all);
     const best = pickBest(onDom.length ? onDom : [...new Set(all)], domain);
     if (best) {
-      return finish({ status: siretUrl ? "verified_siret" : "verified_site", email: best, emails: [...new Set(all)].slice(0, 8), siret_verified: !!siretUrl, website: base, source_url: siretUrl || base, debug });
+      return finish({ status: siretUrl ? "verified_siret" : "verified_site", email: best, emails: [...new Set(all)].slice(0, 8), siret_verified: !!siretUrl, website: base, source_url: siretUrl || sourceUrl || base, debug });
     }
     // Aucun email sur le site → adresse générique sur le domaine officiel.
     if (domain) {

@@ -2888,12 +2888,13 @@ var CRMActionsList = () => {
     (window.api.clients && window.api.clients.list ? window.api.clients.list() : Promise.resolve([])).catch(() => [])]).then(([rows, clients]) => {
       var clientById = {};
       (clients || []).forEach(c => {
-        if (c && c.id) clientById[c.id] = c.name || c.raison_sociale || "";
+        if (c && c.id) clientById[c.id] = c;
       });
       setActions((rows || []).map(a => ({
         id: a.id,
         client_id: a.client_id,
-        client_name: clientById[a.client_id] || "",
+        client_name: clientById[a.client_id] && (clientById[a.client_id].raison_sociale || clientById[a.client_id].name) || "",
+        client_abos: clientById[a.client_id] && clientById[a.client_id].abonnements || [],
         // Note : l'API stocke « opp_id » (cohérent avec opportunities.create),
         // pas « opportunity_id ». On récupère les deux par sécurité.
         opp_id: a.opp_id || a.opportunity_id || a.data && (a.data.opp_id || a.data.opportunity_id) || null,
@@ -2904,8 +2905,9 @@ var CRMActionsList = () => {
         due: a.due_text || a.due || "",
         assigned: a.assigned_to || a.assigned || "Vous",
         color: "#3730a3",
-        // Défensif : meta doit être une chaîne (un objet planterait le rendu React).
-        meta: typeof a.meta === "string" ? a.meta : a.meta && (a.meta.label || a.meta.client_name) || "",
+        // Défensif : meta doit être une chaîne (un objet planterait le rendu
+        // React). On évite a.meta.client_name → doublon avec client_name affiché.
+        meta: typeof a.meta === "string" ? a.meta : a.meta && a.meta.label || "",
         tag: a.tag || ""
       })));
     }).catch(() => {});
@@ -3236,7 +3238,28 @@ var CRMActionsList = () => {
         color: "#64748b",
         marginTop: 2
       }
-    }, enrichedMeta)), /*#__PURE__*/React.createElement("div", {
+    }, enrichedMeta)), a.client_abos && a.client_abos.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4,
+        maxWidth: 260,
+        justifyContent: "flex-end",
+        flexShrink: 0
+      }
+    }, a.client_abos.map(ab => /*#__PURE__*/React.createElement("span", {
+      key: ab,
+      style: {
+        fontSize: 10,
+        fontWeight: 600,
+        background: "#ecfeff",
+        color: "#0e7490",
+        border: "1px solid #a5f3fc",
+        padding: "1px 7px",
+        borderRadius: 6,
+        whiteSpace: "nowrap"
+      }
+    }, ab))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         flexDirection: "column",

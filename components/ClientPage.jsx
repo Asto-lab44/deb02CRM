@@ -58,7 +58,7 @@ const ClientPage = () => {
       const currentUserName = (() => { try { const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser(); return (u && u.name) || "Vous"; } catch (e) { return "Vous"; } })();
       const normalizeAssignee = (n) => (n && legacyDemoNames.has(n)) ? currentUserName : (n || currentUserName);
       // Défensif : meta doit rester une chaîne (un objet planterait le rendu React).
-      const metaStr = (m) => typeof m === "string" ? m : ((m && (m.label || m.client_name)) || "");
+      const metaStr = (m) => typeof m === "string" ? m : ((m && m.label) || "");
       const todo = (acts || []).filter((a) => a.status !== "done").map((a) => ({
         ...a,
         meta: metaStr(a.meta),

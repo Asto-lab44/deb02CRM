@@ -71,7 +71,7 @@ var ClientPage = () => {
       })();
       var normalizeAssignee = n => n && legacyDemoNames.has(n) ? currentUserName : n || currentUserName;
       // Défensif : meta doit rester une chaîne (un objet planterait le rendu React).
-      var metaStr = m => typeof m === "string" ? m : m && (m.label || m.client_name) || "";
+      var metaStr = m => typeof m === "string" ? m : m && m.label || "";
       var todo = (acts || []).filter(a => a.status !== "done").map(a => ({
         ...a,
         meta: metaStr(a.meta),

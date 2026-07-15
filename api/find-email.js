@@ -141,56 +141,77 @@ export default async function handler(req, res) {
   const targetSiren = digits(body.siren) || (targetSiret ? targetSiret.slice(0, 9) : "");
   if (!targetSiret && !targetSiren) return res.status(200).json({ status: "no_siret", message: "SIREN/SIRET manquant — enrichis d'abord la fiche." });
 
-  // Site web : fourni, sinon récupéré via Pappers (couplage).
+  const debug = { steps: [] };
+  // ── 1. Site web « de confiance » (issu du SIREN) : fiche → Pappers → Dropcontact
   let website = body.website || "";
-  if (!website) { website = (await pappersWebsite(targetSiren)) || ""; }
-
-  // 1) Outil dédié (Dropcontact) si configuré — company + SIREN → email + site.
-  const dcKey = process.env.DROPCONTACT_API_KEY;
-  if (dcKey) {
-    const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey);
-    if (dc && dc.email) {
-      return res.status(200).json({ status: "verified_tool", email: dc.email, emails: [dc.email], siret_verified: true, website: dc.website || website || null, source_url: dc.website || null, provider: "dropcontact" });
-    }
-    if (dc && dc.website && !website) website = dc.website;
+  let websiteTrusted = !!website;
+  if (website) debug.steps.push("site fiche: " + website);
+  if (!website) {
+    const pw = await pappersWebsite(targetSiren);
+    if (pw) { website = pw; websiteTrusted = true; debug.steps.push("site pappers: " + pw); }
+    else debug.steps.push("pappers: pas de site");
   }
 
-  // 2) Fallback : lecture mentions légales + vérification SIRET.
-  const bases = [];
-  const known = normBase(website);
-  if (known) bases.push(known);
-  candidateBases(body.name).forEach((b) => { if (!bases.includes(b)) bases.push(b); });
+  const dcKey = process.env.DROPCONTACT_API_KEY;
+  let dcEmail = null;
+  if (dcKey) {
+    const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey);
+    if (!dc) debug.steps.push("dropcontact: erreur/null");
+    else if (dc.pending) debug.steps.push("dropcontact: pending (relancer)");
+    else { if (dc.email) dcEmail = dc.email; if (dc.website) { debug.steps.push("dropcontact site: " + dc.website); if (!website) { website = dc.website; websiteTrusted = true; } } if (!dc.email) debug.steps.push("dropcontact: pas d'email nominatif"); }
+  } else debug.steps.push("dropcontact: clé absente");
 
-  let verifiedUrl = null, verifiedEmails = [], anyEmails = [], domainOut = null, checkedSiren = false;
-  outer:
-  for (const base of bases.slice(0, 5)) {
-    let domain = null; try { domain = new URL(base).hostname.replace(/^www\./, ""); } catch (e) { continue; }
+  // Email nominatif renvoyé directement par l'outil → priorité.
+  if (dcEmail) {
+    return res.status(200).json({ status: "verified_tool", email: dcEmail, emails: [dcEmail], siret_verified: true, website: website || null, source_url: website || null, provider: "dropcontact", debug });
+  }
+
+  const hostOf = (w) => { try { return new URL(normBase(w)).hostname.replace(/^www\./, ""); } catch (e) { return null; } };
+
+  // ── 2. Site de confiance connu → on lit le site pour un email, sinon contact@domaine
+  if (website && websiteTrusted) {
+    const base = normBase(website);
+    const domain = hostOf(website);
+    let all = [], siretUrl = null;
     for (const p of LEGAL_PATHS) {
       const html = await fetchText(base + p);
       if (!html) continue;
-      const norm = digits(html);
-      const siretMatch = targetSiret && norm.includes(targetSiret);
-      const sirenMatch = targetSiren && norm.includes(targetSiren);
       const emails = extractEmails(html);
-      anyEmails.push(...emails);
-      if (siretMatch) { verifiedUrl = base + p; verifiedEmails = emails; domainOut = domain; break outer; }
-      if (sirenMatch && emails.length && !verifiedUrl) { verifiedUrl = base + p; verifiedEmails = emails; domainOut = domain; checkedSiren = true; }
+      all.push(...emails);
+      if (targetSiret && digits(html).includes(targetSiret)) siretUrl = base + p;
+      if (emails.length && siretUrl) break;
+    }
+    const onDom = [...new Set(all)].filter((e) => domain && (e.endsWith("@" + domain) || e.endsWith("." + domain)));
+    const best = pickBest(onDom.length ? onDom : [...new Set(all)], domain);
+    if (best) {
+      return res.status(200).json({ status: siretUrl ? "verified_siret" : "verified_site", email: best, emails: [...new Set(all)].slice(0, 8), siret_verified: !!siretUrl, website: base, source_url: siretUrl || base, debug });
+    }
+    // Aucun email sur le site → adresse générique sur le domaine officiel.
+    if (domain) {
+      return res.status(200).json({ status: "generic_domain", email: "contact@" + domain, emails: ["contact@" + domain], siret_verified: false, website: base, source_url: base, note: "générique (domaine officiel, à vérifier)", debug });
     }
   }
 
-  const pool = verifiedEmails.length ? verifiedEmails : [...new Set(anyEmails)];
-  const best = pickBest(pool, domainOut);
-  const strong = !!verifiedUrl && !checkedSiren; // SIRET exact
-  const siteOut = website || (verifiedUrl ? (function () { try { return new URL(verifiedUrl).origin; } catch (e) { return null; } })() : (domainOut ? "https://www." + domainOut : null));
-  return res.status(200).json({
-    status: best ? (strong ? "verified_siret" : (verifiedUrl ? "verified_siren" : "found_unverified")) : "not_found",
-    email: best || null,
-    emails: [...new Set(pool)].slice(0, 8),
-    siret_verified: strong,
-    source_url: verifiedUrl || null,
-    website: siteOut,
-    domain: domainOut,
-  });
+  // ── 3. Aucun site de confiance → domaines devinés, acceptés SEULEMENT si le
+  //       SIRET/SIREN apparaît sur la page (garantit la bonne entreprise).
+  let verifiedUrl = null, verifiedEmails = [], domainOut = null, weak = false;
+  outer:
+  for (const b of candidateBases(body.name).slice(0, 4)) {
+    let domain = hostOf(b); if (!domain) continue;
+    for (const p of LEGAL_PATHS) {
+      const html = await fetchText(b + p);
+      if (!html) continue;
+      const norm = digits(html);
+      const emails = extractEmails(html);
+      if (targetSiret && norm.includes(targetSiret)) { verifiedUrl = b + p; verifiedEmails = emails; domainOut = domain; break outer; }
+      if (targetSiren && norm.includes(targetSiren) && emails.length && !verifiedUrl) { verifiedUrl = b + p; verifiedEmails = emails; domainOut = domain; weak = true; }
+    }
+  }
+  const best = pickBest(verifiedEmails, domainOut);
+  if (best) {
+    return res.status(200).json({ status: weak ? "verified_siren" : "verified_siret", email: best, emails: [...new Set(verifiedEmails)].slice(0, 8), siret_verified: !weak, website: verifiedUrl ? new URL(verifiedUrl).origin : null, source_url: verifiedUrl, debug });
+  }
+  return res.status(200).json({ status: "not_found", email: null, emails: [], siret_verified: false, website: website || null, source_url: null, debug });
 }
 
 // Laisse la marge pour le polling Dropcontact (Pro autorise jusqu'à 60s ;

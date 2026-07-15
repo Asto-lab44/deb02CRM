@@ -134,7 +134,7 @@ var ClientsHors44 = () => {
       color: "#0f172a",
       fontWeight: 600
     }
-  }, "Clients hors 44")), /*#__PURE__*/React.createElement("div", {
+  }, "Prospects hors 44")), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       width: 300
@@ -156,7 +156,7 @@ var ClientsHors44 = () => {
     style: ST.titleRow
   }, /*#__PURE__*/React.createElement("h1", {
     style: ST.h1
-  }, "\uD83D\uDCCD Clients hors Loire-Atlantique (44)"), /*#__PURE__*/React.createElement("p", {
+  }, "\uD83D\uDCCD Prospects hors Loire-Atlantique (44)"), /*#__PURE__*/React.createElement("p", {
     style: ST.sub
   }, "D\xE9partement d\xE9duit du code postal (renseign\xE9 par l'enrichissement Pappers).")), /*#__PURE__*/React.createElement("div", {
     style: ST.stats
@@ -202,7 +202,7 @@ var ClientsHors44 = () => {
     style: ST.body
   }, groupKeys.length === 0 && unknown.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: ST.empty
-  }, "Aucun client hors 44 (ou aucun code postal renseign\xE9 \u2014 lancez l'enrichissement Pappers depuis le CRM Prospection)."), groupKeys.map(d => /*#__PURE__*/React.createElement("section", {
+  }, "Aucun prospect hors 44 (ou aucun code postal renseign\xE9 \u2014 lancez l'enrichissement Pappers depuis le CRM Prospection)."), groupKeys.map(d => /*#__PURE__*/React.createElement("section", {
     key: d,
     style: {
       marginBottom: 18
@@ -221,7 +221,7 @@ var ClientsHors44 = () => {
       fontSize: 12,
       color: "#64748b"
     }
-  }, "\xB7 ", groups[d].length, " client", groups[d].length > 1 ? "s" : "")), /*#__PURE__*/React.createElement("div", {
+  }, "\xB7 ", groups[d].length, " prospect", groups[d].length > 1 ? "s" : "")), /*#__PURE__*/React.createElement("div", {
     style: ST.grid
   }, groups[d].sort((a, b) => (Number(b.ca_2324) || 0) - (Number(a.ca_2324) || 0)).map(card)))), unknown.length > 0 && /*#__PURE__*/React.createElement("section", {
     style: {

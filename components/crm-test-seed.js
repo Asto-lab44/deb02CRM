@@ -35,4 +35,5 @@
   if (window.HubTestMode && currentCount() === 0) {
     window.CRMTestReseed(false);
   }
+  // (La bascule « client → prospect » est gérée globalement par test-mode.js.)
 })();

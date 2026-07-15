@@ -740,7 +740,7 @@ const ClientPage = () => {
         </div>
 
         <div style={cliStyles.navSection}>
-          <div style={cliStyles.navLabel}>Clients récents · {recents.length}</div>
+          <div style={cliStyles.navLabel}>{window.HubTestMode ? "Prospects récents" : "Clients récents"} · {recents.length}</div>
           {recents.length === 0 && (
             <div style={{ fontSize: 11, color: "#94a3b8", padding: "6px 8px" }}>Aucun compte. <a href="/nouveau-prospect" style={{ color: "#3730a3", fontWeight: 600 }}>+ Créer</a></div>
           )}

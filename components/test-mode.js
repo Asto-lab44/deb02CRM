@@ -41,6 +41,17 @@
 
   if (!window.HubTestMode) return;
 
+  // Espace prospection : TOUT compte est un prospect. On repasse
+  // systématiquement les « client » en « prospect » dans l'espace isolé,
+  // sur toutes les pages (CRM, fiche client, listes…).
+  try {
+    var PKEY = "hubAstorya.test.prospects.v1";
+    var parr = JSON.parse(localStorage.getItem(PKEY) || "[]");
+    var pchg = 0;
+    parr.forEach(function (c) { if (c && c.status === "client") { c.status = "prospect"; pchg++; } });
+    if (pchg) localStorage.setItem(PKEY, JSON.stringify(parr));
+  } catch (e) {}
+
   // Bandeau permanent « MODE TEST ».
   function mountBanner() {
     if (document.getElementById("hub-test-banner")) return;

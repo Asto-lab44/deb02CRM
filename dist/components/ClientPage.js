@@ -1055,7 +1055,7 @@ var ClientPage = () => {
     style: cliStyles.navSection
   }, /*#__PURE__*/React.createElement("div", {
     style: cliStyles.navLabel
-  }, "Clients r\xE9cents \xB7 ", recents.length), recents.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, window.HubTestMode ? "Prospects récents" : "Clients récents", " \xB7 ", recents.length), recents.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#94a3b8",

@@ -71,7 +71,7 @@ const ClientsHors44 = () => {
       <header style={ST.topbar}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#64748b" }}>
           <a href={isTest ? "/crm?test=1" : "/crm"} style={{ color: "#64748b", textDecoration: "none" }}>{isTest ? "CRM Prospection" : "CRM"}</a>
-          <span style={{ color: "#cbd5e1" }}>/</span><span style={{ color: "#0f172a", fontWeight: 600 }}>Clients hors 44</span>
+          <span style={{ color: "#cbd5e1" }}>/</span><span style={{ color: "#0f172a", fontWeight: 600 }}>Prospects hors 44</span>
         </div>
         <div style={{ position: "relative", width: 300 }}>
           <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
@@ -80,7 +80,7 @@ const ClientsHors44 = () => {
       </header>
 
       <div style={ST.titleRow}>
-        <h1 style={ST.h1}>📍 Clients hors Loire-Atlantique (44)</h1>
+        <h1 style={ST.h1}>📍 Prospects hors Loire-Atlantique (44)</h1>
         <p style={ST.sub}>Département déduit du code postal (renseigné par l'enrichissement Pappers).</p>
       </div>
 
@@ -94,14 +94,14 @@ const ClientsHors44 = () => {
 
       {loading ? <div style={ST.empty}>Chargement…</div> : (
         <div style={ST.body}>
-          {groupKeys.length === 0 && unknown.length === 0 && <div style={ST.empty}>Aucun client hors 44 (ou aucun code postal renseigné — lancez l'enrichissement Pappers depuis le CRM Prospection).</div>}
+          {groupKeys.length === 0 && unknown.length === 0 && <div style={ST.empty}>Aucun prospect hors 44 (ou aucun code postal renseigné — lancez l'enrichissement Pappers depuis le CRM Prospection).</div>}
 
           {groupKeys.map((d) => (
             <section key={d} style={{ marginBottom: 18 }}>
               <div style={ST.groupHead}>
                 <span style={ST.deptBadge}>{d}</span>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>{deptName(d)}</span>
-                <span style={{ fontSize: 12, color: "#64748b" }}>· {groups[d].length} client{groups[d].length > 1 ? "s" : ""}</span>
+                <span style={{ fontSize: 12, color: "#64748b" }}>· {groups[d].length} prospect{groups[d].length > 1 ? "s" : ""}</span>
               </div>
               <div style={ST.grid}>{groups[d].sort((a, b) => (Number(b.ca_2324) || 0) - (Number(a.ca_2324) || 0)).map(card)}</div>
             </section>

@@ -18,14 +18,18 @@
     } catch (e) { return null; }
   }
 
-  window.CRMTestFindEmails = async function (onProgress) {
+  window.CRMTestFindEmails = async function (onProgress, opts) {
+    opts = opts || {};
     if (!window.api || !window.api.clients) return { done: 0, found: 0, verified: 0, failed: 0 };
     const token = await jwt();
     if (!token) throw new Error("Connexion Supabase requise (la recherche passe par le serveur).");
 
     const all = await window.api.clients.list({ active: true });
     const prospects = (all || []).filter((c) => (c.status || "prospect") !== "client");
-    const todo = prospects.filter((c) => !c.email && (c.siret || c.siren));
+    let todo = prospects.filter((c) => !c.email && (c.siret || c.siren));
+    // Mode test : ne traite que les N premiers (par CA décroissant pour tester
+    // sur des prospects représentatifs).
+    if (opts.limit) todo = todo.slice().sort((a, b) => (Number(b.ca_2324) || 0) - (Number(a.ca_2324) || 0)).slice(0, opts.limit);
     const eligibleWithSite = todo.filter((c) => c.web || c.site_web).length;
     let done = 0, found = 0, verified = 0, notFound = 0, failed = 0;
     const total = todo.length;

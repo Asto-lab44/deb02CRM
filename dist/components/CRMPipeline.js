@@ -2183,14 +2183,17 @@ var CRMAccountsList = () => {
     window.location.reload();
   };
   var [emailFindMsg, setEmailFindMsg] = React.useState(null);
-  var runFindEmails = () => {
+  var runFindEmails = limit => {
     if (!window.CRMTestFindEmails) {
       alert("Recherche indisponible (rechargez la page).");
       return;
     }
-    if (!confirm("Rechercher automatiquement l'email de chaque prospect (site officiel → mentions légales → vérification SIRET) ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.")) return;
+    var msg = limit ? "Test sur " + limit + " prospects : rechercher leur email (Dropcontact / Pappers / mentions légales + SIRET) ?" : "Rechercher automatiquement l'email de chaque prospect ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.";
+    if (!confirm(msg)) return;
     setEmailFindMsg("Démarrage…");
-    window.CRMTestFindEmails(p => setEmailFindMsg(p.done + "/" + p.total)).then(res => {
+    window.CRMTestFindEmails(p => setEmailFindMsg(p.done + "/" + p.total), {
+      limit: limit
+    }).then(res => {
       setEmailFindMsg(null);
       if (res.empty) {
         alert("Aucun prospect à traiter.\n\n• " + res.noSiret + " prospects sans SIREN/SIRET (lance d'abord « Enrichir via Pappers »)\n• les autres ont déjà un email.");
@@ -2432,9 +2435,25 @@ var CRMAccountsList = () => {
       color: "#475569"
     }
   }, "\u21BB R\xE9importer"), isTest && /*#__PURE__*/React.createElement("button", {
-    onClick: runFindEmails,
+    onClick: () => runFindEmails(5),
     disabled: !!emailFindMsg,
-    title: "Trouver l'email de chaque prospect (site \u2192 mentions l\xE9gales \u2192 v\xE9rification SIRET)",
+    title: "Tester la recherche d'email sur 5 prospects (les plus gros CA)",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      cursor: emailFindMsg ? "default" : "pointer",
+      border: "1px solid #0e7490",
+      background: "#fff",
+      color: "#0e7490",
+      opacity: emailFindMsg ? 0.8 : 1
+    }
+  }, "\uD83E\uDDEA Tester sur 5"), isTest && /*#__PURE__*/React.createElement("button", {
+    onClick: () => runFindEmails(0),
+    disabled: !!emailFindMsg,
+    title: "Trouver l'email de chaque prospect (Dropcontact / Pappers / mentions l\xE9gales + SIRET)",
     style: {
       padding: "8px 12px",
       borderRadius: 8,

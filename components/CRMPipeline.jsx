@@ -929,11 +929,14 @@ const CRMAccountsList = () => {
     window.CRMTestReseed(true); window.location.reload();
   };
   const [emailFindMsg, setEmailFindMsg] = React.useState(null);
-  const runFindEmails = () => {
+  const runFindEmails = (limit) => {
     if (!window.CRMTestFindEmails) { alert("Recherche indisponible (rechargez la page)."); return; }
-    if (!confirm("Rechercher automatiquement l'email de chaque prospect (site officiel → mentions légales → vérification SIRET) ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.")) return;
+    const msg = limit
+      ? "Test sur " + limit + " prospects : rechercher leur email (Dropcontact / Pappers / mentions légales + SIRET) ?"
+      : "Rechercher automatiquement l'email de chaque prospect ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.";
+    if (!confirm(msg)) return;
     setEmailFindMsg("Démarrage…");
-    window.CRMTestFindEmails((p) => setEmailFindMsg(p.done + "/" + p.total))
+    window.CRMTestFindEmails((p) => setEmailFindMsg(p.done + "/" + p.total), { limit: limit })
       .then((res) => {
         setEmailFindMsg(null);
         if (res.empty) {
@@ -1083,8 +1086,15 @@ const CRMAccountsList = () => {
             </button>
           )}
           {isTest && (
-            <button onClick={runFindEmails} disabled={!!emailFindMsg}
-                    title="Trouver l'email de chaque prospect (site → mentions légales → vérification SIRET)"
+            <button onClick={() => runFindEmails(5)} disabled={!!emailFindMsg}
+                    title="Tester la recherche d'email sur 5 prospects (les plus gros CA)"
+                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: emailFindMsg ? "default" : "pointer", border: "1px solid #0e7490", background: "#fff", color: "#0e7490", opacity: emailFindMsg ? 0.8 : 1 }}>
+              🧪 Tester sur 5
+            </button>
+          )}
+          {isTest && (
+            <button onClick={() => runFindEmails(0)} disabled={!!emailFindMsg}
+                    title="Trouver l'email de chaque prospect (Dropcontact / Pappers / mentions légales + SIRET)"
                     style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: emailFindMsg ? "default" : "pointer", border: 0, background: "#0e7490", color: "#fff", opacity: emailFindMsg ? 0.8 : 1 }}>
               {emailFindMsg ? "⏳ " + emailFindMsg : "📧 Trouver les emails"}
             </button>

@@ -32,7 +32,7 @@
     // sur des prospects représentatifs).
     if (opts.limit) todo = todo.slice().sort((a, b) => (Number(b.ca_2324) || 0) - (Number(a.ca_2324) || 0)).slice(0, opts.limit);
     const eligibleWithSite = todo.filter((c) => c.web || c.site_web).length;
-    let done = 0, found = 0, verified = 0, notFound = 0, failed = 0;
+    let done = 0, found = 0, verified = 0, notFound = 0, failed = 0, sitesFound = 0;
     const details = [];
     const total = todo.length;
     // Diagnostic : prospects sans SIREN/SIRET (non éligibles) et sans site.
@@ -65,7 +65,7 @@
       // 401/500 renvoient { error } sans champ status : on le remonte lisiblement.
       if (!j.status && (j.error || j.message)) { j.status = "HTTP " + r.status; j.debug = { steps: [j.error || j.message] }; }
       const patch = {};
-      if (j && j.website && !(c.web || c.site_web)) { patch.web = j.website; patch.site_web = j.website; }
+      if (j && j.website && !(c.web || c.site_web)) { patch.web = j.website; patch.site_web = j.website; sitesFound++; }
       // Fiche Pappers complète → stockée sur le prospect + champs utiles remontés.
       if (j && j.pappers) {
         const p = j.pappers;
@@ -123,6 +123,6 @@
         await new Promise((res) => setTimeout(res, 400));
       }
     }
-    return { done: done, found: found, verified: verified, notFound: notFound, failed: failed, total: total, noSiret: noSiret, eligibleWithSite: eligibleWithSite, details: details };
+    return { done: done, found: found, verified: verified, notFound: notFound, failed: failed, total: total, noSiret: noSiret, eligibleWithSite: eligibleWithSite, sitesFound: sitesFound, details: details };
   };
 })();

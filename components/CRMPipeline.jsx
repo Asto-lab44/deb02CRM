@@ -1062,7 +1062,13 @@ const CRMAccountsList = () => {
         <div>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Comptes & contacts</h2>
           <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>
-            {merged.length} compte{merged.length > 1 ? "s" : ""} ({localProspects.length} créé{localProspects.length > 1 ? "s" : ""} récemment · {supaClients.length} en base)
+            {merged.length} compte{merged.length > 1 ? "s" : ""}
+            {isTest && (() => {
+              const nbEmail = merged.filter((c) => c.email || (c.contact_principal && c.contact_principal.email)).length;
+              const nbSite = merged.filter((c) => c.web || c.site_web).length;
+              const nbPappers = merged.filter((c) => c.pappers).length;
+              return <> · <b style={{ color: "#0e7490" }}>📧 {nbEmail}</b> avec email · <b style={{ color: "#3730a3" }}>🌐 {nbSite}</b> avec site · <b style={{ color: "#7c3aed" }}>📇 {nbPappers}</b> fiche Pappers</>;
+            })()}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
@@ -1173,7 +1179,7 @@ const CRMAccountsList = () => {
           ) : (
             <div>
               <div style={{ fontSize: 12.5, color: "#0f172a", marginBottom: 8 }}>
-                Sur <b>{emailReport.total}</b> : <b style={{ color: "#0e7490" }}>{emailReport.found}</b> emails trouvés (dont {emailReport.verified} vérifiés SIRET) · {emailReport.notFound} sans email · {emailReport.failed || 0} erreurs · {emailReport.eligibleWithSite} avec site connu
+                Sur <b>{emailReport.total}</b> : <b style={{ color: "#0e7490" }}>{emailReport.found}</b> emails trouvés (dont {emailReport.verified} vérifiés SIRET) · <b style={{ color: "#3730a3" }}>{emailReport.sitesFound || 0}</b> sites web récupérés · {emailReport.notFound} sans email · {emailReport.failed || 0} erreurs
               </div>
               <div style={{ maxHeight: 260, overflowY: "auto", background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0" }}>
                 {(emailReport.details || []).map((d, i) => (

@@ -2396,7 +2396,24 @@ var CRMAccountsList = () => {
       color: "#64748b",
       marginTop: 2
     }
-  }, merged.length, " compte", merged.length > 1 ? "s" : "", " (", localProspects.length, " cr\xE9\xE9", localProspects.length > 1 ? "s" : "", " r\xE9cemment \xB7 ", supaClients.length, " en base)")), /*#__PURE__*/React.createElement("div", {
+  }, merged.length, " compte", merged.length > 1 ? "s" : "", isTest && (() => {
+    var nbEmail = merged.filter(c => c.email || c.contact_principal && c.contact_principal.email).length;
+    var nbSite = merged.filter(c => c.web || c.site_web).length;
+    var nbPappers = merged.filter(c => c.pappers).length;
+    return /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "#0e7490"
+      }
+    }, "\uD83D\uDCE7 ", nbEmail), " avec email \xB7 ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "#3730a3"
+      }
+    }, "\uD83C\uDF10 ", nbSite), " avec site \xB7 ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "#7c3aed"
+      }
+    }, "\uD83D\uDCC7 ", nbPappers), " fiche Pappers");
+  })())), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -2733,7 +2750,11 @@ var CRMAccountsList = () => {
     style: {
       color: "#0e7490"
     }
-  }, emailReport.found), " emails trouv\xE9s (dont ", emailReport.verified, " v\xE9rifi\xE9s SIRET) \xB7 ", emailReport.notFound, " sans email \xB7 ", emailReport.failed || 0, " erreurs \xB7 ", emailReport.eligibleWithSite, " avec site connu"), /*#__PURE__*/React.createElement("div", {
+  }, emailReport.found), " emails trouv\xE9s (dont ", emailReport.verified, " v\xE9rifi\xE9s SIRET) \xB7 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "#3730a3"
+    }
+  }, emailReport.sitesFound || 0), " sites web r\xE9cup\xE9r\xE9s \xB7 ", emailReport.notFound, " sans email \xB7 ", emailReport.failed || 0, " erreurs"), /*#__PURE__*/React.createElement("div", {
     style: {
       maxHeight: 260,
       overflowY: "auto",

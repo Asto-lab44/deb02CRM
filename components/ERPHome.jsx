@@ -190,7 +190,7 @@ const ERPHome = () => {
     {
       cat: "Commercial",
       key: "crm_test",
-      title: "CRM Prospection",
+      title: "Intelligence concurrentielle",
       subtitle: "Prospection commerciale · données séparées du CRM principal",
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>,
       color: "#7c3aed",
@@ -205,7 +205,7 @@ const ERPHome = () => {
     {
       cat: "Commercial",
       key: "intel",
-      title: "Intelligence concurrentielle",
+      title: "Commerce récurrent",
       subtitle: "Radar fin contrats · battle cards",
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>,
       color: "#dc2626",

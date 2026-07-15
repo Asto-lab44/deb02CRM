@@ -2162,7 +2162,7 @@ var CRMAccountsList = () => {
   var isTest = typeof window !== "undefined" && window.HubTestMode;
   var runEnrich = () => {
     if (!window.CRMTestEnrich) {
-      alert("Enrichissement indisponible (rechargez la page CRM Prospection).");
+      alert("Enrichissement indisponible (rechargez la page Intelligence concurrentielle).");
       return;
     }
     if (!confirm("Compléter les fiches de la prospection (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\n1 à 2 min. Le CRM principal n'est pas touché.")) return;
@@ -3080,6 +3080,17 @@ var CRMActionsList = () => {
           if (window.HubToast) window.HubToast.warn("Aucun email — ouvre la fiche client pour ajouter un contact");
           return;
         }
+        // Email de présentation (action de prospection) : ouvre directement
+        // l'OUTLOOK DESKTOP du poste (mailto:), destinataire = email du
+        // prospect, objet fixe. Le corps sera fourni ultérieurement.
+        var isPresentation = /pr[ée]sentation/i.test((a.title || "") + " " + (a.meta || "")) || a.tag === "Emailing";
+        if (isPresentation) {
+          var subject = "Présentation de l'entreprise informatique téléphonie ASTORYA S.G.I.";
+          var presoBody = (window.HubPresentationEmailBody || "").trim();
+          window.location.href = "mailto:" + email + "?subject=" + encodeURIComponent(subject) + (presoBody ? "&body=" + encodeURIComponent(presoBody) : "");
+          if (window.HubToast) window.HubToast.success("✉️ Outlook ouvert — " + email);
+          return;
+        }
         var lastName = (contact && contact.nom || "").trim();
         var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
         // Téléchargement local de la plaquette → l'utilisateur la
@@ -3143,9 +3154,9 @@ var CRMActionsList = () => {
         tomorrow.setHours(9, 0, 0, 0);
         var end = new Date(tomorrow.getTime() + 60 * 60 * 1000);
         var toIso = d => d.toISOString().replace(/\.\d{3}Z$/, "Z");
-        var subject = (a.title || "Rendez-vous") + (clientName ? " — " + clientName : "");
+        var _subject = (a.title || "Rendez-vous") + (clientName ? " — " + clientName : "");
         var params = new URLSearchParams({
-          subject,
+          subject: _subject,
           body: a.meta || "Préparé via Hub Astorya",
           startdt: toIso(tomorrow),
           enddt: toIso(end),

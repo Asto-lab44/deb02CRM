@@ -43,7 +43,7 @@
     { key: "inbound",  label: "Demandes entrantes",          icon: "📥", href: ROUTES.inbound, badgeKey: "inbound" },
     { key: "client",   label: "Fiche client",                icon: "◉", href: ROUTES.client },
     { key: "tech",     label: "Ticketing",                   icon: "✎", href: ROUTES.tech },
-    { key: "intel",    label: "Intelligence concurrentielle", icon: "◎", href: ROUTES.intel },
+    { key: "intel",    label: "Commerce récurrent", icon: "◎", href: ROUTES.intel },
     { key: "new_opp",  label: "Nouvelle opportunité",        icon: "+", href: ROUTES.new_opp },
     { key: "sales_team", label: "Équipe commerciale",        icon: "★", href: ROUTES.sales_team },
     { key: "renewals", label: "Fins contrats concurrents",   icon: "⚑", href: ROUTES.renewals },
@@ -84,7 +84,7 @@
   const MODULE_STYLES = {
     home:       { color: "#3730a3", bg: "#eef2ff", label: "Accueil",                   iconPath: "M3 12l9-9 9 9M5 10v10h14V10" },
     crm:        { color: "#4f46e5", bg: "#eef2ff", label: "CRM",                       iconPath: "M3 3v18h18M7 17l4-4 4 4 5-7" },
-    intel:      { color: "#dc2626", bg: "#fdecec", label: "Intelligence concurrentielle", iconPath: "M12 2v6m0 8v6M2 12h6m8 0h6M5 5l4 4m6 6l4 4M5 19l4-4m6-6l4-4" },
+    intel:      { color: "#dc2626", bg: "#fdecec", label: "Commerce récurrent", iconPath: "M12 2v6m0 8v6M2 12h6m8 0h6M5 5l4 4m6 6l4 4M5 19l4-4m6-6l4-4" },
     marketing:  { color: "#ec4899", bg: "#fdf2f8", label: "Marketing",                 iconPath: "M3 11l18-5v12L3 14v-3zM11 12v3l3 1" },
     tech:       { color: "#0ea5e9", bg: "#e0f4fc", label: "Ticketing",                 iconPath: "M11 3a9 9 0 109 9M12 7v5l4 2" },
     projects:   { color: "#a855f7", bg: "#f5efff", label: "Projets & Livrables",       iconPath: "M3 7h18v13H3zM3 7l4-4h10l4 4M9 11h6" },

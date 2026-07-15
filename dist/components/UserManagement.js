@@ -112,13 +112,13 @@ var UserManagement = () => {
   }, {
     key: "crm_test",
     cat: "Commercial",
-    title: "CRM Prospection",
+    title: "Intelligence concurrentielle",
     color: "#7c3aed",
     bg: "#f3e8ff"
   }, {
     key: "intel",
     cat: "Commercial",
-    title: "Intelligence concurrentielle",
+    title: "Commerce récurrent",
     color: "#dc2626",
     bg: "#fdecec"
   }, {

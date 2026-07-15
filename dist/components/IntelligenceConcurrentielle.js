@@ -157,7 +157,7 @@ var IntelligenceConcurrentielle = () => {
       fontSize: 11,
       color: "#64748b"
     }
-  }, "Intelligence concurrentielle"))), /*#__PURE__*/React.createElement("button", {
+  }, "Commerce r\xE9current"))), /*#__PURE__*/React.createElement("button", {
     onClick: newLeasing,
     style: {
       ...icStyles.newBtn,
@@ -248,7 +248,7 @@ var IntelligenceConcurrentielle = () => {
     style: icStyles.topbar
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: icStyles.h1
-  }, "Intelligence concurrentielle"), /*#__PURE__*/React.createElement("p", {
+  }, "Commerce r\xE9current"), /*#__PURE__*/React.createElement("p", {
     style: icStyles.sub
   }, "\xC9ch\xE9ances commerciales \xE0 anticiper \xB7 Leasing \xB7 Garanties \xB7 Contrats concurrents")), /*#__PURE__*/React.createElement("div", {
     style: {

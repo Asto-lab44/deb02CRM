@@ -1411,6 +1411,16 @@ const ClientPage = () => {
                                      if (window.HubToast) window.HubToast.warn("Aucun email — ajoute un contact d'abord");
                                      return;
                                    }
+                                   // Email de présentation : Outlook DESKTOP (mailto), destinataire =
+                                   // email du prospect, objet fixe. Corps fourni ultérieurement.
+                                   if (/pr[ée]sentation/i.test((a.title || "") + " " + (a.meta || "")) || a.tag === "Emailing") {
+                                     const presoBody = (window.HubPresentationEmailBody || "").trim();
+                                     window.location.href = "mailto:" + recipient
+                                       + "?subject=" + encodeURIComponent("Présentation de l'entreprise informatique téléphonie ASTORYA S.G.I.")
+                                       + (presoBody ? "&body=" + encodeURIComponent(presoBody) : "");
+                                     if (window.HubToast) window.HubToast.success("✉️ Outlook ouvert — " + recipient);
+                                     return;
+                                   }
                                    // Télécharge la plaquette automatiquement → l'utilisateur n'a
                                    // qu'à glisser-déposer le PDF dans son mail (Outlook web n'accepte
                                    // pas les pièces jointes en URL, contrainte navigateur).

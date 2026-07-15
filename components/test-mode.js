@@ -67,7 +67,7 @@
     var exitHref = window.location.pathname + window.location.search + sep + "test=0";
     var pill = "color:#fff;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px;text-decoration:none;font-weight:700;cursor:pointer;border:0;font:inherit;";
     bar.innerHTML =
-      "<span>🧭 CRM PROSPECTION — données séparées du CRM principal (aucune écriture sur les comptes réels)</span>";
+      "<span>🧭 INTELLIGENCE CONCURRENTIELLE — données séparées du CRM principal (aucune écriture sur les comptes réels)</span>";
     // Bouton de (ré)import des clients — présent seulement là où le jeu de
     // données est chargé (page CRM).
     if (window.CRMTestData && window.CRMTestData.clients) {

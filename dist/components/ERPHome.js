@@ -270,7 +270,7 @@ var ERPHome = () => {
   }, {
     cat: "Commercial",
     key: "crm_test",
-    title: "CRM Prospection",
+    title: "Intelligence concurrentielle",
     subtitle: "Prospection commerciale · données séparées du CRM principal",
     icon: /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",
@@ -307,7 +307,7 @@ var ERPHome = () => {
   }, {
     cat: "Commercial",
     key: "intel",
-    title: "Intelligence concurrentielle",
+    title: "Commerce récurrent",
     subtitle: "Radar fin contrats · battle cards",
     icon: /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",

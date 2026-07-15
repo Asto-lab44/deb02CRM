@@ -916,7 +916,7 @@ const CRMAccountsList = () => {
   const isTest = typeof window !== "undefined" && window.HubTestMode;
 
   const runEnrich = () => {
-    if (!window.CRMTestEnrich) { alert("Enrichissement indisponible (rechargez la page CRM Prospection)."); return; }
+    if (!window.CRMTestEnrich) { alert("Enrichissement indisponible (rechargez la page Intelligence concurrentielle)."); return; }
     if (!confirm("Compléter les fiches de la prospection (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\n1 à 2 min. Le CRM principal n'est pas touché.")) return;
     setEnrichMsg("Démarrage…");
     window.CRMTestEnrich((p) => setEnrichMsg("Enrichissement " + p.done + "/" + p.total + "…"))
@@ -1177,7 +1177,7 @@ const CRMAccountsList = () => {
                   {c.contact_principal.fonction && <span style={{ color: "#94a3b8" }}> · {c.contact_principal.fonction}</span>}
                 </div>
               )}
-              {/* Ajout CRM Prospection : CA 2023-2024 et abonnements (issus de
+              {/* Ajout Intelligence concurrentielle : CA 2023-2024 et abonnements (issus de
                   l'import Excel). N'apparaît que si ces champs sont présents. */}
               {(Number(c.ca_2324) > 0 || (c.abonnements && c.abonnements.length)) && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
@@ -1341,6 +1341,17 @@ const CRMActionsList = () => {
             if (isEmail) {
               const email = (contact && contact.email) || (client && client.email) || "";
               if (!email) { if (window.HubToast) window.HubToast.warn("Aucun email — ouvre la fiche client pour ajouter un contact"); return; }
+              // Email de présentation (action de prospection) : ouvre directement
+              // l'OUTLOOK DESKTOP du poste (mailto:), destinataire = email du
+              // prospect, objet fixe. Le corps sera fourni ultérieurement.
+              const isPresentation = /pr[ée]sentation/i.test((a.title || "") + " " + (a.meta || "")) || a.tag === "Emailing";
+              if (isPresentation) {
+                const subject = "Présentation de l'entreprise informatique téléphonie ASTORYA S.G.I.";
+                const presoBody = (window.HubPresentationEmailBody || "").trim();
+                window.location.href = "mailto:" + email + "?subject=" + encodeURIComponent(subject) + (presoBody ? "&body=" + encodeURIComponent(presoBody) : "");
+                if (window.HubToast) window.HubToast.success("✉️ Outlook ouvert — " + email);
+                return;
+              }
               const lastName = ((contact && contact.nom) || "").trim();
               const body = [
                 "Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",",

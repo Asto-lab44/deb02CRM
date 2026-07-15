@@ -89,7 +89,7 @@ const IntelligenceConcurrentielle = () => {
           {window.HubModuleLogo ? React.createElement(window.HubModuleLogo, { size: 36 }) : <div style={icStyles.logo}>H</div>}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>Hub Astorya</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Intelligence concurrentielle</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Commerce récurrent</div>
           </div>
         </a>
 
@@ -128,7 +128,7 @@ const IntelligenceConcurrentielle = () => {
       <main style={icStyles.main}>
         <header style={icStyles.topbar}>
           <div>
-            <h1 style={icStyles.h1}>Intelligence concurrentielle</h1>
+            <h1 style={icStyles.h1}>Commerce récurrent</h1>
             <p style={icStyles.sub}>Échéances commerciales à anticiper · Leasing · Garanties · Contrats concurrents</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>

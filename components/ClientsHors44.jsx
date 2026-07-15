@@ -70,7 +70,7 @@ const ClientsHors44 = () => {
     <div style={ST.frame}>
       <header style={ST.topbar}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#64748b" }}>
-          <a href={isTest ? "/crm?test=1" : "/crm"} style={{ color: "#64748b", textDecoration: "none" }}>{isTest ? "CRM Prospection" : "CRM"}</a>
+          <a href={isTest ? "/crm?test=1" : "/crm"} style={{ color: "#64748b", textDecoration: "none" }}>{isTest ? "Intelligence concurrentielle" : "CRM"}</a>
           <span style={{ color: "#cbd5e1" }}>/</span><span style={{ color: "#0f172a", fontWeight: 600 }}>Prospects hors 44</span>
         </div>
         <div style={{ position: "relative", width: 300 }}>
@@ -94,7 +94,7 @@ const ClientsHors44 = () => {
 
       {loading ? <div style={ST.empty}>Chargement…</div> : (
         <div style={ST.body}>
-          {groupKeys.length === 0 && unknown.length === 0 && <div style={ST.empty}>Aucun prospect hors 44 (ou aucun code postal renseigné — lancez l'enrichissement Pappers depuis le CRM Prospection).</div>}
+          {groupKeys.length === 0 && unknown.length === 0 && <div style={ST.empty}>Aucun prospect hors 44 (ou aucun code postal renseigné — lancez l'enrichissement Pappers depuis le Intelligence concurrentielle).</div>}
 
           {groupKeys.map((d) => (
             <section key={d} style={{ marginBottom: 18 }}>

@@ -928,6 +928,15 @@ const CRMAccountsList = () => {
     if (!confirm("Réimporter les clients depuis l'Excel dans l'espace prospection ? Cela remplace les clients de prospection actuels.")) return;
     window.CRMTestReseed(true); window.location.reload();
   };
+  const [outreachMsg, setOutreachMsg] = React.useState(null);
+  const runOutreach = () => {
+    if (!window.CRMTestGenerateOutreach) { alert("Génération indisponible (rechargez la page)."); return; }
+    if (!confirm("Créer, pour chaque prospect, une opportunité + une action « envoi de l'email de présentation » ?\n\nIdempotent : les prospects déjà traités sont ignorés. Le CRM principal n'est pas touché.")) return;
+    setOutreachMsg("Démarrage…");
+    window.CRMTestGenerateOutreach((p) => setOutreachMsg(p.done + "/" + p.total))
+      .then((res) => { setOutreachMsg(null); alert("Terminé : " + res.created + " actions créées" + (res.skipped ? ", " + res.skipped + " déjà présentes" : "") + "."); loadAccounts(); })
+      .catch((e) => { setOutreachMsg(null); alert("Erreur : " + (e.message || e)); });
+  };
   const [search, setSearch] = React.useState("");
   const [localProspects, setLocalProspects] = React.useState([]);
   const [supaClients, setSupaClients] = React.useState([]);
@@ -1050,6 +1059,13 @@ const CRMAccountsList = () => {
             <button onClick={runReseed} title="Réimporter les clients depuis l'Excel"
                     style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#475569" }}>
               ↻ Réimporter
+            </button>
+          )}
+          {isTest && (
+            <button onClick={runOutreach} disabled={!!outreachMsg}
+                    title="Créer une opportunité + une action e-mail de présentation pour chaque prospect"
+                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: outreachMsg ? "default" : "pointer", border: 0, background: "#7c3aed", color: "#fff", opacity: outreachMsg ? 0.8 : 1 }}>
+              {outreachMsg ? "⏳ " + outreachMsg : "✉️ Générer les actions d'emailing"}
             </button>
           )}
           {isTest && (

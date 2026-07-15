@@ -2182,6 +2182,23 @@ var CRMAccountsList = () => {
     window.CRMTestReseed(true);
     window.location.reload();
   };
+  var [outreachMsg, setOutreachMsg] = React.useState(null);
+  var runOutreach = () => {
+    if (!window.CRMTestGenerateOutreach) {
+      alert("Génération indisponible (rechargez la page).");
+      return;
+    }
+    if (!confirm("Créer, pour chaque prospect, une opportunité + une action « envoi de l'email de présentation » ?\n\nIdempotent : les prospects déjà traités sont ignorés. Le CRM principal n'est pas touché.")) return;
+    setOutreachMsg("Démarrage…");
+    window.CRMTestGenerateOutreach(p => setOutreachMsg(p.done + "/" + p.total)).then(res => {
+      setOutreachMsg(null);
+      alert("Terminé : " + res.created + " actions créées" + (res.skipped ? ", " + res.skipped + " déjà présentes" : "") + ".");
+      loadAccounts();
+    }).catch(e => {
+      setOutreachMsg(null);
+      alert("Erreur : " + (e.message || e));
+    });
+  };
   var [search, setSearch] = React.useState("");
   var [localProspects, setLocalProspects] = React.useState([]);
   var [supaClients, setSupaClients] = React.useState([]);
@@ -2393,7 +2410,23 @@ var CRMAccountsList = () => {
       background: "#fff",
       color: "#475569"
     }
-  }, "\u21BB R\xE9importer"), isTest && /*#__PURE__*/React.createElement("a", {
+  }, "\u21BB R\xE9importer"), isTest && /*#__PURE__*/React.createElement("button", {
+    onClick: runOutreach,
+    disabled: !!outreachMsg,
+    title: "Cr\xE9er une opportunit\xE9 + une action e-mail de pr\xE9sentation pour chaque prospect",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      cursor: outreachMsg ? "default" : "pointer",
+      border: 0,
+      background: "#7c3aed",
+      color: "#fff",
+      opacity: outreachMsg ? 0.8 : 1
+    }
+  }, outreachMsg ? "⏳ " + outreachMsg : "✉️ Générer les actions d'emailing"), isTest && /*#__PURE__*/React.createElement("a", {
     href: "/clients-hors-44?test=1",
     title: "Clients hors Loire-Atlantique (44)",
     style: {

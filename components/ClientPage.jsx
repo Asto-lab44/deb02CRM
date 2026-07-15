@@ -573,8 +573,12 @@ const ClientPage = () => {
       address: display.address === "—" ? "" : display.address,
       cp: display.cp || "",
       addressCity: display.addressCity || "",
-      web: display.web || "",
+      web: display.web || c.site_web || (c.data && c.data.web) || "",
       linkedin: display.linkedin || "",
+      // Email prospect (niveau entreprise) + métadonnées de la recherche
+      email: c.email || (c.contact_principal && c.contact_principal.email) || "",
+      email_verified: !!c.email_verified,
+      email_source: c.email_source || "",
       // Équipe Astorya
       owner: display.owner === "—" ? "" : display.owner,
       coowner: display.coowner === "—" ? "" : display.coowner,
@@ -634,6 +638,9 @@ const ClientPage = () => {
         : [],
       site_web: editDraft.web || null,
       linkedin_entreprise: editDraft.linkedin || null,
+      email: editDraft.email || null,
+      email_verified: editDraft.email_verified || false,
+      email_source: editDraft.email_source || null,
       siren: editDraft.siren || null,
       naf: editDraft.naf || null,
       tva: editDraft.tva || null,
@@ -2334,6 +2341,13 @@ const ClientPage = () => {
                   <label style={editLabel}>LinkedIn entreprise</label>
                   <input value={editDraft.linkedin || ""} onChange={(e) => setEditDraft({ ...editDraft, linkedin: e.target.value })} placeholder="linkedin.com/company/…" style={editInput} />
                 </div>
+              </div>
+              {/* Email du prospect (niveau entreprise) — juste sous le site web.
+                  Rempli automatiquement par la recherche d'email (outil dédié). */}
+              <div>
+                <label style={editLabel}>Email prospect{editDraft.email_verified ? <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 700, color: "#065f46", background: "#dcfce7", padding: "1px 6px", borderRadius: 999 }}>✓ vérifié SIRET</span> : null}</label>
+                <input type="email" value={editDraft.email || ""} onChange={(e) => setEditDraft({ ...editDraft, email: e.target.value })} placeholder="contact@…" style={editInput} />
+                {editDraft.email_source && <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 3 }}>Source : <a href={editDraft.email_source} target="_blank" rel="noopener noreferrer" style={{ color: "#3730a3" }}>{editDraft.email_source}</a></div>}
               </div>
 
               {/* ÉTABLISSEMENTS SECONDAIRES */}

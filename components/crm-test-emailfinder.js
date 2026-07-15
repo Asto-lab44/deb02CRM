@@ -47,16 +47,17 @@
         if (r.status === 404) throw new Error("Fonction /api/find-email non déployée sur Vercel (attends le déploiement).");
         if (r.status === 401) throw new Error("Session expirée — reconnecte-toi puis relance.");
         const j = await r.json();
+        // On enregistre le site web capturé même si aucun email n'est trouvé.
+        const patch = {};
+        if (j && j.website && !(c.web || c.site_web)) { patch.web = j.website; patch.site_web = j.website; }
         if (j && j.email) {
-          await window.api.clients.update(c.id, {
-            email: j.email,
-            email_source: j.source_url || null,
-            email_verified: !!j.siret_verified,
-            contact_principal: Object.assign({}, c.contact_principal || {}, { email: j.email }),
-          });
-          found++;
-          if (j.siret_verified) verified++;
-        } else { notFound++; }
+          patch.email = j.email;
+          patch.email_source = j.source_url || j.website || null;
+          patch.email_verified = !!j.siret_verified;
+          patch.contact_principal = Object.assign({}, c.contact_principal || {}, { email: j.email });
+        }
+        if (Object.keys(patch).length) await window.api.clients.update(c.id, patch);
+        if (j && j.email) { found++; if (j.siret_verified) verified++; } else { notFound++; }
       } catch (e) {
         failed++;
         if (/non déployée|Session expirée/.test(e.message || "")) { throw e; } // stop net

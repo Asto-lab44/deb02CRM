@@ -75,6 +75,48 @@ function pickBest(emails, domain) {
   const gen = pool.find((e) => GENERIC.some((p) => e.startsWith(p + "@")));
   return gen || pool[0] || null;
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Récupère le site web d'une entreprise via Pappers (couplage demandé).
+async function pappersWebsite(siren) {
+  const token = process.env.PAPPERS_API_TOKEN;
+  if (!token || !siren) return null;
+  try {
+    const u = new URL("https://api.pappers.fr/v2/entreprise");
+    u.searchParams.set("api_token", token);
+    u.searchParams.set("siren", digits(siren).slice(0, 9));
+    const r = await fetch(u.toString(), { headers: { Accept: "application/json" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.site_web || (j.entreprise && j.entreprise.site_web) || null;
+  } catch (e) { return null; }
+}
+
+// Outil dédié : Dropcontact (company + SIREN → email pro + site web). Async :
+// on soumet puis on interroge quelques secondes. RGPD-compliant (FR).
+async function dropcontact({ name, siren, website }, key) {
+  try {
+    const submit = await fetch("https://api.dropcontact.com/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Access-Token": key },
+      body: JSON.stringify({ data: [{ company: name || undefined, siren: siren || undefined, website: website || undefined }], siren: true, language: "fr" }),
+    });
+    const sj = await submit.json();
+    const reqId = sj && (sj.request_id || sj.requestId);
+    if (!reqId) return null;
+    for (let i = 0; i < 6; i++) {
+      await sleep(2500);
+      const p = await fetch("https://api.dropcontact.com/batch/" + reqId, { headers: { "X-Access-Token": key } });
+      const pj = await p.json();
+      if (pj && pj.success && Array.isArray(pj.data)) {
+        const row = pj.data[0] || {};
+        const email = (Array.isArray(row.email) && row.email[0] && row.email[0].email) || (typeof row.email === "string" ? row.email : null);
+        return { email: email || null, website: row.website || null, provider: "dropcontact" };
+      }
+    }
+    return { pending: true, provider: "dropcontact" };
+  } catch (e) { return null; }
+}
 
 export default async function handler(req, res) {
   setCors(res);
@@ -95,9 +137,23 @@ export default async function handler(req, res) {
   const targetSiren = digits(body.siren) || (targetSiret ? targetSiret.slice(0, 9) : "");
   if (!targetSiret && !targetSiren) return res.status(200).json({ status: "no_siret", message: "SIREN/SIRET manquant — enrichis d'abord la fiche." });
 
-  // Bases candidates : site connu d'abord, puis domaines déduits du nom.
+  // Site web : fourni, sinon récupéré via Pappers (couplage).
+  let website = body.website || "";
+  if (!website) { website = (await pappersWebsite(targetSiren)) || ""; }
+
+  // 1) Outil dédié (Dropcontact) si configuré — company + SIREN → email + site.
+  const dcKey = process.env.DROPCONTACT_API_KEY;
+  if (dcKey) {
+    const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey);
+    if (dc && dc.email) {
+      return res.status(200).json({ status: "verified_tool", email: dc.email, emails: [dc.email], siret_verified: true, website: dc.website || website || null, source_url: dc.website || null, provider: "dropcontact" });
+    }
+    if (dc && dc.website && !website) website = dc.website;
+  }
+
+  // 2) Fallback : lecture mentions légales + vérification SIRET.
   const bases = [];
-  const known = normBase(body.website);
+  const known = normBase(website);
   if (known) bases.push(known);
   candidateBases(body.name).forEach((b) => { if (!bases.includes(b)) bases.push(b); });
 
@@ -121,12 +177,17 @@ export default async function handler(req, res) {
   const pool = verifiedEmails.length ? verifiedEmails : [...new Set(anyEmails)];
   const best = pickBest(pool, domainOut);
   const strong = !!verifiedUrl && !checkedSiren; // SIRET exact
+  const siteOut = website || (verifiedUrl ? (function () { try { return new URL(verifiedUrl).origin; } catch (e) { return null; } })() : (domainOut ? "https://www." + domainOut : null));
   return res.status(200).json({
     status: best ? (strong ? "verified_siret" : (verifiedUrl ? "verified_siren" : "found_unverified")) : "not_found",
     email: best || null,
     emails: [...new Set(pool)].slice(0, 8),
     siret_verified: strong,
     source_url: verifiedUrl || null,
+    website: siteOut,
     domain: domainOut,
   });
 }
+
+// Autorise le temps de polling Dropcontact.
+export const config = { maxDuration: 30 };

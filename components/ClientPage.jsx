@@ -152,6 +152,25 @@ const ClientPage = () => {
     }, 300);
     return () => { if (ppTimer.current) clearTimeout(ppTimer.current); };
   }, [ppQ]);
+  // ── Aide à la recherche d'email (proposition avant intégration) ──────
+  const [emailFinderOpen, setEmailFinderOpen] = React.useState(false);
+  const slugDomain = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\b(sarl|sas|sasu|eurl|sa|sci|ei|earl|scea|association|asso|groupe|ets|etablissements)\b/g, "").replace(/[^a-z0-9]+/g, "").slice(0, 24);
+  const domainFromWeb = (w) => {
+    if (!w) return "";
+    var d = String(w).trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/.*$/, "").toLowerCase();
+    return /^[a-z0-9.-]+\.[a-z]{2,}$/.test(d) ? d : "";
+  };
+  const emailSuggestions = () => {
+    const realDom = domainFromWeb(editDraft.web);
+    const dom = realDom || (slugDomain(editDraft.raison_sociale) ? slugDomain(editDraft.raison_sociale) + ".fr" : "");
+    if (!dom) return { dom: "", real: false, list: [] };
+    const list = ["contact", "info", "accueil", "commercial", "hello"].map((p) => ({ addr: p + "@" + dom, kind: "générique" }));
+    const pren = String(editDraft.cp_prenom || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z]/g, "");
+    const nom = String(editDraft.cp_nom || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z]/g, "");
+    if (pren && nom) { list.push({ addr: pren + "." + nom + "@" + dom, kind: "nominatif" }); list.push({ addr: pren[0] + nom + "@" + dom, kind: "nominatif" }); }
+    return { dom: dom, real: !!realDom, list: list };
+  };
+
   // Renseigne le brouillon d'édition depuis un résultat d'entreprise.
   const fillFromCompany = (e) => {
     const siege = e.siege || {};
@@ -2405,12 +2424,52 @@ const ClientPage = () => {
                 <div>
                   <label style={editLabel}>Email</label>
                   <input type="email" value={editDraft.cp_email || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_email: e.target.value })} style={editInput} />
+                  <button type="button" onClick={() => setEmailFinderOpen((v) => !v)}
+                          style={{ marginTop: 4, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#3730a3", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 6, cursor: "pointer" }}>
+                    ✉️ Proposer une adresse
+                  </button>
                 </div>
                 <div>
                   <label style={editLabel}>Téléphone</label>
                   <input value={editDraft.cp_phone || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_phone: e.target.value })} style={editInput} />
                 </div>
               </div>
+
+              {/* Aide à la recherche d'email : propositions à valider avant d'enregistrer.
+                  Aucune donnée personnelle n'est collectée automatiquement — ce sont
+                  des adresses candidates (génériques de préférence) + des liens de
+                  vérification. Vous choisissez, puis vous enregistrez. */}
+              {emailFinderOpen && (() => {
+                const sug = emailSuggestions();
+                const nom = editDraft.raison_sociale || "";
+                const gsearch = (t) => "https://www.google.com/search?q=" + encodeURIComponent(t);
+                return (
+                  <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: 12, background: "#fafbff" }}>
+                    <div style={{ fontSize: 11.5, color: "#475569", marginBottom: 8 }}>
+                      {sug.dom
+                        ? <>Domaine {sug.real ? "" : "déduit du nom (à vérifier) "}: <b>{sug.dom}</b></>
+                        : <>Renseignez d'abord le <b>Site web</b> (section Entreprise) pour de meilleures propositions.</>}
+                    </div>
+                    {sug.list.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+                        {sug.list.map((s) => (
+                          <div key={s.addr} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12.5 }}>
+                            <span style={{ fontFamily: "monospace" }}>{s.addr} <span style={{ fontSize: 9.5, color: s.kind === "nominatif" ? "#b45309" : "#64748b", background: s.kind === "nominatif" ? "#fef3c7" : "#eef2ff", padding: "0 5px", borderRadius: 999 }}>{s.kind}</span></span>
+                            <button type="button" onClick={() => { setEditDraft({ ...editDraft, cp_email: s.addr }); setEmailFinderOpen(false); }}
+                                    style={{ flexShrink: 0, padding: "3px 9px", fontSize: 11, fontWeight: 700, color: "#fff", background: "#4f46e5", border: 0, borderRadius: 6, cursor: "pointer" }}>Utiliser</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 11.5 }}>
+                      {editDraft.web && <a href={(/^https?:/i.test(editDraft.web) ? "" : "https://") + editDraft.web} target="_blank" rel="noopener noreferrer" style={{ color: "#3730a3" }}>🌐 Ouvrir le site</a>}
+                      <a href={gsearch(nom + " contact email")} target="_blank" rel="noopener noreferrer" style={{ color: "#3730a3" }}>🔎 Rechercher l'email</a>
+                      <a href={gsearch(nom + " mentions légales")} target="_blank" rel="noopener noreferrer" style={{ color: "#3730a3" }}>📄 Mentions légales</a>
+                    </div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 8 }}>Propositions à vérifier avant envoi. Privilégiez une adresse générique (contact@…) ; une adresse nominative relève du RGPD (base : intérêt légitime, mention d'information requise).</div>
+                  </div>
+                );
+              })()}
               <div>
                 <label style={editLabel}>LinkedIn profil</label>
                 <input value={editDraft.cp_linkedin || ""} onChange={(e) => setEditDraft({ ...editDraft, cp_linkedin: e.target.value })} placeholder="linkedin.com/in/…" style={editInput} />

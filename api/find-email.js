@@ -77,10 +77,12 @@ function pickBest(emails, domain) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Récupère le site web d'une entreprise via Pappers (couplage demandé).
+// Récupère le site web d'une entreprise via Pappers. Retourne { site, note }
+// (note = diagnostic : token absent / HTTP / champs disponibles).
 async function pappersWebsite(siren) {
   const token = process.env.PAPPERS_API_TOKEN;
-  if (!token || !siren) return null;
+  if (!token) return { site: null, note: "pappers: token absent" };
+  if (!siren) return { site: null, note: "pappers: pas de siren" };
   try {
     const u = new URL("https://api.pappers.fr/v2/entreprise");
     u.searchParams.set("api_token", token);
@@ -90,10 +92,13 @@ async function pappersWebsite(siren) {
     let r;
     try { r = await fetch(u.toString(), { headers: { Accept: "application/json" }, signal: ctrl.signal }); }
     finally { clearTimeout(t); }
-    if (!r || !r.ok) return null;
+    if (!r) return { site: null, note: "pappers: pas de réponse" };
+    if (!r.ok) return { site: null, note: "pappers: HTTP " + r.status };
     const j = await r.json();
-    return j.site_web || (j.entreprise && j.entreprise.site_web) || null;
-  } catch (e) { return null; }
+    const site = j.site_web || (j.entreprise && j.entreprise.site_web) || null;
+    if (site) return { site: site, note: null };
+    return { site: null, note: "pappers OK, pas de site_web" };
+  } catch (e) { return { site: null, note: "pappers: " + (e.message || e) }; }
 }
 
 // Outil dédié : Dropcontact (company + SIREN → email pro + site web). Async :
@@ -161,8 +166,8 @@ export default async function handler(req, res) {
   if (website) debug.steps.push("site fiche: " + website);
   if (!website) {
     const pw = await pappersWebsite(targetSiren);
-    if (pw) { website = pw; websiteTrusted = true; debug.steps.push("site pappers: " + pw); }
-    else debug.steps.push("pappers: pas de site");
+    if (pw.site) { website = pw.site; websiteTrusted = true; debug.steps.push("site pappers: " + pw.site); }
+    else debug.steps.push(pw.note || "pappers: pas de site");
   }
 
   const dcKey = process.env.DROPCONTACT_API_KEY;

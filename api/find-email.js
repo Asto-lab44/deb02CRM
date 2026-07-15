@@ -105,9 +105,10 @@ async function dropcontact({ name, siren, website }, key, maxMs) {
       headers: { "Content-Type": "application/json", "X-Access-Token": key },
       body: JSON.stringify({ data: [{ company: name || undefined, siren: siren || undefined, website: website || undefined }], siren: true, language: "fr" }),
     });
-    const sj = await submit.json();
+    let sj = null;
+    try { sj = await submit.json(); } catch (e) { return { error: "submit HTTP " + submit.status + " (non-JSON)" }; }
     const reqId = sj && (sj.request_id || sj.requestId);
-    if (!reqId) return null;
+    if (!reqId) return { error: "submit HTTP " + submit.status + ": " + JSON.stringify(sj).slice(0, 140) };
     // Attente bornée par le budget restant (limite Vercel Hobby 10 s).
     const started = Date.now();
     while (Date.now() - started < (maxMs || 3500)) {
@@ -122,7 +123,7 @@ async function dropcontact({ name, siren, website }, key, maxMs) {
     }
     // Pas prêt à temps : re-tenté au prochain passage (résultat mis en cache).
     return { pending: true, provider: "dropcontact" };
-  } catch (e) { return null; }
+  } catch (e) { return { error: "exception: " + (e.message || e) }; }
 }
 
 export default async function handler(req, res) {
@@ -166,7 +167,8 @@ export default async function handler(req, res) {
   let dcEmail = null, dcPending = false;
   if (dcKey && timeLeft() > 3000) {
     const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey, Math.min(4000, timeLeft() - 2500));
-    if (!dc) debug.steps.push("dropcontact: erreur/null");
+    if (!dc) debug.steps.push("dropcontact: null");
+    else if (dc.error) debug.steps.push("dropcontact: " + dc.error);
     else if (dc.pending) { dcPending = true; debug.steps.push("dropcontact: pending (relance auto)"); }
     else { if (dc.email) dcEmail = dc.email; if (dc.website) { debug.steps.push("dropcontact site: " + dc.website); if (!website) { website = dc.website; websiteTrusted = true; } } if (!dc.email) debug.steps.push("dropcontact: pas d'email nominatif"); }
   } else if (!dcKey) debug.steps.push("dropcontact: clé absente");

@@ -1074,6 +1074,12 @@ const CRMAccountsList = () => {
               📍 Hors 44
             </a>
           )}
+          {isTest && (
+            <a href="/crm?test=0" title="Revenir au CRM principal (production)"
+               style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#7c3aed", textDecoration: "none" }}>
+              ← CRM principal
+            </a>
+          )}
           <div style={{ position: "relative", width: 320 }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>⌕</span>
             <input value={search} onChange={(e) => setSearch(e.target.value)}

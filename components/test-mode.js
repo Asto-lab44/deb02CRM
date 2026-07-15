@@ -111,6 +111,8 @@
     document.head.appendChild(pad);
   }
 
-  if (document.body) mountBanner();
-  else window.addEventListener("DOMContentLoaded", mountBanner);
+  // Bandeau désactivé à la demande (barre violette retirée). Le mode
+  // prospection reste actif ; on revient au CRM principal via l'en-tête du
+  // CRM ou en retournant à l'accueil. mountBanner conservé mais non appelé.
+  void mountBanner;
 })();

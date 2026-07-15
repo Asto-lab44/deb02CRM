@@ -2441,7 +2441,22 @@ var CRMAccountsList = () => {
       color: "#475569",
       textDecoration: "none"
     }
-  }, "\uD83D\uDCCD Hors 44"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCD Hors 44"), isTest && /*#__PURE__*/React.createElement("a", {
+    href: "/crm?test=0",
+    title: "Revenir au CRM principal (production)",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 600,
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      color: "#7c3aed",
+      textDecoration: "none"
+    }
+  }, "\u2190 CRM principal"), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       width: 320

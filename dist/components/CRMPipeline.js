@@ -2439,9 +2439,9 @@ var CRMAccountsList = () => {
       color: "#475569"
     }
   }, "\u21BB R\xE9importer"), isTest && /*#__PURE__*/React.createElement("button", {
-    onClick: () => runFindEmails(5),
+    onClick: () => runFindEmails(6),
     disabled: !!emailFindMsg,
-    title: "Tester la recherche d'email sur 5 prospects (les plus gros CA)",
+    title: "Tester la recherche d'email sur 6 prospects (les plus gros CA)",
     style: {
       padding: "8px 12px",
       borderRadius: 8,
@@ -2454,7 +2454,7 @@ var CRMAccountsList = () => {
       color: "#0e7490",
       opacity: emailFindMsg ? 0.8 : 1
     }
-  }, "\uD83E\uDDEA Tester sur 5"), isTest && /*#__PURE__*/React.createElement("button", {
+  }, "\uD83E\uDDEA Tester sur 6"), isTest && /*#__PURE__*/React.createElement("button", {
     onClick: () => runFindEmails(0),
     disabled: !!emailFindMsg,
     title: "Trouver l'email de chaque prospect (Dropcontact / Pappers / mentions l\xE9gales + SIRET)",

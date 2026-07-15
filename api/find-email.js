@@ -153,11 +153,11 @@ export default async function handler(req, res) {
   }
 
   const dcKey = process.env.DROPCONTACT_API_KEY;
-  let dcEmail = null;
+  let dcEmail = null, dcPending = false;
   if (dcKey) {
     const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey);
     if (!dc) debug.steps.push("dropcontact: erreur/null");
-    else if (dc.pending) debug.steps.push("dropcontact: pending (relancer)");
+    else if (dc.pending) { dcPending = true; debug.steps.push("dropcontact: pending (relance auto)"); }
     else { if (dc.email) dcEmail = dc.email; if (dc.website) { debug.steps.push("dropcontact site: " + dc.website); if (!website) { website = dc.website; websiteTrusted = true; } } if (!dc.email) debug.steps.push("dropcontact: pas d'email nominatif"); }
   } else debug.steps.push("dropcontact: clé absente");
 
@@ -211,7 +211,7 @@ export default async function handler(req, res) {
   if (best) {
     return res.status(200).json({ status: weak ? "verified_siren" : "verified_siret", email: best, emails: [...new Set(verifiedEmails)].slice(0, 8), siret_verified: !weak, website: verifiedUrl ? new URL(verifiedUrl).origin : null, source_url: verifiedUrl, debug });
   }
-  return res.status(200).json({ status: "not_found", email: null, emails: [], siret_verified: false, website: website || null, source_url: null, debug });
+  return res.status(200).json({ status: dcPending ? "pending" : "not_found", email: null, emails: [], siret_verified: false, website: website || null, source_url: null, debug });
 }
 
 // Laisse la marge pour le polling Dropcontact (Pro autorise jusqu'à 60s ;

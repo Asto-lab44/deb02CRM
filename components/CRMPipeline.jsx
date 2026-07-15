@@ -1090,10 +1090,10 @@ const CRMAccountsList = () => {
             </button>
           )}
           {isTest && (
-            <button onClick={() => runFindEmails(5)} disabled={!!emailFindMsg}
-                    title="Tester la recherche d'email sur 5 prospects (les plus gros CA)"
+            <button onClick={() => runFindEmails(6)} disabled={!!emailFindMsg}
+                    title="Tester la recherche d'email sur 6 prospects (les plus gros CA)"
                     style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: emailFindMsg ? "default" : "pointer", border: "1px solid #0e7490", background: "#fff", color: "#0e7490", opacity: emailFindMsg ? 0.8 : 1 }}>
-              🧪 Tester sur 5
+              🧪 Tester sur 6
             </button>
           )}
           {isTest && (

@@ -88,6 +88,8 @@ const CRMPipeline = () => {
     setCrmView(v);
     try { localStorage.setItem("hubAstorya.crmView.v1", v); } catch (e) {}
   };
+  // Pagination de la vue liste des opportunités (10 par page).
+  const [oppPage, setOppPage] = React.useState(1);
   React.useEffect(() => {
     if (!userMenuOpen) return;
     const onDoc = () => setUserMenuOpen(false);
@@ -568,6 +570,7 @@ const CRMPipeline = () => {
                   const vb = parseFloat(String(b.amount || "0").replace(/[^\d.]/g, "")) || 0;
                   return vb - va;
                 })
+                .slice((oppPage - 1) * 10, oppPage * 10)
                 .map((c) => {
                   const goto = () => { if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id); };
                   return (
@@ -628,6 +631,25 @@ const CRMPipeline = () => {
                     </div>
                   );
                 })}
+              {(() => {
+                const totalOpps = columns.reduce((n, col) => n + col.cards.length, 0);
+                const oppPageCount = Math.max(1, Math.ceil(totalOpps / 10));
+                if (oppPageCount <= 1) return null;
+                const cur = Math.min(oppPage, oppPageCount);
+                return (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "14px", flexWrap: "wrap" }}>
+                    <button onClick={() => setOppPage(Math.max(1, cur - 1))} disabled={cur <= 1}
+                            style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: cur <= 1 ? "#cbd5e1" : "#475569", cursor: cur <= 1 ? "default" : "pointer", fontSize: 12.5, fontWeight: 600 }}>‹</button>
+                    {Array.from({ length: oppPageCount }, (_, i) => i + 1).map((n) => (
+                      <button key={n} onClick={() => setOppPage(n)}
+                              style={{ minWidth: 30, padding: "5px 9px", borderRadius: 6, border: "1px solid " + (n === cur ? "#4f46e5" : "#e2e8f0"), background: n === cur ? "#4f46e5" : "#fff", color: n === cur ? "#fff" : "#475569", cursor: "pointer", fontSize: 12.5, fontWeight: 700 }}>{n}</button>
+                    ))}
+                    <button onClick={() => setOppPage(Math.min(oppPageCount, cur + 1))} disabled={cur >= oppPageCount}
+                            style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: cur >= oppPageCount ? "#cbd5e1" : "#475569", cursor: cur >= oppPageCount ? "default" : "pointer", fontSize: 12.5, fontWeight: 600 }}>›</button>
+                    <span style={{ fontSize: 11.5, color: "#94a3b8", marginLeft: 6 }}>{totalOpps} opportunités</span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1080,12 +1102,6 @@ const CRMAccountsList = () => {
             </button>
           )}
           {isTest && (
-            <button onClick={runReseed} title="Réimporter les clients depuis l'Excel"
-                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#475569" }}>
-              ↻ Réimporter
-            </button>
-          )}
-          {isTest && (
             <button onClick={() => runFindEmails(0)} disabled={!!emailFindMsg}
                     title="Tout mettre à jour : Pappers (fiche complète) + Dropcontact + emails (mentions légales/SIRET) pour tous les prospects"
                     style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: emailFindMsg ? "default" : "pointer", border: 0, background: "#0e7490", color: "#fff", opacity: emailFindMsg ? 0.8 : 1 }}>
@@ -1093,22 +1109,9 @@ const CRMAccountsList = () => {
             </button>
           )}
           {isTest && (
-            <button onClick={runOutreach} disabled={!!outreachMsg}
-                    title="Créer une opportunité + une action e-mail de présentation pour chaque prospect"
-                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: outreachMsg ? "default" : "pointer", border: 0, background: "#7c3aed", color: "#fff", opacity: outreachMsg ? 0.8 : 1 }}>
-              {outreachMsg ? "⏳ " + outreachMsg : "✉️ Générer les actions d'emailing"}
-            </button>
-          )}
-          {isTest && (
             <a href="/clients-hors-44?test=1" title="Clients hors Loire-Atlantique (44)"
                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#475569", textDecoration: "none" }}>
               📍 Hors 44
-            </a>
-          )}
-          {isTest && (
-            <a href="/crm?test=0" title="Revenir au CRM principal (production)"
-               style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#7c3aed", textDecoration: "none" }}>
-              ← CRM principal
             </a>
           )}
           <div style={{ position: "relative", width: 320 }}>

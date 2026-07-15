@@ -193,8 +193,8 @@ const ERPHome = () => {
       title: "Intelligence concurrentielle",
       subtitle: "Prospection commerciale · données séparées du CRM principal",
       icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>,
-      color: "#7c3aed",
-      bg: "#f3e8ff",
+      color: "#10b981",
+      bg: "#e8f8f1",
       badge: { label: "Prospection", tone: "info" },
       stats: [
         { k: "Espace", v: "Prospection" },

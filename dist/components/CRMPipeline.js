@@ -113,6 +113,8 @@ var CRMPipeline = () => {
       localStorage.setItem("hubAstorya.crmView.v1", v);
     } catch (e) {}
   };
+  // Pagination de la vue liste des opportunités (10 par page).
+  var [oppPage, setOppPage] = React.useState(1);
   React.useEffect(() => {
     if (!userMenuOpen) return;
     var onDoc = () => setUserMenuOpen(false);
@@ -1171,7 +1173,7 @@ var CRMPipeline = () => {
     var va = parseFloat(String(a.amount || "0").replace(/[^\d.]/g, "")) || 0;
     var vb = parseFloat(String(b.amount || "0").replace(/[^\d.]/g, "")) || 0;
     return vb - va;
-  }).map(c => {
+  }).slice((oppPage - 1) * 10, oppPage * 10).map(c => {
     var goto = () => {
       if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id);
     };
@@ -1304,7 +1306,70 @@ var CRMPipeline = () => {
         }
       }, ech.badge), /*#__PURE__*/React.createElement("span", null, ech.label));
     }));
-  }))), crmView === "kanban" && /*#__PURE__*/React.createElement("div", {
+  }), (() => {
+    var totalOpps = columns.reduce((n, col) => n + col.cards.length, 0);
+    var oppPageCount = Math.max(1, Math.ceil(totalOpps / 10));
+    if (oppPageCount <= 1) return null;
+    var cur = Math.min(oppPage, oppPageCount);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        padding: "14px",
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setOppPage(Math.max(1, cur - 1)),
+      disabled: cur <= 1,
+      style: {
+        padding: "5px 10px",
+        borderRadius: 6,
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        color: cur <= 1 ? "#cbd5e1" : "#475569",
+        cursor: cur <= 1 ? "default" : "pointer",
+        fontSize: 12.5,
+        fontWeight: 600
+      }
+    }, "\u2039"), Array.from({
+      length: oppPageCount
+    }, (_, i) => i + 1).map(n => /*#__PURE__*/React.createElement("button", {
+      key: n,
+      onClick: () => setOppPage(n),
+      style: {
+        minWidth: 30,
+        padding: "5px 9px",
+        borderRadius: 6,
+        border: "1px solid " + (n === cur ? "#4f46e5" : "#e2e8f0"),
+        background: n === cur ? "#4f46e5" : "#fff",
+        color: n === cur ? "#fff" : "#475569",
+        cursor: "pointer",
+        fontSize: 12.5,
+        fontWeight: 700
+      }
+    }, n)), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setOppPage(Math.min(oppPageCount, cur + 1)),
+      disabled: cur >= oppPageCount,
+      style: {
+        padding: "5px 10px",
+        borderRadius: 6,
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        color: cur >= oppPageCount ? "#cbd5e1" : "#475569",
+        cursor: cur >= oppPageCount ? "default" : "pointer",
+        fontSize: 12.5,
+        fontWeight: 600
+      }
+    }, "\u203A"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "#94a3b8",
+        marginLeft: 6
+      }
+    }, totalOpps, " opportunit\xE9s"));
+  })())), crmView === "kanban" && /*#__PURE__*/React.createElement("div", {
     style: crmStyles.kanban
   }, columns.map(col => /*#__PURE__*/React.createElement("div", {
     key: col.key,
@@ -2438,20 +2503,6 @@ var CRMAccountsList = () => {
       opacity: enrichMsg ? 0.8 : 1
     }
   }, enrichMsg ? "⏳ " + enrichMsg : "🔎 Enrichir via Pappers"), isTest && /*#__PURE__*/React.createElement("button", {
-    onClick: runReseed,
-    title: "R\xE9importer les clients depuis l'Excel",
-    style: {
-      padding: "8px 12px",
-      borderRadius: 8,
-      fontSize: 12.5,
-      fontWeight: 600,
-      whiteSpace: "nowrap",
-      cursor: "pointer",
-      border: "1px solid #e2e8f0",
-      background: "#fff",
-      color: "#475569"
-    }
-  }, "\u21BB R\xE9importer"), isTest && /*#__PURE__*/React.createElement("button", {
     onClick: () => runFindEmails(0),
     disabled: !!emailFindMsg,
     title: "Tout mettre \xE0 jour : Pappers (fiche compl\xE8te) + Dropcontact + emails (mentions l\xE9gales/SIRET) pour tous les prospects",
@@ -2467,23 +2518,7 @@ var CRMAccountsList = () => {
       color: "#fff",
       opacity: emailFindMsg ? 0.8 : 1
     }
-  }, emailFindMsg ? "⏳ " + emailFindMsg : "🔄 Tout mettre à jour"), isTest && /*#__PURE__*/React.createElement("button", {
-    onClick: runOutreach,
-    disabled: !!outreachMsg,
-    title: "Cr\xE9er une opportunit\xE9 + une action e-mail de pr\xE9sentation pour chaque prospect",
-    style: {
-      padding: "8px 12px",
-      borderRadius: 8,
-      fontSize: 12.5,
-      fontWeight: 700,
-      whiteSpace: "nowrap",
-      cursor: outreachMsg ? "default" : "pointer",
-      border: 0,
-      background: "#7c3aed",
-      color: "#fff",
-      opacity: outreachMsg ? 0.8 : 1
-    }
-  }, outreachMsg ? "⏳ " + outreachMsg : "✉️ Générer les actions d'emailing"), isTest && /*#__PURE__*/React.createElement("a", {
+  }, emailFindMsg ? "⏳ " + emailFindMsg : "🔄 Tout mettre à jour"), isTest && /*#__PURE__*/React.createElement("a", {
     href: "/clients-hors-44?test=1",
     title: "Clients hors Loire-Atlantique (44)",
     style: {
@@ -2498,22 +2533,7 @@ var CRMAccountsList = () => {
       color: "#475569",
       textDecoration: "none"
     }
-  }, "\uD83D\uDCCD Hors 44"), isTest && /*#__PURE__*/React.createElement("a", {
-    href: "/crm?test=0",
-    title: "Revenir au CRM principal (production)",
-    style: {
-      padding: "8px 12px",
-      borderRadius: 8,
-      fontSize: 12.5,
-      fontWeight: 600,
-      whiteSpace: "nowrap",
-      cursor: "pointer",
-      border: "1px solid #e2e8f0",
-      background: "#fff",
-      color: "#7c3aed",
-      textDecoration: "none"
-    }
-  }, "\u2190 CRM principal"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCD Hors 44"), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       width: 320

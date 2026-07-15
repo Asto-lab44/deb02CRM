@@ -288,8 +288,8 @@ var ERPHome = () => {
     }), /*#__PURE__*/React.createElement("path", {
       d: "M21 21l-4.3-4.3"
     })),
-    color: "#7c3aed",
-    bg: "#f3e8ff",
+    color: "#10b981",
+    bg: "#e8f8f1",
     badge: {
       label: "Prospection",
       tone: "info"

@@ -93,7 +93,7 @@ async function pappersLookup(siren) {
     try { r = await fetch(u.toString(), { headers: { Accept: "application/json" }, signal: ctrl.signal }); }
     finally { clearTimeout(t); }
     if (!r) return { site: null, note: "pappers: pas de réponse", data: null };
-    if (!r.ok) return { site: null, note: "pappers: HTTP " + r.status, data: null };
+    if (!r.ok) { let b = ""; try { b = (await r.text()).slice(0, 120); } catch (e) {} return { site: null, note: "pappers: HTTP " + r.status + " " + b, data: null }; }
     const d = await r.json();
     const siege = d.siege || {};
     const procs = d.procedures_collectives || d.procedures || [];

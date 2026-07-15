@@ -100,7 +100,7 @@ async function pappersWebsite(siren) {
 // on soumet puis on interroge quelques secondes. RGPD-compliant (FR).
 async function dropcontact({ name, siren, website }, key, maxMs) {
   try {
-    const submit = await fetch("https://api.dropcontact.com/batch", {
+    const submit = await fetch("https://api.dropcontact.io/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Access-Token": key },
       body: JSON.stringify({ data: [{ company: name || undefined, num_siren: siren || undefined, website: website || undefined }], siren: true, language: "fr" }),
@@ -113,7 +113,7 @@ async function dropcontact({ name, siren, website }, key, maxMs) {
     const started = Date.now();
     while (Date.now() - started < (maxMs || 3500)) {
       await sleep(1500);
-      const p = await fetch("https://api.dropcontact.com/batch/" + reqId, { headers: { "X-Access-Token": key } });
+      const p = await fetch("https://api.dropcontact.io/batch/" + reqId, { headers: { "X-Access-Token": key } });
       const pj = await p.json();
       if (pj && pj.success && Array.isArray(pj.data)) {
         const row = pj.data[0] || {};

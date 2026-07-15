@@ -2183,6 +2183,7 @@ var CRMAccountsList = () => {
     window.location.reload();
   };
   var [emailFindMsg, setEmailFindMsg] = React.useState(null);
+  var [emailReport, setEmailReport] = React.useState(null);
   var runFindEmails = limit => {
     if (!window.CRMTestFindEmails) {
       alert("Recherche indisponible (rechargez la page).");
@@ -2191,23 +2192,18 @@ var CRMAccountsList = () => {
     var msg = limit ? "Test sur " + limit + " prospects : rechercher leur email (Dropcontact / Pappers / mentions légales + SIRET) ?" : "Rechercher automatiquement l'email de chaque prospect ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.";
     if (!confirm(msg)) return;
     setEmailFindMsg("Démarrage…");
+    setEmailReport(null);
     window.CRMTestFindEmails(p => setEmailFindMsg(p.done + "/" + p.total), {
       limit: limit
     }).then(res => {
       setEmailFindMsg(null);
-      if (res.empty) {
-        alert("Aucun prospect à traiter.\n\n• " + res.noSiret + " prospects sans SIREN/SIRET (lance d'abord « Enrichir via Pappers »)\n• les autres ont déjà un email.");
-      } else {
-        var detail = "";
-        if (res.details && res.details.length && res.details.length <= 10) {
-          detail = "\n\nDétail :\n" + res.details.map(d => "• " + d.name + " → " + d.status + (d.email ? " (" + d.email + ")" : "") + (d.website ? " [" + d.website + "]" : "")).join("\n");
-        }
-        alert("Terminé sur " + res.total + " prospects :\n" + "• " + res.found + " emails trouvés (dont " + res.verified + " confirmés SIRET)\n" + "• " + res.notFound + " sans email · " + res.eligibleWithSite + " avaient un site connu" + detail + "\n\n(Détail complet dans la console : F12 → Console)");
-      }
+      setEmailReport(res); // affiché à l'écran (screenshotable)
       loadAccounts();
     }).catch(e => {
       setEmailFindMsg(null);
-      alert("Erreur : " + (e.message || e));
+      setEmailReport({
+        error: e.message || String(e)
+      });
     });
   };
   var [outreachMsg, setOutreachMsg] = React.useState(null);
@@ -2704,7 +2700,89 @@ var CRMAccountsList = () => {
       color: "#94a3b8",
       background: "#fafbfc"
     }
-  }, "Source : annuaire officiel + Pappers \xB7 l'ajout cr\xE9e un prospect pr\xE9-rempli."))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "Source : annuaire officiel + Pappers \xB7 l'ajout cr\xE9e un prospect pr\xE9-rempli."))), emailReport && /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: "0 0 16px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      background: "#f5f7ff",
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontSize: 13,
+      color: "#3730a3"
+    }
+  }, "\uD83D\uDD0E Diagnostic recherche d'emails"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEmailReport(null),
+    style: {
+      border: 0,
+      background: "transparent",
+      cursor: "pointer",
+      color: "#94a3b8",
+      fontSize: 16
+    }
+  }, "\xD7")), emailReport.error ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#b91c1c"
+    }
+  }, "Erreur : ", emailReport.error) : emailReport.empty ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#475569"
+    }
+  }, "Aucun prospect \xE0 traiter \xB7 ", emailReport.noSiret, " sans SIREN (lancer \xAB Enrichir via Pappers \xBB) \xB7 les autres ont d\xE9j\xE0 un email.") : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#0f172a",
+      marginBottom: 8
+    }
+  }, "Sur ", /*#__PURE__*/React.createElement("b", null, emailReport.total), " : ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "#0e7490"
+    }
+  }, emailReport.found), " emails trouv\xE9s (dont ", emailReport.verified, " v\xE9rifi\xE9s SIRET) \xB7 ", emailReport.notFound, " sans email \xB7 ", emailReport.eligibleWithSite, " avec site connu"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxHeight: 260,
+      overflowY: "auto",
+      background: "#fff",
+      borderRadius: 8,
+      border: "1px solid #e2e8f0"
+    }
+  }, (emailReport.details || []).map((d, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      padding: "7px 10px",
+      borderBottom: "1px solid #f1f5f9",
+      fontSize: 11.5
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, d.name), " \u2192 ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: d.email ? "#065f46" : "#b45309",
+      fontWeight: 700
+    }
+  }, d.status), d.email ? " · " + d.email : "", d.website ? " · " + d.website : ""), d.steps && d.steps.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#94a3b8",
+      marginTop: 2,
+      fontFamily: "monospace",
+      fontSize: 10.5
+    }
+  }, d.steps.join(" | "))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      marginTop: 6
+    }
+  }, "Fais une capture de cet encadr\xE9 et envoie-la \u2014 j'ajuste selon ce que fait le serveur."))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "40px 24px",
       textAlign: "center",

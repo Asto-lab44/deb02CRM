@@ -73,7 +73,7 @@
         if (j.email) { found++; if (j.siret_verified) verified++; }
         else if (j.status === "pending") { pending.push(c); }
         else { notFound++; }
-        details.push({ name: name, status: j.status || "?", email: j.email || null, website: j.website || null });
+        details.push({ name: name, status: j.status || "?", email: j.email || null, website: j.website || null, steps: (j.debug && j.debug.steps) || [] });
       } catch (e) {
         failed++;
         if (/non déployée|Session expirée/.test(e.message || "")) { throw e; }

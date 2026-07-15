@@ -929,6 +929,7 @@ const CRMAccountsList = () => {
     window.CRMTestReseed(true); window.location.reload();
   };
   const [emailFindMsg, setEmailFindMsg] = React.useState(null);
+  const [emailReport, setEmailReport] = React.useState(null);
   const runFindEmails = (limit) => {
     if (!window.CRMTestFindEmails) { alert("Recherche indisponible (rechargez la page)."); return; }
     const msg = limit
@@ -936,25 +937,14 @@ const CRMAccountsList = () => {
       : "Rechercher automatiquement l'email de chaque prospect ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.";
     if (!confirm(msg)) return;
     setEmailFindMsg("Démarrage…");
+    setEmailReport(null);
     window.CRMTestFindEmails((p) => setEmailFindMsg(p.done + "/" + p.total), { limit: limit })
       .then((res) => {
         setEmailFindMsg(null);
-        if (res.empty) {
-          alert("Aucun prospect à traiter.\n\n• " + res.noSiret + " prospects sans SIREN/SIRET (lance d'abord « Enrichir via Pappers »)\n• les autres ont déjà un email.");
-        } else {
-          let detail = "";
-          if (res.details && res.details.length && res.details.length <= 10) {
-            detail = "\n\nDétail :\n" + res.details.map((d) => "• " + d.name + " → " + d.status + (d.email ? " (" + d.email + ")" : "") + (d.website ? " [" + d.website + "]" : "")).join("\n");
-          }
-          alert("Terminé sur " + res.total + " prospects :\n"
-            + "• " + res.found + " emails trouvés (dont " + res.verified + " confirmés SIRET)\n"
-            + "• " + res.notFound + " sans email · " + res.eligibleWithSite + " avaient un site connu"
-            + detail
-            + "\n\n(Détail complet dans la console : F12 → Console)");
-        }
+        setEmailReport(res); // affiché à l'écran (screenshotable)
         loadAccounts();
       })
-      .catch((e) => { setEmailFindMsg(null); alert("Erreur : " + (e.message || e)); });
+      .catch((e) => { setEmailFindMsg(null); setEmailReport({ error: e.message || String(e) }); });
   };
   const [outreachMsg, setOutreachMsg] = React.useState(null);
   const runOutreach = () => {
@@ -1175,6 +1165,36 @@ const CRMAccountsList = () => {
           </div>
         )}
       </div>
+
+      {/* Diagnostic de la recherche d'emails — visible & screenshotable. */}
+      {emailReport && (
+        <div style={{ margin: "0 0 16px", border: "1px solid #c7d2fe", borderRadius: 10, background: "#f5f7ff", padding: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <b style={{ fontSize: 13, color: "#3730a3" }}>🔎 Diagnostic recherche d'emails</b>
+            <button onClick={() => setEmailReport(null)} style={{ border: 0, background: "transparent", cursor: "pointer", color: "#94a3b8", fontSize: 16 }}>×</button>
+          </div>
+          {emailReport.error ? (
+            <div style={{ fontSize: 12.5, color: "#b91c1c" }}>Erreur : {emailReport.error}</div>
+          ) : emailReport.empty ? (
+            <div style={{ fontSize: 12.5, color: "#475569" }}>Aucun prospect à traiter · {emailReport.noSiret} sans SIREN (lancer « Enrichir via Pappers ») · les autres ont déjà un email.</div>
+          ) : (
+            <div>
+              <div style={{ fontSize: 12.5, color: "#0f172a", marginBottom: 8 }}>
+                Sur <b>{emailReport.total}</b> : <b style={{ color: "#0e7490" }}>{emailReport.found}</b> emails trouvés (dont {emailReport.verified} vérifiés SIRET) · {emailReport.notFound} sans email · {emailReport.eligibleWithSite} avec site connu
+              </div>
+              <div style={{ maxHeight: 260, overflowY: "auto", background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                {(emailReport.details || []).map((d, i) => (
+                  <div key={i} style={{ padding: "7px 10px", borderBottom: "1px solid #f1f5f9", fontSize: 11.5 }}>
+                    <div><b>{d.name}</b> → <span style={{ color: d.email ? "#065f46" : "#b45309", fontWeight: 700 }}>{d.status}</span>{d.email ? " · " + d.email : ""}{d.website ? " · " + d.website : ""}</div>
+                    {d.steps && d.steps.length > 0 && <div style={{ color: "#94a3b8", marginTop: 2, fontFamily: "monospace", fontSize: 10.5 }}>{d.steps.join(" | ")}</div>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 6 }}>Fais une capture de cet encadré et envoie-la — j'ajuste selon ce que fait le serveur.</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div style={{ padding: "40px 24px", textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 10, border: "1px dashed #e2e8f0" }}>

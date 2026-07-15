@@ -2904,7 +2904,8 @@ var CRMActionsList = () => {
         due: a.due_text || a.due || "",
         assigned: a.assigned_to || a.assigned || "Vous",
         color: "#3730a3",
-        meta: a.meta || "",
+        // Défensif : meta doit être une chaîne (un objet planterait le rendu React).
+        meta: typeof a.meta === "string" ? a.meta : a.meta && (a.meta.label || a.meta.client_name) || "",
         tag: a.tag || ""
       })));
     }).catch(() => {});

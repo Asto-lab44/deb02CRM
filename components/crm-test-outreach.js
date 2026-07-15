@@ -33,7 +33,9 @@
           type: "email", title: "Envoyer l'email de présentation Astorya",
           due: "À programmer", status: "todo",
           tag: "Emailing", tagColor: "#7c3aed",
-          meta: { template: "presentation_entreprise", client_name: name },
+          // meta = sous-titre (chaîne) ; le modèle est stocké à part.
+          meta: "Email de présentation",
+          template: "presentation_entreprise",
         });
         await window.api.clients.update(c.id, {
           outreach_generated: true,

@@ -70,8 +70,11 @@ var ClientPage = () => {
         }
       })();
       var normalizeAssignee = n => n && legacyDemoNames.has(n) ? currentUserName : n || currentUserName;
+      // Défensif : meta doit rester une chaîne (un objet planterait le rendu React).
+      var metaStr = m => typeof m === "string" ? m : m && (m.label || m.client_name) || "";
       var todo = (acts || []).filter(a => a.status !== "done").map(a => ({
         ...a,
+        meta: metaStr(a.meta),
         due: a.due || a.due_text || "Date à définir",
         assigned: normalizeAssignee(a.assigned || a.assigned_to),
         tag: a.tag || null,
@@ -80,6 +83,7 @@ var ClientPage = () => {
       }));
       var done = (acts || []).filter(a => a.status === "done").map(a => ({
         ...a,
+        meta: metaStr(a.meta),
         icon: a.icon || (a.type === "call" ? "☎" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : a.type === "note" ? "✎" : "✓"),
         color: "#10b981",
         who: normalizeAssignee(a.assigned_to || a.assigned),

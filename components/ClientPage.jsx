@@ -57,8 +57,11 @@ const ClientPage = () => {
       const legacyDemoNames = new Set(["Romain Daviaud","Nadia Lefèvre","Tom Verdier","Émilie Garnier","Sophie Aubry","Antoine Mercier","Julien Pasquier","Marie Lopez","Pierre Dubois","Romain Faure","Léo Tanaka","Diane Roussel","Farid Belkacem","Valérie Chen","Léa Marchand","Olivier Vasseur","Catherine Marchand","Hugo Bertrand"]);
       const currentUserName = (() => { try { const u = window.HubAccess && window.HubAccess.getCurrentUser && window.HubAccess.getCurrentUser(); return (u && u.name) || "Vous"; } catch (e) { return "Vous"; } })();
       const normalizeAssignee = (n) => (n && legacyDemoNames.has(n)) ? currentUserName : (n || currentUserName);
+      // Défensif : meta doit rester une chaîne (un objet planterait le rendu React).
+      const metaStr = (m) => typeof m === "string" ? m : ((m && (m.label || m.client_name)) || "");
       const todo = (acts || []).filter((a) => a.status !== "done").map((a) => ({
         ...a,
+        meta: metaStr(a.meta),
         due: a.due || a.due_text || "Date à définir",
         assigned: normalizeAssignee(a.assigned || a.assigned_to),
         tag: a.tag || null,
@@ -67,6 +70,7 @@ const ClientPage = () => {
       }));
       const done = (acts || []).filter((a) => a.status === "done").map((a) => ({
         ...a,
+        meta: metaStr(a.meta),
         icon: a.icon || (a.type === "call" ? "☎" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : a.type === "note" ? "✎" : "✓"),
         color: "#10b981",
         who: normalizeAssignee(a.assigned_to || a.assigned),

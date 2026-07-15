@@ -49,4 +49,17 @@
     }
     return { done: done, created: created, skipped: skipped };
   };
+
+  // Génération AUTOMATIQUE à l'entrée en prospection : tout prospect sans
+  // opportunité (les nouveaux imports inclus) reçoit son opportunité + action
+  // « email de présentation ». Idempotent → ne recrée rien pour les autres.
+  if (window.HubTestMode) {
+    setTimeout(function () {
+      try {
+        window.CRMTestGenerateOutreach().then(function (r) {
+          if (r && r.created) console.info("[outreach] " + r.created + " opportunités + actions créées automatiquement.");
+        }).catch(function () {});
+      } catch (e) {}
+    }, 1500);
+  }
 })();

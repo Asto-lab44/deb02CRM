@@ -104,8 +104,10 @@ async function dropcontact({ name, siren, website }, key) {
     const sj = await submit.json();
     const reqId = sj && (sj.request_id || sj.requestId);
     if (!reqId) return null;
-    for (let i = 0; i < 6; i++) {
-      await sleep(2500);
+    // Attente bornée (~8,5 s) pour tenir dans la limite Vercel Hobby (10 s).
+    const started = Date.now();
+    while (Date.now() - started < 8500) {
+      await sleep(1800);
       const p = await fetch("https://api.dropcontact.com/batch/" + reqId, { headers: { "X-Access-Token": key } });
       const pj = await p.json();
       if (pj && pj.success && Array.isArray(pj.data)) {
@@ -114,6 +116,8 @@ async function dropcontact({ name, siren, website }, key) {
         return { email: email || null, website: row.website || null, provider: "dropcontact" };
       }
     }
+    // Pas prêt à temps : le prospect sera re-tenté au prochain passage
+    // (Dropcontact aura terminé le calcul entre-temps → réponse instantanée).
     return { pending: true, provider: "dropcontact" };
   } catch (e) { return null; }
 }
@@ -189,5 +193,6 @@ export default async function handler(req, res) {
   });
 }
 
-// Autorise le temps de polling Dropcontact.
-export const config = { maxDuration: 30 };
+// Laisse la marge pour le polling Dropcontact (Pro autorise jusqu'à 60s ;
+// Hobby plafonne à 10s, d'où l'attente bornée à ~8,5s ci-dessus).
+export const config = { maxDuration: 20 };

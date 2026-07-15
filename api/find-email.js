@@ -197,10 +197,15 @@ export default async function handler(req, res) {
   let website = body.website || "";
   let websiteTrusted = !!website;
   if (website) debug.steps.push("site fiche: " + website);
-  const pw = await pappersLookup(targetSiren);
-  const pappersData = pw.data;
-  if (pw.site) { if (!website) { website = pw.site; websiteTrusted = true; } debug.steps.push("site pappers: " + pw.site); }
-  else debug.steps.push(pw.note || "pappers: pas de site");
+  // Économie de crédits : on n'interroge PAS Pappers si la fiche existe déjà.
+  let pappersData = null;
+  if (body.has_pappers) { debug.steps.push("pappers: déjà en fiche (crédit épargné)"); }
+  else {
+    const pw = await pappersLookup(targetSiren);
+    pappersData = pw.data;
+    if (pw.site) { if (!website) { website = pw.site; websiteTrusted = true; } debug.steps.push("site pappers: " + pw.site); }
+    else debug.steps.push(pw.note || "pappers: pas de site");
+  }
   // Toute réponse renvoyée à partir d'ici embarque la fiche Pappers.
   const finish = (obj) => res.status(200).json(Object.assign({ pappers: pappersData }, obj));
 

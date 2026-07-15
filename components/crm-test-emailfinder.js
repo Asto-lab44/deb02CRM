@@ -55,7 +55,7 @@
         r = await fetch("/api/find-email", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name }),
+          body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name, has_pappers: !!c.pappers }),
           signal: ctrl.signal,
         });
       } catch (e) { clearTimeout(to); throw new Error(e.name === "AbortError" ? "timeout (>25s)" : (e.message || "réseau")); }

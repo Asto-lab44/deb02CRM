@@ -185,7 +185,11 @@ export default async function handler(req, res) {
   try { body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {}); } catch (e) {}
   const targetSiret = digits(body.siret);
   const targetSiren = digits(body.siren) || (targetSiret ? targetSiret.slice(0, 9) : "");
-  if (!targetSiret && !targetSiren) return res.status(200).json({ status: "no_siret", message: "SIREN/SIRET manquant — enrichis d'abord la fiche." });
+  // On peut travailler soit avec un SIREN (Pappers/Dropcontact/vérif SIRET),
+  // soit avec un SITE WEB connu (scraping direct → contact@). Sinon, rien.
+  if (!targetSiret && !targetSiren && !normBase(body.website)) {
+    return res.status(200).json({ status: "no_siret", message: "Ni SIREN ni site web — enrichis d'abord la fiche." });
+  }
 
   // Budget global : la fonction DOIT renvoyer du JSON avant que Vercel ne la
   // coupe (10 s sur l'offre Hobby → 504 = page HTML → plante le client).
@@ -211,13 +215,15 @@ export default async function handler(req, res) {
 
   const dcKey = process.env.DROPCONTACT_API_KEY;
   let dcEmail = null, dcPending = false;
-  if (dcKey && timeLeft() > 3000) {
+  // Dropcontact n'est utile qu'avec un SIREN (identification société).
+  if (dcKey && timeLeft() > 3000 && targetSiren) {
     const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey, Math.min(4000, timeLeft() - 2500));
     if (!dc) debug.steps.push("dropcontact: null");
     else if (dc.error) debug.steps.push("dropcontact: " + dc.error);
     else if (dc.pending) { dcPending = true; debug.steps.push("dropcontact: pending (relance auto)"); }
     else { if (dc.email) dcEmail = dc.email; if (dc.website) { debug.steps.push("dropcontact site: " + dc.website); if (!website) { website = dc.website; websiteTrusted = true; } } if (!dc.email && !dc.website) debug.steps.push("dropcontact champs[" + (dc.rawKeys || "") + "] " + (dc.raw || "")); }
   } else if (!dcKey) debug.steps.push("dropcontact: clé absente");
+  else if (!targetSiren) debug.steps.push("dropcontact: pas de SIREN (site utilisé)");
   else debug.steps.push("dropcontact: sauté (budget)");
 
   // Email nominatif renvoyé directement par l'outil → priorité.

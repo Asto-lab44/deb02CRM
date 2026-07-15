@@ -26,8 +26,9 @@
 
     const all = await window.api.clients.list({ active: true });
     const prospects = (all || []).filter((c) => (c.status || "prospect") !== "client");
-    // On traite tout prospect à qui il manque l'email OU la fiche Pappers.
-    let todo = prospects.filter((c) => (!c.email || !c.pappers) && (c.siret || c.siren));
+    // On traite tout prospect à qui il manque l'email OU la fiche Pappers,
+    // dès lors qu'il a un SIREN OU un site web connu (→ scraping direct).
+    let todo = prospects.filter((c) => (!c.email || !c.pappers) && (c.siret || c.siren || c.web || c.site_web));
     // Mode test : ne traite que les N premiers (par CA décroissant pour tester
     // sur des prospects représentatifs).
     if (opts.limit) todo = todo.slice().sort((a, b) => (Number(b.ca_2324) || 0) - (Number(a.ca_2324) || 0)).slice(0, opts.limit);

@@ -92,6 +92,32 @@ function pickBest(emails, domain) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Recherche du site officiel d'une entreprise via Brave Search API (si
+// BRAVE_API_KEY configurée). Écarte annuaires/réseaux sociaux → renvoie le
+// 1er vrai site. Sert quand ni la fiche ni Pappers/Dropcontact n'ont le site.
+const BRAVE_EXCLUDE = /(pagesjaunes|societe\.com|facebook|linkedin|instagram|google\.|mappy|yelp|verif\.com|pappers|manageo|kompass|infogreffe|leboncoin|tripadvisor|youtube|twitter|wikipedia|indeed|score3|b-reputation|lefigaro|annuaire|118000|cylex|justacote|trustpilot|europages|bing\.|qwant)/i;
+async function braveWebsite(query) {
+  const key = process.env.BRAVE_API_KEY;
+  if (!key || !query) return null;
+  try {
+    const u = "https://api.search.brave.com/res/v1/web/search?count=8&country=fr&q=" + encodeURIComponent(query);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3500);
+    let r;
+    try { r = await fetch(u, { headers: { Accept: "application/json", "X-Subscription-Token": key }, signal: ctrl.signal }); }
+    finally { clearTimeout(t); }
+    if (!r || !r.ok) return null;
+    const j = await r.json();
+    const results = (j.web && j.web.results) || [];
+    for (const res of results) {
+      let host; try { host = new URL(res.url).hostname; } catch (e) { continue; }
+      if (BRAVE_EXCLUDE.test(host)) continue;
+      try { return new URL(res.url).origin; } catch (e) {}
+    }
+    return null;
+  } catch (e) { return null; }
+}
+
 // Interroge Pappers et renvoie { site, note, data } où data = fiche complète
 // (identité, siège, dirigeants, finances, procédures…).
 async function pappersLookup(siren) {
@@ -200,10 +226,9 @@ export default async function handler(req, res) {
   try { body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {}); } catch (e) {}
   const targetSiret = digits(body.siret);
   const targetSiren = digits(body.siren) || (targetSiret ? targetSiret.slice(0, 9) : "");
-  // On peut travailler soit avec un SIREN (Pappers/Dropcontact/vérif SIRET),
-  // soit avec un SITE WEB connu (scraping direct → contact@). Sinon, rien.
-  if (!targetSiret && !targetSiren && !normBase(body.website)) {
-    return res.status(200).json({ status: "no_siret", message: "Ni SIREN ni site web — enrichis d'abord la fiche." });
+  // On peut travailler avec un SIREN, un SITE WEB, ou au moins un NOM (→ Brave).
+  if (!targetSiret && !targetSiren && !normBase(body.website) && !String(body.name || "").trim()) {
+    return res.status(200).json({ status: "no_siret", message: "Ni SIREN ni site ni nom — enrichis d'abord la fiche." });
   }
 
   // Budget global : la fonction DOIT renvoyer du JSON avant que Vercel ne la
@@ -244,6 +269,14 @@ export default async function handler(req, res) {
   // Email nominatif renvoyé directement par l'outil → priorité.
   if (dcEmail) {
     return res.status(200).json({ status: "verified_tool", email: dcEmail, emails: [dcEmail], siret_verified: true, website: website || null, source_url: website || null, provider: "dropcontact", debug });
+  }
+
+  // Toujours pas de site connu → recherche web (Brave) sur « nom + ville ».
+  if (!website && timeLeft() > 4500) {
+    const q = [body.name, body.ville].filter(Boolean).join(" ").trim();
+    const bw = await braveWebsite(q);
+    if (bw) { website = bw; websiteTrusted = true; debug.steps.push("site brave: " + bw); }
+    else debug.steps.push(process.env.BRAVE_API_KEY ? "brave: aucun site" : "brave: clé absente");
   }
 
   const hostOf = (w) => { try { return new URL(normBase(w)).hostname.replace(/^www\./, ""); } catch (e) { return null; } };

@@ -27,8 +27,8 @@
     const all = await window.api.clients.list({ active: true });
     const prospects = (all || []).filter((c) => (c.status || "prospect") !== "client");
     // On traite tout prospect à qui il manque l'email OU la fiche Pappers,
-    // dès lors qu'il a un SIREN OU un site web connu (→ scraping direct).
-    let todo = prospects.filter((c) => (!c.email || !c.pappers) && (c.siret || c.siren || c.web || c.site_web));
+    // dès lors qu'il a un SIREN, un site web, OU au moins un nom (→ recherche web).
+    let todo = prospects.filter((c) => (!c.email || !c.pappers) && (c.siret || c.siren || c.web || c.site_web || c.raison_sociale || c.name));
     // Mode test : ne traite que les N premiers (par CA décroissant pour tester
     // sur des prospects représentatifs).
     if (opts.limit) todo = todo.slice().sort((a, b) => (Number(b.ca_2324) || 0) - (Number(a.ca_2324) || 0)).slice(0, opts.limit);
@@ -56,7 +56,7 @@
         r = await fetch("/api/find-email", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name, has_pappers: !!c.pappers }),
+          body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name, ville: c.ville || c.city || "", has_pappers: !!c.pappers }),
           signal: ctrl.signal,
         });
       } catch (e) { clearTimeout(to); throw new Error(e.name === "AbortError" ? "timeout (>25s)" : (e.message || "réseau")); }
@@ -89,23 +89,31 @@
       return j || { status: "error" };
     }
 
-    for (const c of todo) {
-      const name = c.raison_sociale || c.name || "";
-      try {
-        const j = await processOne(c);
-        if (j.email) { found++; if (j.siret_verified) verified++; }
-        else if (j.status === "pending") { pending.push(c); }
-        else { notFound++; }
-        details.push({ name: name, status: j.status || "?", email: j.email || null, website: j.website || null, steps: (j.debug && j.debug.steps) || [] });
-      } catch (e) {
-        failed++;
-        details.push({ name: name, status: "ERREUR", email: null, website: null, steps: [String(e.message || e)] });
-        if (/non déployée|Session expirée/.test(e.message || "")) { throw e; }
+    // Traitement PARALLÈLE : plusieurs prospects à la fois (le serveur scale),
+    // sinon 250 × plusieurs secondes en série = beaucoup trop long.
+    var CONCURRENCY = 6;
+    var cursor = 0, stopErr = null;
+    async function worker() {
+      while (cursor < todo.length && !stopErr) {
+        var c = todo[cursor++];
+        var name = c.raison_sociale || c.name || "";
+        try {
+          var j = await processOne(c);
+          if (j.email) { found++; if (j.siret_verified) verified++; }
+          else if (j.status === "pending") { pending.push(c); }
+          else { notFound++; }
+          details.push({ name: name, status: j.status || "?", email: j.email || null, website: j.website || null, steps: (j.debug && j.debug.steps) || [] });
+        } catch (e) {
+          failed++;
+          details.push({ name: name, status: "ERREUR", email: null, website: null, steps: [String(e.message || e)] });
+          if (/non déployée/.test(e.message || "")) { stopErr = e; }
+        }
+        done++;
+        if (onProgress) onProgress({ done: done, total: total, name: name });
       }
-      done++;
-      if (onProgress) onProgress({ done: done, total: total, name: name });
-      await new Promise((res) => setTimeout(res, 400));
     }
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    if (stopErr) throw stopErr;
 
     // Relance auto des « pending » : Dropcontact a fini de calculer entre-temps.
     if (pending.length) {

@@ -1,0 +1,10 @@
+{
+  "name": "deb02-crm-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dépendances des fonctions serverless Vercel (/api). Le front est statique (dist/ pré-compilé), aucun build ici.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.0"
+  }
+}

@@ -1954,6 +1954,15 @@ const ClientPage = () => {
                         <Field label="TVA intra.">
                           {display.tva ? <span style={monoTxt}>{display.tva}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
                         </Field>
+                        {/* Site web du client (fiche → sinon Pappers), remonté dans l'identité. */}
+                        {(() => {
+                          const site = display.web || c.web || c.site_web || (c.pappers && c.pappers.site_web) || "";
+                          return <Field label="Site web" full>
+                            {site
+                              ? <a href={/^https?:/i.test(site) ? site : "https://" + site} target="_blank" rel="noopener noreferrer" style={{ color: "#3730a3", textDecoration: "none", wordBreak: "break-all" }}>🌐 {String(site).replace(/^https?:\/\//, "")} ↗</a>
+                              : <span style={{ color: "#cbd5e1" }}>—</span>}
+                          </Field>;
+                        })()}
                         {c.pappers && (<>
                           {c.pappers.forme_juridique && <Field label="Forme juridique">{c.pappers.forme_juridique}</Field>}
                           {c.pappers.capital != null && <Field label="Capital">{Number(c.pappers.capital).toLocaleString("fr-FR")} €</Field>}
@@ -1963,7 +1972,6 @@ const ClientPage = () => {
                           {c.pappers.greffe && <Field label="Greffe">{c.pappers.greffe}</Field>}
                           {c.pappers.telephone && <Field label="Téléphone">{c.pappers.telephone}</Field>}
                           {c.pappers.libelle_naf && <Field label="Activité (NAF)" full>{c.pappers.libelle_naf}{c.pappers.code_naf ? " (" + c.pappers.code_naf + ")" : ""}</Field>}
-                          {c.pappers.site_web && <Field label="Site web" full><a href={/^https?:/i.test(c.pappers.site_web) ? c.pappers.site_web : "https://" + c.pappers.site_web} target="_blank" rel="noopener noreferrer" style={{ color: "#3730a3", textDecoration: "none" }}>{c.pappers.site_web} ↗</a></Field>}
                         </>)}
                         {display.linkedin && (
                           <Field label="LinkedIn" full>

@@ -3358,7 +3358,26 @@ var ClientPage = () => {
       style: {
         color: "#cbd5e1"
       }
-    }, "\u2014")), c.pappers && /*#__PURE__*/React.createElement(React.Fragment, null, c.pappers.forme_juridique && /*#__PURE__*/React.createElement(Field, {
+    }, "\u2014")), (() => {
+      var site = display.web || c.web || c.site_web || c.pappers && c.pappers.site_web || "";
+      return /*#__PURE__*/React.createElement(Field, {
+        label: "Site web",
+        full: true
+      }, site ? /*#__PURE__*/React.createElement("a", {
+        href: /^https?:/i.test(site) ? site : "https://" + site,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        style: {
+          color: "#3730a3",
+          textDecoration: "none",
+          wordBreak: "break-all"
+        }
+      }, "\uD83C\uDF10 ", String(site).replace(/^https?:\/\//, ""), " \u2197") : /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#cbd5e1"
+        }
+      }, "\u2014"));
+    })(), c.pappers && /*#__PURE__*/React.createElement(React.Fragment, null, c.pappers.forme_juridique && /*#__PURE__*/React.createElement(Field, {
       label: "Forme juridique"
     }, c.pappers.forme_juridique), c.pappers.capital != null && /*#__PURE__*/React.createElement(Field, {
       label: "Capital"
@@ -3375,18 +3394,7 @@ var ClientPage = () => {
     }, c.pappers.telephone), c.pappers.libelle_naf && /*#__PURE__*/React.createElement(Field, {
       label: "Activit\xE9 (NAF)",
       full: true
-    }, c.pappers.libelle_naf, c.pappers.code_naf ? " (" + c.pappers.code_naf + ")" : ""), c.pappers.site_web && /*#__PURE__*/React.createElement(Field, {
-      label: "Site web",
-      full: true
-    }, /*#__PURE__*/React.createElement("a", {
-      href: /^https?:/i.test(c.pappers.site_web) ? c.pappers.site_web : "https://" + c.pappers.site_web,
-      target: "_blank",
-      rel: "noopener noreferrer",
-      style: {
-        color: "#3730a3",
-        textDecoration: "none"
-      }
-    }, c.pappers.site_web, " \u2197"))), display.linkedin && /*#__PURE__*/React.createElement(Field, {
+    }, c.pappers.libelle_naf, c.pappers.code_naf ? " (" + c.pappers.code_naf + ")" : "")), display.linkedin && /*#__PURE__*/React.createElement(Field, {
       label: "LinkedIn",
       full: true
     }, /*#__PURE__*/React.createElement("a", {

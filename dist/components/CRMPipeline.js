@@ -2435,25 +2435,9 @@ var CRMAccountsList = () => {
       color: "#475569"
     }
   }, "\u21BB R\xE9importer"), isTest && /*#__PURE__*/React.createElement("button", {
-    onClick: () => runFindEmails(6),
-    disabled: !!emailFindMsg,
-    title: "Tester la recherche d'email sur 6 prospects (les plus gros CA)",
-    style: {
-      padding: "8px 12px",
-      borderRadius: 8,
-      fontSize: 12.5,
-      fontWeight: 700,
-      whiteSpace: "nowrap",
-      cursor: emailFindMsg ? "default" : "pointer",
-      border: "1px solid #0e7490",
-      background: "#fff",
-      color: "#0e7490",
-      opacity: emailFindMsg ? 0.8 : 1
-    }
-  }, "\uD83E\uDDEA Tester sur 6"), isTest && /*#__PURE__*/React.createElement("button", {
     onClick: () => runFindEmails(0),
     disabled: !!emailFindMsg,
-    title: "Trouver l'email de chaque prospect (Dropcontact / Pappers / mentions l\xE9gales + SIRET)",
+    title: "Tout mettre \xE0 jour : Pappers (fiche compl\xE8te) + Dropcontact + emails (mentions l\xE9gales/SIRET) pour tous les prospects",
     style: {
       padding: "8px 12px",
       borderRadius: 8,
@@ -2466,7 +2450,7 @@ var CRMAccountsList = () => {
       color: "#fff",
       opacity: emailFindMsg ? 0.8 : 1
     }
-  }, emailFindMsg ? "⏳ " + emailFindMsg : "📧 Trouver les emails"), isTest && /*#__PURE__*/React.createElement("button", {
+  }, emailFindMsg ? "⏳ " + emailFindMsg : "🔄 Tout mettre à jour"), isTest && /*#__PURE__*/React.createElement("button", {
     onClick: runOutreach,
     disabled: !!outreachMsg,
     title: "Cr\xE9er une opportunit\xE9 + une action e-mail de pr\xE9sentation pour chaque prospect",

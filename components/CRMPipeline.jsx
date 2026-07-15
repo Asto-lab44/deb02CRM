@@ -1080,17 +1080,10 @@ const CRMAccountsList = () => {
             </button>
           )}
           {isTest && (
-            <button onClick={() => runFindEmails(6)} disabled={!!emailFindMsg}
-                    title="Tester la recherche d'email sur 6 prospects (les plus gros CA)"
-                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: emailFindMsg ? "default" : "pointer", border: "1px solid #0e7490", background: "#fff", color: "#0e7490", opacity: emailFindMsg ? 0.8 : 1 }}>
-              🧪 Tester sur 6
-            </button>
-          )}
-          {isTest && (
             <button onClick={() => runFindEmails(0)} disabled={!!emailFindMsg}
-                    title="Trouver l'email de chaque prospect (Dropcontact / Pappers / mentions légales + SIRET)"
+                    title="Tout mettre à jour : Pappers (fiche complète) + Dropcontact + emails (mentions légales/SIRET) pour tous les prospects"
                     style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: emailFindMsg ? "default" : "pointer", border: 0, background: "#0e7490", color: "#fff", opacity: emailFindMsg ? 0.8 : 1 }}>
-              {emailFindMsg ? "⏳ " + emailFindMsg : "📧 Trouver les emails"}
+              {emailFindMsg ? "⏳ " + emailFindMsg : "🔄 Tout mettre à jour"}
             </button>
           )}
           {isTest && (

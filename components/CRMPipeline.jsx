@@ -928,6 +928,15 @@ const CRMAccountsList = () => {
     if (!confirm("Réimporter les clients depuis l'Excel dans l'espace prospection ? Cela remplace les clients de prospection actuels.")) return;
     window.CRMTestReseed(true); window.location.reload();
   };
+  const [emailFindMsg, setEmailFindMsg] = React.useState(null);
+  const runFindEmails = () => {
+    if (!window.CRMTestFindEmails) { alert("Recherche indisponible (rechargez la page)."); return; }
+    if (!confirm("Rechercher automatiquement l'email de chaque prospect (site officiel → mentions légales → vérification SIRET) ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.")) return;
+    setEmailFindMsg("Démarrage…");
+    window.CRMTestFindEmails((p) => setEmailFindMsg(p.done + "/" + p.total))
+      .then((res) => { setEmailFindMsg(null); alert("Terminé : " + res.found + " emails trouvés (dont " + res.verified + " confirmés par SIRET)" + (res.failed ? ", " + res.failed + " sans résultat" : "") + "."); loadAccounts(); })
+      .catch((e) => { setEmailFindMsg(null); alert("Erreur : " + (e.message || e)); });
+  };
   const [outreachMsg, setOutreachMsg] = React.useState(null);
   const runOutreach = () => {
     if (!window.CRMTestGenerateOutreach) { alert("Génération indisponible (rechargez la page)."); return; }
@@ -1059,6 +1068,13 @@ const CRMAccountsList = () => {
             <button onClick={runReseed} title="Réimporter les clients depuis l'Excel"
                     style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid #e2e8f0", background: "#fff", color: "#475569" }}>
               ↻ Réimporter
+            </button>
+          )}
+          {isTest && (
+            <button onClick={runFindEmails} disabled={!!emailFindMsg}
+                    title="Trouver l'email de chaque prospect (site → mentions légales → vérification SIRET)"
+                    style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: emailFindMsg ? "default" : "pointer", border: 0, background: "#0e7490", color: "#fff", opacity: emailFindMsg ? 0.8 : 1 }}>
+              {emailFindMsg ? "⏳ " + emailFindMsg : "📧 Trouver les emails"}
             </button>
           )}
           {isTest && (

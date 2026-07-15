@@ -2182,6 +2182,23 @@ var CRMAccountsList = () => {
     window.CRMTestReseed(true);
     window.location.reload();
   };
+  var [emailFindMsg, setEmailFindMsg] = React.useState(null);
+  var runFindEmails = () => {
+    if (!window.CRMTestFindEmails) {
+      alert("Recherche indisponible (rechargez la page).");
+      return;
+    }
+    if (!confirm("Rechercher automatiquement l'email de chaque prospect (site officiel → mentions légales → vérification SIRET) ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.")) return;
+    setEmailFindMsg("Démarrage…");
+    window.CRMTestFindEmails(p => setEmailFindMsg(p.done + "/" + p.total)).then(res => {
+      setEmailFindMsg(null);
+      alert("Terminé : " + res.found + " emails trouvés (dont " + res.verified + " confirmés par SIRET)" + (res.failed ? ", " + res.failed + " sans résultat" : "") + ".");
+      loadAccounts();
+    }).catch(e => {
+      setEmailFindMsg(null);
+      alert("Erreur : " + (e.message || e));
+    });
+  };
   var [outreachMsg, setOutreachMsg] = React.useState(null);
   var runOutreach = () => {
     if (!window.CRMTestGenerateOutreach) {
@@ -2411,6 +2428,22 @@ var CRMAccountsList = () => {
       color: "#475569"
     }
   }, "\u21BB R\xE9importer"), isTest && /*#__PURE__*/React.createElement("button", {
+    onClick: runFindEmails,
+    disabled: !!emailFindMsg,
+    title: "Trouver l'email de chaque prospect (site \u2192 mentions l\xE9gales \u2192 v\xE9rification SIRET)",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      cursor: emailFindMsg ? "default" : "pointer",
+      border: 0,
+      background: "#0e7490",
+      color: "#fff",
+      opacity: emailFindMsg ? 0.8 : 1
+    }
+  }, emailFindMsg ? "⏳ " + emailFindMsg : "📧 Trouver les emails"), isTest && /*#__PURE__*/React.createElement("button", {
     onClick: runOutreach,
     disabled: !!outreachMsg,
     title: "Cr\xE9er une opportunit\xE9 + une action e-mail de pr\xE9sentation pour chaque prospect",

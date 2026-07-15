@@ -49,7 +49,7 @@ function candidateBases(name) {
   return bases.slice(0, 4);
 }
 
-async function fetchText(url, timeoutMs = 7000) {
+async function fetchText(url, timeoutMs = 3000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -85,8 +85,12 @@ async function pappersWebsite(siren) {
     const u = new URL("https://api.pappers.fr/v2/entreprise");
     u.searchParams.set("api_token", token);
     u.searchParams.set("siren", digits(siren).slice(0, 9));
-    const r = await fetch(u.toString(), { headers: { Accept: "application/json" } });
-    if (!r.ok) return null;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
+    let r;
+    try { r = await fetch(u.toString(), { headers: { Accept: "application/json" }, signal: ctrl.signal }); }
+    finally { clearTimeout(t); }
+    if (!r || !r.ok) return null;
     const j = await r.json();
     return j.site_web || (j.entreprise && j.entreprise.site_web) || null;
   } catch (e) { return null; }
@@ -94,7 +98,7 @@ async function pappersWebsite(siren) {
 
 // Outil dédié : Dropcontact (company + SIREN → email pro + site web). Async :
 // on soumet puis on interroge quelques secondes. RGPD-compliant (FR).
-async function dropcontact({ name, siren, website }, key) {
+async function dropcontact({ name, siren, website }, key, maxMs) {
   try {
     const submit = await fetch("https://api.dropcontact.com/batch", {
       method: "POST",
@@ -104,10 +108,10 @@ async function dropcontact({ name, siren, website }, key) {
     const sj = await submit.json();
     const reqId = sj && (sj.request_id || sj.requestId);
     if (!reqId) return null;
-    // Attente bornée (~8,5 s) pour tenir dans la limite Vercel Hobby (10 s).
+    // Attente bornée par le budget restant (limite Vercel Hobby 10 s).
     const started = Date.now();
-    while (Date.now() - started < 8500) {
-      await sleep(1800);
+    while (Date.now() - started < (maxMs || 3500)) {
+      await sleep(1500);
       const p = await fetch("https://api.dropcontact.com/batch/" + reqId, { headers: { "X-Access-Token": key } });
       const pj = await p.json();
       if (pj && pj.success && Array.isArray(pj.data)) {
@@ -116,8 +120,7 @@ async function dropcontact({ name, siren, website }, key) {
         return { email: email || null, website: row.website || null, provider: "dropcontact" };
       }
     }
-    // Pas prêt à temps : le prospect sera re-tenté au prochain passage
-    // (Dropcontact aura terminé le calcul entre-temps → réponse instantanée).
+    // Pas prêt à temps : re-tenté au prochain passage (résultat mis en cache).
     return { pending: true, provider: "dropcontact" };
   } catch (e) { return null; }
 }
@@ -141,6 +144,11 @@ export default async function handler(req, res) {
   const targetSiren = digits(body.siren) || (targetSiret ? targetSiret.slice(0, 9) : "");
   if (!targetSiret && !targetSiren) return res.status(200).json({ status: "no_siret", message: "SIREN/SIRET manquant — enrichis d'abord la fiche." });
 
+  // Budget global : la fonction DOIT renvoyer du JSON avant que Vercel ne la
+  // coupe (10 s sur l'offre Hobby → 504 = page HTML → plante le client).
+  const DEADLINE = Date.now() + 8500;
+  const timeLeft = () => DEADLINE - Date.now();
+
   const debug = { steps: [] };
   // ── 1. Site web « de confiance » (issu du SIREN) : fiche → Pappers → Dropcontact
   let website = body.website || "";
@@ -154,12 +162,13 @@ export default async function handler(req, res) {
 
   const dcKey = process.env.DROPCONTACT_API_KEY;
   let dcEmail = null, dcPending = false;
-  if (dcKey) {
-    const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey);
+  if (dcKey && timeLeft() > 3000) {
+    const dc = await dropcontact({ name: body.name, siren: targetSiren, website }, dcKey, Math.min(4000, timeLeft() - 2500));
     if (!dc) debug.steps.push("dropcontact: erreur/null");
     else if (dc.pending) { dcPending = true; debug.steps.push("dropcontact: pending (relance auto)"); }
     else { if (dc.email) dcEmail = dc.email; if (dc.website) { debug.steps.push("dropcontact site: " + dc.website); if (!website) { website = dc.website; websiteTrusted = true; } } if (!dc.email) debug.steps.push("dropcontact: pas d'email nominatif"); }
-  } else debug.steps.push("dropcontact: clé absente");
+  } else if (!dcKey) debug.steps.push("dropcontact: clé absente");
+  else debug.steps.push("dropcontact: sauté (budget)");
 
   // Email nominatif renvoyé directement par l'outil → priorité.
   if (dcEmail) {
@@ -174,7 +183,8 @@ export default async function handler(req, res) {
     const domain = hostOf(website);
     let all = [], siretUrl = null;
     for (const p of LEGAL_PATHS) {
-      const html = await fetchText(base + p);
+      if (timeLeft() < 1500) break;
+      const html = await fetchText(base + p, Math.min(2800, timeLeft() - 800));
       if (!html) continue;
       const emails = extractEmails(html);
       all.push(...emails);
@@ -197,9 +207,11 @@ export default async function handler(req, res) {
   let verifiedUrl = null, verifiedEmails = [], domainOut = null, weak = false;
   outer:
   for (const b of candidateBases(body.name).slice(0, 4)) {
+    if (timeLeft() < 1500) break;
     let domain = hostOf(b); if (!domain) continue;
     for (const p of LEGAL_PATHS) {
-      const html = await fetchText(b + p);
+      if (timeLeft() < 1500) break outer;
+      const html = await fetchText(b + p, Math.min(2800, timeLeft() - 800));
       if (!html) continue;
       const norm = digits(html);
       const emails = extractEmails(html);
@@ -214,6 +226,6 @@ export default async function handler(req, res) {
   return res.status(200).json({ status: dcPending ? "pending" : "not_found", email: null, emails: [], siret_verified: false, website: website || null, source_url: null, debug });
 }
 
-// Laisse la marge pour le polling Dropcontact (Pro autorise jusqu'à 60s ;
-// Hobby plafonne à 10s, d'où l'attente bornée à ~8,5s ci-dessus).
-export const config = { maxDuration: 20 };
+// La fonction s'auto-borne à ~8,5s (budget interne) pour tenir dans la limite
+// Hobby de 10s. maxDuration=10 est honnête sur tous les plans.
+export const config = { maxDuration: 10 };

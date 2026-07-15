@@ -2749,7 +2749,7 @@ var CRMAccountsList = () => {
     style: {
       color: "#0e7490"
     }
-  }, emailReport.found), " emails trouv\xE9s (dont ", emailReport.verified, " v\xE9rifi\xE9s SIRET) \xB7 ", emailReport.notFound, " sans email \xB7 ", emailReport.eligibleWithSite, " avec site connu"), /*#__PURE__*/React.createElement("div", {
+  }, emailReport.found), " emails trouv\xE9s (dont ", emailReport.verified, " v\xE9rifi\xE9s SIRET) \xB7 ", emailReport.notFound, " sans email \xB7 ", emailReport.failed || 0, " erreurs \xB7 ", emailReport.eligibleWithSite, " avec site connu"), /*#__PURE__*/React.createElement("div", {
     style: {
       maxHeight: 260,
       overflowY: "auto",

@@ -76,6 +76,7 @@
         details.push({ name: name, status: j.status || "?", email: j.email || null, website: j.website || null, steps: (j.debug && j.debug.steps) || [] });
       } catch (e) {
         failed++;
+        details.push({ name: name, status: "ERREUR", email: null, website: null, steps: [String(e.message || e)] });
         if (/non déployée|Session expirée/.test(e.message || "")) { throw e; }
       }
       done++;

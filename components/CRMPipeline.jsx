@@ -1180,7 +1180,7 @@ const CRMAccountsList = () => {
           ) : (
             <div>
               <div style={{ fontSize: 12.5, color: "#0f172a", marginBottom: 8 }}>
-                Sur <b>{emailReport.total}</b> : <b style={{ color: "#0e7490" }}>{emailReport.found}</b> emails trouvés (dont {emailReport.verified} vérifiés SIRET) · {emailReport.notFound} sans email · {emailReport.eligibleWithSite} avec site connu
+                Sur <b>{emailReport.total}</b> : <b style={{ color: "#0e7490" }}>{emailReport.found}</b> emails trouvés (dont {emailReport.verified} vérifiés SIRET) · {emailReport.notFound} sans email · {emailReport.failed || 0} erreurs · {emailReport.eligibleWithSite} avec site connu
               </div>
               <div style={{ maxHeight: 260, overflowY: "auto", background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0" }}>
                 {(emailReport.details || []).map((d, i) => (

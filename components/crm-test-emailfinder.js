@@ -51,8 +51,9 @@
         body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name }),
       });
       if (r.status === 404) throw new Error("Fonction /api/find-email non déployée sur Vercel (attends le déploiement).");
-      if (r.status === 401) throw new Error("Session expirée — reconnecte-toi puis relance.");
       const j = await r.json();
+      // 401/500 renvoient { error } sans champ status : on le remonte lisiblement.
+      if (!j.status && (j.error || j.message)) { j.status = "HTTP " + r.status; j.debug = { steps: [j.error || j.message] }; }
       const patch = {};
       if (j && j.website && !(c.web || c.site_web)) { patch.web = j.website; patch.site_web = j.website; }
       if (j && j.email) {

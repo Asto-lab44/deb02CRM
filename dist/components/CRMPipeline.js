@@ -2192,7 +2192,11 @@ var CRMAccountsList = () => {
     setEmailFindMsg("Démarrage…");
     window.CRMTestFindEmails(p => setEmailFindMsg(p.done + "/" + p.total)).then(res => {
       setEmailFindMsg(null);
-      alert("Terminé : " + res.found + " emails trouvés (dont " + res.verified + " confirmés par SIRET)" + (res.failed ? ", " + res.failed + " sans résultat" : "") + ".");
+      if (res.empty) {
+        alert("Aucun prospect à traiter.\n\n• " + res.noSiret + " prospects sans SIREN/SIRET (lance d'abord « Enrichir via Pappers »)\n• les autres ont déjà un email.");
+      } else {
+        alert("Terminé sur " + res.total + " prospects :\n" + "• " + res.found + " emails trouvés (dont " + res.verified + " confirmés par SIRET)\n" + "• " + res.notFound + " sans email trouvé\n" + "• " + res.eligibleWithSite + " avaient un site web connu\n\n" + (res.found === 0 ? "Astuce : sans site web renseigné, la recherche devine le domaine et aboutit rarement. Renseigne les sites, ou on branche un outil dédié (Hunter/Dropcontact)." : ""));
+      }
       loadAccounts();
     }).catch(e => {
       setEmailFindMsg(null);

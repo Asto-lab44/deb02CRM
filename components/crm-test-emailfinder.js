@@ -23,10 +23,17 @@
     const token = await jwt();
     if (!token) throw new Error("Connexion Supabase requise (la recherche passe par le serveur).");
 
-    const list = await window.api.clients.list({ active: true });
-    const todo = (list || []).filter((c) => (c.status || "prospect") !== "client" && !c.email && (c.siret || c.siren));
-    let done = 0, found = 0, verified = 0, failed = 0;
+    const all = await window.api.clients.list({ active: true });
+    const prospects = (all || []).filter((c) => (c.status || "prospect") !== "client");
+    const todo = prospects.filter((c) => !c.email && (c.siret || c.siren));
+    const eligibleWithSite = todo.filter((c) => c.web || c.site_web).length;
+    let done = 0, found = 0, verified = 0, notFound = 0, failed = 0;
     const total = todo.length;
+    // Diagnostic : prospects sans SIREN/SIRET (non éligibles) et sans site.
+    const noSiret = prospects.filter((c) => !c.email && !(c.siret || c.siren)).length;
+    if (!total) {
+      return { done: 0, found: 0, verified: 0, notFound: 0, failed: 0, total: 0, noSiret: noSiret, eligibleWithSite: 0, empty: true };
+    }
     if (onProgress) onProgress({ done: 0, total: total, name: "" });
 
     for (const c of todo) {
@@ -37,7 +44,8 @@
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name }),
         });
-        if (r.status === 404) throw new Error("Fonction /api/find-email non déployée sur Vercel.");
+        if (r.status === 404) throw new Error("Fonction /api/find-email non déployée sur Vercel (attends le déploiement).");
+        if (r.status === 401) throw new Error("Session expirée — reconnecte-toi puis relance.");
         const j = await r.json();
         if (j && j.email) {
           await window.api.clients.update(c.id, {
@@ -48,15 +56,15 @@
           });
           found++;
           if (j.siret_verified) verified++;
-        }
+        } else { notFound++; }
       } catch (e) {
         failed++;
-        if (/non déployée/.test(e.message || "")) { throw e; } // stop net si l'API manque
+        if (/non déployée|Session expirée/.test(e.message || "")) { throw e; } // stop net
       }
       done++;
       if (onProgress) onProgress({ done: done, total: total, name: name });
       await new Promise((res) => setTimeout(res, 400)); // politesse (le serveur fait plusieurs requêtes)
     }
-    return { done: done, found: found, verified: verified, failed: failed };
+    return { done: done, found: found, verified: verified, notFound: notFound, failed: failed, total: total, noSiret: noSiret, eligibleWithSite: eligibleWithSite };
   };
 })();

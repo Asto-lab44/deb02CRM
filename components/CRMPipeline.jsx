@@ -938,7 +938,7 @@ const CRMAccountsList = () => {
     if (!confirm(msg)) return;
     setEmailFindMsg("Démarrage…");
     setEmailReport(null);
-    window.CRMTestFindEmails((p) => setEmailFindMsg(p.done + "/" + p.total), { limit: limit })
+    window.CRMTestFindEmails((p) => setEmailFindMsg(p.phase ? p.phase : (p.done + "/" + p.total)), { limit: limit })
       .then((res) => {
         setEmailFindMsg(null);
         setEmailReport(res); // affiché à l'écran (screenshotable)

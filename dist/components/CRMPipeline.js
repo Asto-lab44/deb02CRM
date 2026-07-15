@@ -2193,7 +2193,7 @@ var CRMAccountsList = () => {
     if (!confirm(msg)) return;
     setEmailFindMsg("Démarrage…");
     setEmailReport(null);
-    window.CRMTestFindEmails(p => setEmailFindMsg(p.done + "/" + p.total), {
+    window.CRMTestFindEmails(p => setEmailFindMsg(p.phase ? p.phase : p.done + "/" + p.total), {
       limit: limit
     }).then(res => {
       setEmailFindMsg(null);

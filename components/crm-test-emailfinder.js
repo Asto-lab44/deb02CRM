@@ -45,11 +45,20 @@
     // Traite un prospect. Retourne "pending" si Dropcontact n'a pas fini à temps.
     async function processOne(c) {
       const name = c.raison_sociale || c.name || "";
-      const r = await fetch("/api/find-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-        body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name }),
-      });
+      // Garde-fou : si la fonction ne répond pas en 25s, on abandonne cet appel
+      // (évite de figer tout le batch sur une requête bloquée).
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 25000);
+      let r;
+      try {
+        r = await fetch("/api/find-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ siret: c.siret || "", siren: c.siren || "", website: c.web || c.site_web || "", name: name }),
+          signal: ctrl.signal,
+        });
+      } catch (e) { clearTimeout(to); throw new Error(e.name === "AbortError" ? "timeout (>25s)" : (e.message || "réseau")); }
+      clearTimeout(to);
       if (r.status === 404) throw new Error("Fonction /api/find-email non déployée sur Vercel (attends le déploiement).");
       const j = await r.json();
       // 401/500 renvoient { error } sans champ status : on le remonte lisiblement.
@@ -87,9 +96,12 @@
 
     // Relance auto des « pending » : Dropcontact a fini de calculer entre-temps.
     if (pending.length) {
-      if (onProgress) onProgress({ done: done, total: total, name: "Attente Dropcontact… (" + pending.length + ")" });
-      await new Promise((res) => setTimeout(res, 20000));
+      if (onProgress) onProgress({ done: done, total: total, phase: "Attente Dropcontact " + pending.length + "…" });
+      await new Promise((res) => setTimeout(res, 12000));
+      let k = 0;
       for (const c of pending) {
+        k++;
+        if (onProgress) onProgress({ done: done, total: total, phase: "Relance " + k + "/" + pending.length });
         try {
           const j = await processOne(c);
           const d = details.find((x) => x.name === (c.raison_sociale || c.name));

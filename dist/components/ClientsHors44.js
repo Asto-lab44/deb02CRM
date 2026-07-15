@@ -125,7 +125,7 @@ var ClientsHors44 = () => {
       color: "#64748b",
       textDecoration: "none"
     }
-  }, isTest ? "CRM (test)" : "CRM"), /*#__PURE__*/React.createElement("span", {
+  }, isTest ? "CRM Prospection" : "CRM"), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#cbd5e1"
     }
@@ -202,7 +202,7 @@ var ClientsHors44 = () => {
     style: ST.body
   }, groupKeys.length === 0 && unknown.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: ST.empty
-  }, "Aucun client hors 44 (ou aucun code postal renseign\xE9 \u2014 lancez l'enrichissement Pappers depuis le CRM test)."), groupKeys.map(d => /*#__PURE__*/React.createElement("section", {
+  }, "Aucun client hors 44 (ou aucun code postal renseign\xE9 \u2014 lancez l'enrichissement Pappers depuis le CRM Prospection)."), groupKeys.map(d => /*#__PURE__*/React.createElement("section", {
     key: d,
     style: {
       marginBottom: 18

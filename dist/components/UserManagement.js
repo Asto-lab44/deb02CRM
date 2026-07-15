@@ -112,9 +112,9 @@ var UserManagement = () => {
   }, {
     key: "crm_test",
     cat: "Commercial",
-    title: "CRM (test) — bac à sable",
-    color: "#b91c1c",
-    bg: "#fef2f2"
+    title: "CRM Prospection",
+    color: "#7c3aed",
+    bg: "#f3e8ff"
   }, {
     key: "intel",
     cat: "Commercial",

@@ -270,8 +270,8 @@ var ERPHome = () => {
   }, {
     cat: "Commercial",
     key: "crm_test",
-    title: "CRM (test)",
-    subtitle: "Bac à sable · données isolées · aucun impact prod",
+    title: "CRM Prospection",
+    subtitle: "Prospection commerciale · données séparées du CRM principal",
     icon: /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",
       width: "22",
@@ -281,26 +281,28 @@ var ERPHome = () => {
       strokeWidth: "2",
       strokeLinecap: "round",
       strokeLinejoin: "round"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M9 3h6M10 3v6l-4 8a2 2 0 002 3h8a2 2 0 002-3l-4-8V3"
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "11",
+      cy: "11",
+      r: "7"
     }), /*#__PURE__*/React.createElement("path", {
-      d: "M7 14h10"
+      d: "M21 21l-4.3-4.3"
     })),
-    color: "#b91c1c",
-    bg: "#fef2f2",
+    color: "#7c3aed",
+    bg: "#f3e8ff",
     badge: {
-      label: "Bac à sable",
-      tone: "warn"
+      label: "Prospection",
+      tone: "info"
     },
     stats: [{
-      k: "Environnement",
-      v: "Test"
+      k: "Espace",
+      v: "Prospection"
     }, {
       k: "Données",
-      v: "Isolées"
+      v: "Séparées"
     }, {
-      k: "Stockage",
-      v: "Local"
+      k: "Sync",
+      v: "Manuelle"
     }]
   }, {
     cat: "Commercial",

@@ -2162,10 +2162,10 @@ var CRMAccountsList = () => {
   var isTest = typeof window !== "undefined" && window.HubTestMode;
   var runEnrich = () => {
     if (!window.CRMTestEnrich) {
-      alert("Enrichissement indisponible (rechargez la page du CRM test).");
+      alert("Enrichissement indisponible (rechargez la page CRM Prospection).");
       return;
     }
-    if (!confirm("Compléter les fiches du bac à sable (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\n1 à 2 min. La production n'est pas touchée.")) return;
+    if (!confirm("Compléter les fiches de la prospection (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\n1 à 2 min. Le CRM principal n'est pas touché.")) return;
     setEnrichMsg("Démarrage…");
     window.CRMTestEnrich(p => setEnrichMsg("Enrichissement " + p.done + "/" + p.total + "…")).then(res => {
       setEnrichMsg(null);
@@ -2178,7 +2178,7 @@ var CRMAccountsList = () => {
   };
   var runReseed = () => {
     if (!window.CRMTestReseed) return;
-    if (!confirm("Réimporter les clients depuis l'Excel dans le bac à sable ? Cela remplace les clients de test actuels.")) return;
+    if (!confirm("Réimporter les clients depuis l'Excel dans l'espace prospection ? Cela remplace les clients de prospection actuels.")) return;
     window.CRMTestReseed(true);
     window.location.reload();
   };
@@ -2251,7 +2251,7 @@ var CRMAccountsList = () => {
           });
         } catch (e2) {/* Pappers optionnel */}
       }
-      if (window.HubToast) window.HubToast.success((payload.raison_sociale || "Entreprise") + " ajouté" + (window.HubTestMode ? " au bac à sable" : ""));
+      if (window.HubToast) window.HubToast.success((payload.raison_sociale || "Entreprise") + " ajouté" + (window.HubTestMode ? " à la prospection" : ""));
       setCoQ("");
       setCoResults([]);
       setCoOpen(false);
@@ -2366,7 +2366,7 @@ var CRMAccountsList = () => {
   }, isTest && /*#__PURE__*/React.createElement("button", {
     onClick: runEnrich,
     disabled: !!enrichMsg,
-    title: "Compl\xE9ter les fiches du bac \xE0 sable via l'annuaire officiel + Pappers",
+    title: "Compl\xE9ter les fiches de la prospection via l'annuaire officiel + Pappers",
     style: {
       padding: "8px 12px",
       borderRadius: 8,

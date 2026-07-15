@@ -48,7 +48,7 @@
     bar.id = "hub-test-banner";
     bar.style.cssText = [
       "position:fixed", "top:0", "left:0", "right:0", "z-index:99999",
-      "background:#b91c1c", "color:#fff", "font:600 12.5px/1 'Inter',system-ui,sans-serif",
+      "background:#7c3aed", "color:#fff", "font:600 12.5px/1 'Inter',system-ui,sans-serif",
       "padding:7px 14px", "display:flex", "align-items:center", "justify-content:center",
       "gap:14px", "box-shadow:0 1px 6px rgba(0,0,0,.25)",
     ].join(";");
@@ -56,7 +56,7 @@
     var exitHref = window.location.pathname + window.location.search + sep + "test=0";
     var pill = "color:#fff;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px;text-decoration:none;font-weight:700;cursor:pointer;border:0;font:inherit;";
     bar.innerHTML =
-      "<span>🧪 MODE TEST — CRM bac à sable (données isolées, aucune écriture en production)</span>";
+      "<span>🧭 CRM PROSPECTION — données séparées du CRM principal (aucune écriture sur les comptes réels)</span>";
     // Bouton de (ré)import des clients — présent seulement là où le jeu de
     // données est chargé (page CRM).
     if (window.CRMTestData && window.CRMTestData.clients) {
@@ -65,7 +65,7 @@
       reimport.textContent = "↻ Réimporter les clients (" + n + ")";
       reimport.style.cssText = pill;
       reimport.onclick = function () {
-        if (!confirm("Réimporter les " + n + " clients depuis l'Excel dans le bac à sable ?\n\nCela remplace les clients de test actuels (la production n'est pas touchée).")) return;
+        if (!confirm("Réimporter les " + n + " clients depuis l'Excel dans l'espace prospection ?\n\nCela remplace les clients de prospection actuels (le CRM principal n'est pas touché).")) return;
         if (window.CRMTestReseed) { window.CRMTestReseed(true); window.location.reload(); }
       };
       bar.appendChild(reimport);
@@ -77,7 +77,7 @@
         enr.style.cssText = pill;
         enr.onclick = function () {
           if (enr.disabled) return;
-          if (!confirm("Compléter les fiches clients du bac à sable (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\nCela peut prendre 1 à 2 minutes. La production n'est pas touchée.")) return;
+          if (!confirm("Compléter les fiches clients de la prospection (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\nCela peut prendre 1 à 2 minutes. Le CRM principal n'est pas touché.")) return;
           enr.disabled = true; enr.style.opacity = "0.75";
           window.CRMTestEnrich(function (p) {
             enr.textContent = "⏳ Enrichissement " + p.done + "/" + p.total + "…";
@@ -91,7 +91,7 @@
       }
     }
     var exit = document.createElement("a");
-    exit.href = exitHref; exit.textContent = "Quitter le mode test"; exit.style.cssText = pill;
+    exit.href = exitHref; exit.textContent = "Revenir au CRM principal"; exit.style.cssText = pill;
     bar.appendChild(exit);
     document.body.appendChild(bar);
     // Décale le contenu pour ne pas masquer la 1re ligne.

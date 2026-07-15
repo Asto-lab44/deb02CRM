@@ -132,8 +132,10 @@ export default async function handler(req, res) {
 
   const auth = req.headers.authorization || "";
   if (!auth.startsWith("Bearer ")) return res.status(401).json({ error: "Missing bearer token" });
-  const supaUrl = process.env.SUPABASE_URL, supaAnon = process.env.SUPABASE_ANON_KEY;
-  if (!supaUrl || !supaAnon) return res.status(500).json({ error: "Supabase env not configured" });
+  // URL + clé PUBLISHABLE (publiques, déjà dans le bundle client) : valeurs par
+  // défaut pour ne rien avoir à configurer ; surchargées par les env si présentes.
+  const supaUrl = process.env.SUPABASE_URL || "https://cqdgecllzyqimfuovrpp.supabase.co";
+  const supaAnon = process.env.SUPABASE_ANON_KEY || "sb_publishable_TXCd5JaM6NWtfaThEAsNDw_AH3nsEnq";
   const supa = createClient(supaUrl, supaAnon, { global: { headers: { Authorization: auth } } });
   const { data: u, error: aerr } = await supa.auth.getUser(auth.slice(7));
   if (aerr || !u || !u.user) return res.status(401).json({ error: "Invalid token" });

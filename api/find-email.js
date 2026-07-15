@@ -103,7 +103,7 @@ async function dropcontact({ name, siren, website }, key, maxMs) {
     const submit = await fetch("https://api.dropcontact.com/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Access-Token": key },
-      body: JSON.stringify({ data: [{ company: name || undefined, siren: siren || undefined, website: website || undefined }], siren: true, language: "fr" }),
+      body: JSON.stringify({ data: [{ company: name || undefined, num_siren: siren || undefined, website: website || undefined }], siren: true, language: "fr" }),
     });
     let sj = null;
     try { sj = await submit.json(); } catch (e) { return { error: "submit HTTP " + submit.status + " (non-JSON)" }; }

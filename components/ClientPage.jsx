@@ -1826,7 +1826,7 @@ const ClientPage = () => {
                 <div style={cliStyles.actionsHead}>
                   <div>
                     <h2 style={cliStyles.h2}>Informations compte</h2>
-                    <p style={cliStyles.h2sub}>Suivi commercial · Cycle de vie · Identité légale</p>
+                    <p style={cliStyles.h2sub}>Identité légale · Cycle de vie · Suivi commercial</p>
                   </div>
                   <button onClick={openEdit} style={{ ...cliStyles.filterPill, cursor: "pointer" }}>Éditer</button>
                 </div>
@@ -1851,8 +1851,7 @@ const ClientPage = () => {
                     </div>
                   );
 
-                  return (
-                    <div style={{ padding: 4 }}>
+                  const suiviCommercialSection = (
                       <Section title="Suivi commercial" icon="👤" color="#4f46e5">
                         <Field label="Commercial">
                           {display.owner === "—" ? <span style={{ color: "#cbd5e1" }}>—</span> : (
@@ -1908,7 +1907,8 @@ const ClientPage = () => {
                           </Field>
                         )}
                       </Section>
-
+                  );
+                  const cycleVieSection = (
                       <Section title="Cycle de vie" icon="🔄" color="#0e7a55">
                         <Field label={isCustom ? "Prospect depuis" : "Client depuis"}>
                           <span style={{ ...monoTxt, fontWeight: 700 }}>{display.clientSince}</span>
@@ -1941,7 +1941,9 @@ const ClientPage = () => {
                           </Field>
                         )}
                       </Section>
-
+                  );
+                  return (
+                    <div style={{ padding: 4 }}>
                       <Section title="Identité légale" icon="🏛" color="#7c3aed">
                         <Field label="SIREN">
                           {display.siren ? <span style={monoTxt}>{display.siren}</span> : <span style={{ color: "#cbd5e1" }}>—</span>}
@@ -2018,6 +2020,10 @@ const ClientPage = () => {
                           )}
                         </Section>
                       )}
+
+                      {/* Cycle de vie puis Suivi commercial — placés en bas du bloc. */}
+                      {cycleVieSection}
+                      {suiviCommercialSection}
                     </div>
                   );
                 })()}

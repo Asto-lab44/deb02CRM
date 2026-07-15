@@ -3084,6 +3084,15 @@ var CRMActionsList = () => {
     basse: actions.filter(a => a.priority === "basse").length,
     ai: actions.filter(a => a.priority === "ai").length
   };
+  // Pagination : 10 actions par page (réduit la hauteur de la vue).
+  var PER_PAGE = 10;
+  var [page, setPage] = React.useState(1);
+  var pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  React.useEffect(() => {
+    setPage(1);
+  }, [filter]);
+  var curPage = Math.min(page, pageCount);
+  var pageItems = filtered.slice((curPage - 1) * PER_PAGE, curPage * PER_PAGE);
   return /*#__PURE__*/React.createElement("section", {
     id: "actions-section",
     style: {
@@ -3163,7 +3172,7 @@ var CRMActionsList = () => {
       flexDirection: "column",
       gap: 8
     }
-  }, filtered.map((a, i) => {
+  }, pageItems.map((a, i) => {
     var pm = prioMeta[a.priority] || prioMeta.basse;
     // Icône cliquable selon le type d'action :
     //   email → mailto: (Outlook/webmail par défaut OS)
@@ -3447,7 +3456,64 @@ var CRMActionsList = () => {
         whiteSpace: "nowrap"
       }
     }, "\u2713 Traiter"));
-  })));
+  })), pageCount > 1 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: 16,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPage(Math.max(1, curPage - 1)),
+    disabled: curPage <= 1,
+    style: {
+      padding: "5px 10px",
+      borderRadius: 6,
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      color: curPage <= 1 ? "#cbd5e1" : "#475569",
+      cursor: curPage <= 1 ? "default" : "pointer",
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, "\u2039"), Array.from({
+    length: pageCount
+  }, (_, i) => i + 1).map(n => /*#__PURE__*/React.createElement("button", {
+    key: n,
+    onClick: () => setPage(n),
+    style: {
+      minWidth: 30,
+      padding: "5px 9px",
+      borderRadius: 6,
+      border: "1px solid " + (n === curPage ? "#4f46e5" : "#e2e8f0"),
+      background: n === curPage ? "#4f46e5" : "#fff",
+      color: n === curPage ? "#fff" : "#475569",
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, n)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPage(Math.min(pageCount, curPage + 1)),
+    disabled: curPage >= pageCount,
+    style: {
+      padding: "5px 10px",
+      borderRadius: 6,
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      color: curPage >= pageCount ? "#cbd5e1" : "#475569",
+      cursor: curPage >= pageCount ? "default" : "pointer",
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, "\u203A"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#94a3b8",
+      marginLeft: 6
+    }
+  }, filtered.length, " action", filtered.length > 1 ? "s" : "")));
 };
 window.CRMActionsList = CRMActionsList;
 window.CRMPipeline = CRMPipeline;

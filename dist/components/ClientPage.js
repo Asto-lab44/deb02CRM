@@ -3051,7 +3051,7 @@ var ClientPage = () => {
     style: cliStyles.h2
   }, "Informations compte"), /*#__PURE__*/React.createElement("p", {
     style: cliStyles.h2sub
-  }, "Suivi commercial \xB7 Cycle de vie \xB7 Identit\xE9 l\xE9gale")), /*#__PURE__*/React.createElement("button", {
+  }, "Identit\xE9 l\xE9gale \xB7 Cycle de vie \xB7 Suivi commercial")), /*#__PURE__*/React.createElement("button", {
     onClick: openEdit,
     style: {
       ...cliStyles.filterPill,
@@ -3148,11 +3148,7 @@ var ClientPage = () => {
         rowGap: 0
       }
     }, children));
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: 4
-      }
-    }, /*#__PURE__*/React.createElement(Section, {
+    var suiviCommercialSection = /*#__PURE__*/React.createElement(Section, {
       title: "Suivi commercial",
       icon: "\uD83D\uDC64",
       color: "#4f46e5"
@@ -3272,7 +3268,8 @@ var ClientPage = () => {
         color: "#475569",
         lineHeight: 1.5
       }
-    }, display.besoin))), /*#__PURE__*/React.createElement(Section, {
+    }, display.besoin)));
+    var cycleVieSection = /*#__PURE__*/React.createElement(Section, {
       title: "Cycle de vie",
       icon: "\uD83D\uDD04",
       color: "#0e7a55"
@@ -3328,7 +3325,12 @@ var ClientPage = () => {
         color: "#0f172a",
         fontVariantNumeric: "tabular-nums"
       }
-    }, display.ca, " M\u20AC"))), /*#__PURE__*/React.createElement(Section, {
+    }, display.ca, " M\u20AC")));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 4
+      }
+    }, /*#__PURE__*/React.createElement(Section, {
       title: "Identit\xE9 l\xE9gale",
       icon: "\uD83C\uDFDB",
       color: "#7c3aed"
@@ -3511,7 +3513,7 @@ var ClientPage = () => {
         color: "#b91c1c",
         fontWeight: 600
       }
-    }, "\u26A0 ", p.type, p.date ? " · " + p.date : "", p.tribunal ? " · " + p.tribunal : ""))))));
+    }, "\u26A0 ", p.type, p.date ? " · " + p.date : "", p.tribunal ? " · " + p.tribunal : ""))))), cycleVieSection, suiviCommercialSection);
   })()))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {

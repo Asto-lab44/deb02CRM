@@ -1349,6 +1349,13 @@ const CRMActionsList = () => {
   const [filter, setFilter] = React.useState("all");
   const filtered = filter === "all" ? actions : actions.filter((a) => a.priority === filter);
   const counts = { all: actions.length, haute: actions.filter(a => a.priority === "haute").length, moyenne: actions.filter(a => a.priority === "moyenne").length, basse: actions.filter(a => a.priority === "basse").length, ai: actions.filter(a => a.priority === "ai").length };
+  // Pagination : 10 actions par page (réduit la hauteur de la vue).
+  const PER_PAGE = 10;
+  const [page, setPage] = React.useState(1);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  React.useEffect(() => { setPage(1); }, [filter]);
+  const curPage = Math.min(page, pageCount);
+  const pageItems = filtered.slice((curPage - 1) * PER_PAGE, curPage * PER_PAGE);
 
   return (
     <section id="actions-section" style={{ background: "#fafbfc", borderTop: "1px solid #eef1f5", padding: "20px 24px 40px" }}>
@@ -1374,7 +1381,7 @@ const CRMActionsList = () => {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {filtered.map((a, i) => {
+        {pageItems.map((a, i) => {
           const pm = prioMeta[a.priority] || prioMeta.basse;
           // Icône cliquable selon le type d'action :
           //   email → mailto: (Outlook/webmail par défaut OS)
@@ -1549,6 +1556,21 @@ const CRMActionsList = () => {
           );
         })}
       </div>
+
+      {/* Pagination — pages en bas du module (10 actions par page). */}
+      {pageCount > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 16, flexWrap: "wrap" }}>
+          <button onClick={() => setPage(Math.max(1, curPage - 1))} disabled={curPage <= 1}
+                  style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: curPage <= 1 ? "#cbd5e1" : "#475569", cursor: curPage <= 1 ? "default" : "pointer", fontSize: 12.5, fontWeight: 600 }}>‹</button>
+          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
+            <button key={n} onClick={() => setPage(n)}
+                    style={{ minWidth: 30, padding: "5px 9px", borderRadius: 6, border: "1px solid " + (n === curPage ? "#4f46e5" : "#e2e8f0"), background: n === curPage ? "#4f46e5" : "#fff", color: n === curPage ? "#fff" : "#475569", cursor: "pointer", fontSize: 12.5, fontWeight: 700 }}>{n}</button>
+          ))}
+          <button onClick={() => setPage(Math.min(pageCount, curPage + 1))} disabled={curPage >= pageCount}
+                  style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: curPage >= pageCount ? "#cbd5e1" : "#475569", cursor: curPage >= pageCount ? "default" : "pointer", fontSize: 12.5, fontWeight: 600 }}>›</button>
+          <span style={{ fontSize: 11.5, color: "#94a3b8", marginLeft: 6 }}>{filtered.length} action{filtered.length > 1 ? "s" : ""}</span>
+        </div>
+      )}
     </section>
   );
 };

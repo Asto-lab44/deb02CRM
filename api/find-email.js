@@ -77,28 +77,61 @@ function pickBest(emails, domain) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Récupère le site web d'une entreprise via Pappers. Retourne { site, note }
-// (note = diagnostic : token absent / HTTP / champs disponibles).
-async function pappersWebsite(siren) {
+// Interroge Pappers et renvoie { site, note, data } où data = fiche complète
+// (identité, siège, dirigeants, finances, procédures…).
+async function pappersLookup(siren) {
   const token = process.env.PAPPERS_API_TOKEN;
-  if (!token) return { site: null, note: "pappers: token absent" };
-  if (!siren) return { site: null, note: "pappers: pas de siren" };
+  if (!token) return { site: null, note: "pappers: token absent", data: null };
+  if (!siren) return { site: null, note: "pappers: pas de siren", data: null };
   try {
     const u = new URL("https://api.pappers.fr/v2/entreprise");
     u.searchParams.set("api_token", token);
     u.searchParams.set("siren", digits(siren).slice(0, 9));
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 3000);
+    const t = setTimeout(() => ctrl.abort(), 3500);
     let r;
     try { r = await fetch(u.toString(), { headers: { Accept: "application/json" }, signal: ctrl.signal }); }
     finally { clearTimeout(t); }
-    if (!r) return { site: null, note: "pappers: pas de réponse" };
-    if (!r.ok) return { site: null, note: "pappers: HTTP " + r.status };
-    const j = await r.json();
-    const site = j.site_web || (j.entreprise && j.entreprise.site_web) || null;
-    if (site) return { site: site, note: null };
-    return { site: null, note: "pappers OK, pas de site_web" };
-  } catch (e) { return { site: null, note: "pappers: " + (e.message || e) }; }
+    if (!r) return { site: null, note: "pappers: pas de réponse", data: null };
+    if (!r.ok) return { site: null, note: "pappers: HTTP " + r.status, data: null };
+    const d = await r.json();
+    const siege = d.siege || {};
+    const procs = d.procedures_collectives || d.procedures || [];
+    const data = {
+      denomination: d.denomination || d.nom_entreprise || null,
+      siren: d.siren || null,
+      siret_siege: siege.siret || null,
+      forme_juridique: d.forme_juridique || null,
+      capital: d.capital != null ? d.capital : null,
+      date_creation: d.date_creation || null,
+      date_immatriculation: d.date_immatriculation_rcs || null,
+      effectif: d.effectif || d.tranche_effectif || null,
+      etat_administratif: d.etat_administratif || null,
+      code_naf: d.code_naf || null,
+      libelle_naf: d.libelle_code_naf || null,
+      tva_intracom: d.numero_tva_intracommunautaire || null,
+      greffe: d.greffe || null,
+      site_web: d.site_web || null,
+      telephone: d.telephone || null,
+      email: d.email || null,
+      adresse: siege.adresse_ligne_1 || null,
+      code_postal: siege.code_postal || null,
+      ville: siege.ville || null,
+      dirigeants: Array.isArray(d.representants) ? d.representants.slice(0, 6).map((x) => ({
+        nom: x.nom_complet || [x.prenom, x.nom].filter(Boolean).join(" ") || null,
+        fonction: x.qualite || null,
+        depuis: x.date_prise_de_poste || null,
+      })) : [],
+      procedures: (Array.isArray(procs) ? procs : []).slice(0, 5).map((p) => ({
+        type: p.type || p.libelle || "Procédure collective",
+        date: p.date_jugement || p.date || null,
+        tribunal: p.tribunal || null,
+      })),
+      pappers_checked_at: new Date().toISOString(),
+    };
+    if (data.site_web) return { site: data.site_web, note: null, data };
+    return { site: null, note: "pappers OK, pas de site_web", data };
+  } catch (e) { return { site: null, note: "pappers: " + (e.message || e), data: null }; }
 }
 
 // Outil dédié : Dropcontact (company + SIREN → email pro + site web). Async :
@@ -160,15 +193,16 @@ export default async function handler(req, res) {
   const timeLeft = () => DEADLINE - Date.now();
 
   const debug = { steps: [] };
-  // ── 1. Site web « de confiance » (issu du SIREN) : fiche → Pappers → Dropcontact
+  // ── 1. Pappers : fiche complète + site web « de confiance » (issu du SIREN)
   let website = body.website || "";
   let websiteTrusted = !!website;
   if (website) debug.steps.push("site fiche: " + website);
-  if (!website) {
-    const pw = await pappersWebsite(targetSiren);
-    if (pw.site) { website = pw.site; websiteTrusted = true; debug.steps.push("site pappers: " + pw.site); }
-    else debug.steps.push(pw.note || "pappers: pas de site");
-  }
+  const pw = await pappersLookup(targetSiren);
+  const pappersData = pw.data;
+  if (pw.site) { if (!website) { website = pw.site; websiteTrusted = true; } debug.steps.push("site pappers: " + pw.site); }
+  else debug.steps.push(pw.note || "pappers: pas de site");
+  // Toute réponse renvoyée à partir d'ici embarque la fiche Pappers.
+  const finish = (obj) => res.status(200).json(Object.assign({ pappers: pappersData }, obj));
 
   const dcKey = process.env.DROPCONTACT_API_KEY;
   let dcEmail = null, dcPending = false;
@@ -205,11 +239,11 @@ export default async function handler(req, res) {
     const onDom = [...new Set(all)].filter((e) => domain && (e.endsWith("@" + domain) || e.endsWith("." + domain)));
     const best = pickBest(onDom.length ? onDom : [...new Set(all)], domain);
     if (best) {
-      return res.status(200).json({ status: siretUrl ? "verified_siret" : "verified_site", email: best, emails: [...new Set(all)].slice(0, 8), siret_verified: !!siretUrl, website: base, source_url: siretUrl || base, debug });
+      return finish({ status: siretUrl ? "verified_siret" : "verified_site", email: best, emails: [...new Set(all)].slice(0, 8), siret_verified: !!siretUrl, website: base, source_url: siretUrl || base, debug });
     }
     // Aucun email sur le site → adresse générique sur le domaine officiel.
     if (domain) {
-      return res.status(200).json({ status: "generic_domain", email: "contact@" + domain, emails: ["contact@" + domain], siret_verified: false, website: base, source_url: base, note: "générique (domaine officiel, à vérifier)", debug });
+      return finish({ status: "generic_domain", email: "contact@" + domain, emails: ["contact@" + domain], siret_verified: false, website: base, source_url: base, note: "générique (domaine officiel, à vérifier)", debug });
     }
   }
 
@@ -232,9 +266,9 @@ export default async function handler(req, res) {
   }
   const best = pickBest(verifiedEmails, domainOut);
   if (best) {
-    return res.status(200).json({ status: weak ? "verified_siren" : "verified_siret", email: best, emails: [...new Set(verifiedEmails)].slice(0, 8), siret_verified: !weak, website: verifiedUrl ? new URL(verifiedUrl).origin : null, source_url: verifiedUrl, debug });
+    return finish({ status: weak ? "verified_siren" : "verified_siret", email: best, emails: [...new Set(verifiedEmails)].slice(0, 8), siret_verified: !weak, website: verifiedUrl ? new URL(verifiedUrl).origin : null, source_url: verifiedUrl, debug });
   }
-  return res.status(200).json({ status: dcPending ? "pending" : "not_found", email: null, emails: [], siret_verified: false, website: website || null, source_url: null, debug });
+  return finish({ status: dcPending ? "pending" : "not_found", email: null, emails: [], siret_verified: false, website: website || null, source_url: null, debug });
 }
 
 // La fonction s'auto-borne à ~8,5s (budget interne) pour tenir dans la limite

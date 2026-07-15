@@ -1985,6 +1985,39 @@ const ClientPage = () => {
                           </Field>
                         )}
                       </Section>
+
+                      {/* Fiche Pappers complète (récupérée lors de la recherche d'emails) */}
+                      {c.pappers && (
+                        <Section title="Fiche Pappers" icon="📇" color="#0e7490">
+                          {c.pappers.forme_juridique && <Field label="Forme juridique">{c.pappers.forme_juridique}</Field>}
+                          {c.pappers.capital != null && <Field label="Capital">{Number(c.pappers.capital).toLocaleString("fr-FR")} €</Field>}
+                          {c.pappers.date_creation && <Field label="Création">{c.pappers.date_creation}</Field>}
+                          {c.pappers.effectif && <Field label="Effectif">{c.pappers.effectif}</Field>}
+                          {c.pappers.etat_administratif && <Field label="État">{c.pappers.etat_administratif}</Field>}
+                          {c.pappers.libelle_naf && <Field label="Activité (NAF)" full>{c.pappers.libelle_naf}{c.pappers.code_naf ? " (" + c.pappers.code_naf + ")" : ""}</Field>}
+                          {c.pappers.greffe && <Field label="Greffe">{c.pappers.greffe}</Field>}
+                          {c.pappers.telephone && <Field label="Téléphone">{c.pappers.telephone}</Field>}
+                          {c.pappers.site_web && <Field label="Site web" full><a href={/^https?:/i.test(c.pappers.site_web) ? c.pappers.site_web : "https://" + c.pappers.site_web} target="_blank" rel="noopener noreferrer" style={{ color: "#3730a3", textDecoration: "none" }}>{c.pappers.site_web} ↗</a></Field>}
+                          {Array.isArray(c.pappers.dirigeants) && c.pappers.dirigeants.length > 0 && (
+                            <Field label="Dirigeants" full>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                                {c.pappers.dirigeants.map((d, i) => (
+                                  <span key={i} style={{ fontSize: 12, background: "#f0f9ff", border: "1px solid #bae6fd", color: "#0369a1", padding: "2px 9px", borderRadius: 999 }}>{d.nom}{d.fonction ? " · " + d.fonction : ""}</span>
+                                ))}
+                              </div>
+                            </Field>
+                          )}
+                          {Array.isArray(c.pappers.procedures) && c.pappers.procedures.length > 0 && (
+                            <Field label="Procédures collectives" full>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
+                                {c.pappers.procedures.map((p, i) => (
+                                  <span key={i} style={{ fontSize: 12, color: "#b91c1c", fontWeight: 600 }}>⚠ {p.type}{p.date ? " · " + p.date : ""}{p.tribunal ? " · " + p.tribunal : ""}</span>
+                                ))}
+                              </div>
+                            </Field>
+                          )}
+                        </Section>
+                      )}
                     </div>
                   );
                 })()}

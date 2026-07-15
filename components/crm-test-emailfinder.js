@@ -65,6 +65,17 @@
       if (!j.status && (j.error || j.message)) { j.status = "HTTP " + r.status; j.debug = { steps: [j.error || j.message] }; }
       const patch = {};
       if (j && j.website && !(c.web || c.site_web)) { patch.web = j.website; patch.site_web = j.website; }
+      // Fiche Pappers complète → stockée sur le prospect + champs utiles remontés.
+      if (j && j.pappers) {
+        const p = j.pappers;
+        patch.pappers = p;
+        if (p.site_web && !patch.web) { patch.web = p.site_web; patch.site_web = p.site_web; }
+        if (p.telephone && !c.tel) patch.tel = p.telephone;
+        if (p.forme_juridique && !c.forme_juridique) patch.forme_juridique = p.forme_juridique;
+        if (p.tva_intracom && !c.tva) patch.tva = p.tva_intracom;
+        if (p.libelle_naf && !c.secteur) patch.secteur = p.libelle_naf;
+        if (p.email && !j.email && !c.email) { patch.email = p.email; patch.contact_principal = Object.assign({}, c.contact_principal || {}, { email: p.email }); }
+      }
       if (j && j.email) {
         patch.email = j.email;
         patch.email_source = j.source_url || j.website || null;

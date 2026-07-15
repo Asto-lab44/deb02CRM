@@ -3442,7 +3442,76 @@ var ClientPage = () => {
         fontWeight: 600,
         color: "#0f172a"
       }
-    }, es.cp, " ", es.ville)))))))));
+    }, es.cp, " ", es.ville)))))))), c.pappers && /*#__PURE__*/React.createElement(Section, {
+      title: "Fiche Pappers",
+      icon: "\uD83D\uDCC7",
+      color: "#0e7490"
+    }, c.pappers.forme_juridique && /*#__PURE__*/React.createElement(Field, {
+      label: "Forme juridique"
+    }, c.pappers.forme_juridique), c.pappers.capital != null && /*#__PURE__*/React.createElement(Field, {
+      label: "Capital"
+    }, Number(c.pappers.capital).toLocaleString("fr-FR"), " \u20AC"), c.pappers.date_creation && /*#__PURE__*/React.createElement(Field, {
+      label: "Cr\xE9ation"
+    }, c.pappers.date_creation), c.pappers.effectif && /*#__PURE__*/React.createElement(Field, {
+      label: "Effectif"
+    }, c.pappers.effectif), c.pappers.etat_administratif && /*#__PURE__*/React.createElement(Field, {
+      label: "\xC9tat"
+    }, c.pappers.etat_administratif), c.pappers.libelle_naf && /*#__PURE__*/React.createElement(Field, {
+      label: "Activit\xE9 (NAF)",
+      full: true
+    }, c.pappers.libelle_naf, c.pappers.code_naf ? " (" + c.pappers.code_naf + ")" : ""), c.pappers.greffe && /*#__PURE__*/React.createElement(Field, {
+      label: "Greffe"
+    }, c.pappers.greffe), c.pappers.telephone && /*#__PURE__*/React.createElement(Field, {
+      label: "T\xE9l\xE9phone"
+    }, c.pappers.telephone), c.pappers.site_web && /*#__PURE__*/React.createElement(Field, {
+      label: "Site web",
+      full: true
+    }, /*#__PURE__*/React.createElement("a", {
+      href: /^https?:/i.test(c.pappers.site_web) ? c.pappers.site_web : "https://" + c.pappers.site_web,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        color: "#3730a3",
+        textDecoration: "none"
+      }
+    }, c.pappers.site_web, " \u2197")), Array.isArray(c.pappers.dirigeants) && c.pappers.dirigeants.length > 0 && /*#__PURE__*/React.createElement(Field, {
+      label: "Dirigeants",
+      full: true
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6,
+        marginTop: 2
+      }
+    }, c.pappers.dirigeants.map((d, i) => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        fontSize: 12,
+        background: "#f0f9ff",
+        border: "1px solid #bae6fd",
+        color: "#0369a1",
+        padding: "2px 9px",
+        borderRadius: 999
+      }
+    }, d.nom, d.fonction ? " · " + d.fonction : "")))), Array.isArray(c.pappers.procedures) && c.pappers.procedures.length > 0 && /*#__PURE__*/React.createElement(Field, {
+      label: "Proc\xE9dures collectives",
+      full: true
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        marginTop: 2
+      }
+    }, c.pappers.procedures.map((p, i) => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        fontSize: 12,
+        color: "#b91c1c",
+        fontWeight: 600
+      }
+    }, "\u26A0 ", p.type, p.date ? " · " + p.date : "", p.tribunal ? " · " + p.tribunal : ""))))));
   })()))), /*#__PURE__*/React.createElement("section", {
     style: cliStyles.block
   }, /*#__PURE__*/React.createElement("div", {

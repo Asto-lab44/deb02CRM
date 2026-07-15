@@ -118,7 +118,9 @@ async function dropcontact({ name, siren, website }, key, maxMs) {
       if (pj && pj.success && Array.isArray(pj.data)) {
         const row = pj.data[0] || {};
         const email = (Array.isArray(row.email) && row.email[0] && row.email[0].email) || (typeof row.email === "string" ? row.email : null);
-        return { email: email || null, website: row.website || null, provider: "dropcontact" };
+        // On lit le site sous plusieurs noms de champ possibles.
+        const site = row.website || row.company_website || row.site || row.url || null;
+        return { email: email || null, website: site, provider: "dropcontact", rawKeys: Object.keys(row).join(","), raw: JSON.stringify(row).slice(0, 260) };
       }
     }
     // Pas prêt à temps : re-tenté au prochain passage (résultat mis en cache).
@@ -170,7 +172,7 @@ export default async function handler(req, res) {
     if (!dc) debug.steps.push("dropcontact: null");
     else if (dc.error) debug.steps.push("dropcontact: " + dc.error);
     else if (dc.pending) { dcPending = true; debug.steps.push("dropcontact: pending (relance auto)"); }
-    else { if (dc.email) dcEmail = dc.email; if (dc.website) { debug.steps.push("dropcontact site: " + dc.website); if (!website) { website = dc.website; websiteTrusted = true; } } if (!dc.email) debug.steps.push("dropcontact: pas d'email nominatif"); }
+    else { if (dc.email) dcEmail = dc.email; if (dc.website) { debug.steps.push("dropcontact site: " + dc.website); if (!website) { website = dc.website; websiteTrusted = true; } } if (!dc.email && !dc.website) debug.steps.push("dropcontact champs[" + (dc.rawKeys || "") + "] " + (dc.raw || "")); }
   } else if (!dcKey) debug.steps.push("dropcontact: clé absente");
   else debug.steps.push("dropcontact: sauté (budget)");
 

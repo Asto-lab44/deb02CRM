@@ -1,0 +1,3544 @@
+// ════════════════════════════════════════════════════════════════════
+// CRMPipeline — Pipeline commercial (route : /crm)
+// ════════════════════════════════════════════════════════════════════
+//
+// Composé de 2 sections (deux composants empilés) :
+//   1. <CRMPipeline>      → header + kanban des opportunités + KPI strip
+//   2. <CRMAccountsList>  → sous-composant tableau Comptes & Contacts
+//   3. <ActionsRow>       → sous-composant liste "Actions à mener"
+//
+// Sources de données :
+//   - opportunités : api.opportunities.list() — colonne kanban par stage
+//   - clients      : api.clients.list() — table Comptes
+//   - contacts     : api.contacts.list() — compteur sidebar
+//   - actions      : api.actions.list() — compteur sidebar
+//
+// Filtres :
+//   - crmFilter { kind: "all"|"view"|"product"|"status", value }
+//     → contrôle ce qui apparaît dans le kanban
+//   - globalSearch → recherche transversale (clients + opps + contacts)
+//
+// Compteurs sidebar (Comptes/Contacts/Activités) sont mis à jour live au mount.
+// ════════════════════════════════════════════════════════════════════
+
+var CRMPipeline = () => {
+  // Filtre actif sur le pipeline (vue, produit, savedView…)
+  var [crmFilter, setCrmFilter] = React.useState({
+    kind: "all",
+    value: null
+  });
+  var isCrmActive = (kind, value) => crmFilter.kind === kind && (value === undefined || crmFilter.value === value);
+  var setCrmIfDiff = (kind, value) => setCrmFilter(isCrmActive(kind, value) ? {
+    kind: "all",
+    value: null
+  } : {
+    kind,
+    value
+  });
+
+  // ───── Recherche globale (topbar) — comptes / contacts / opportunités
+  var [globalSearch, setGlobalSearch] = React.useState("");
+  var [searchClients, setSearchClients] = React.useState([]);
+  var [searchOpen, setSearchOpen] = React.useState(false);
+
+  // ───── Comptes : décomptes pour la sidebar (Comptes / Contacts / Activités)
+  var [sidebarCounts, setSidebarCounts] = React.useState({
+    comptes: 0,
+    contacts: 0,
+    activites: 0,
+    inbound: 0
+  });
+  React.useEffect(() => {
+    if (!window.api) return;
+    Promise.all([window.api.clients.list(), window.api.contacts.list(), window.api.actions.list({
+      status: "todo"
+    }),
+    // Demandes de devis entrantes encore « à traiter »
+    (window.api.inboundRequests ? window.api.inboundRequests.list({
+      status: "a_traiter"
+    }) : Promise.resolve([])).catch(() => [])]).then(([cl, co, ac, inb]) => {
+      setSidebarCounts({
+        comptes: (cl || []).length,
+        contacts: (co || []).length,
+        activites: (ac || []).length,
+        inbound: (inb || []).length
+      });
+    }).catch(() => {});
+  }, []);
+  React.useEffect(() => {
+    if (!window.api) return;
+    window.api.clients.list().then(list => {
+      setSearchClients((list || []).map(p => ({
+        id: p.id,
+        name: p.raison_sociale || p.name,
+        sector: p.secteur || p.industry,
+        city: p.ville || p.city,
+        siren: p.siren,
+        contact: p.contact_principal,
+        source: p.status === "client" ? "supabase" : "local"
+      })));
+    }).catch(() => {});
+  }, []);
+  var [searchOpps, setSearchOpps] = React.useState([]);
+  var [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  // Colonnes dépliées en vue complète (clé = stage.key). Par défaut compact.
+  var [expandedCols, setExpandedCols] = React.useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("hubAstorya.crmKanbanExpanded.v1") || "{}");
+    } catch (e) {
+      return {};
+    }
+  });
+  var toggleColExpanded = k => setExpandedCols(m => {
+    var next = {
+      ...m,
+      [k]: !m[k]
+    };
+    try {
+      localStorage.setItem("hubAstorya.crmKanbanExpanded.v1", JSON.stringify(next));
+    } catch (e) {}
+    return next;
+  });
+  // Vue du pipeline : kanban (par défaut) ou liste plate. Persisté localStorage.
+  var [crmView, setCrmView] = React.useState(() => {
+    try {
+      return localStorage.getItem("hubAstorya.crmView.v1") || "kanban";
+    } catch (e) {
+      return "kanban";
+    }
+  });
+  var changeCrmView = v => {
+    setCrmView(v);
+    try {
+      localStorage.setItem("hubAstorya.crmView.v1", v);
+    } catch (e) {}
+  };
+  // Pagination de la vue liste des opportunités (10 par page).
+  var [oppPage, setOppPage] = React.useState(1);
+  React.useEffect(() => {
+    if (!userMenuOpen) return;
+    var onDoc = () => setUserMenuOpen(false);
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, [userMenuOpen]);
+
+  // Applique le filtre sidebar (Vues sauvegardées / Produits) sur les opps
+  var filteredOpps = React.useMemo(() => {
+    var all = searchOpps || [];
+    if (crmFilter.kind === "all") return all;
+    if (crmFilter.kind === "view") {
+      var now = Date.now();
+      switch (crmFilter.value) {
+        case "q2":
+          return all.filter(o => {
+            if (!o.close_date) return false;
+            var d = new Date(o.close_date);
+            return d.getFullYear() === new Date().getFullYear() && d.getMonth() >= 3 && d.getMonth() <= 5;
+          });
+        case "big":
+          return all.filter(o => (Number(o.amount_eur) || 0) >= 50000);
+        case "follow":
+          return all.filter(o => {
+            if (!o.updated_at) return true;
+            return now - new Date(o.updated_at).getTime() > 7 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+          });
+        case "stale":
+          return all.filter(o => {
+            if (!o.updated_at) return false;
+            return now - new Date(o.updated_at).getTime() > 14 * 24 * 3600 * 1000 && o.stage !== "won" && o.stage !== "lost";
+          });
+        default:
+          return all;
+      }
+    }
+    if (crmFilter.kind === "product") {
+      var tag = String(crmFilter.value || "").toLowerCase();
+      return all.filter(o => {
+        var blob = ((o.modules || []).join(" ") + " " + (o.produit || "") + " " + (o.name || "")).toLowerCase();
+        return blob.includes(tag.replace("astorya ", ""));
+      });
+    }
+    return all;
+  }, [searchOpps, crmFilter]);
+  // Charge initial + s'abonne aux changements realtime (multi-onglets).
+  React.useEffect(() => {
+    if (!window.api) return;
+    var reload = () => {
+      window.api.opportunities.list().then(list => setSearchOpps(list || [])).catch(() => {});
+      if (window.api.clients && window.api.contacts && window.api.actions) {
+        Promise.all([window.api.clients.list(), window.api.contacts.list(), window.api.actions.list({
+          status: "todo"
+        })]).then(([cl, co, ac]) => {
+          setSidebarCounts({
+            comptes: (cl || []).length,
+            contacts: (co || []).length,
+            activites: (ac || []).length
+          });
+        }).catch(() => {});
+      }
+    };
+    reload();
+    // Realtime : tout changement sur opportunities/clients/contacts/actions
+    // recharge automatiquement.
+    if (window.HubData && window.HubData.subscribeChanges) {
+      return window.HubData.subscribeChanges(reload);
+    }
+  }, []);
+  var gq = globalSearch.trim().toLowerCase();
+  var globalResults = gq.length >= 2 ? {
+    clients: searchClients.filter(c => [c.name, c.sector, c.city, c.siren].some(v => String(v || "").toLowerCase().includes(gq))).slice(0, 5),
+    contacts: searchClients.filter(c => c.contact && [c.contact.prenom, c.contact.nom, c.contact.email, c.contact.fonction].some(v => String(v || "").toLowerCase().includes(gq))).slice(0, 5),
+    opps: searchOpps.filter(o => [o.name, o.client_name].some(v => String(v || "").toLowerCase().includes(gq))).slice(0, 5)
+  } : null;
+  var noResults = globalResults && globalResults.clients.length + globalResults.contacts.length + globalResults.opps.length === 0;
+  var Avatar = ({
+    name,
+    size = 22,
+    color
+  }) => {
+    if (!name) return null;
+    var initials = name.split(" ").slice(0, 2).map(s => s[0]).join("");
+    var palette = {
+      K: "#6366f1",
+      L: "#0ea5e9",
+      T: "#f59e0b",
+      S: "#10b981",
+      C: "#ef4444",
+      M: "#a855f7",
+      N: "#ec4899",
+      J: "#14b8a6"
+    };
+    var bg = color || palette[initials[0]] || "#64748b";
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: size,
+        height: size,
+        borderRadius: 999,
+        background: bg,
+        color: "#fff",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: size * 0.42,
+        fontWeight: 600,
+        letterSpacing: 0.2,
+        flexShrink: 0,
+        border: "1.5px solid #fff"
+      }
+    }, initials);
+  };
+
+  // Colonnes du Kanban — alimentées par les opportunités Supabase
+  // Pipeline SPANCO — cohérent avec la page Faire avancer l'opportunité.
+  // Mapping interne stage BDD → label SPANCO (pas de migration de données).
+  var stageMeta = [{
+    key: "qualif",
+    label: "Prospect",
+    color: "#94a3b8"
+  }, {
+    key: "discovery",
+    label: "Approche",
+    color: "#3b82f6"
+  }, {
+    key: "propo",
+    label: "Négociation",
+    color: "#a855f7"
+  }, {
+    key: "nego",
+    label: "Conclusion",
+    color: "#ea580c"
+  }, {
+    key: "won",
+    label: "Ordre",
+    color: "#10b981"
+  }];
+  var palette = ["#1e40af", "#dc2626", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#0f766e", "#ec4899", "#a855f7"];
+  var moduleTag = (modules, produit) => {
+    if (Array.isArray(modules) && modules.length > 0) return modules[0];
+    if (typeof produit === "string") {
+      if (produit.includes("Cyber")) return "Cyber";
+      if (produit.includes("Hub")) return "Hub";
+      if (produit.includes("Suite")) return "Suite";
+    }
+    return "Suite";
+  };
+  var columns = stageMeta.map((s, idx) => {
+    var stageOpps = (filteredOpps || []).filter(o => (o.stage || "qualif") === s.key);
+    var total = stageOpps.reduce((sum, o) => sum + (Number(o.amount_eur) || 0), 0);
+    return {
+      ...s,
+      count: stageOpps.length,
+      total: total > 0 ? Math.round(total / 1000) + " k€" : "0 €",
+      cards: stageOpps.map((o, i) => ({
+        id: o.id,
+        co: o.name || o.data && o.data.name || "Opportunité",
+        client: o.client_name || o.data && o.data.client_name || "—",
+        amount: o.amount_eur != null ? Math.round(o.amount_eur).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—",
+        days: 0,
+        owner: o.owner || "—",
+        proba: o.proba || {
+          qualif: 20,
+          discovery: 35,
+          propo: 55,
+          nego: 75,
+          won: 100
+        }[s.key] || 20,
+        tag: moduleTag(o.modules, o.produit),
+        // Initiales du client (prend la 1ʳᵉ lettre de chaque mot, max 2).
+        // client_name peut être au top-level OU dans o.data.client_name (jsonb).
+        // On NE prend PAS le nom de l'opp en fallback : si pas de client → "?".
+        logo: (() => {
+          var clientName = o.client_name && o.client_name.trim() || o.data && o.data.client_name && String(o.data.client_name).trim() || "";
+          if (!clientName) return "?";
+          // Retire la partie entre parenthèses (souvent un doublon d'acronyme
+          // « ATPS (ATPS) »), puis prend 2 lettres de l'acronyme si un seul
+          // mot, sinon les initiales des mots. Évite « A( » sur les acronymes
+          // suivis de leur parenthèse.
+          var cleaned = clientName.replace(/\s*\([^)]*\)\s*/g, " ").trim();
+          var words = cleaned.split(/\s+/).filter(Boolean);
+          if (words.length === 0) return clientName.slice(0, 2).toUpperCase();
+          if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+          return words.map(w => w[0]).join("").slice(0, 2).toUpperCase();
+        })(),
+        logoBg: palette[(idx * 3 + i) % palette.length],
+        won: o.stage === "won",
+        // Échéance projet — close_date (BDD) ou data.close_date (jsonb),
+        // fallback decision_date / expected_close_date. Format ISO conservé
+        // pour le tri ; le rendu humain est fait côté affichage.
+        close_iso: o.close_date || o.data && (o.data.close_date || o.data.decision_date || o.data.expected_close_date) || null,
+        // Échéance contrat concurrent — saisie sur la page Avancer
+        // l'opportunité (« Échéance du contrat actuel (chez le concurrent) »).
+        contract_end_iso: o.contract_end || o.data && o.data.contract_end || null
+      }))
+    };
+  });
+
+  // Helpers d'affichage de l'échéance — calcule la couleur selon urgence et
+  // formate en JJ/MM/AAAA. Utilisé dans la vue liste de la CRM.
+  var fmtClose = iso => {
+    if (!iso) return {
+      label: "—",
+      color: "#94a3b8",
+      weight: 500
+    };
+    var d;
+    try {
+      d = new Date(iso);
+    } catch (e) {
+      return {
+        label: "—",
+        color: "#94a3b8",
+        weight: 500
+      };
+    }
+    if (isNaN(d.getTime())) return {
+      label: "—",
+      color: "#94a3b8",
+      weight: 500
+    };
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var diffDays = Math.round((d.getTime() - today.getTime()) / 86400000);
+    var label = d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+    if (diffDays < 0) return {
+      label,
+      color: "#dc2626",
+      weight: 700,
+      badge: "En retard"
+    };
+    if (diffDays <= 7) return {
+      label,
+      color: "#ea580c",
+      weight: 700,
+      badge: "J-" + diffDays
+    };
+    if (diffDays <= 30) return {
+      label,
+      color: "#a16207",
+      weight: 600
+    };
+    return {
+      label,
+      color: "#475569",
+      weight: 500
+    };
+  };
+  var tagMeta = {
+    Cyber: {
+      bg: "#fdecec",
+      color: "#dc2626"
+    },
+    Hub: {
+      bg: "#eef2ff",
+      color: "#4338ca"
+    },
+    Suite: {
+      bg: "#f5efff",
+      color: "#7e22ce"
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.frame
+  }, /*#__PURE__*/React.createElement("aside", {
+    style: crmStyles.sidebar
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/",
+    title: "Retour \xE0 l'accueil",
+    style: {
+      ...crmStyles.brandRow,
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer"
+    }
+  }, window.HubModuleLogo ? React.createElement(window.HubModuleLogo, {
+    size: 36
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.logo
+  }, /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.logoMark
+  }, "H")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, "Hub Astorya"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, "CRM commercial"))), /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.navSection
+  }, /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.navLabel
+  }, "Espace de travail"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8",
+      fontSize: 12
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: globalSearch,
+    onChange: e => setGlobalSearch(e.target.value),
+    placeholder: "Rechercher\u2026",
+    style: {
+      width: "100%",
+      padding: "7px 10px 7px 28px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12,
+      color: "#0f172a",
+      outline: "none",
+      background: "#fafbfc",
+      boxSizing: "border-box"
+    }
+  }), globalSearch && /*#__PURE__*/React.createElement("span", {
+    onClick: () => setGlobalSearch(""),
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "\xD7")), [{
+    label: "Pipeline",
+    icon: "▦",
+    href: "/crm",
+    active: isCrmActive("all")
+  }, {
+    label: "Planning",
+    icon: "📅",
+    href: "/planning-commercial"
+  }, {
+    label: "Demandes entrantes",
+    icon: "📥",
+    href: "/demandes-entrantes",
+    count: sidebarCounts.inbound
+  }, {
+    label: "Comptes",
+    icon: "◰",
+    href: "/crm#comptes-section",
+    count: sidebarCounts.comptes
+  }, {
+    label: "Contacts",
+    icon: "◉",
+    href: "/crm#comptes-section",
+    count: sidebarCounts.contacts
+  }, {
+    label: "Activités",
+    icon: "✦",
+    href: "/crm#actions-section",
+    count: sidebarCounts.activites
+  }].map(n => {
+    var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 14,
+        color: n.active ? "#4f46e5" : "#94a3b8",
+        fontSize: 11
+      }
+    }, n.icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, n.label), n.count > 0 && /*#__PURE__*/React.createElement("span", {
+      style: crmStyles.navCount
+    }, n.count));
+    var styleAct = {
+      ...crmStyles.navItem,
+      ...(n.active ? crmStyles.navItemActive : {}),
+      cursor: "pointer"
+    };
+    if (n.href) return /*#__PURE__*/React.createElement("a", {
+      key: n.label,
+      href: n.href,
+      style: {
+        ...styleAct,
+        textDecoration: "none",
+        color: n.active ? "#3730a3" : "inherit"
+      }
+    }, inner);
+    return /*#__PURE__*/React.createElement("div", {
+      key: n.label,
+      onClick: n.onClick,
+      style: styleAct
+    }, inner);
+  })), /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.navSection
+  }, /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.navLabel
+  }, "Vues sauvegard\xE9es"), [{
+    label: "Mon pipeline Q2",
+    color: "#4f46e5",
+    value: "q2"
+  }, {
+    label: "Deals > 50 k€",
+    color: "#10b981",
+    value: "big"
+  }, {
+    label: "À relancer cette sem.",
+    color: "#f59e0b",
+    value: "follow"
+  }, {
+    label: "Stagnants 14 j+",
+    color: "#dc2626",
+    value: "stale"
+  }].map(n => {
+    var active = isCrmActive("view", n.value);
+    return /*#__PURE__*/React.createElement("div", {
+      key: n.label,
+      onClick: () => setCrmIfDiff("view", n.value),
+      style: {
+        ...crmStyles.navItem,
+        ...(active ? crmStyles.navItemActive : {}),
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 14,
+        display: "flex"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 2,
+        background: n.color
+      }
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, n.label));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.navSection
+  }, /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.navLabel
+  }, "Produits"), [{
+    label: "Astorya Suite",
+    c: "12",
+    color: "#a855f7"
+  }, {
+    label: "Astorya Hub",
+    c: "11",
+    color: "#4f46e5"
+  }, {
+    label: "Astorya Cyber",
+    c: "9",
+    color: "#dc2626"
+  }].map(n => {
+    var active = isCrmActive("product", n.label);
+    return /*#__PURE__*/React.createElement("div", {
+      key: n.label,
+      onClick: () => setCrmIfDiff("product", n.label),
+      style: {
+        ...crmStyles.navItem,
+        ...(active ? crmStyles.navItemActive : {}),
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 14
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: n.color,
+        display: "inline-block"
+      }
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, n.label), /*#__PURE__*/React.createElement("span", {
+      style: crmStyles.navCount
+    }, n.c));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...crmStyles.userRow,
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement(Avatar, {
+    name: "Romain Daviaud",
+    size: 26,
+    color: "#6366f1"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, "Romain Daviaud"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, "Direction \xB7 Astorya")), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setUserMenuOpen(v => !v);
+    },
+    title: "Menu utilisateur",
+    style: {
+      background: "transparent",
+      border: 0,
+      color: "#94a3b8",
+      fontSize: 14,
+      cursor: "pointer",
+      padding: 4,
+      borderRadius: 6
+    }
+  }, "\u22EF"), userMenuOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "absolute",
+      bottom: "calc(100% + 6px)",
+      right: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      boxShadow: "0 12px 32px rgba(15,23,42,0.16)",
+      zIndex: 1000,
+      minWidth: 200,
+      padding: 6
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/administration-utilisateurs",
+    style: crmStyles.userMenuItem
+  }, "\uD83D\uDC64 Administration"), /*#__PURE__*/React.createElement("a", {
+    href: "/",
+    style: crmStyles.userMenuItem
+  }, "\uD83C\uDFE0 Accueil ERP"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "#eef1f5",
+      margin: "4px 0"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Se déconnecter ?",
+        okLabel: "Déconnexion",
+        okStyle: "danger"
+      }) : confirm("Se déconnecter ?");
+      if (!ok) return;
+      if (window.api && window.api.auth && window.api.auth.signOut) await window.api.auth.signOut();
+      if (window.HubAccess && window.HubAccess.logout) window.HubAccess.logout();
+      window.location.href = "/login";
+    },
+    style: {
+      ...crmStyles.userMenuItem,
+      color: "#dc2626",
+      textAlign: "left",
+      cursor: "pointer",
+      border: 0,
+      background: "transparent",
+      width: "100%"
+    }
+  }, "\u23FB Se d\xE9connecter")))), /*#__PURE__*/React.createElement("main", {
+    style: crmStyles.main
+  }, /*#__PURE__*/React.createElement("header", {
+    style: crmStyles.topbar
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b"
+    }
+  }, "CRM"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#cbd5e1"
+    }
+  }, "/"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, "Pipeline"), /*#__PURE__*/React.createElement("span", {
+    style: crmStyles.totalChip
+  }, "Q2 2026")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...crmStyles.search,
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#94a3b8",
+      fontSize: 12
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Rechercher un compte, contact, opportunit\xE9\u2026",
+    value: globalSearch,
+    onChange: e => {
+      setGlobalSearch(e.target.value);
+      setSearchOpen(true);
+    },
+    onFocus: () => setSearchOpen(true),
+    onBlur: () => setTimeout(() => setSearchOpen(false), 200),
+    style: crmStyles.searchInput
+  }), /*#__PURE__*/React.createElement("span", {
+    style: crmStyles.kbdLight
+  }, "\u2318K"), searchOpen && globalResults && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "calc(100% + 4px)",
+      left: 0,
+      right: 0,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 10px 30px rgba(0,0,0,.12)",
+      zIndex: 100,
+      maxHeight: 420,
+      overflowY: "auto"
+    }
+  }, noResults && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px",
+      fontSize: 12.5,
+      color: "#94a3b8",
+      textAlign: "center"
+    }
+  }, "Aucun r\xE9sultat pour \xAB ", globalSearch, " \xBB. ", /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, "+ Nouveau prospect")), globalResults.clients.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      background: "#fafbfc",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, "Comptes (", globalResults.clients.length, ")"), globalResults.clients.map(c => /*#__PURE__*/React.createElement("a", {
+    key: c.id,
+    href: "/fiche-client?id=" + encodeURIComponent(c.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 12px",
+      borderBottom: "1px solid #f1f5f9",
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 5,
+      background: c.source === "local" ? "#fef3c7" : "#dcfce7",
+      color: c.source === "local" ? "#78350f" : "#065f46",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 9.5,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, (c.name || "?").slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, c.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, c.sector || "—", c.city && ` · ${c.city}`)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#cbd5e1"
+    }
+  }, "\u203A")))), globalResults.contacts.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      background: "#fafbfc",
+      borderTop: "1px solid #f1f5f9",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, "Contacts (", globalResults.contacts.length, ")"), globalResults.contacts.map(c => /*#__PURE__*/React.createElement("a", {
+    key: "ct-" + c.id,
+    href: "/fiche-client?id=" + encodeURIComponent(c.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 12px",
+      borderBottom: "1px solid #f1f5f9",
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 999,
+      background: "#6366f1",
+      color: "#fff",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 10,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, ((c.contact.prenom || "") + (c.contact.nom || "")).slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, c.contact.prenom, " ", c.contact.nom), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, c.contact.fonction || "—", " \xB7 ", c.name)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#cbd5e1"
+    }
+  }, "\u203A")))), globalResults.opps.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      background: "#fafbfc",
+      borderTop: "1px solid #f1f5f9",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, "Opportunit\xE9s (", globalResults.opps.length, ")"), globalResults.opps.map(o => /*#__PURE__*/React.createElement("div", {
+    key: o.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 12px",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      padding: "2px 7px",
+      background: "#eef2ff",
+      color: "#3730a3",
+      borderRadius: 4,
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, o.id), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, o.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, o.client_name, " \xB7 ", o.amount && o.amount + " €"))))))))), (() => {
+    var active = (filteredOpps || []).filter(o => o.stage !== "won" && o.stage !== "lost");
+    var totalActive = active.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
+    var pondere = active.reduce((s, o) => s + (Number(o.amount_eur) || 0) * (Number(o.proba) || 0) / 100, 0);
+    var wonOpps = (filteredOpps || []).filter(o => o.stage === "won");
+    var wonAmount = wonOpps.reduce((s, o) => s + (Number(o.amount_eur) || 0), 0);
+    var fmtK = n => n > 999999 ? (n / 1000000).toFixed(2).replace(".", ",") + " M€" : Math.round(n / 1000) + " k€";
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.titleRow
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+      style: crmStyles.h1
+    }, "Pipeline commercial"), /*#__PURE__*/React.createElement("p", {
+      style: crmStyles.h1sub
+    }, active.length, " opportunit\xE9", active.length > 1 ? "s" : "", " active", active.length > 1 ? "s" : "", " \xB7 ", fmtK(pondere), " pond\xE9r\xE9")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "inline-flex",
+        border: "1px solid #e2e8f0",
+        borderRadius: 8,
+        padding: 2,
+        background: "#fff"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => changeCrmView("kanban"),
+      title: "Vue kanban",
+      style: {
+        padding: "5px 9px",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+        fontSize: 12,
+        fontWeight: 600,
+        lineHeight: 1,
+        background: crmView === "kanban" ? "#0f172a" : "transparent",
+        color: crmView === "kanban" ? "#fff" : "#64748b"
+      }
+    }, "\u229E"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => changeCrmView("list"),
+      title: "Vue liste",
+      style: {
+        padding: "5px 9px",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+        fontSize: 12,
+        fontWeight: 600,
+        lineHeight: 1,
+        background: crmView === "list" ? "#0f172a" : "transparent",
+        color: crmView === "list" ? "#fff" : "#64748b"
+      }
+    }, "\u2630")), /*#__PURE__*/React.createElement("a", {
+      href: "/planning-commercial",
+      title: "Vue planning \u2014 opportunit\xE9s class\xE9es par \xE9ch\xE9ances",
+      style: {
+        ...crmStyles.primaryBtn,
+        background: "#fff",
+        color: "#0e7a55",
+        border: "1px solid #a7f3d0",
+        textDecoration: "none",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        cursor: "pointer",
+        boxShadow: "none"
+      }
+    }, "\uD83D\uDCC5 Planning"), /*#__PURE__*/React.createElement("a", {
+      href: "/nouveau-prospect",
+      style: {
+        ...crmStyles.primaryBtn,
+        background: "#fff",
+        color: "#3730a3",
+        border: "1px solid #c7d2fe",
+        textDecoration: "none",
+        display: "inline-block",
+        cursor: "pointer",
+        boxShadow: "none"
+      }
+    }, "+ Nouveau prospect"), /*#__PURE__*/React.createElement("a", {
+      href: "/nouvelle-opportunite",
+      style: {
+        ...crmStyles.primaryBtn,
+        textDecoration: "none",
+        display: "inline-block",
+        cursor: "pointer"
+      }
+    }, "+ Nouvelle opportunit\xE9"))), /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.kpiStrip
+    }, [{
+      label: "Pipeline total",
+      value: fmtK(totalActive),
+      delta: active.length + " opp. actives",
+      color: "#4f46e5"
+    }, {
+      label: "Pondéré (probabilité)",
+      value: fmtK(pondere),
+      delta: "Selon stage de chaque opp.",
+      color: "#a855f7"
+    }, {
+      label: "Signées",
+      value: fmtK(wonAmount),
+      delta: wonOpps.length + " deal" + (wonOpps.length > 1 ? "s" : ""),
+      color: "#10b981"
+    }, {
+      label: "Total opportunités",
+      value: String((filteredOpps || []).length),
+      delta: crmFilter.kind !== "all" ? "Filtré" : "Toutes étapes",
+      color: "#0ea5e9"
+    }].map(k => /*#__PURE__*/React.createElement("div", {
+      key: k.label,
+      style: crmStyles.kpi
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: k.color
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        fontWeight: 500,
+        letterSpacing: 0.2,
+        textTransform: "uppercase"
+      }
+    }, k.label)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 22,
+        fontWeight: 600,
+        color: "#0f172a",
+        letterSpacing: -0.5
+      }
+    }, k.value), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, k.delta)))));
+  })(), crmView === "list" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 24px 24px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1.5fr 1.8fr 110px 90px 90px 70px 110px 110px",
+      padding: "10px 14px",
+      background: "#fafbfc",
+      borderBottom: "1px solid #eef1f5",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "Opportunit\xE9"), /*#__PURE__*/React.createElement("div", null, "Client"), /*#__PURE__*/React.createElement("div", null, "Stage"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, "Montant"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, "Owner"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    },
+    title: "Date de d\xE9cision potentielle saisie sur la page Avancer l'opportunit\xE9"
+  }, "Date de d\xE9cision potentielle"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    },
+    title: "\xC9ch\xE9ance du contrat actuel chez le concurrent"
+  }, "\xC9ch\xE9ance contrat concurrent")), columns.flatMap(col => col.cards.map(c => ({
+    ...c,
+    _stage: col
+  }))).length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "30px 12px",
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 12.5
+    }
+  }, "Aucune opportunit\xE9 \xE0 afficher."), columns.flatMap(col => col.cards.map(c => ({
+    ...c,
+    _stage: col
+  }))).sort((a, b) => {
+    // Tri : stage (par ordre) puis montant décroissant
+    var stageOrder = {
+      qualif: 0,
+      discovery: 1,
+      propo: 2,
+      nego: 3,
+      won: 4
+    };
+    var sa = stageOrder[a._stage.key] ?? 99;
+    var sb = stageOrder[b._stage.key] ?? 99;
+    if (sa !== sb) return sa - sb;
+    var va = parseFloat(String(a.amount || "0").replace(/[^\d.]/g, "")) || 0;
+    var vb = parseFloat(String(b.amount || "0").replace(/[^\d.]/g, "")) || 0;
+    return vb - va;
+  }).slice((oppPage - 1) * 10, oppPage * 10).map(c => {
+    var goto = () => {
+      if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id);
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.id,
+      onClick: goto,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1.5fr 1.8fr 110px 90px 90px 70px 110px 110px",
+        padding: "12px 14px",
+        borderBottom: "1px solid #f1f5f9",
+        alignItems: "center",
+        gap: 12,
+        cursor: c.id ? "pointer" : "default",
+        background: "#fff"
+      },
+      onMouseEnter: e => {
+        e.currentTarget.style.background = "#fafbfc";
+      },
+      onMouseLeave: e => {
+        e.currentTarget.style.background = "#fff";
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 26,
+        height: 26,
+        borderRadius: 6,
+        background: c.logoBg,
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 10,
+        fontWeight: 700,
+        flexShrink: 0
+      }
+    }, c.logo), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.co)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#475569",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.client), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: c._stage.color + "1a",
+        color: c._stage.color,
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: c._stage.color
+      }
+    }), c._stage.label)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "right",
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0f172a",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, c.amount), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        fontSize: 12,
+        color: "#475569",
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600
+      }
+    }, c.proba, "%"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "center"
+      }
+    }, /*#__PURE__*/React.createElement(Avatar, {
+      name: c.owner,
+      size: 22
+    })), [c.close_iso, c.contract_end_iso].map((iso, idx) => {
+      if (!iso) return /*#__PURE__*/React.createElement("div", {
+        key: idx
+      }); // cellule vide quand pas de date
+      var ech = fmtClose(iso);
+      return /*#__PURE__*/React.createElement("div", {
+        key: idx,
+        style: {
+          textAlign: "right",
+          fontSize: 11.5,
+          color: ech.color,
+          fontVariantNumeric: "tabular-nums",
+          fontWeight: ech.weight,
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 6
+        }
+      }, ech.badge && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          padding: "1px 5px",
+          borderRadius: 3,
+          background: ech.color + "1a",
+          color: ech.color,
+          fontWeight: 700
+        }
+      }, ech.badge), /*#__PURE__*/React.createElement("span", null, ech.label));
+    }));
+  }), (() => {
+    var totalOpps = columns.reduce((n, col) => n + col.cards.length, 0);
+    var oppPageCount = Math.max(1, Math.ceil(totalOpps / 10));
+    if (oppPageCount <= 1) return null;
+    var cur = Math.min(oppPage, oppPageCount);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        padding: "14px",
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setOppPage(Math.max(1, cur - 1)),
+      disabled: cur <= 1,
+      style: {
+        padding: "5px 10px",
+        borderRadius: 6,
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        color: cur <= 1 ? "#cbd5e1" : "#475569",
+        cursor: cur <= 1 ? "default" : "pointer",
+        fontSize: 12.5,
+        fontWeight: 600
+      }
+    }, "\u2039"), Array.from({
+      length: oppPageCount
+    }, (_, i) => i + 1).map(n => /*#__PURE__*/React.createElement("button", {
+      key: n,
+      onClick: () => setOppPage(n),
+      style: {
+        minWidth: 30,
+        padding: "5px 9px",
+        borderRadius: 6,
+        border: "1px solid " + (n === cur ? "#4f46e5" : "#e2e8f0"),
+        background: n === cur ? "#4f46e5" : "#fff",
+        color: n === cur ? "#fff" : "#475569",
+        cursor: "pointer",
+        fontSize: 12.5,
+        fontWeight: 700
+      }
+    }, n)), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setOppPage(Math.min(oppPageCount, cur + 1)),
+      disabled: cur >= oppPageCount,
+      style: {
+        padding: "5px 10px",
+        borderRadius: 6,
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        color: cur >= oppPageCount ? "#cbd5e1" : "#475569",
+        cursor: cur >= oppPageCount ? "default" : "pointer",
+        fontSize: 12.5,
+        fontWeight: 600
+      }
+    }, "\u203A"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "#94a3b8",
+        marginLeft: 6
+      }
+    }, totalOpps, " opportunit\xE9s"));
+  })())), crmView === "kanban" && /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.kanban
+  }, columns.map(col => /*#__PURE__*/React.createElement("div", {
+    key: col.key,
+    onDragOver: e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      e.currentTarget.style.background = col.color + "0d";
+    },
+    onDragLeave: e => {
+      e.currentTarget.style.background = "";
+    },
+    onDrop: async e => {
+      e.preventDefault();
+      e.currentTarget.style.background = "";
+      var oppId = e.dataTransfer.getData("oppId");
+      if (!oppId || !window.api) return;
+      // Garde-fou : ignore le drop sur la colonne d'origine
+      // (évite un appel inutile à l'API et toute notification trompeuse).
+      var allOpps = await window.api.opportunities.list();
+      var dragged = (allOpps || []).find(o => o.id === oppId || o.ref === oppId);
+      if (!dragged) return;
+      if (dragged.stage === col.key) return;
+      // Pop-up de confirmation pour éviter un déplacement par mégarde.
+      var stageLabels = {
+        qualif: "Prospect",
+        discovery: "Approche",
+        propo: "Négociation",
+        nego: "Conclusion",
+        won: "Ordre",
+        lost: "Perdu"
+      };
+      var fromLbl = stageLabels[dragged.stage] || dragged.stage;
+      var toLbl = stageLabels[col.key] || col.label;
+      var oppName = dragged.name || dragged.client_name || oppId;
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Confirmer le déplacement",
+        message: "Déplacer « " + oppName + " » de l'étape « " + fromLbl + " » vers « " + toLbl + " » ?\n\nCette action met à jour le SPANCO et la probabilité associée.",
+        okLabel: "Oui, déplacer",
+        okStyle: "primary"
+      }) : confirm("Déplacer « " + oppName + " » de « " + fromLbl + " » vers « " + toLbl + " » ?");
+      if (!ok) {
+        if (window.HubToast) window.HubToast.info("Déplacement annulé — l'opportunité reste en « " + fromLbl + " »");
+        return;
+      }
+      var stageProba = {
+        qualif: 20,
+        discovery: 35,
+        propo: 55,
+        nego: 75,
+        won: 100
+      };
+      try {
+        await window.api.opportunities.update(oppId, {
+          stage: col.key,
+          proba: stageProba[col.key] || 20
+        });
+        if (window.HubToast) window.HubToast.success("✓ « " + oppName + " » déplacée en « " + toLbl + " »");
+        // Reload opps
+        var list = await window.api.opportunities.list();
+        setSearchOpps(list || []);
+      } catch (err) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (err.message || err));
+      }
+    },
+    style: crmStyles.column
+  }, /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.colHead
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 2,
+      background: col.color
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, col.label), /*#__PURE__*/React.createElement("span", {
+    style: crmStyles.colCount
+  }, col.count)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b",
+      fontVariantNumeric: "tabular-nums",
+      fontWeight: 500
+    }
+  }, col.total), col.cards.length > 2 && /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      toggleColExpanded(col.key);
+    },
+    title: expandedCols[col.key] ? "Réduire (≈ 2 cartes)" : "Déployer toutes les opportunités (" + col.cards.length + ")",
+    style: {
+      width: 22,
+      height: 22,
+      padding: 0,
+      border: "1px solid " + (expandedCols[col.key] ? col.color : "#e2e8f0"),
+      background: expandedCols[col.key] ? col.color + "15" : "#fff",
+      color: expandedCols[col.key] ? col.color : "#64748b",
+      borderRadius: 5,
+      cursor: "pointer",
+      fontSize: 11,
+      lineHeight: 1,
+      fontWeight: 700
+    }
+  }, expandedCols[col.key] ? "⇡" : "⇣"))), /*#__PURE__*/React.createElement("div", {
+    style: crmStyles.colBar
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${Math.min(100, parseInt(col.total))}%`,
+      height: "100%",
+      background: col.color,
+      opacity: 0.7,
+      borderRadius: 999
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "hub-kanban-scroll",
+    style: {
+      ...crmStyles.cards,
+      maxHeight: expandedCols[col.key] ? "none" : 296
+    }
+  }, col.cards.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 12px",
+      fontSize: 11.5,
+      color: "#94a3b8",
+      textAlign: "center",
+      border: "1px dashed #e2e8f0",
+      borderRadius: 8,
+      background: "#fafbfc"
+    }
+  }, "Aucune opportunit\xE9"), col.cards.map((c, i) => {
+    var tag = tagMeta[c.tag] || {
+      bg: "#eef1f5",
+      color: "#475569"
+    };
+    var goto = () => {
+      if (c.id) window.location.href = "/avancer-opportunite?opp=" + encodeURIComponent(c.id);
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.id || i,
+      draggable: !!c.id,
+      onDragStart: e => {
+        if (c.id) {
+          e.dataTransfer.setData("oppId", c.id);
+          e.dataTransfer.effectAllowed = "move";
+        }
+      },
+      onClick: goto,
+      style: {
+        ...crmStyles.card,
+        ...(c.hot ? crmStyles.cardHot : {}),
+        ...(c.won ? crmStyles.cardWon : {}),
+        cursor: c.id ? "pointer" : "default"
+      }
+    }, c.isNew && /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.newRibbon
+    }, "Nouveau"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 9,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...crmStyles.coLogo,
+        background: c.logoBg
+      }
+    }, c.logo), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "#0f172a",
+        lineHeight: 1.3,
+        wordBreak: "break-word"
+      }
+    }, c.co), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 1
+      }
+    }, c.client), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4,
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...crmStyles.tagPill,
+        background: tag.bg,
+        color: tag.color
+      }
+    }, c.tag), c.hot && /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...crmStyles.tagPill,
+        background: "#fff1d6",
+        color: "#a65f00"
+      }
+    }, "\uD83D\uDD25 Hot"), c.won && /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...crmStyles.tagPill,
+        background: "#e8f8f1",
+        color: "#0e7a55"
+      }
+    }, "\u2713 Sign\xE9")))), /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.cardAmount
+    }, c.amount), c.meeting && /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.meetingNote
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#4f46e5"
+      }
+    }, "\u25F7"), " ", c.meeting), c.warning && /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.warnNote
+    }, /*#__PURE__*/React.createElement("span", null, "\u26A0"), " ", c.warning), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 3
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        fontWeight: 600
+      }
+    }, "Probabilit\xE9"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#0f172a",
+        fontWeight: 600,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, c.proba, "%")), /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.probaBar
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: `${c.proba}%`,
+        height: "100%",
+        background: col.color,
+        borderRadius: 999
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: crmStyles.cardFoot
+    }, /*#__PURE__*/React.createElement(Avatar, {
+      name: c.owner,
+      size: 20
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 7,
+        alignItems: "center",
+        fontSize: 11,
+        color: "#64748b"
+      }
+    }, c.contacts != null && /*#__PURE__*/React.createElement("span", {
+      title: "Contacts",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u25C9"), c.contacts), /*#__PURE__*/React.createElement("span", {
+      title: "Derni\xE8re activit\xE9",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, "\u25F7"), c.days, "j"))));
+  }), /*#__PURE__*/React.createElement("a", {
+    href: "/nouvelle-opportunite?stage=" + col.key,
+    style: {
+      ...crmStyles.addCard,
+      textDecoration: "none",
+      display: "block",
+      textAlign: "center",
+      cursor: "pointer"
+    }
+  }, "+ Ajouter une opportunit\xE9"))))), /*#__PURE__*/React.createElement(CRMActionsList, null), /*#__PURE__*/React.createElement(CRMAccountsList, null)));
+};
+var crmStyles = {
+  frame: {
+    width: "100%",
+    minHeight: "100vh",
+    display: "flex",
+    background: "#fafbfc",
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    color: "#0f172a"
+  },
+  sidebar: {
+    width: 248,
+    background: "#fff",
+    borderRight: "1px solid #eef1f5",
+    display: "flex",
+    flexDirection: "column",
+    padding: "14px 12px",
+    gap: 14
+  },
+  brandRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "2px 4px"
+  },
+  logo: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    background: "linear-gradient(180deg, #4f46e5 0%, #4338ca 100%)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 1px 0 rgba(255,255,255,0.2) inset, 0 1px 2px rgba(67,56,202,0.3)"
+  },
+  logoMark: {
+    color: "#fff",
+    fontWeight: 700,
+    fontSize: 14,
+    letterSpacing: -0.5
+  },
+  newBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 10px",
+    background: "#0f172a",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer"
+  },
+  kbd: {
+    marginLeft: "auto",
+    fontSize: 10.5,
+    padding: "2px 5px",
+    borderRadius: 4,
+    background: "rgba(255,255,255,0.12)",
+    color: "#cbd5e1",
+    fontVariantNumeric: "tabular-nums"
+  },
+  navSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 1
+  },
+  navLabel: {
+    fontSize: 10.5,
+    fontWeight: 600,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    padding: "0 6px 6px"
+  },
+  navItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "5px 8px",
+    borderRadius: 6,
+    fontSize: 12.5,
+    color: "#475569",
+    cursor: "pointer"
+  },
+  navItemActive: {
+    background: "#eef2ff",
+    color: "#3730a3",
+    fontWeight: 600
+  },
+  navCount: {
+    fontSize: 11,
+    color: "#94a3b8",
+    fontVariantNumeric: "tabular-nums"
+  },
+  userRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    padding: "8px 6px",
+    borderTop: "1px solid #eef1f5",
+    marginTop: 4
+  },
+  userMenuItem: {
+    display: "block",
+    padding: "8px 10px",
+    fontSize: 12.5,
+    color: "#0f172a",
+    textDecoration: "none",
+    borderRadius: 6,
+    fontWeight: 500
+  },
+  main: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0
+  },
+  topbar: {
+    height: 48,
+    padding: "0 20px",
+    borderBottom: "1px solid #eef1f5",
+    background: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  totalChip: {
+    fontSize: 11,
+    padding: "1px 7px",
+    borderRadius: 999,
+    background: "#eef1f5",
+    color: "#475569",
+    fontVariantNumeric: "tabular-nums"
+  },
+  search: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: 340,
+    height: 30,
+    padding: "0 10px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
+    background: "#fafbfc"
+  },
+  searchInput: {
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    flex: 1,
+    fontSize: 12.5,
+    color: "#0f172a",
+    fontFamily: "inherit"
+  },
+  kbdLight: {
+    fontSize: 10.5,
+    padding: "1px 5px",
+    borderRadius: 4,
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    color: "#94a3b8",
+    fontVariantNumeric: "tabular-nums"
+  },
+  iconBtn: {
+    width: 30,
+    height: 30,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    borderRadius: 8,
+    color: "#475569",
+    cursor: "pointer",
+    position: "relative",
+    fontSize: 13,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  notifDot: {
+    position: "absolute",
+    top: 6,
+    right: 7,
+    width: 6,
+    height: 6,
+    background: "#ef4444",
+    borderRadius: 999,
+    border: "1.5px solid #fff"
+  },
+  titleRow: {
+    padding: "18px 24px 10px",
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 16
+  },
+  h1: {
+    fontSize: 22,
+    fontWeight: 600,
+    letterSpacing: -0.6,
+    margin: 0,
+    color: "#0f172a"
+  },
+  h1sub: {
+    fontSize: 13,
+    color: "#64748b",
+    margin: "4px 0 0"
+  },
+  ghostBtn: {
+    padding: "7px 13px",
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    borderRadius: 8,
+    fontSize: 12.5,
+    color: "#475569",
+    cursor: "pointer",
+    fontWeight: 500
+  },
+  primaryBtn: {
+    padding: "7px 13px",
+    border: "none",
+    background: "#4f46e5",
+    color: "#fff",
+    borderRadius: 8,
+    fontSize: 12.5,
+    cursor: "pointer",
+    fontWeight: 500,
+    boxShadow: "0 1px 2px rgba(79,70,229,0.3)"
+  },
+  kpiStrip: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: 10,
+    padding: "4px 24px 14px"
+  },
+  kpi: {
+    padding: "12px 14px",
+    background: "#fff",
+    border: "1px solid #eef1f5",
+    borderRadius: 10
+  },
+  filterBar: {
+    padding: "10px 24px",
+    borderTop: "1px solid #eef1f5",
+    borderBottom: "1px solid #eef1f5",
+    background: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  tabs: {
+    display: "flex",
+    gap: 2
+  },
+  tab: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "5px 10px",
+    border: "none",
+    background: "transparent",
+    borderRadius: 6,
+    fontSize: 12.5,
+    color: "#64748b",
+    cursor: "pointer",
+    fontWeight: 500
+  },
+  tabActive: {
+    background: "#0f172a",
+    color: "#fff"
+  },
+  tabCount: {
+    fontSize: 11,
+    padding: "0 5px",
+    borderRadius: 4,
+    background: "#eef1f5",
+    color: "#64748b",
+    fontVariantNumeric: "tabular-nums"
+  },
+  tabCountActive: {
+    background: "rgba(255,255,255,0.15)",
+    color: "#cbd5e1"
+  },
+  filterPill: {
+    padding: "5px 9px",
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    borderRadius: 6,
+    fontSize: 11.5,
+    color: "#475569",
+    cursor: "pointer",
+    fontWeight: 500
+  },
+  divider: {
+    width: 1,
+    height: 18,
+    background: "#eef1f5",
+    alignSelf: "center",
+    margin: "0 4px"
+  },
+  // Kanban
+  kanban: {
+    display: "grid",
+    gridTemplateColumns: "repeat(5, 1fr)",
+    gap: 12,
+    padding: "14px 24px 24px",
+    background: "#fafbfc"
+  },
+  column: {
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0,
+    background: "#f1f3f6",
+    borderRadius: 10,
+    padding: 10,
+    gap: 8
+  },
+  colHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "2px 4px"
+  },
+  colCount: {
+    fontSize: 11,
+    padding: "0 6px",
+    borderRadius: 999,
+    background: "#fff",
+    color: "#475569",
+    fontVariantNumeric: "tabular-nums",
+    border: "1px solid #e2e8f0"
+  },
+  colBar: {
+    height: 2,
+    background: "#e2e8f0",
+    borderRadius: 999,
+    overflow: "hidden",
+    margin: "0 2px 4px"
+  },
+  cards: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    maxHeight: 296,
+    overflowY: "auto",
+    overflowX: "hidden",
+    paddingRight: 4,
+    marginRight: -4
+  },
+  card: {
+    position: "relative",
+    padding: 11,
+    background: "#fff",
+    border: "1px solid #eef1f5",
+    borderRadius: 8,
+    boxShadow: "0 1px 0 rgba(15,23,42,0.02)"
+  },
+  cardHot: {
+    borderColor: "#fed7aa",
+    boxShadow: "0 0 0 1px #fed7aa, 0 1px 0 rgba(15,23,42,0.02)"
+  },
+  cardWon: {
+    background: "linear-gradient(180deg, #ffffff, #f0fdf6)",
+    borderColor: "#bbf7d0"
+  },
+  newRibbon: {
+    position: "absolute",
+    top: -6,
+    right: 8,
+    padding: "1px 7px",
+    background: "#4f46e5",
+    color: "#fff",
+    fontSize: 9.5,
+    fontWeight: 700,
+    borderRadius: 999,
+    letterSpacing: 0.3,
+    textTransform: "uppercase"
+  },
+  coLogo: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 10.5,
+    fontWeight: 700,
+    letterSpacing: 0.3,
+    flexShrink: 0
+  },
+  tagPill: {
+    display: "inline-block",
+    padding: "1px 6px",
+    borderRadius: 4,
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: 0.2
+  },
+  cardAmount: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: "#0f172a",
+    letterSpacing: -0.4,
+    fontFamily: "'Inter', system-ui, sans-serif"
+  },
+  meetingNote: {
+    fontSize: 11,
+    color: "#3730a3",
+    background: "#eef2ff",
+    padding: "4px 7px",
+    borderRadius: 6,
+    marginTop: 6
+  },
+  warnNote: {
+    fontSize: 11,
+    color: "#a65f00",
+    background: "#fff6e6",
+    padding: "4px 7px",
+    borderRadius: 6,
+    marginTop: 6,
+    display: "flex",
+    gap: 4,
+    alignItems: "center"
+  },
+  probaBar: {
+    width: "100%",
+    height: 3,
+    background: "#eef1f5",
+    borderRadius: 999,
+    overflow: "hidden"
+  },
+  cardFoot: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 9,
+    paddingTop: 8,
+    borderTop: "1px solid #f1f5f9"
+  },
+  addCard: {
+    padding: "8px",
+    border: "1px dashed #cbd5e1",
+    background: "transparent",
+    borderRadius: 8,
+    fontSize: 11.5,
+    color: "#94a3b8",
+    cursor: "pointer",
+    fontWeight: 500
+  }
+};
+
+// Confiance du rapprochement « nom Excel » ↔ « nom trouvé » (enrichissement
+// Pappers / annuaire). Sert au contrôle visuel des correspondances douteuses.
+var _normName = s => String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Z0-9]+/g, " ").trim();
+function matchInfo(excelName, foundName) {
+  if (!foundName) return {
+    level: "none"
+  };
+  var a = _normName(excelName),
+    b = _normName(foundName);
+  if (!a || !b) return {
+    level: "none"
+  };
+  if (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0) return {
+    level: "ok"
+  };
+  var ta = a.split(" ").filter(t => t.length > 2);
+  var tb = new Set(b.split(" ").filter(t => t.length > 2));
+  var common = ta.filter(t => tb.has(t)).length;
+  var ratio = common / Math.max(ta.length, 1);
+  if (ratio >= 0.5) return {
+    level: "ok"
+  };
+  if (ratio > 0) return {
+    level: "warn"
+  };
+  return {
+    level: "bad"
+  };
+}
+var MATCH_STYLE = {
+  ok: {
+    icon: "✓",
+    color: "#065f46",
+    bg: "#dcfce7",
+    label: "Correspondance fiable"
+  },
+  warn: {
+    icon: "⚠",
+    color: "#92400e",
+    bg: "#fef3c7",
+    label: "À vérifier"
+  },
+  bad: {
+    icon: "⚠",
+    color: "#991b1b",
+    bg: "#fee2e2",
+    label: "Douteux"
+  }
+};
+
+// Construit une fiche client à partir d'un résultat de l'annuaire officiel
+// (recherche-entreprises.api.gouv.fr) : SIREN/SIRET, adresse, NAF, TVA…
+function companyFromResult(e) {
+  var siege = e.siege || {};
+  var siren = String(e.siren || "").replace(/\D/g, "");
+  var addr = siege.geo_adresse || [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean).join(" ") || siege.adresse || "";
+  if (siege.code_postal) addr = addr.replace(siege.code_postal, "").trim();
+  if (siege.libelle_commune) addr = addr.replace(new RegExp(siege.libelle_commune, "i"), "").trim();
+  addr = addr.replace(/[\s,]+$/, "");
+  var name = e.nom_complet || e.nom_raison_sociale || "";
+  var tvaKey = siren ? (12 + 3 * (parseInt(siren, 10) % 97)) % 97 : null;
+  return {
+    raison_sociale: name,
+    name: name,
+    siren: siren.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"),
+    siret: String(siege.siret || "").replace(/(\d{3})(\d{3})(\d{3})(\d{5})/, "$1 $2 $3 $4"),
+    naf: e.activite_principale || siege.activite_principale || "",
+    secteur: e.libelle_activite_principale || siege.libelle_activite_principale || "",
+    adresse: addr,
+    ville: siege.libelle_commune || "",
+    code_postal: siege.code_postal || "",
+    tva: tvaKey != null ? "FR" + String(tvaKey).padStart(2, "0") + " " + siren : "",
+    forme_juridique: e.nature_juridique || "",
+    tranche_effectif: e.tranche_effectif_salarie || "",
+    date_creation: e.date_creation || "",
+    matched_name: name,
+    source: "Recherche Pappers/annuaire"
+  };
+}
+
+// ───── Sous-composant : Comptes & Contacts avec recherche
+var CRMAccountsList = () => {
+  var [reviewOnly, setReviewOnly] = React.useState(false);
+  var [enrichMsg, setEnrichMsg] = React.useState(null);
+  var isTest = typeof window !== "undefined" && window.HubTestMode;
+  var runEnrich = () => {
+    if (!window.CRMTestEnrich) {
+      alert("Enrichissement indisponible (rechargez la page Intelligence concurrentielle).");
+      return;
+    }
+    if (!confirm("Compléter les fiches de la prospection (SIREN, adresse, forme juridique, procédures) via l'annuaire officiel + Pappers ?\n\n1 à 2 min. Le CRM principal n'est pas touché.")) return;
+    setEnrichMsg("Démarrage…");
+    window.CRMTestEnrich(p => setEnrichMsg("Enrichissement " + p.done + "/" + p.total + "…")).then(res => {
+      setEnrichMsg(null);
+      alert("Terminé : " + res.enriched + " fiches complétées" + (res.failed ? ", " + res.failed + " sans correspondance" : "") + ".");
+      window.location.reload();
+    }).catch(e => {
+      setEnrichMsg(null);
+      alert("Erreur : " + (e.message || e));
+    });
+  };
+  var runReseed = () => {
+    if (!window.CRMTestReseed) return;
+    if (!confirm("Réimporter les clients depuis l'Excel dans l'espace prospection ? Cela remplace les clients de prospection actuels.")) return;
+    window.CRMTestReseed(true);
+    window.location.reload();
+  };
+  var [emailFindMsg, setEmailFindMsg] = React.useState(null);
+  var [emailReport, setEmailReport] = React.useState(null);
+  var runFindEmails = limit => {
+    if (!window.CRMTestFindEmails) {
+      alert("Recherche indisponible (rechargez la page).");
+      return;
+    }
+    var msg = limit ? "Test sur " + limit + " prospects : rechercher leur email (Dropcontact / Pappers / mentions légales + SIRET) ?" : "Rechercher automatiquement l'email de chaque prospect ?\n\nSeuls les prospects sans email et avec un SIRET sont traités. Peut prendre plusieurs minutes.";
+    if (!confirm(msg)) return;
+    setEmailFindMsg("Démarrage…");
+    setEmailReport(null);
+    window.CRMTestFindEmails(p => setEmailFindMsg(p.phase ? p.phase : p.done + "/" + p.total), {
+      limit: limit
+    }).then(res => {
+      setEmailFindMsg(null);
+      setEmailReport(res); // affiché à l'écran (screenshotable)
+      loadAccounts();
+    }).catch(e => {
+      setEmailFindMsg(null);
+      setEmailReport({
+        error: e.message || String(e)
+      });
+    });
+  };
+  var [outreachMsg, setOutreachMsg] = React.useState(null);
+  var runOutreach = () => {
+    if (!window.CRMTestGenerateOutreach) {
+      alert("Génération indisponible (rechargez la page).");
+      return;
+    }
+    if (!confirm("Créer, pour chaque prospect, une opportunité + une action « envoi de l'email de présentation » ?\n\nIdempotent : les prospects déjà traités sont ignorés. Le CRM principal n'est pas touché.")) return;
+    setOutreachMsg("Démarrage…");
+    window.CRMTestGenerateOutreach(p => setOutreachMsg(p.done + "/" + p.total)).then(res => {
+      setOutreachMsg(null);
+      alert("Terminé : " + res.created + " actions créées" + (res.skipped ? ", " + res.skipped + " déjà présentes" : "") + ".");
+      loadAccounts();
+    }).catch(e => {
+      setOutreachMsg(null);
+      alert("Erreur : " + (e.message || e));
+    });
+  };
+  var [search, setSearch] = React.useState("");
+  var [localProspects, setLocalProspects] = React.useState([]);
+  var [supaClients, setSupaClients] = React.useState([]);
+  var loadAccounts = React.useCallback(() => {
+    if (!window.api) return;
+    window.api.clients.list().then(list => {
+      setLocalProspects((list || []).filter(p => (p.status || "prospect") === "prospect"));
+      setSupaClients((list || []).filter(p => p.status === "client"));
+    }).catch(() => {});
+  }, []);
+  React.useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
+
+  // ── Recherche dynamique Pappers / annuaire officiel ──────────────────
+  // Autocomplétion live d'entreprises (nom ou SIREN). Un clic sur un
+  // résultat crée la fiche (prospect) pré-remplie SIREN/adresse/NAF/TVA.
+  var [coQ, setCoQ] = React.useState("");
+  var [coResults, setCoResults] = React.useState([]);
+  var [coOpen, setCoOpen] = React.useState(false);
+  var [coLoading, setCoLoading] = React.useState(false);
+  var [coAdding, setCoAdding] = React.useState(null);
+  var coTimer = React.useRef();
+  React.useEffect(() => {
+    if (coTimer.current) clearTimeout(coTimer.current);
+    var term = coQ.trim();
+    if (term.length < 3) {
+      setCoResults([]);
+      setCoOpen(false);
+      return;
+    }
+    coTimer.current = setTimeout(async () => {
+      setCoLoading(true);
+      try {
+        var r = await fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(term) + "&page=1&per_page=6");
+        var j = await r.json();
+        setCoResults(Array.isArray(j.results) ? j.results : []);
+        setCoOpen(true);
+      } catch (e) {
+        setCoResults([]);
+      }
+      setCoLoading(false);
+    }, 300);
+    return () => {
+      if (coTimer.current) clearTimeout(coTimer.current);
+    };
+  }, [coQ]);
+  var addCompany = async e => {
+    if (!window.api || !window.api.clients) return;
+    setCoAdding(e.siren);
+    try {
+      var payload = Object.assign(companyFromResult(e), {
+        status: "prospect",
+        pappers_enriched: true
+      });
+      var created = await window.api.clients.create(payload);
+      if (created && created.siren && window.HubPappers && window.HubPappers.checkSiren) {
+        try {
+          var p = await window.HubPappers.checkSiren(created.siren);
+          if (p && p.status !== "error") await window.api.clients.update(created.id, {
+            pappers: {
+              status: p.status,
+              procedures: p.procedures || p.procedures_collectives || null,
+              dirigeants: p.dirigeants || null,
+              checked_at: p.checked_at || null
+            }
+          });
+        } catch (e2) {/* Pappers optionnel */}
+      }
+      if (window.HubToast) window.HubToast.success((payload.raison_sociale || "Entreprise") + " ajouté" + (window.HubTestMode ? " à la prospection" : ""));
+      setCoQ("");
+      setCoResults([]);
+      setCoOpen(false);
+      loadAccounts();
+    } catch (err) {
+      (window.HubToast ? window.HubToast.error : alert)("Erreur : " + (err.message || err));
+    }
+    setCoAdding(null);
+  };
+
+  // Auto-scroll vers la section ciblée par le hash URL (Comptes, Contacts, Activités)
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    var scrollToHash = () => {
+      var h = window.location.hash || "";
+      // Mappe les anciens #comptes/#contacts/#actions vers les vrais IDs DOM
+      var mapping = {
+        "#comptes": "comptes-section",
+        "#contacts": "comptes-section",
+        "#actions": "actions-section",
+        "#comptes-section": "comptes-section",
+        "#actions-section": "actions-section"
+      };
+      var targetId = mapping[h];
+      if (!targetId) return;
+      setTimeout(() => {
+        var el = document.getElementById(targetId);
+        if (el) el.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 300);
+    };
+    scrollToHash();
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
+  }, []);
+
+  // Fusionne les deux sources en évitant les doublons par id
+  var ids = new Set();
+  var merged = [];
+  for (var p of localProspects) {
+    if (!ids.has(p.id)) {
+      ids.add(p.id);
+      merged.push({
+        ...p,
+        _source: "local"
+      });
+    }
+  }
+  // Mappe les colonnes Supabase (name/city/industry) vers les noms FR utilisés
+  // à l'affichage, SANS écraser les champs déjà présents sur les fiches locales
+  // (bac à sable enrichi : ville/secteur viennent de l'annuaire, pas de c.city).
+  for (var c of supaClients) {
+    if (!ids.has(c.id)) {
+      ids.add(c.id);
+      merged.push({
+        ...c,
+        _source: "supabase",
+        raison_sociale: c.raison_sociale || c.name,
+        ville: c.ville || c.city,
+        secteur: c.secteur || c.industry,
+        site_web: c.site_web || c.website
+      });
+    }
+  }
+
+  // Filtrage live
+  var q = search.trim().toLowerCase();
+  var filtered = q ? merged.filter(c => [c.raison_sociale, c.ville, c.siren, c.secteur, c.site_web].some(v => String(v || "").toLowerCase().includes(q))) : merged;
+  // Rapprochements à vérifier (nom Excel ≠ nom trouvé lors de l'enrichissement).
+  var needsReview = c => c.matched_name && ["warn", "bad"].includes(matchInfo(c.raison_sociale || c.name, c.matched_name).level);
+  var reviewCount = merged.filter(needsReview).length;
+  if (reviewOnly) filtered = filtered.filter(needsReview);
+  return /*#__PURE__*/React.createElement("section", {
+    id: "comptes-section",
+    style: {
+      background: "#fff",
+      borderTop: "1px solid #eef1f5",
+      padding: "20px 24px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 14,
+      flexWrap: "wrap",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "Comptes & tel"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, merged.length, " compte", merged.length > 1 ? "s" : "", isTest && (() => {
+    var nbEmail = merged.filter(c => c.email || c.contact_principal && c.contact_principal.email).length;
+    var nbSite = merged.filter(c => c.web || c.site_web).length;
+    var nbPappers = merged.filter(c => c.pappers).length;
+    return /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "#0e7490"
+      }
+    }, "\uD83D\uDCE7 ", nbEmail), " avec email \xB7 ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "#3730a3"
+      }
+    }, "\uD83C\uDF10 ", nbSite), " avec site \xB7 ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "#7c3aed"
+      }
+    }, "\uD83D\uDCC7 ", nbPappers), " fiche Pappers");
+  })())), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexShrink: 0,
+      flexWrap: "wrap"
+    }
+  }, isTest && /*#__PURE__*/React.createElement("button", {
+    onClick: runEnrich,
+    disabled: !!enrichMsg,
+    title: "Compl\xE9ter les fiches de la prospection via l'annuaire officiel + Pappers",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      cursor: enrichMsg ? "default" : "pointer",
+      border: 0,
+      background: "#b91c1c",
+      color: "#fff",
+      opacity: enrichMsg ? 0.8 : 1
+    }
+  }, enrichMsg ? "⏳ " + enrichMsg : "🔎 Enrichir via Pappers"), isTest && /*#__PURE__*/React.createElement("button", {
+    onClick: () => runFindEmails(0),
+    disabled: !!emailFindMsg,
+    title: "Tout mettre \xE0 jour : Pappers (fiche compl\xE8te) + Dropcontact + emails (mentions l\xE9gales/SIRET) pour tous les prospects",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      cursor: emailFindMsg ? "default" : "pointer",
+      border: 0,
+      background: "#0e7490",
+      color: "#fff",
+      opacity: emailFindMsg ? 0.8 : 1
+    }
+  }, emailFindMsg ? "⏳ " + emailFindMsg : "🔄 Tout mettre à jour"), isTest && /*#__PURE__*/React.createElement("a", {
+    href: "/clients-hors-44?test=1",
+    title: "Clients hors Loire-Atlantique (44)",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 600,
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      color: "#475569",
+      textDecoration: "none"
+    }
+  }, "\uD83D\uDCCD Hors 44"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 320
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#94a3b8"
+    }
+  }, "\u2315"), /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Rechercher (raison sociale, ville, SIREN\u2026)",
+    style: {
+      width: "100%",
+      padding: "8px 12px 8px 32px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 13,
+      outline: "none",
+      background: "#fff",
+      boxSizing: "border-box"
+    }
+  })), reviewCount > 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReviewOnly(v => !v),
+    title: "Afficher les rapprochements Excel \u2194 Pappers \xE0 v\xE9rifier",
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+      cursor: "pointer",
+      border: "1px solid " + (reviewOnly ? "#d97706" : "#fcd34d"),
+      background: reviewOnly ? "#d97706" : "#fffbeb",
+      color: reviewOnly ? "#fff" : "#92400e"
+    }
+  }, "\u26A0 \xC0 v\xE9rifier (", reviewCount, ")"), /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect",
+    style: {
+      padding: "8px 14px",
+      background: "#4f46e5",
+      color: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 600,
+      textDecoration: "none",
+      whiteSpace: "nowrap",
+      flexShrink: 0
+    }
+  }, "+ Nouveau prospect"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 14
+    }
+  }, "\uD83D\uDD0E"), /*#__PURE__*/React.createElement("input", {
+    value: coQ,
+    onChange: e => setCoQ(e.target.value),
+    onFocus: () => coResults.length && setCoOpen(true),
+    placeholder: "Recherche dynamique Pappers \u2014 tapez un nom d'entreprise ou un SIREN pour l'ajouter\u2026",
+    style: {
+      width: "100%",
+      padding: "10px 12px 10px 36px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      fontSize: 13,
+      outline: "none",
+      background: "#f5f7ff",
+      boxSizing: "border-box"
+    }
+  }), coLoading && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 12,
+      color: "#94a3b8"
+    }
+  }, "\u2026"), coQ && !coLoading && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setCoQ("");
+      setCoOpen(false);
+    },
+    style: {
+      position: "absolute",
+      right: 8,
+      top: "50%",
+      transform: "translateY(-50%)",
+      border: 0,
+      background: "transparent",
+      color: "#94a3b8",
+      cursor: "pointer",
+      fontSize: 16
+    }
+  }, "\xD7")), coOpen && coResults.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      marginTop: 4,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      boxShadow: "0 12px 32px rgba(15,23,42,0.14)",
+      zIndex: 50,
+      overflow: "hidden"
+    }
+  }, coResults.map(e => {
+    var siege = e.siege || {};
+    return /*#__PURE__*/React.createElement("div", {
+      key: e.siren,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        padding: "10px 12px",
+        borderBottom: "1px solid #f1f5f9",
+        cursor: "default"
+      },
+      onMouseEnter: ev => ev.currentTarget.style.background = "#f8fafc",
+      onMouseLeave: ev => ev.currentTarget.style.background = "#fff"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, e.nom_complet || e.nom_raison_sociale), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#64748b",
+        marginTop: 1
+      }
+    }, "SIREN ", String(e.siren || "").replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"), siege.libelle_commune && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 \uD83D\uDCCD ", siege.libelle_commune, siege.code_postal ? " (" + siege.code_postal + ")" : ""), e.etat_administratif === "C" && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#b91c1c",
+        fontWeight: 600
+      }
+    }, " \xB7 ferm\xE9"))), /*#__PURE__*/React.createElement("button", {
+      onClick: () => addCompany(e),
+      disabled: coAdding === e.siren,
+      style: {
+        flexShrink: 0,
+        padding: "6px 12px",
+        border: 0,
+        borderRadius: 8,
+        background: "#4f46e5",
+        color: "#fff",
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: "pointer",
+        opacity: coAdding === e.siren ? 0.7 : 1
+      }
+    }, coAdding === e.siren ? "Ajout…" : "+ Ajouter"));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "6px 12px",
+      fontSize: 10.5,
+      color: "#94a3b8",
+      background: "#fafbfc"
+    }
+  }, "Source : annuaire officiel + Pappers \xB7 l'ajout cr\xE9e un prospect pr\xE9-rempli."))), emailReport && /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: "0 0 16px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      background: "#f5f7ff",
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontSize: 13,
+      color: "#3730a3"
+    }
+  }, "\uD83D\uDD0E Diagnostic recherche d'emails"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEmailReport(null),
+    style: {
+      border: 0,
+      background: "transparent",
+      cursor: "pointer",
+      color: "#94a3b8",
+      fontSize: 16
+    }
+  }, "\xD7")), emailReport.error ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#b91c1c"
+    }
+  }, "Erreur : ", emailReport.error) : emailReport.empty ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#475569"
+    }
+  }, "Aucun prospect \xE0 traiter \xB7 ", emailReport.noSiret, " sans SIREN (lancer \xAB Enrichir via Pappers \xBB) \xB7 les autres ont d\xE9j\xE0 un email.") : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#0f172a",
+      marginBottom: 8
+    }
+  }, "Sur ", /*#__PURE__*/React.createElement("b", null, emailReport.total), " : ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "#0e7490"
+    }
+  }, emailReport.found), " emails trouv\xE9s (dont ", emailReport.verified, " v\xE9rifi\xE9s SIRET) \xB7 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "#3730a3"
+    }
+  }, emailReport.sitesFound || 0), " sites web r\xE9cup\xE9r\xE9s \xB7 ", emailReport.notFound, " sans email \xB7 ", emailReport.failed || 0, " erreurs"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxHeight: 260,
+      overflowY: "auto",
+      background: "#fff",
+      borderRadius: 8,
+      border: "1px solid #e2e8f0"
+    }
+  }, (emailReport.details || []).map((d, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      padding: "7px 10px",
+      borderBottom: "1px solid #f1f5f9",
+      fontSize: 11.5
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, d.name), " \u2192 ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: d.email ? "#065f46" : "#b45309",
+      fontWeight: 700
+    }
+  }, d.status), d.email ? " · " + d.email : "", d.website ? " · " + d.website : ""), d.steps && d.steps.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#94a3b8",
+      marginTop: 2,
+      fontFamily: "monospace",
+      fontSize: 10.5
+    }
+  }, d.steps.join(" | "))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      marginTop: 6
+    }
+  }, "Fais une capture de cet encadr\xE9 et envoie-la \u2014 j'ajuste selon ce que fait le serveur."))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "40px 24px",
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 13,
+      background: "#f8fafc",
+      borderRadius: 10,
+      border: "1px dashed #e2e8f0"
+    }
+  }, merged.length === 0 ? "Aucun compte pour l'instant. Créez votre premier prospect via le bouton ci-dessus." : "Aucun compte ne correspond à la recherche.") : (() => {
+    var isProspect = c => c._source === "local" || c.status && /prospect|nouveau/i.test(c.status);
+    var prospects = filtered.filter(isProspect);
+    var clients = filtered.filter(c => !isProspect(c));
+    var cardStyle = {
+      display: "block",
+      padding: 14,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer",
+      transition: "border-color 120ms"
+    };
+    var renderCard = c => /*#__PURE__*/React.createElement("a", {
+      key: c.id,
+      href: `/fiche-client?id=${encodeURIComponent(c.id)}`,
+      style: cardStyle
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0f172a",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.raison_sociale || c.name || "—"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#64748b",
+        marginTop: 3
+      }
+    }, c.secteur || "Secteur non renseigné", c.ville && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 \uD83D\uDCCD ", c.ville)), c.siren && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#94a3b8",
+        marginTop: 2,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, "SIREN ", c.siren), c.matched_name && (() => {
+      var mi = MATCH_STYLE[matchInfo(c.raison_sociale || c.name, c.matched_name).level];
+      if (!mi) return null;
+      var same = _normName(c.raison_sociale || c.name) === _normName(c.matched_name);
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 5,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 11
+        },
+        title: mi.label + " — nom officiel : " + c.matched_name
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          fontWeight: 700,
+          background: mi.bg,
+          color: mi.color,
+          padding: "1px 6px",
+          borderRadius: 999,
+          whiteSpace: "nowrap"
+        }
+      }, mi.icon, " ", mi.label), !same && /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "#64748b",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, "\u2192 ", c.matched_name));
+    })()), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "2px 7px",
+        borderRadius: 999,
+        fontWeight: 700,
+        background: isProspect(c) ? "#fef3c7" : "#dcfce7",
+        color: isProspect(c) ? "#78350f" : "#065f46",
+        textTransform: "uppercase",
+        letterSpacing: 0.4
+      }
+    }, isProspect(c) ? "Prospect" : "Client")), c.contact_principal && (c.contact_principal.prenom || c.contact_principal.nom) && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid #f1f5f9",
+        fontSize: 12,
+        color: "#475569"
+      }
+    }, "\uD83D\uDC64 ", c.contact_principal.prenom, " ", c.contact_principal.nom, c.contact_principal.fonction && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#94a3b8"
+      }
+    }, " \xB7 ", c.contact_principal.fonction)), (Number(c.ca_2324) > 0 || c.abonnements && c.abonnements.length) && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid #f1f5f9"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+        fontSize: 11.5,
+        color: "#475569"
+      }
+    }, Number(c.ca_2324) > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, "\uD83D\uDCB6 ", Number(c.ca_2324).toLocaleString("fr-FR", {
+      maximumFractionDigits: 0
+    }), " \u20AC ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 500,
+        color: "#94a3b8"
+      }
+    }, "CA 23-24"))), c.abonnements && c.abonnements.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4,
+        marginTop: 7
+      }
+    }, c.abonnements.map(a => /*#__PURE__*/React.createElement("span", {
+      key: a,
+      style: {
+        fontSize: 10,
+        fontWeight: 600,
+        background: "#ecfeff",
+        color: "#0e7490",
+        border: "1px solid #a5f3fc",
+        padding: "1px 7px",
+        borderRadius: 6
+      }
+    }, a)))));
+    var bandHeader = (label, count, color, bg) => /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color,
+        background: bg,
+        padding: "3px 9px",
+        borderRadius: 999,
+        letterSpacing: 0.3,
+        textTransform: "uppercase"
+      }
+    }, label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "#64748b"
+      }
+    }, count, " ", label === "Clients" ? "client" : "prospect", count > 1 ? "s" : ""));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr",
+        gap: 16
+      }
+    }, /*#__PURE__*/React.createElement("div", null, bandHeader("Prospects", prospects.length, "#78350f", "#fef3c7"), prospects.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 14,
+        color: "#94a3b8",
+        fontSize: 12.5,
+        fontStyle: "italic",
+        background: "#fffbeb",
+        borderRadius: 10,
+        border: "1px dashed #fcd34d"
+      }
+    }, "Aucun prospect \xE0 afficher.") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+        gap: 10
+      }
+    }, prospects.map(renderCard))), /*#__PURE__*/React.createElement("div", null, bandHeader("Clients", clients.length, "#065f46", "#dcfce7"), clients.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 14,
+        color: "#94a3b8",
+        fontSize: 12.5,
+        fontStyle: "italic",
+        background: "#f0fdf4",
+        borderRadius: 10,
+        border: "1px dashed #86efac"
+      }
+    }, "Aucun client \xE0 afficher.") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+        gap: 10
+      }
+    }, clients.map(renderCard))));
+  })());
+};
+window.CRMAccountsList = CRMAccountsList;
+
+// ───── Sous-composant : Actions à mener (vue commerciale globale)
+var CRMActionsList = () => {
+  var [actions, setActions] = React.useState([]);
+  var load = React.useCallback(() => {
+    if (!window.api) return;
+    Promise.all([window.api.actions.list({
+      status: "todo"
+    }),
+    // On charge les clients en parallèle pour pouvoir afficher leur nom
+    // dans la meta (sinon plusieurs actions « Email d'introduction » sont
+    // indistinguables visuellement). Tolérant aux erreurs réseau.
+    (window.api.clients && window.api.clients.list ? window.api.clients.list() : Promise.resolve([])).catch(() => [])]).then(([rows, clients]) => {
+      var clientById = {};
+      (clients || []).forEach(c => {
+        if (c && c.id) clientById[c.id] = c;
+      });
+      setActions((rows || []).map(a => ({
+        id: a.id,
+        client_id: a.client_id,
+        client_name: clientById[a.client_id] && (clientById[a.client_id].raison_sociale || clientById[a.client_id].name) || "",
+        client_abos: clientById[a.client_id] && clientById[a.client_id].abonnements || [],
+        // Note : l'API stocke « opp_id » (cohérent avec opportunities.create),
+        // pas « opportunity_id ». On récupère les deux par sécurité.
+        opp_id: a.opp_id || a.opportunity_id || a.data && (a.data.opp_id || a.data.opportunity_id) || null,
+        priority: a.priority || "moyenne",
+        overdue: false,
+        icon: a.icon || (a.type === "call" ? "📞" : a.type === "email" ? "✉" : a.type === "rdv" ? "📅" : "✓"),
+        title: a.title || "",
+        due: a.due_text || a.due || "",
+        assigned: a.assigned_to || a.assigned || "Vous",
+        color: "#3730a3",
+        // Défensif : meta doit être une chaîne (un objet planterait le rendu
+        // React). On évite a.meta.client_name → doublon avec client_name affiché.
+        meta: typeof a.meta === "string" ? a.meta : a.meta && a.meta.label || "",
+        tag: a.tag || ""
+      })));
+    }).catch(() => {});
+  }, []);
+  React.useEffect(() => {
+    load();
+  }, [load]);
+  var prioMeta = {
+    haute: {
+      label: "Haute",
+      color: "#dc2626",
+      bg: "#fdecec"
+    },
+    moyenne: {
+      label: "Moyenne",
+      color: "#ea580c",
+      bg: "#fef0e6"
+    },
+    basse: {
+      label: "Basse",
+      color: "#475569",
+      bg: "#eef1f5"
+    },
+    ai: {
+      label: "IA",
+      color: "#fff",
+      bg: "#0f172a"
+    }
+  };
+  var [filter, setFilter] = React.useState("all");
+  var filtered = filter === "all" ? actions : actions.filter(a => a.priority === filter);
+  var counts = {
+    all: actions.length,
+    haute: actions.filter(a => a.priority === "haute").length,
+    moyenne: actions.filter(a => a.priority === "moyenne").length,
+    basse: actions.filter(a => a.priority === "basse").length,
+    ai: actions.filter(a => a.priority === "ai").length
+  };
+  // Pagination : 10 actions par page (réduit la hauteur de la vue).
+  var PER_PAGE = 10;
+  var [page, setPage] = React.useState(1);
+  var pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  React.useEffect(() => {
+    setPage(1);
+  }, [filter]);
+  var curPage = Math.min(page, pageCount);
+  var pageItems = filtered.slice((curPage - 1) * PER_PAGE, curPage * PER_PAGE);
+  return /*#__PURE__*/React.createElement("section", {
+    id: "actions-section",
+    style: {
+      background: "#fafbfc",
+      borderTop: "1px solid #eef1f5",
+      padding: "20px 24px 40px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 14,
+      flexWrap: "wrap",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: 0
+    }
+  }, "Actions \xE0 mener"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, actions.length, " action", actions.length > 1 ? "s" : "", " commerciale", actions.length > 1 ? "s" : "", " en file \u2014 tri\xE9es par priorit\xE9")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4
+    }
+  }, [{
+    k: "all",
+    label: "Toutes",
+    c: counts.all
+  }, {
+    k: "haute",
+    label: "Haute",
+    c: counts.haute
+  }, {
+    k: "moyenne",
+    label: "Moyenne",
+    c: counts.moyenne
+  }, {
+    k: "basse",
+    label: "Basse",
+    c: counts.basse
+  }, {
+    k: "ai",
+    label: "★ IA",
+    c: counts.ai
+  }].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.k,
+    onClick: () => setFilter(t.k),
+    style: {
+      padding: "5px 10px",
+      border: "1px solid " + (filter === t.k ? "#0f172a" : "#e2e8f0"),
+      background: filter === t.k ? "#0f172a" : "#fff",
+      color: filter === t.k ? "#fff" : "#475569",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, t.label, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 4,
+      fontWeight: 700,
+      opacity: 0.7
+    }
+  }, t.c))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, pageItems.map((a, i) => {
+    var pm = prioMeta[a.priority] || prioMeta.basse;
+    // Icône cliquable selon le type d'action :
+    //   email → mailto: (Outlook/webmail par défaut OS)
+    //   appel → 3CX Web Client dialer
+    //   rdv   → Outlook Calendar deeplink
+    var tagL = (a.tag || "").toLowerCase();
+    var titleL = (a.title || "").toLowerCase();
+    var isEmail = tagL === "email" || titleL.includes("email") || a.icon === "✉" || a.icon === "📧";
+    var isCall = tagL === "appel" || tagL === "call" || titleL.includes("appel") || titleL.includes("relance") || a.icon === "📞" || a.icon === "☎";
+    var isMeeting = tagL === "rdv" || tagL === "visio" || titleL.includes("rdv") || titleL.includes("rendez-vous") || a.icon === "📅" || a.icon === "🗓" || a.icon === "💻";
+    var actionable = isEmail || isCall || isMeeting;
+    var iconBaseStyle = {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      background: "#f8fafc",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 16,
+      flexShrink: 0
+    };
+    var fetchClientCtx = async () => {
+      if (!a.client_id || !window.api) return {
+        contact: null,
+        client: null
+      };
+      try {
+        var [conts, client] = await Promise.all([window.api.contacts.list({
+          client_id: a.client_id
+        }), window.api.clients.getById(a.client_id)]);
+        var contact = (conts || []).find(c => c.is_principal) || (conts || [])[0] || null;
+        return {
+          contact,
+          client
+        };
+      } catch (e) {
+        return {
+          contact: null,
+          client: null
+        };
+      }
+    };
+    var handleIconClick = async e => {
+      e.stopPropagation();
+      if (!actionable) return;
+      var {
+        contact,
+        client
+      } = await fetchClientCtx();
+      if (isEmail) {
+        var email = contact && contact.email || client && client.email || "";
+        if (!email) {
+          if (window.HubToast) window.HubToast.warn("Aucun email — ouvre la fiche client pour ajouter un contact");
+          return;
+        }
+        // Email de présentation (action de prospection) : ouvre directement
+        // l'OUTLOOK DESKTOP du poste (mailto:), destinataire = email du
+        // prospect, objet fixe. Le corps sera fourni ultérieurement.
+        var isPresentation = /pr[ée]sentation/i.test((a.title || "") + " " + (a.meta || "")) || a.tag === "Emailing";
+        if (isPresentation) {
+          var subject = "Présentation de l'entreprise informatique téléphonie ASTORYA S.G.I.";
+          var presoBody = (window.HubPresentationEmailBody || "").trim();
+          window.location.href = "mailto:" + email + "?subject=" + encodeURIComponent(subject) + (presoBody ? "&body=" + encodeURIComponent(presoBody) : "");
+          if (window.HubToast) window.HubToast.success("✉️ Outlook ouvert — " + email);
+          return;
+        }
+        var lastName = (contact && contact.nom || "").trim();
+        var body = ["Bonjour Madame, Monsieur" + (lastName ? " " + lastName : "") + ",", "", "Suite à notre entretien vous pouvez trouver ci-joint la plaquette de notre entreprise en pièce jointe."].join("\n");
+        // Téléchargement local de la plaquette → l'utilisateur la
+        // glisse dans son mail (OWA ne supporte pas les pièces jointes
+        // via URL, contrainte sécurité navigateur).
+        var link = document.createElement("a");
+        link.href = "/assets/Plaquette-Astorya.pdf";
+        link.download = "Plaquette-Astorya.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        // Picker template d'email avec contexte client/contact —
+        // l'utilisateur choisit un modèle, OWA s'ouvre pré-rempli.
+        // Fallback : OWA direct avec sujet/corps plaquette.
+        if (window.HubEmailTemplatePicker) {
+          window.HubEmailTemplatePicker.open({
+            to: email,
+            ctx: {
+              client_name: client && (client.raison_sociale || client.name) || "",
+              raison_sociale: client && (client.raison_sociale || client.name) || "",
+              contact_prenom: contact && contact.prenom || "",
+              contact_nom: contact && contact.nom || "",
+              contact_fonction: contact && contact.fonction || "",
+              owner_name: a.assigned || ""
+            }
+          });
+          if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans Outlook");
+          return;
+        }
+        // Ouvre l'OUTLOOK DESKTOP du poste via mailto:
+        window.location.href = "mailto:" + email + "?subject=" + encodeURIComponent("Prise de contact - Plaquette Astorya") + "&body=" + encodeURIComponent(body);
+        if (window.HubToast) window.HubToast.success("📎 Plaquette téléchargée — glisse-la dans le mail Outlook");
+        return;
+      }
+      if (isCall) {
+        var phone = contact && contact.phone || client && client.phone || "";
+        if (!phone) {
+          if (window.HubToast) window.HubToast.warn("Aucun téléphone — ouvre la fiche client pour ajouter un contact");
+          return;
+        }
+        var tel = phone.replace(/[^\d+]/g, "");
+        var supa = window.HubSupabase && window.HubSupabase.client;
+        var launch = server => {
+          var url = (server || "https://telcomastorya.my3cx.fr:5001").replace(/\/$/, "") + "/webclient/#/dialer/" + encodeURIComponent(tel);
+          window.open(url, "3cx-webclient");
+          if (window.HubToast) window.HubToast.info("📞 Appel via 3CX");
+        };
+        if (supa) {
+          supa.from("app_settings").select("value").eq("key", "3cx_server_url").maybeSingle().then(({
+            data
+          }) => launch(data && data.value)).catch(() => launch(null));
+        } else {
+          launch(null);
+        }
+        return;
+      }
+      if (isMeeting) {
+        var attendeeEmail = contact && contact.email || "";
+        var clientName = client && (client.raison_sociale || client.name) || "";
+        var tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+        tomorrow.setHours(9, 0, 0, 0);
+        var end = new Date(tomorrow.getTime() + 60 * 60 * 1000);
+        var toIso = d => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+        var _subject = (a.title || "Rendez-vous") + (clientName ? " — " + clientName : "");
+        var params = new URLSearchParams({
+          subject: _subject,
+          body: a.meta || "Préparé via Hub Astorya",
+          startdt: toIso(tomorrow),
+          enddt: toIso(end),
+          path: "/calendar/action/compose",
+          rru: "addevent"
+        });
+        if (attendeeEmail) params.set("to", attendeeEmail);
+        window.open("https://outlook.office.com/calendar/0/deeplink/compose?" + params.toString(), "_blank", "noopener");
+        if (window.HubToast) window.HubToast.info("📅 RDV — Outlook ouvert");
+        return;
+      }
+    };
+    var iconEl = actionable ? /*#__PURE__*/React.createElement("button", {
+      onClick: handleIconClick,
+      title: isEmail ? "Envoyer un email" : isCall ? "Lancer l'appel via 3CX" : "Créer le RDV Outlook",
+      style: {
+        ...iconBaseStyle,
+        border: 0,
+        cursor: "pointer",
+        transition: "transform 120ms"
+      },
+      onMouseEnter: e => e.currentTarget.style.transform = "scale(1.1)",
+      onMouseLeave: e => e.currentTarget.style.transform = "scale(1)"
+    }, a.icon) : /*#__PURE__*/React.createElement("span", {
+      style: iconBaseStyle
+    }, a.icon);
+    // Destination de navigation : opp_id en priorité, sinon fiche client
+    var openTarget = a.opp_id ? "/avancer-opportunite?opp=" + encodeURIComponent(a.opp_id) + (a.client_id ? "&client=" + encodeURIComponent(a.client_id) : "") : a.client_id ? "/fiche-client?id=" + encodeURIComponent(a.client_id) : null;
+    var goToTarget = () => {
+      if (openTarget) window.location.href = openTarget;
+    };
+    // Meta enrichie avec le nom du client (sinon plusieurs actions du
+    // même type sont indistinguables visuellement)
+    var enrichedMeta = a.client_name ? a.meta ? a.client_name + " · " + a.meta : a.client_name : a.meta;
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 14px",
+        background: a.overdue ? "#fff7ed" : "#fff",
+        border: "1px solid " + (a.overdue ? "#fdba74" : "#e2e8f0"),
+        borderRadius: 10
+      }
+    }, iconEl, /*#__PURE__*/React.createElement("span", {
+      style: {
+        padding: "2px 8px",
+        borderRadius: 999,
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: pm.color,
+        background: pm.bg,
+        textTransform: "uppercase",
+        letterSpacing: 0.4,
+        flexShrink: 0
+      }
+    }, a.overdue ? "⚠ EN RETARD" : pm.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: goToTarget,
+      title: openTarget ? a.opp_id ? "Ouvrir l'opportunité associée" : "Ouvrir la fiche client" : undefined,
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: openTarget ? "#3730a3" : "#0f172a",
+        cursor: openTarget ? "pointer" : "default",
+        textDecoration: openTarget ? "underline dotted" : "none",
+        textUnderlineOffset: 3
+      }
+    }, a.title), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, enrichedMeta)), a.client_abos && a.client_abos.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4,
+        maxWidth: 260,
+        justifyContent: "flex-end",
+        flexShrink: 0
+      }
+    }, a.client_abos.map(ab => /*#__PURE__*/React.createElement("span", {
+      key: ab,
+      style: {
+        fontSize: 10,
+        fontWeight: 600,
+        background: "#ecfeff",
+        color: "#0e7490",
+        border: "1px solid #a5f3fc",
+        padding: "1px 7px",
+        borderRadius: 6,
+        whiteSpace: "nowrap"
+      }
+    }, ab))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: 4,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: a.overdue ? "#c2410c" : "#475569",
+        fontWeight: 600
+      }
+    }, a.due), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: a.color,
+        fontWeight: 600
+      }
+    }, a.assigned)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        padding: "2px 7px",
+        background: "#eef2ff",
+        color: "#3730a3",
+        borderRadius: 4,
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, a.tag), /*#__PURE__*/React.createElement("button", {
+      onClick: async () => {
+        if (!a.id) return;
+        try {
+          await window.api.actions.complete(a.id);
+          load();
+        } catch (e) {}
+      },
+      style: {
+        padding: "5px 9px",
+        background: "#10b981",
+        color: "#fff",
+        border: 0,
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: "pointer",
+        whiteSpace: "nowrap"
+      }
+    }, "\u2713 Fait"));
+  })), pageCount > 1 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: 16,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPage(Math.max(1, curPage - 1)),
+    disabled: curPage <= 1,
+    style: {
+      padding: "5px 10px",
+      borderRadius: 6,
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      color: curPage <= 1 ? "#cbd5e1" : "#475569",
+      cursor: curPage <= 1 ? "default" : "pointer",
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, "\u2039"), Array.from({
+    length: pageCount
+  }, (_, i) => i + 1).map(n => /*#__PURE__*/React.createElement("button", {
+    key: n,
+    onClick: () => setPage(n),
+    style: {
+      minWidth: 30,
+      padding: "5px 9px",
+      borderRadius: 6,
+      border: "1px solid " + (n === curPage ? "#4f46e5" : "#e2e8f0"),
+      background: n === curPage ? "#4f46e5" : "#fff",
+      color: n === curPage ? "#fff" : "#475569",
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, n)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPage(Math.min(pageCount, curPage + 1)),
+    disabled: curPage >= pageCount,
+    style: {
+      padding: "5px 10px",
+      borderRadius: 6,
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      color: curPage >= pageCount ? "#cbd5e1" : "#475569",
+      cursor: curPage >= pageCount ? "default" : "pointer",
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, "\u203A"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#94a3b8",
+      marginLeft: 6
+    }
+  }, filtered.length, " action", filtered.length > 1 ? "s" : "")));
+};
+window.CRMActionsList = CRMActionsList;
+window.CRMPipeline = CRMPipeline;

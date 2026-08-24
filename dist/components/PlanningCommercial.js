@@ -1,0 +1,627 @@
+// PlanningCommercial — Vue calendrier Outlook des opportunités selon leurs
+// deux types d'échéances : Date de décision potentielle (close_date, violet)
+// et Échéance contrat concurrent (contract_end, cyan).
+//
+// Source de données : api.opportunities.list() — même flux que CRMPipeline.
+
+var PlanningCommercial = () => {
+  var [opps, setOpps] = React.useState([]);
+  var [loading, setLoading] = React.useState(true);
+  var [filterType, setFilterType] = React.useState("all"); // all | decision | concurrent
+  // Mois affiché — par défaut le mois courant. Navigation < Aujourd'hui >.
+  // Format "YYYY-MM" en heure LOCALE (toISOString convertit en UTC et shift
+  // d'un jour selon le fuseau — bug sur la nav mois en France UTC+2 DST).
+  var toLocalMonth = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  var [cursor, setCursor] = React.useState(() => toLocalMonth(new Date()));
+  React.useEffect(() => {
+    if (!window.api || !window.api.opportunities) return;
+    window.api.opportunities.list().then(list => {
+      setOpps((list || []).filter(o => o.stage !== "lost"));
+      setLoading(false);
+    }).catch(e => {
+      console.warn("[Planning]", e);
+      setLoading(false);
+    });
+  }, []);
+  var stageMeta = {
+    qualif: {
+      label: "Prospect",
+      color: "#94a3b8"
+    },
+    discovery: {
+      label: "Approche",
+      color: "#3b82f6"
+    },
+    propo: {
+      label: "Négociation",
+      color: "#a855f7"
+    },
+    nego: {
+      label: "Conclusion",
+      color: "#ea580c"
+    },
+    won: {
+      label: "Ordre",
+      color: "#10b981"
+    }
+  };
+  var kindMeta = {
+    decision: {
+      color: "#a855f7",
+      bg: "#f5efff",
+      border: "#d8b4fe",
+      label: "Décision potentielle"
+    },
+    concurrent: {
+      color: "#0ea5e9",
+      bg: "#e0f2fe",
+      border: "#7dd3fc",
+      label: "Fin contrat concurrent"
+    }
+  };
+
+  // Aplatit chaque opp en 1 ou 2 entrées (une par date renseignée)
+  var allEntries = React.useMemo(() => {
+    var out = [];
+    opps.forEach(o => {
+      var dec = o.close_date || o.data && (o.data.close_date || o.data.decision_date) || null;
+      var con = o.contract_end || o.data && o.data.contract_end || null;
+      if (dec && (filterType === "all" || filterType === "decision")) {
+        out.push({
+          opp: o,
+          date: dec.slice(0, 10),
+          kind: "decision"
+        });
+      }
+      if (con && (filterType === "all" || filterType === "concurrent")) {
+        out.push({
+          opp: o,
+          date: con.slice(0, 10),
+          kind: "concurrent"
+        });
+      }
+    });
+    return out;
+  }, [opps, filterType]);
+
+  // Index des entrées par YYYY-MM-DD
+  var byDate = React.useMemo(() => {
+    var m = {};
+    allEntries.forEach(e => {
+      (m[e.date] = m[e.date] || []).push(e);
+    });
+    return m;
+  }, [allEntries]);
+
+  // Construit la grille du mois courant (semaines de Lundi à Dimanche).
+  var [year, month] = cursor.split("-").map(n => parseInt(n, 10));
+  var firstOfMonth = new Date(year, month - 1, 1);
+  var monthLabel = firstOfMonth.toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric"
+  });
+  // Décalage en jours pour que la grille commence un lundi
+  // (getDay() : 0=dim, 1=lun, ..., 6=sam → on veut 1=lun donc shift = (day+6)%7)
+  var shiftStart = (firstOfMonth.getDay() + 6) % 7;
+  var gridStart = new Date(year, month - 1, 1 - shiftStart);
+  var daysInMonth = new Date(year, month, 0).getDate();
+  var totalCells = Math.ceil((shiftStart + daysInMonth) / 7) * 7;
+  var cells = Array.from({
+    length: totalCells
+  }, (_, i) => {
+    var d = new Date(gridStart.getTime() + i * 86400000);
+    // ISO local YYYY-MM-DD (toISOString shift UTC et fausse les jours)
+    var iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    return {
+      date: iso,
+      day: d.getDate(),
+      inMonth: d.getMonth() === month - 1,
+      weekday: (d.getDay() + 6) % 7
+    };
+  });
+
+  // Stats du mois affiché
+  var monthEntries = allEntries.filter(e => e.date.slice(0, 7) === cursor);
+  var monthAmount = monthEntries.reduce((acc, e) => acc + (Number(e.opp.amount_eur) || 0), 0);
+  var uniqueOppsMonth = new Set(monthEntries.map(e => e.opp.id || e.opp.ref)).size;
+  var navMonth = delta => {
+    var d = new Date(year, month - 1 + delta, 1);
+    setCursor(toLocalMonth(d));
+  };
+  // "today" en local YYYY-MM-DD (pas toISOString qui shift UTC)
+  var todayD = new Date();
+  var today = todayD.getFullYear() + "-" + String(todayD.getMonth() + 1).padStart(2, "0") + "-" + String(todayD.getDate()).padStart(2, "0");
+  var fmtAmount = n => n != null ? Math.round(n).toLocaleString("fr-FR").replace(/,/g, " ") + " €" : "—";
+
+  // Modal "voir tous les événements d'un jour" si > N
+  var [dayPopup, setDayPopup] = React.useState(null);
+  var MAX_VISIBLE_PER_DAY = 3;
+  return /*#__PURE__*/React.createElement("div", {
+    style: S.frame
+  }, /*#__PURE__*/React.createElement("header", {
+    style: S.topbar
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      fontSize: 12.5,
+      color: "#64748b",
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/crm",
+    style: {
+      color: "#64748b",
+      textDecoration: "none"
+    }
+  }, "CRM"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#cbd5e1"
+    }
+  }, "/"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#0f172a",
+      fontWeight: 600
+    }
+  }, "Planning commercial")), /*#__PURE__*/React.createElement("a", {
+    href: "/crm",
+    style: S.btnGhost
+  }, "\u2190 Pipeline")), /*#__PURE__*/React.createElement("div", {
+    style: S.titleRow
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: S.h1
+  }, "Planning commercial"), /*#__PURE__*/React.createElement("p", {
+    style: S.h1sub
+  }, uniqueOppsMonth, " opportunit\xE9", uniqueOppsMonth > 1 ? "s" : "", " \xB7 ", monthEntries.length, " \xE9ch\xE9ance", monthEntries.length > 1 ? "s" : "", " ce mois \xB7 ", fmtAmount(monthAmount), " cumul\xE9s")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      padding: 2,
+      background: "#fff"
+    }
+  }, [{
+    k: "all",
+    label: "Toutes"
+  }, {
+    k: "decision",
+    label: "Décision"
+  }, {
+    k: "concurrent",
+    label: "Concurrent"
+  }].map(f => /*#__PURE__*/React.createElement("button", {
+    key: f.k,
+    onClick: () => setFilterType(f.k),
+    style: {
+      padding: "6px 12px",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 12,
+      fontWeight: 600,
+      background: filterType === f.k ? "#0f172a" : "transparent",
+      color: filterType === f.k ? "#fff" : "#64748b"
+    }
+  }, f.label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navMonth(-1),
+    style: S.navBtn,
+    title: "Mois pr\xE9c\xE9dent"
+  }, "\u2039"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCursor(toLocalMonth(new Date())),
+    style: {
+      ...S.navBtn,
+      padding: "6px 14px",
+      width: "auto"
+    }
+  }, "Aujourd'hui"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navMonth(1),
+    style: S.navBtn,
+    title: "Mois suivant"
+  }, "\u203A")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a",
+      textTransform: "capitalize",
+      minWidth: 160
+    }
+  }, monthLabel))), /*#__PURE__*/React.createElement("div", {
+    style: S.legend
+  }, /*#__PURE__*/React.createElement("span", {
+    style: S.legendItem
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: 3,
+      background: kindMeta.decision.color
+    }
+  }), "Date de d\xE9cision potentielle"), /*#__PURE__*/React.createElement("span", {
+    style: S.legendItem
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: 3,
+      background: kindMeta.concurrent.color
+    }
+  }), "\xC9ch\xE9ance contrat concurrent")), /*#__PURE__*/React.createElement("div", {
+    style: S.body
+  }, loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 13
+    }
+  }, "Chargement\u2026") : /*#__PURE__*/React.createElement("div", {
+    style: S.calendar
+  }, /*#__PURE__*/React.createElement("div", {
+    style: S.weekHeader
+  }, ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map(d => /*#__PURE__*/React.createElement("div", {
+    key: d,
+    style: S.weekHeaderCell
+  }, d))), /*#__PURE__*/React.createElement("div", {
+    style: S.grid
+  }, cells.map(c => {
+    var dayEntries = byDate[c.date] || [];
+    var isToday = c.date === today;
+    var isWeekend = c.weekday >= 5;
+    var visible = dayEntries.slice(0, MAX_VISIBLE_PER_DAY);
+    var hidden = dayEntries.length - visible.length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.date,
+      style: {
+        ...S.dayCell,
+        background: !c.inMonth ? "#fafbfc" : isToday ? "#fff7ed" : isWeekend ? "#fafbfc" : "#fff",
+        opacity: c.inMonth ? 1 : 0.5
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: isToday ? 800 : 600,
+        color: isToday ? "#fff" : c.inMonth ? "#0f172a" : "#94a3b8",
+        background: isToday ? "#dc2626" : "transparent",
+        width: 22,
+        height: 22,
+        borderRadius: 999,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, c.day), dayEntries.length > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        color: "#94a3b8",
+        fontWeight: 600
+      }
+    }, dayEntries.length, " \xE9v\xE9n.")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3
+      }
+    }, visible.map((e, i) => {
+      var k = kindMeta[e.kind];
+      var stage = stageMeta[e.opp.stage || "qualif"] || stageMeta.qualif;
+      return /*#__PURE__*/React.createElement("a", {
+        key: i,
+        href: "/avancer-opportunite?opp=" + encodeURIComponent(e.opp.id || e.opp.ref),
+        title: (e.opp.name || "") + " — " + (e.opp.client_name || "") + " · " + k.label + " · " + fmtAmount(e.opp.amount_eur),
+        style: {
+          display: "block",
+          padding: "3px 6px",
+          borderRadius: 4,
+          background: k.bg,
+          borderLeft: "3px solid " + k.color,
+          fontSize: 10.5,
+          color: "#0f172a",
+          textDecoration: "none",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          fontWeight: 600
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-block",
+          width: 5,
+          height: 5,
+          borderRadius: 999,
+          background: stage.color,
+          marginRight: 4,
+          verticalAlign: "middle"
+        }
+      }), e.opp.name || "Opp.");
+    }), hidden > 0 && /*#__PURE__*/React.createElement("button", {
+      onClick: () => setDayPopup({
+        date: c.date,
+        entries: dayEntries
+      }),
+      style: {
+        background: "transparent",
+        border: 0,
+        padding: "2px 6px",
+        fontSize: 10,
+        color: "#3730a3",
+        cursor: "pointer",
+        fontWeight: 700,
+        textAlign: "left"
+      }
+    }, "+ ", hidden, " de plus")));
+  })))), dayPopup && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setDayPopup(null),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 20,
+      maxWidth: 480,
+      width: "90%",
+      maxHeight: "80vh",
+      overflow: "auto",
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: 0,
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, new Date(dayPopup.date).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setDayPopup(null),
+    style: {
+      width: 28,
+      height: 28,
+      border: 0,
+      background: "#f1f5f9",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 16,
+      fontWeight: 700
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, dayPopup.entries.map((e, i) => {
+    var k = kindMeta[e.kind];
+    var stage = stageMeta[e.opp.stage || "qualif"] || stageMeta.qualif;
+    return /*#__PURE__*/React.createElement("a", {
+      key: i,
+      href: "/avancer-opportunite?opp=" + encodeURIComponent(e.opp.id || e.opp.ref),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        border: "1px solid " + k.border,
+        background: k.bg,
+        borderRadius: 8,
+        textDecoration: "none",
+        color: "inherit"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: "#0f172a"
+      }
+    }, e.opp.name || "Opportunité"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "#64748b",
+        marginTop: 2
+      }
+    }, e.opp.client_name || e.opp.data && e.opp.data.client_name || "—"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        marginTop: 5,
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        padding: "1px 6px",
+        borderRadius: 3,
+        background: stage.color + "1a",
+        color: stage.color,
+        fontWeight: 700
+      }
+    }, stage.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        padding: "1px 6px",
+        borderRadius: 3,
+        background: k.color,
+        color: "#fff",
+        fontWeight: 700
+      }
+    }, k.label))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "right",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0f172a",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, fmtAmount(e.opp.amount_eur))));
+  })))));
+};
+var S = {
+  frame: {
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "100vh",
+    background: "#fafbfc",
+    fontFamily: "'Inter', system-ui, sans-serif",
+    color: "#0f172a"
+  },
+  topbar: {
+    padding: "14px 28px",
+    borderBottom: "1px solid #eef1f5",
+    background: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  btnGhost: {
+    padding: "7px 13px",
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    borderRadius: 8,
+    fontSize: 12.5,
+    color: "#475569",
+    cursor: "pointer",
+    fontWeight: 500,
+    textDecoration: "none"
+  },
+  titleRow: {
+    padding: "20px 28px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottom: "1px solid #eef1f5",
+    background: "#fff",
+    flexWrap: "wrap",
+    gap: 16
+  },
+  h1: {
+    fontSize: 24,
+    fontWeight: 700,
+    letterSpacing: -0.7,
+    margin: 0
+  },
+  h1sub: {
+    fontSize: 13,
+    color: "#64748b",
+    margin: "4px 0 0"
+  },
+  navBtn: {
+    width: 32,
+    height: 32,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    borderRadius: 8,
+    fontSize: 15,
+    fontWeight: 700,
+    color: "#475569",
+    cursor: "pointer",
+    padding: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  legend: {
+    display: "flex",
+    gap: 18,
+    padding: "12px 28px",
+    borderBottom: "1px solid #eef1f5",
+    background: "#fafbfc"
+  },
+  legendItem: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 11.5,
+    color: "#475569"
+  },
+  body: {
+    padding: "20px 28px 60px"
+  },
+  calendar: {
+    background: "#fff",
+    border: "1px solid #eef1f5",
+    borderRadius: 12,
+    overflow: "hidden",
+    boxShadow: "0 2px 6px rgba(15,23,42,0.04)"
+  },
+  weekHeader: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    background: "#fafbfc",
+    borderBottom: "1px solid #eef1f5"
+  },
+  weekHeaderCell: {
+    padding: "10px 8px",
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    textAlign: "center"
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)"
+  },
+  dayCell: {
+    minHeight: 110,
+    padding: 6,
+    borderRight: "1px solid #f1f5f9",
+    borderBottom: "1px solid #f1f5f9",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden"
+  }
+};
+window.PlanningCommercial = PlanningCommercial;

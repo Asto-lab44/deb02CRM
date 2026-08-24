@@ -1,0 +1,6397 @@
+// ════════════════════════════════════════════════════════════════════
+// RichDescriptionEditor — mini WYSIWYG (gras / italique / souligné + couleurs)
+// Couleurs masquées derrière un popover "A▾" pour alléger la barre.
+// ════════════════════════════════════════════════════════════════════
+var RichDescriptionEditor = ({
+  value,
+  onChange,
+  placeholder
+}) => {
+  var ref = React.useRef(null);
+  var lastValueRef = React.useRef(value || "");
+  var [colorOpen, setColorOpen] = React.useState(false);
+  var [currentColor, setCurrentColor] = React.useState("#0f172a");
+  var popRef = React.useRef(null);
+  React.useEffect(() => {
+    if (document.getElementById("rich-desc-styles")) return;
+    var s = document.createElement("style");
+    s.id = "rich-desc-styles";
+    s.textContent = ['.rich-desc[contenteditable]:empty:before{content:attr(data-placeholder);color:#cbd5e1;font-style:italic;pointer-events:none;}', '.rich-desc[contenteditable]:focus{outline:none;}', '.rich-desc-btn{transition:background 120ms,border-color 120ms,color 120ms;}', '.rich-desc-btn:hover{background:#f1f5f9;border-color:#cbd5e1;}'].join("");
+    document.head.appendChild(s);
+  }, []);
+  React.useEffect(() => {
+    if (!ref.current) return;
+    var v = value || "";
+    if (ref.current.innerHTML !== v && document.activeElement !== ref.current) {
+      ref.current.innerHTML = v;
+      lastValueRef.current = v;
+    }
+  }, [value]);
+  React.useEffect(() => {
+    if (!colorOpen) return;
+    var close = e => {
+      if (popRef.current && !popRef.current.contains(e.target)) setColorOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [colorOpen]);
+  var exec = (cmd, arg) => {
+    if (!ref.current) return;
+    ref.current.focus();
+    try {
+      document.execCommand("styleWithCSS", false, true);
+    } catch (e) {}
+    document.execCommand(cmd, false, arg);
+    var html = ref.current.innerHTML;
+    lastValueRef.current = html;
+    onChange(html);
+  };
+  var applyColor = color => {
+    setCurrentColor(color);
+    exec("foreColor", color);
+    setColorOpen(false);
+  };
+  var btnBase = {
+    minWidth: 30,
+    height: 28,
+    padding: "0 9px",
+    border: "1px solid transparent",
+    background: "transparent",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 13,
+    color: "#334155",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center"
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 2,
+      padding: "4px 6px",
+      border: "1px solid #e2e8f0",
+      borderBottom: 0,
+      borderRadius: "8px 8px 0 0",
+      background: "#f8fafc"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Gras (Ctrl+B)",
+    className: "rich-desc-btn",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => exec("bold"),
+    style: {
+      ...btnBase,
+      fontWeight: 800,
+      fontFamily: "'Inter', system-ui, sans-serif"
+    }
+  }, "B"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Italique (Ctrl+I)",
+    className: "rich-desc-btn",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => exec("italic"),
+    style: {
+      ...btnBase,
+      fontStyle: "italic",
+      fontFamily: "'Inter', system-ui, sans-serif"
+    }
+  }, "I"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Soulign\xE9 (Ctrl+U)",
+    className: "rich-desc-btn",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => exec("underline"),
+    style: {
+      ...btnBase,
+      textDecoration: "underline",
+      fontWeight: 600
+    }
+  }, "U"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 1,
+      height: 18,
+      background: "#e2e8f0",
+      margin: "0 6px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    },
+    ref: popRef
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    title: "Couleur du texte",
+    className: "rich-desc-btn",
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => setColorOpen(v => !v),
+    style: {
+      ...btnBase,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "0 6px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      flexDirection: "column",
+      alignItems: "center",
+      lineHeight: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, "A"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      width: 14,
+      height: 3,
+      background: currentColor,
+      borderRadius: 1,
+      marginTop: 1
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: "#94a3b8"
+    }
+  }, "\u25BE")), colorOpen && /*#__PURE__*/React.createElement("div", {
+    onMouseDown: e => e.preventDefault(),
+    style: {
+      position: "absolute",
+      top: "calc(100% + 4px)",
+      left: 0,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+      padding: 6,
+      display: "flex",
+      gap: 4,
+      zIndex: 50
+    }
+  }, [{
+    c: "#0f172a",
+    label: "Noir"
+  }, {
+    c: "#16a34a",
+    label: "Vert"
+  }, {
+    c: "#ea580c",
+    label: "Orange"
+  }, {
+    c: "#dc2626",
+    label: "Rouge"
+  }].map(opt => /*#__PURE__*/React.createElement("button", {
+    key: opt.c,
+    type: "button",
+    title: opt.label,
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => applyColor(opt.c),
+    style: {
+      width: 22,
+      height: 22,
+      border: opt.c === currentColor ? "2px solid #3730a3" : "1px solid #e2e8f0",
+      background: opt.c,
+      borderRadius: 11,
+      cursor: "pointer",
+      padding: 0
+    }
+  })))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 10.5,
+      color: "#94a3b8"
+    }
+  }, "Repris \xE0 l'identique sur le PDF")), /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    className: "rich-desc",
+    contentEditable: true,
+    suppressContentEditableWarning: true,
+    "data-placeholder": placeholder || "",
+    onInput: e => {
+      lastValueRef.current = e.currentTarget.innerHTML;
+      onChange(e.currentTarget.innerHTML);
+    },
+    onBlur: e => onChange(e.currentTarget.innerHTML),
+    style: {
+      minHeight: 56,
+      padding: "10px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: "0 0 8px 8px",
+      fontSize: 13,
+      color: "#0f172a",
+      lineHeight: 1.55,
+      background: "#fff",
+      outline: "none",
+      boxSizing: "border-box"
+    }
+  }));
+};
+
+// Code client = "CLI" + 3 premières lettres du nom (alphanumériques, MAJ).
+// Ex : "ASTORYA SGI" → "CLIAST" · "INIT 2" → "CLIINI" · "CHEVAL SHOP" → "CLICHE".
+var computeClientCode = clientName => {
+  if (!clientName) return "";
+  var cleaned = String(clientName).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return "CLI" + cleaned.slice(0, 3).padEnd(3, "X");
+};
+
+// ════════════════════════════════════════════════════════════════════
+// CommercialDocs — Gestion Commerciale (Devis / Commande / BL / Facture)
+// ════════════════════════════════════════════════════════════════════
+//
+// Inspirée Sage 50c Gestion Commerciale :
+// - 4 types de documents : devis → commande → BL → facture
+// - Chaque type a son propre tab + son kanban par statut
+// - Bouton "Nouveau" crée un brouillon ; édition inline des lignes
+// - Bouton "Transformer en …" enchaîne sur le document suivant
+// - Rattachement optionnel à un projet (CRM Projets & Livrables)
+//
+// Sources Supabase : commercial_docs + commercial_doc_lines + commercial_articles
+// ════════════════════════════════════════════════════════════════════
+
+var CommercialDocs = () => {
+  var TYPES = [
+  // Seul "devis" est créable directement. Les autres types se créent uniquement
+  // par transformation de la chaîne (devis → commande → BL → facture), c'est
+  // pourquoi leur newLabel pointe vers "Nouveau devis" : le bouton du haut
+  // bascule sur l'onglet Devis et ouvre un nouveau devis.
+  // (La commande fournisseur n'est plus une étape du workflow Sage ;
+  // elle est gérée séparément dans la tuile Stock & Catalogue.)
+  {
+    k: "devis",
+    label: "Devis",
+    navLabel: "Devis en cours",
+    newLabel: "Nouveau devis",
+    color: "#3b82f6",
+    icon: "📄"
+  }, {
+    k: "commande",
+    label: "Commandes client",
+    newLabel: "Nouveau devis",
+    color: "#a855f7",
+    icon: "📋"
+  }, {
+    k: "bl",
+    label: "Bons livraison",
+    newLabel: "Nouveau devis",
+    color: "#ea580c",
+    icon: "🚚"
+  }, {
+    k: "facture_acompte",
+    label: "Factures d'acompte",
+    navLabel: "Factures d'acompte",
+    newLabel: "Nouveau devis",
+    color: "#0ea5e9",
+    icon: "💰"
+  }, {
+    k: "facture",
+    label: "Factures",
+    newLabel: "Nouveau devis",
+    color: "#10b981",
+    icon: "💶"
+  }, {
+    k: "avoir",
+    label: "Avoirs",
+    navLabel: "Avoirs",
+    newLabel: "Nouveau devis",
+    color: "#dc2626",
+    icon: "↩"
+  }];
+  var STATUS_META = {
+    brouillon: {
+      label: "Brouillon",
+      color: "#94a3b8",
+      bg: "#f1f5f9"
+    },
+    envoye: {
+      label: "Envoyé",
+      color: "#3b82f6",
+      bg: "#dbeafe"
+    },
+    accepte: {
+      label: "Accepté",
+      color: "#10b981",
+      bg: "#dcfce7"
+    },
+    refuse: {
+      label: "Refusé",
+      color: "#dc2626",
+      bg: "#fee2e2"
+    },
+    transforme: {
+      label: "Transformé",
+      color: "#7e22ce",
+      bg: "#f3e8ff"
+    },
+    livre: {
+      label: "Livré",
+      color: "#f59e0b",
+      bg: "#fef3c7"
+    },
+    facture: {
+      label: "Facturé",
+      color: "#0ea5e9",
+      bg: "#e0f2fe"
+    },
+    paye: {
+      label: "Payé",
+      color: "#065f46",
+      bg: "#d1fae5"
+    },
+    annule: {
+      label: "Annulé",
+      color: "#475569",
+      bg: "#e2e8f0"
+    }
+  };
+  var [activeType, setActiveType] = React.useState("devis");
+  var [statusFilter, setStatusFilter] = React.useState("all");
+  var [clientFilter, setClientFilter] = React.useState("");
+  // Plage glissante par défaut : J-365 → aujourd'hui.
+  var DEFAULT_DATE_RANGE = (() => {
+    var iso = d => d.toISOString().slice(0, 10);
+    var today = new Date();
+    var oneYearAgo = new Date();
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    return {
+      from: iso(oneYearAgo),
+      to: iso(today)
+    };
+  })();
+  var [dateFrom, setDateFrom] = React.useState(DEFAULT_DATE_RANGE.from);
+  var [dateTo, setDateTo] = React.useState(DEFAULT_DATE_RANGE.to);
+  var [docs, setDocs] = React.useState([]);
+  var [allDocs, setAllDocs] = React.useState([]); // tous types confondus, pour calculer les chaînes
+  var [loading, setLoading] = React.useState(true);
+  // Compteur « Demandes entrantes » = demandes pour lesquelles un devis reste
+  // à faire (statut à_traiter ou client_identifié, pas encore devis_cree).
+  var [inboundCount, setInboundCount] = React.useState(0);
+  React.useEffect(() => {
+    if (!window.api || !window.api.inboundRequests) return;
+    window.api.inboundRequests.list().then(list => {
+      var pending = (list || []).filter(r => r.status === "a_traiter" || r.status === "client_identifie");
+      setInboundCount(pending.length);
+    }).catch(() => {});
+  }, []);
+  var [search, setSearch] = React.useState("");
+  var [clients, setClients] = React.useState([]);
+  var [opps, setOpps] = React.useState([]);
+  var [previewDocId, setPreviewDocId] = React.useState(null);
+  var previewTimerRef = React.useRef(null);
+  var hideTimerRef = React.useRef(null);
+  var [editing, setEditing] = React.useState(null); // null ou doc en cours d'édition
+
+  var reload = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      var [typed, all] = await Promise.all([window.api.commercialDocs.list({
+        type: activeType
+      }), window.api.commercialDocs.list({}) // pour les chaînes Devis→Commande→BL→Facture
+      ]);
+      setDocs(typed || []);
+      setAllDocs(all || []);
+    } catch (e) {
+      setDocs([]);
+      setAllDocs([]);
+    }
+    setLoading(false);
+  }, [activeType]);
+
+  // Map parent_doc_id → enfant unique (chaque doc n'a qu'un enfant max)
+  var childrenMap = React.useMemo(() => {
+    var map = {};
+    (allDocs || []).forEach(d => {
+      if (d.parent_doc_id) map[d.parent_doc_id] = d;
+    });
+    return map;
+  }, [allDocs]);
+
+  // Pour un doc devis, retourne la chaîne complète : { devis, commande, bl, facture }
+  var buildChain = React.useCallback(rootDoc => {
+    var chain = {
+      devis: null,
+      commande: null,
+      bl: null,
+      facture: null
+    };
+    var current = rootDoc;
+    while (current) {
+      chain[current.type] = current;
+      current = childrenMap[current.id] || null;
+    }
+    return chain;
+  }, [childrenMap]);
+
+  // Pour un doc enfant (ex commande), remonte la chaîne et retourne les 4 docs
+  var buildChainFromAny = React.useCallback(doc => {
+    if (!doc) return {
+      devis: null,
+      commande: null,
+      bl: null,
+      facture: null
+    };
+    var root = doc;
+    var seen = new Set();
+    while (root.parent_doc_id && !seen.has(root.id)) {
+      seen.add(root.id);
+      var parent = (allDocs || []).find(d => d.id === root.parent_doc_id);
+      if (!parent) break;
+      root = parent;
+    }
+    return buildChain(root);
+  }, [allDocs, buildChain]);
+  React.useEffect(() => {
+    reload();
+  }, [reload]);
+  // Précharge pdfmake + polices dès l'ouverture du module : le 1er « Aperçu PDF »
+  // est alors instantané et ne nécessite plus de 2e clic (anti-popup).
+  React.useEffect(() => {
+    try {
+      window.HubCommercialPdf && window.HubCommercialPdf.preload && window.HubCommercialPdf.preload();
+    } catch (e) {}
+  }, []);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        setClients((await window.api.clients.list()) || []);
+      } catch (e) {}
+      try {
+        var all = (await window.api.opportunities.list()) || [];
+        // Pipeline ouvert ET récent : on garde tout sauf won/lost,
+        // ET on limite aux opp créées (ou updatées) dans les 30 derniers jours.
+        // Évite de polluer le picker avec des vieilles opps dormantes.
+        var thirtyDaysAgo = Date.now() - 30 * 24 * 3600 * 1000;
+        setOpps(all.filter(o => {
+          if (o.stage === "won" || o.stage === "lost") return false;
+          var ts = new Date(o.updated_at || o.created_at || 0).getTime();
+          return ts >= thirtyDaysAgo;
+        }));
+      } catch (e) {}
+    })();
+  }, []);
+  var filtered = React.useMemo(() => {
+    var q = search.trim().toLowerCase();
+    var cf = clientFilter.trim().toLowerCase();
+    return docs.filter(d => {
+      if (statusFilter !== "all" && d.status !== statusFilter) return false;
+      if (q && ![d.id, d.client_name, d.title, d.owner].some(v => String(v || "").toLowerCase().includes(q))) return false;
+      if (cf) {
+        var code = computeClientCode(d.client_name || "").toLowerCase();
+        if (!String(d.client_name || "").toLowerCase().includes(cf) && !code.includes(cf)) return false;
+      }
+      if (dateFrom && (!d.doc_date || d.doc_date < dateFrom)) return false;
+      if (dateTo && (!d.doc_date || d.doc_date > dateTo)) return false;
+      return true;
+    });
+  }, [docs, search, statusFilter, clientFilter, dateFrom, dateTo]);
+
+  // Liste unique des clients présents dans les docs (pour autocomplete)
+  var clientOptions = React.useMemo(() => {
+    var set = new Set();
+    docs.forEach(d => {
+      if (d.client_name) set.add(d.client_name);
+    });
+    return Array.from(set).sort();
+  }, [docs]);
+
+  // Map client_id / client_name → status (client | prospect) pour la liste.
+  var clientStatusMap = React.useMemo(() => {
+    var byId = {};
+    var byName = {};
+    (clients || []).forEach(c => {
+      var s = c.status === "client" ? "client" : "prospect";
+      if (c.id) byId[c.id] = s;
+      if (c.name) byName[String(c.name).toLowerCase()] = s;
+    });
+    return {
+      byId,
+      byName
+    };
+  }, [clients]);
+  var docKind = React.useCallback(d => {
+    // 1) client_id connu → status réel (client | prospect)
+    if (d.client_id && clientStatusMap.byId[d.client_id]) return clientStatusMap.byId[d.client_id];
+    // 2) match par raison sociale dans la table clients
+    var nameKey = String(d.client_name || "").toLowerCase();
+    if (nameKey && clientStatusMap.byName[nameKey]) return clientStatusMap.byName[nameKey];
+    // 3) raison sociale renseignée mais inconnue de la table clients
+    //    → prospect par défaut (créé à la volée depuis le devis, hors CRM)
+    if (d.client_name && String(d.client_name).trim()) return "prospect";
+    // 4) aucune info client → tiret
+    return null;
+  }, [clientStatusMap]);
+  React.useEffect(() => {
+    setStatusFilter("all");
+  }, [activeType]);
+
+  // Compteurs par statut (pour les pills de filtre)
+  var statusCounts = React.useMemo(() => {
+    var c = {
+      all: docs.length
+    };
+    docs.forEach(d => {
+      c[d.status] = (c[d.status] || 0) + 1;
+    });
+    return c;
+  }, [docs]);
+  var totals = React.useMemo(() => {
+    var t = {
+      count: filtered.length,
+      ht: 0,
+      ttc: 0,
+      pending: 0
+    };
+    filtered.forEach(d => {
+      t.ht += Number(d.total_ht) || 0;
+      t.ttc += Number(d.total_ttc) || 0;
+      if (d.status === "brouillon" || d.status === "envoye") t.pending++;
+    });
+    return t;
+  }, [filtered]);
+
+  // Création directe interdite pour tous les types autres que devis :
+  // la commande client, la commande d'achat, le BL et la facture ne peuvent
+  // exister que comme transformation d'un devis (ou d'un parent dans la chaîne).
+  // → bascule automatiquement sur l'onglet Devis et ouvre un nouveau devis.
+  var newDoc = async () => {
+    if (activeType !== "devis") {
+      var ok = confirm("On ne peut pas créer directement un(e) " + TYPES.find(t => t.k === activeType).label.toLowerCase() + ".\n\nLa chaîne Sage impose de partir d'un devis :\n  Devis → Commande client → BL → Facture\n\nOuvrir un nouveau devis ?");
+      if (!ok) return;
+      setActiveType("devis");
+      // Création différée le temps que l'onglet "Devis" soit actif
+      setTimeout(async () => {
+        try {
+          var doc = await window.api.commercialDocs.create({
+            type: "devis",
+            title: "Devis — Nouveau",
+            status: "brouillon",
+            lines: []
+          });
+          if (window.HubToast) window.HubToast.success("✓ " + doc.id + " créé");
+          setEditing(doc);
+          reload();
+        } catch (e) {
+          if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+        }
+      }, 30);
+      return;
+    }
+    try {
+      var doc = await window.api.commercialDocs.create({
+        type: "devis",
+        title: "Devis — Nouveau",
+        status: "brouillon",
+        lines: []
+      });
+      if (window.HubToast) window.HubToast.success("✓ " + doc.id + " créé");
+      setEditing(doc);
+      reload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var openDoc = async id => {
+    var full = await window.api.commercialDocs.getById(id);
+    if (!full) return;
+    // Bascule sur l'onglet correspondant pour cohérence avec la liste derrière
+    if (full.type && full.type !== activeType) setActiveType(full.type);
+    setEditing(full);
+  };
+
+  // URL params au chargement :
+  //  - ?open=DEV-XXXX → ouvre le doc en éditeur
+  //  - ?client=ACC-XXXX & ?opp=OPP-XXXX (sans ?open=) → crée un devis
+  //    pré-rempli avec ce client et cette opportunité
+  React.useEffect(() => {
+    var params = new URLSearchParams(window.location.search);
+    var openId = params.get("open");
+    var clientParam = params.get("client");
+    var oppParam = params.get("opp");
+    if (openId && !editing) {
+      var prefix = openId.split("-")[0];
+      var typeByPrefix = {
+        DEV: "devis",
+        BC: "commande",
+        BL: "bl",
+        FAC: "facture",
+        CA: "commande_achat"
+      };
+      var matched = typeByPrefix[prefix];
+      if (matched && matched !== activeType) setActiveType(matched);
+      (async () => {
+        try {
+          var full = await window.api.commercialDocs.getById(openId);
+          if (full) setEditing(full);
+        } catch (e) {}
+      })();
+      return;
+    }
+
+    // Pas de ?open= mais ?client= ou ?opp= valides (non "undefined") → crée
+    // un nouveau devis pré-rempli automatiquement.
+    var validParam = v => v && v !== "undefined" && v !== "null";
+    if ((validParam(clientParam) || validParam(oppParam)) && !editing) {
+      (async () => {
+        try {
+          var opp = null;
+          var client = null;
+          if (validParam(oppParam) && window.api.opportunities && window.api.opportunities.getById) {
+            try {
+              opp = await window.api.opportunities.getById(oppParam);
+            } catch (e) {}
+          }
+          var clientId = validParam(clientParam) && clientParam || opp && opp.client_id || null;
+          if (clientId && window.api.clients && window.api.clients.getById) {
+            try {
+              client = await window.api.clients.getById(clientId);
+            } catch (e) {}
+          }
+          var _newDoc = await window.api.commercialDocs.create({
+            type: "devis",
+            status: "brouillon",
+            client_id: clientId,
+            client_name: client && (client.name || client.raison_sociale) || opp && opp.client_name || null,
+            client_address: client && (client.adresse || client.address) || null,
+            client_cp: client && (client.cp || client.code_postal) || null,
+            client_city: client && (client.city || client.ville) || null,
+            client_siren: client && client.siren || null,
+            opportunity_id: opp && (opp.id || opp.ref) || (validParam(oppParam) ? oppParam : null),
+            title: opp && opp.name ? "Devis — " + opp.name : "Devis — Nouveau",
+            owner: opp && opp.owner || null,
+            lines: []
+          });
+          if (_newDoc) {
+            if (window.HubToast) window.HubToast.success("✓ " + _newDoc.id + " créé — client" + (opp ? " et opportunité" : "") + " pré-remplis");
+            setActiveType("devis");
+            setEditing(_newDoc);
+            // Nettoie l'URL pour éviter une re-création au refresh
+            try {
+              var cleanUrl = window.location.pathname;
+              window.history.replaceState({}, "", cleanUrl);
+            } catch (e) {}
+          }
+        } catch (e) {
+          if (window.HubToast) window.HubToast.error("Création devis : " + (e.message || e));
+        }
+      })();
+    }
+  }, []);
+  var closeEditor = () => {
+    setEditing(null);
+    reload();
+  };
+
+  // Format euro fr-FR : la virgule est le séparateur décimal légal, ne PAS la remplacer.
+  var fmtEUR = window.HubConstants && window.HubConstants.fmtEUR || (n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) + " €");
+  return /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.frame
+  }, /*#__PURE__*/React.createElement("aside", {
+    style: cdStyles.sidebar
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "0 0 18px",
+      textDecoration: "none",
+      color: "inherit",
+      borderBottom: "1px solid #eef1f5"
+    }
+  }, window.HubModuleLogo ? React.createElement(window.HubModuleLogo, {
+    size: 36
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.logo
+  }, "H"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "Hub Astorya"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, "Gestion commerciale"))), /*#__PURE__*/React.createElement("button", {
+    onClick: newDoc,
+    style: cdStyles.newBtn
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, "+"), /*#__PURE__*/React.createElement("span", null, TYPES.find(t => t.k === activeType).newLabel)), /*#__PURE__*/React.createElement("a", {
+    href: "/demandes-entrantes",
+    style: {
+      ...cdStyles.navItem,
+      textDecoration: "none",
+      color: "inherit",
+      marginTop: 6,
+      border: "1px solid #fed7aa",
+      background: "#fff7ed"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 16
+    }
+  }, "\uD83D\uDCE5"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontWeight: 600
+    }
+  }, "Demandes entrantes"), inboundCount > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "1px 6px",
+      borderRadius: 999,
+      background: "#ea580c",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, inboundCount)), /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.navLabel
+  }, "Documents"), TYPES.map(t => /*#__PURE__*/React.createElement("div", {
+    key: t.k,
+    onClick: () => setActiveType(t.k),
+    style: {
+      ...cdStyles.navItem,
+      ...(activeType === t.k ? cdStyles.navItemActive : {})
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 16,
+      color: activeType === t.k ? t.color : "#94a3b8"
+    }
+  }, t.icon), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, t.navLabel || t.label), /*#__PURE__*/React.createElement("span", {
+    style: cdStyles.navCount
+  }, activeType === t.k ? docs.length : ""))), /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.navLabel
+  }, "Administration"), /*#__PURE__*/React.createElement("a", {
+    href: "/gestion-commerciale-admin",
+    style: {
+      ...cdStyles.navItem,
+      textDecoration: "none",
+      color: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 16,
+      color: "#94a3b8"
+    }
+  }, "\u2699"), /*#__PURE__*/React.createElement("span", null, "Catalogue & param\xE8tres"))), /*#__PURE__*/React.createElement("main", {
+    style: cdStyles.main
+  }, /*#__PURE__*/React.createElement("header", {
+    style: cdStyles.topbar
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: cdStyles.h1
+  }, TYPES.find(t => t.k === activeType).label), /*#__PURE__*/React.createElement("p", {
+    style: cdStyles.sub
+  }, totals.count, " document(s) \xB7 ", fmtEUR(totals.ttc), " TTC \xB7 ", totals.pending, " en attente")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Rechercher (r\xE9f, client, titre\u2026)",
+    style: cdStyles.searchInput
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: newDoc,
+    style: cdStyles.primaryBtn
+  }, "+ Nouveau"))), /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.kpiRow
+  }, /*#__PURE__*/React.createElement(KPI, {
+    label: "Total HT",
+    value: fmtEUR(totals.ht),
+    color: "#3730a3"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "Total TTC",
+    value: fmtEUR(totals.ttc),
+    color: "#10b981"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "Demandes entrantes en attente",
+    value: inboundCount,
+    color: "#ea580c",
+    href: "/demandes-entrantes",
+    hint: "\u2192 Voir les demandes"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "Documents",
+    value: totals.count,
+    color: "#0ea5e9"
+  })), docs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginBottom: 14,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, [{
+    k: "all",
+    label: "Tous"
+  }, {
+    k: "brouillon",
+    label: "Brouillons",
+    c: "#94a3b8"
+  }, {
+    k: "envoye",
+    label: "Envoyés",
+    c: "#3b82f6"
+  }, activeType === "devis" && {
+    k: "accepte",
+    label: "Acceptés",
+    c: "#10b981"
+  }, activeType === "devis" && {
+    k: "refuse",
+    label: "Refusés",
+    c: "#dc2626"
+  }, {
+    k: "transforme",
+    label: "Transformés",
+    c: "#7e22ce"
+  }, activeType === "bl" && {
+    k: "livre",
+    label: "Livrés",
+    c: "#f59e0b"
+  }, activeType === "facture" && {
+    k: "paye",
+    label: "Payés",
+    c: "#065f46"
+  }, {
+    k: "annule",
+    label: "Annulés",
+    c: "#475569"
+  }].filter(Boolean).map(s => {
+    var count = s.k === "all" ? statusCounts.all : statusCounts[s.k] || 0;
+    var active = statusFilter === s.k;
+    if (s.k !== "all" && count === 0) return null;
+    return /*#__PURE__*/React.createElement("button", {
+      key: s.k,
+      onClick: () => setStatusFilter(s.k),
+      style: {
+        padding: "5px 11px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
+        border: "1px solid " + (active ? s.c || "#0f172a" : "#e2e8f0"),
+        background: active ? s.c || "#0f172a" : "#fff",
+        color: active ? "#fff" : "#475569",
+        cursor: "pointer",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, s.label, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontVariantNumeric: "tabular-nums",
+        opacity: 0.85
+      }
+    }, count));
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 1,
+      height: 22,
+      background: "#e2e8f0",
+      margin: "0 2px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 10px 5px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      background: "#fff",
+      minWidth: 220
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Client"), /*#__PURE__*/React.createElement("input", {
+    value: clientFilter,
+    onChange: e => setClientFilter(e.target.value),
+    list: "cdoc-clients-list",
+    placeholder: "raison sociale ou CLIxxx",
+    style: {
+      border: 0,
+      outline: "none",
+      flex: 1,
+      fontSize: 13,
+      padding: "3px 4px",
+      background: "transparent",
+      minWidth: 0
+    }
+  }), clientFilter && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setClientFilter(""),
+    title: "Effacer",
+    style: {
+      border: 0,
+      background: "transparent",
+      color: "#94a3b8",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\xD7"), /*#__PURE__*/React.createElement("datalist", {
+    id: "cdoc-clients-list"
+  }, clientOptions.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c,
+    value: c
+  }, computeClientCode(c), " \u2014 ", c)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 10px 5px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      background: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    },
+    title: "Plage glissante : 12 derniers mois par d\xE9faut"
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: dateFrom,
+    onChange: e => setDateFrom(e.target.value),
+    style: {
+      border: 0,
+      outline: "none",
+      fontSize: 12.5,
+      padding: "3px 4px",
+      background: "transparent",
+      color: "#0f172a",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#94a3b8",
+      fontSize: 12
+    }
+  }, "\u2192"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: dateTo,
+    onChange: e => setDateTo(e.target.value),
+    style: {
+      border: 0,
+      outline: "none",
+      fontSize: 12.5,
+      padding: "3px 4px",
+      background: "transparent",
+      color: "#0f172a",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }), (dateFrom !== DEFAULT_DATE_RANGE.from || dateTo !== DEFAULT_DATE_RANGE.to) && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setDateFrom(DEFAULT_DATE_RANGE.from);
+      setDateTo(DEFAULT_DATE_RANGE.to);
+    },
+    title: "Revenir aux 12 derniers mois",
+    style: {
+      border: 0,
+      background: "transparent",
+      color: "#94a3b8",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u21BA")), (clientFilter || dateFrom !== DEFAULT_DATE_RANGE.from || dateTo !== DEFAULT_DATE_RANGE.to) && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b"
+    }
+  }, filtered.length, " r\xE9sultat", filtered.length > 1 ? "s" : "")), loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 60,
+      textAlign: "center",
+      color: "#94a3b8"
+    }
+  }, "Chargement\u2026") : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.empty
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "#0f172a"
+    }
+  }, "Aucun ", TYPES.find(t => t.k === activeType).label.toLowerCase(), " pour le moment"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      marginTop: 4
+    }
+  }, "Cliquez sur \xAB + Nouveau \xBB pour cr\xE9er le premier."), /*#__PURE__*/React.createElement("button", {
+    onClick: newDoc,
+    style: {
+      ...cdStyles.primaryBtn,
+      marginTop: 14
+    }
+  }, "+ Cr\xE9er le premier")) : (() => {
+    // Le doc sélectionné pour le panneau de prévisualisation à droite.
+    // Hover sur une ligne (avec petit délai) → met à jour previewDocId.
+    var previewedDoc = (filtered || []).find(d => d.id === previewDocId) || null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 14,
+        alignItems: "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...cdStyles.docList,
+        flex: previewedDoc ? "1 1 0%" : 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: cdStyles.tableHead
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 130px"
+      }
+    }, "R\xE9f\xE9rence de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 90px"
+      }
+    }, "Code raison sociale"), !previewedDoc && /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 170px"
+      }
+    }, "Workflow"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 110px",
+        textAlign: "right"
+      }
+    }, "Date de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, "Nom de la raison sociale / Titre du devis"), !previewedDoc && /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 90px"
+      }
+    }, "Statut de la raison sociale"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 120px",
+        textAlign: "right"
+      }
+    }, "Montant HT"), !previewedDoc && /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 120px",
+        textAlign: "right"
+      }
+    }, "Montant TTC"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 100px"
+      }
+    }, "Statut de la pi\xE8ce"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: "0 0 60px"
+      }
+    })), filtered.map(d => /*#__PURE__*/React.createElement("div", {
+      key: d.id,
+      onMouseEnter: () => {
+        // Annule un éventuel masquage en cours et arme l'affichage.
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = setTimeout(() => setPreviewDocId(d.id), 180);
+      },
+      onMouseLeave: () => {
+        // Quitter la ligne masque l'aperçu (retour à la liste seule).
+        // Masquage différé pour permettre de passer sur le panneau
+        // (ex. cliquer « Ouvrir ») sans qu'il disparaisse aussitôt.
+        if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = setTimeout(() => setPreviewDocId(null), 220);
+      }
+    }, /*#__PURE__*/React.createElement(DocRow, {
+      doc: d,
+      chain: buildChainFromAny(d),
+      statusMeta: STATUS_META,
+      fmtEUR: fmtEUR,
+      onOpen: openDoc,
+      onReload: reload,
+      kind: docKind(d),
+      compact: !!previewedDoc
+    })))), previewedDoc && /*#__PURE__*/React.createElement("div", {
+      onMouseEnter: () => {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      },
+      onMouseLeave: () => {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = setTimeout(() => setPreviewDocId(null), 220);
+      }
+    }, /*#__PURE__*/React.createElement(DocPreviewPane, {
+      doc: previewedDoc,
+      chain: buildChainFromAny(previewedDoc),
+      fmtEUR: fmtEUR,
+      onOpen: () => openDoc(previewedDoc.id),
+      onClose: () => setPreviewDocId(null),
+      kind: docKind(previewedDoc)
+    })));
+  })()), editing && /*#__PURE__*/React.createElement(CommercialDocEditor, {
+    key: editing.id,
+    doc: editing,
+    clients: clients,
+    opps: opps,
+    chain: buildChainFromAny(editing),
+    onClose: closeEditor,
+    onSaved: reload,
+    onOpenDoc: openDoc
+  }));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// WorkflowBar — Visualisation du cycle Devis→Commande→BL→Facture
+//                avec étape courante + portes de validation
+// ─────────────────────────────────────────────────────────────────
+var WorkflowBar = ({
+  doc,
+  canTransform,
+  chain,
+  onOpenDoc
+}) => {
+  var STEPS = [{
+    k: "devis",
+    label: "Devis",
+    icon: "📄"
+  }, {
+    k: "commande",
+    label: "Commande client",
+    icon: "📋"
+  }, {
+    k: "bl",
+    label: "BL",
+    icon: "🚚"
+  }, {
+    k: "facture",
+    label: "Facture",
+    icon: "💶"
+  }];
+  var curIdx = STEPS.findIndex(s => s.k === doc.type);
+  var isLocked = doc.status === "transforme";
+  // Étape "future" qui existe déjà en BDD (créée par cascade) → violet plein
+  var hasDescendant = k => !!(chain && chain[k]);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "linear-gradient(135deg, #f0f9ff, #eef2ff)",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      padding: "12px 14px",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#3730a3",
+      letterSpacing: 0.4,
+      textTransform: "uppercase"
+    }
+  }, "Workflow Sage"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#475569"
+    }
+  }, isLocked ? "✓ Doc transformé — lignes & champs restent éditables" : canTransform.ok ? "✅ Transformation autorisée" : "⚠ Bloqué : " + canTransform.reason)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, STEPS.map((s, i) => {
+    var isCurrent = i === curIdx;
+    var isPast = i < curIdx;
+    var isFuture = i > curIdx;
+    var isCreated = isFuture && hasDescendant(s.k); // doc enfant déjà créé
+    var child = chain && chain[s.k];
+    // Si le doc courant a un doc aval créé dans la chaîne (facture pour
+    // un BL, BL pour une commande, etc.) → on considère qu'il est
+    // "validé / clos" : pastille verte au lieu d'indigo.
+    var downstream = chain && curIdx >= 0 && i < STEPS.length ? STEPS.slice(curIdx + 1).some(stp => chain[stp.k]) : false;
+    var isCurrentClosed = isCurrent && downstream;
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: s.k
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: () => {
+        // Pastille violette "CRÉÉ" cliquable → ouvre le doc enfant
+        // (commande client, BL ou facture déjà existant dans la chaîne).
+        if (isPast && chain && chain[s.k] && chain[s.k].id !== doc.id && onOpenDoc) {
+          onOpenDoc(chain[s.k].id);
+          return;
+        }
+        if (isCreated && child && child.id !== doc.id && onOpenDoc) {
+          onOpenDoc(child.id);
+        }
+      },
+      title: isCreated && child ? "Ouvrir " + child.id : isPast && chain && chain[s.k] ? "Ouvrir " + chain[s.k].id : "",
+      style: {
+        flex: 1,
+        padding: "8px 10px",
+        borderRadius: 7,
+        background: isCurrentClosed ? "#16a34a" : isCurrent ? "#3730a3" : isPast ? "#dcfce7" : isCreated ? "#7c3aed" : "#fff",
+        color: isCurrentClosed ? "#fff" : isCurrent ? "#fff" : isPast ? "#065f46" : isCreated ? "#fff" : "#94a3b8",
+        border: "1px solid " + (isCurrentClosed ? "#16a34a" : isCurrent ? "#3730a3" : isPast ? "#86efac" : isCreated ? "#7c3aed" : "#e2e8f0"),
+        boxShadow: isCurrentClosed ? "0 2px 6px rgba(22,163,74,0.35)" : isCreated ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
+        cursor: isCreated || isPast && chain && chain[s.k] && chain[s.k].id !== doc.id ? "pointer" : "default",
+        fontSize: 12,
+        fontWeight: 600,
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14
+      }
+    }, s.icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, s.label), isCurrent && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "1px 6px",
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.25)",
+        fontWeight: 700
+      }
+    }, isCurrentClosed ? "VALIDÉ" : (doc.status || "").toUpperCase()), isPast && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12
+      }
+    }, "\u2713"), isCreated && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "1px 6px",
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.25)",
+        fontWeight: 700
+      }
+    }, "CR\xC9\xC9")), i < STEPS.length - 1 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        color: isPast || isCreated ? "#10b981" : isCurrent && canTransform.ok ? "#10b981" : "#cbd5e1"
+      }
+    }, isPast || isCreated ? "→" : isCurrent && canTransform.ok ? "→" : "✕"));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#64748b",
+      marginTop: 8,
+      lineHeight: 1.5
+    }
+  }, "\uD83D\uDCA1 ", /*#__PURE__*/React.createElement("strong", null, "R\xE8gles de validation"), " : un devis doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9"), " pour \xEAtre transform\xE9 en commande \xB7 une commande doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Accept\xE9e"), " pour g\xE9n\xE9rer un BL \xB7 un BL doit \xEAtre ", /*#__PURE__*/React.createElement("strong", null, "Livr\xE9"), " pour produire une facture. M\xEAme apr\xE8s transformation, les ", /*#__PURE__*/React.createElement("strong", null, "lignes et champs restent \xE9ditables"), " (ajout, modification, suppression d'articles autoris\xE9s)."));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// DocRow — Ligne de la liste avec menu d'actions rapides
+// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// DocPreviewPane — panneau de prévisualisation du doc survolé
+// Affiché à droite de la liste quand previewDocId est défini.
+// Charge les lignes via api.commercialDocs.getById (cache simple par id).
+// ─────────────────────────────────────────────────────────────────
+var DocPreviewPane = ({
+  doc,
+  chain,
+  fmtEUR,
+  onOpen,
+  onClose,
+  kind
+}) => {
+  var [fullDoc, setFullDoc] = React.useState(null);
+  var [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    var cancel = false;
+    setLoading(true);
+    setFullDoc(null);
+    (async () => {
+      try {
+        var f = await window.api.commercialDocs.getById(doc.id);
+        if (!cancel) {
+          setFullDoc(f);
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancel) setLoading(false);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [doc.id]);
+  var lines = fullDoc && fullDoc.lines || [];
+  var fmtDate = s => {
+    if (!s) return "—";
+    var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+  };
+  var TYPE_LABEL = {
+    devis: "Devis",
+    commande: "Commande client",
+    bl: "Bon de livraison",
+    facture: "Facture",
+    commande_achat: "Commande fournisseur"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "0 0 420px",
+      maxWidth: 420,
+      background: "#fff",
+      border: "1px solid #eef1f5",
+      borderRadius: 12,
+      padding: 0,
+      position: "sticky",
+      top: 16,
+      maxHeight: "calc(100vh - 40px)",
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "0 4px 16px rgba(15,23,42,0.06)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "12px 16px",
+      borderBottom: "1px solid #eef1f5",
+      background: "linear-gradient(180deg, #fafbfc 0%, #fff 100%)"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, TYPE_LABEL[doc.type] || doc.type), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "#3730a3",
+      fontVariantNumeric: "tabular-nums",
+      marginTop: 2
+    }
+  }, doc.id)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onOpen,
+    title: "Ouvrir le doc en \xE9dition",
+    style: {
+      padding: "6px 10px",
+      background: "#3730a3",
+      color: "#fff",
+      border: 0,
+      borderRadius: 6,
+      fontSize: 11.5,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "Ouvrir"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    title: "Fermer l'aper\xE7u",
+    style: {
+      width: 26,
+      height: 26,
+      background: "#f1f5f9",
+      border: 0,
+      borderRadius: 6,
+      color: "#475569",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, "Client"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a",
+      marginTop: 3,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, doc.client_name || "— Non renseigné —"), kind && /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      marginTop: 4,
+      padding: "1px 7px",
+      borderRadius: 999,
+      background: kind === "client" ? "#dcfce7" : "#fef3c7",
+      color: kind === "client" ? "#065f46" : "#78350f",
+      fontSize: 9.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, kind === "client" ? "Client" : "Prospect")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, "Date"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#475569",
+      marginTop: 3,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtDate(doc.doc_date)))), doc.title && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b",
+      marginTop: 6,
+      fontStyle: "italic"
+    }
+  }, doc.title)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 16px",
+      borderBottom: "1px solid #f1f5f9",
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 6
+    }
+  }, "Workflow Sage"), /*#__PURE__*/React.createElement(WorkflowChain, {
+    chain: chain,
+    currentType: doc.type
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      padding: "10px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#94a3b8",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 6
+    }
+  }, "Lignes ", lines.length > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#cbd5e1",
+      marginLeft: 4
+    }
+  }, "(", lines.length, ")")), loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#94a3b8",
+      fontStyle: "italic",
+      padding: "8px 0"
+    }
+  }, "Chargement\u2026") : lines.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#94a3b8",
+      fontStyle: "italic",
+      padding: "8px 0"
+    }
+  }, "Aucune ligne") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, lines.map((l, i) => /*#__PURE__*/React.createElement("div", {
+    key: l.id || i,
+    style: {
+      padding: "6px 8px",
+      background: "#fafbfc",
+      border: "1px solid #eef1f5",
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      flex: 1
+    }
+  }, l.designation || "(sans désignation)"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#0f172a",
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    }
+  }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, l.ref && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#3730a3",
+      fontWeight: 600
+    }
+  }, l.ref), l.ref && " · ", Number(l.quantity) || 0, " ", l.unit || "u", " \xD7 ", fmtEUR(l.unit_price_ht)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      borderTop: "1px solid #eef1f5",
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12,
+      color: "#475569"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Total HT"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtEUR(doc.total_ht))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12,
+      color: "#475569",
+      marginTop: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "TVA"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtEUR(doc.total_tva))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#0f172a",
+      marginTop: 6,
+      paddingTop: 6,
+      borderTop: "1px solid #e2e8f0"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Total TTC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtEUR(doc.total_ttc)))));
+};
+var DocRow = ({
+  doc,
+  chain,
+  statusMeta,
+  fmtEUR,
+  onOpen,
+  onReload,
+  kind,
+  compact
+}) => {
+  var [menuOpen, setMenuOpen] = React.useState(false);
+  var [menuPos, setMenuPos] = React.useState({
+    top: 0,
+    right: 0
+  });
+  var menuRef = React.useRef(null);
+  var btnRef = React.useRef(null);
+  var sm = statusMeta[doc.status] || statusMeta.brouillon;
+
+  // Click outside : on attend la frame suivante pour ne pas catcher
+  // le click qui vient d'ouvrir le menu (sinon il se referme aussitôt).
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    var close = e => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setMenuOpen(false);
+    };
+    var id = window.requestAnimationFrame(() => {
+      document.addEventListener("mousedown", close);
+    });
+    return () => {
+      window.cancelAnimationFrame(id);
+      document.removeEventListener("mousedown", close);
+    };
+  }, [menuOpen]);
+  var stop = e => e.stopPropagation();
+  var duplicate = async () => {
+    try {
+      var full = await window.api.commercialDocs.getById(doc.id);
+      if (!full) throw new Error("Doc introuvable");
+      var lines = (full.lines || []).map(l => ({
+        article_id: l.article_id,
+        ref: l.ref,
+        designation: l.designation,
+        description: l.description,
+        quantity: l.quantity,
+        unit: l.unit,
+        unit_price_ht: l.unit_price_ht,
+        discount_pct: l.discount_pct,
+        tva_rate: l.tva_rate,
+        total_ht: l.total_ht,
+        total_tva: l.total_tva,
+        total_ttc: l.total_ttc,
+        is_text_only: l.is_text_only
+      }));
+      var copy = await window.api.commercialDocs.create({
+        type: doc.type,
+        status: "brouillon",
+        client_id: full.client_id,
+        client_name: full.client_name,
+        client_address: full.client_address,
+        client_cp: full.client_cp,
+        client_city: full.client_city,
+        client_siren: full.client_siren,
+        client_tva: full.client_tva,
+        contact_name: full.contact_name,
+        contact_email: full.contact_email,
+        project_id: full.project_id,
+        opportunity_id: full.opportunity_id,
+        title: "Copie de " + (full.title || full.id),
+        notes: full.notes,
+        payment_terms_id: full.payment_terms_id,
+        owner: full.owner,
+        lines
+      });
+      if (window.HubToast) window.HubToast.success("✓ " + copy.id + " créé (copie)");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var quickStatus = async (status, label) => {
+    try {
+      var patch = {
+        status
+      };
+      if (status === "paye") patch.paid_at = new Date().toISOString();
+      if (status === "livre") patch.delivered_at = new Date().toISOString();
+      await window.api.commercialDocs.update(doc.id, patch);
+      if (window.HubToast) window.HubToast.success("✓ Statut → " + label);
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var downloadPdf = async () => {
+    if (!window.HubCommercialPdf) {
+      if (window.HubToast) window.HubToast.error("Module PDF non chargé — rechargez la page (F5)");else alert("Module PDF non chargé — rechargez la page");
+      return;
+    }
+    try {
+      await window.HubCommercialPdf.download(doc.id);
+      // Log téléchargement (best-effort, ne bloque pas si la table n'existe pas)
+      try {
+        await window.api.commercialSends.log({
+          doc_id: doc.id,
+          doc_type: doc.type,
+          channel: "download",
+          status: "sent",
+          provider: "browser"
+        });
+      } catch (e) {}
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur PDF : " + (e.message || e));
+    }
+  };
+  var remove = async () => {
+    if (!confirm("Supprimer " + doc.id + " ? (soft-delete)")) return;
+    try {
+      await window.api.commercialDocs.remove(doc.id);
+      if (window.HubToast) window.HubToast.success("✓ " + doc.id + " supprimé");
+      onReload && onReload();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+
+  // Typo unifiée Inter + tabular-nums pour les valeurs numériques (chiffres alignés
+  // sans recourir à une police monospace cassante). Date formatée en jj/mm/aaaa.
+  var fmtDate = s => {
+    if (!s) return "";
+    var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+  };
+  var numStyle = {
+    fontVariantNumeric: "tabular-nums"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: () => onOpen(doc.id),
+    style: cdStyles.tableRow
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 130px",
+      fontSize: 12.5,
+      color: "#3730a3",
+      fontWeight: 600,
+      ...numStyle
+    }
+  }, doc.id), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 90px"
+    }
+  }, doc.client_name ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 5,
+      background: "#eef2ff",
+      color: "#3730a3",
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 0.4
+    }
+  }, computeClientCode(doc.client_name)) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#cbd5e1"
+    }
+  }, "\u2014")), !compact && /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 170px"
+    }
+  }, /*#__PURE__*/React.createElement(WorkflowChain, {
+    chain: chain,
+    currentType: doc.type
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 110px",
+      textAlign: "right",
+      fontSize: 12.5,
+      color: "#475569",
+      letterSpacing: 0,
+      ...numStyle
+    }
+  }, fmtDate(doc.doc_date)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, doc.client_name || "— Client non renseigné —"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#64748b",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, doc.title || "(sans titre)")), !compact && /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 90px"
+    }
+  }, kind === "client" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 9px",
+      borderRadius: 999,
+      background: "#dcfce7",
+      color: "#065f46",
+      fontSize: 10.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Client") : kind === "prospect" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 9px",
+      borderRadius: 999,
+      background: "#fef3c7",
+      color: "#78350f",
+      fontSize: 10.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Prospect") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#cbd5e1"
+    }
+  }, "\u2014")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 120px",
+      textAlign: "right",
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#0f172a",
+      ...numStyle
+    }
+  }, fmtEUR(doc.total_ht)), !compact && /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 120px",
+      textAlign: "right",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a",
+      ...numStyle
+    }
+  }, fmtEUR(doc.total_ttc)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 100px"
+    }
+  }, (() => {
+    // Statut de la pièce = étape d'après dans le workflow Sage.
+    // Si doc déjà transformé ou final → on garde le statut courant.
+    var NEXT_LBL = {
+      devis: {
+        k: "À commander",
+        c: "#a855f7",
+        bg: "#f5efff"
+      },
+      commande: {
+        k: "À livrer",
+        c: "#ea580c",
+        bg: "#fff7ed"
+      },
+      bl: {
+        k: "À facturer",
+        c: "#10b981",
+        bg: "#dcfce7"
+      },
+      facture: null
+    };
+    var stop = doc.status === "annule" || doc.status === "refuse";
+    if (stop) return /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: sm.bg,
+        color: sm.color,
+        fontSize: 11,
+        fontWeight: 600
+      }
+    }, sm.label);
+    var next = NEXT_LBL[doc.type];
+    if (!next) return /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: sm.bg,
+        color: sm.color,
+        fontSize: 11,
+        fontWeight: 600
+      }
+    }, sm.label);
+    return /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: next.bg,
+        color: next.c,
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, next.k);
+  })()), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 60px",
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    ref: btnRef,
+    onClick: e => {
+      stop(e);
+      // Calcule la position du menu en viewport (position fixed) pour
+      // qu'il échappe à l'overflow:hidden du parent docList
+      if (btnRef.current) {
+        var r = btnRef.current.getBoundingClientRect();
+        setMenuPos({
+          top: r.bottom + 4,
+          right: window.innerWidth - r.right
+        });
+      }
+      setMenuOpen(v => !v);
+    },
+    style: {
+      background: "transparent",
+      border: 0,
+      color: "#94a3b8",
+      fontSize: 18,
+      cursor: "pointer",
+      padding: "4px 10px",
+      borderRadius: 4
+    },
+    title: "Actions"
+  }, "\u22EF"), menuOpen && /*#__PURE__*/React.createElement("div", {
+    ref: menuRef,
+    onClick: stop,
+    onMouseDown: stop,
+    style: {
+      position: "fixed",
+      top: menuPos.top,
+      right: menuPos.right,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      boxShadow: "0 8px 24px rgba(15,23,42,0.18)",
+      zIndex: 9999,
+      minWidth: 220,
+      padding: 4
+    }
+  }, /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDC41",
+    label: "Aper\xE7u PDF",
+    onClick: async () => {
+      setMenuOpen(false);
+      if (!window.HubCommercialPdf) {
+        if (window.HubToast) window.HubToast.error("Module PDF non chargé — rechargez la page");
+        return;
+      }
+      try {
+        await window.HubCommercialPdf.preview(doc.id);
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur PDF : " + (e.message || e));
+      }
+    }
+  }), /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\u21E9",
+    label: "T\xE9l\xE9charger PDF",
+    onClick: () => {
+      setMenuOpen(false);
+      downloadPdf();
+    }
+  }), /*#__PURE__*/React.createElement(MenuDivider, null), /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDCCB",
+    label: "Dupliquer",
+    onClick: () => {
+      setMenuOpen(false);
+      duplicate();
+    }
+  }), doc.type === "devis" && doc.status !== "accepte" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\u2713",
+    label: "Marquer accept\xE9",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("accepte", "Accepté");
+    }
+  }), doc.type === "devis" && doc.status !== "refuse" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\u2715",
+    label: "Marquer refus\xE9",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("refuse", "Refusé");
+    }
+  }), doc.type === "facture" && doc.status !== "paye" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDCB6",
+    label: "Marquer pay\xE9e",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("paye", "Payée");
+    }
+  }), doc.type === "bl" && doc.status !== "livre" && /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDE9A",
+    label: "Marquer livr\xE9",
+    onClick: () => {
+      setMenuOpen(false);
+      quickStatus("livre", "Livré");
+    }
+  }), /*#__PURE__*/React.createElement(MenuDivider, null), /*#__PURE__*/React.createElement(MenuItem, {
+    icon: "\uD83D\uDDD1",
+    label: "Supprimer",
+    danger: true,
+    onClick: () => {
+      setMenuOpen(false);
+      remove();
+    }
+  }))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// WorkflowChain — Affiche l'état Devis→Commande→BL→Facture en mini-pills
+// ─────────────────────────────────────────────────────────────────
+var WorkflowChain = ({
+  chain,
+  currentType
+}) => {
+  var STEPS = [{
+    k: "devis",
+    label: "D",
+    title: "Devis",
+    color: "#3b82f6"
+  }, {
+    k: "commande",
+    label: "C",
+    title: "Commande client",
+    color: "#a855f7"
+  }, {
+    k: "bl",
+    label: "B",
+    title: "BL",
+    color: "#ea580c"
+  }, {
+    k: "facture",
+    label: "F",
+    title: "Facture",
+    color: "#10b981"
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 2
+    }
+  }, STEPS.map((s, i) => {
+    var doc = chain && chain[s.k];
+    var isCurrent = s.k === currentType;
+    var exists = !!doc;
+    var isPaid = exists && doc.status === "paye";
+    var isLivre = exists && doc.status === "livre";
+    var isAccepted = exists && doc.status === "accepte";
+    var isTransforme = exists && doc.status === "transforme";
+    var isCancelled = exists && (doc.status === "annule" || doc.status === "refuse");
+    // Couleur : vert si validé/terminé, couleur stage si en cours, gris si pas créé
+    var bg = !exists ? "#f1f5f9" : isCancelled ? "#fee2e2" : isPaid || isLivre || isAccepted || isTransforme ? s.color : s.color + "30";
+    var color = !exists ? "#cbd5e1" : isCancelled ? "#991b1b" : isPaid || isLivre || isAccepted || isTransforme ? "#fff" : s.color;
+    var border = isCurrent ? "2px solid #0f172a" : "1px solid " + (exists ? s.color : "#e2e8f0");
+    var tooltip = exists ? s.title + " " + doc.id + " · " + doc.status : s.title + " — non créé";
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: s.k
+    }, /*#__PURE__*/React.createElement("span", {
+      title: tooltip,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        background: bg,
+        color,
+        border,
+        fontSize: 10,
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, s.label), i < STEPS.length - 1 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: chain && chain[STEPS[i + 1].k] ? "#10b981" : "#cbd5e1"
+      }
+    }, "\u203A"));
+  }));
+};
+var MenuItem = ({
+  icon,
+  label,
+  onClick,
+  danger
+}) => /*#__PURE__*/React.createElement("button", {
+  onClick: onClick,
+  style: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    padding: "7px 10px",
+    border: 0,
+    background: "transparent",
+    fontSize: 12.5,
+    color: danger ? "#dc2626" : "#0f172a",
+    textAlign: "left",
+    cursor: "pointer",
+    borderRadius: 5
+  },
+  onMouseEnter: e => e.currentTarget.style.background = danger ? "#fee2e2" : "#f1f5f9",
+  onMouseLeave: e => e.currentTarget.style.background = "transparent"
+}, /*#__PURE__*/React.createElement("span", {
+  style: {
+    width: 16
+  }
+}, icon), label);
+var MenuDivider = () => /*#__PURE__*/React.createElement("div", {
+  style: {
+    height: 1,
+    background: "#eef1f5",
+    margin: "2px 6px"
+  }
+});
+var KPI = ({
+  label,
+  value,
+  color,
+  href,
+  hint
+}) => {
+  var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      fontWeight: 600
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      color: color || "#0f172a",
+      marginTop: 4,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, value), hint && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: color || "#64748b",
+      marginTop: 2,
+      fontWeight: 600
+    }
+  }, hint));
+  var base = {
+    flex: 1,
+    background: "#fff",
+    border: "1px solid #eef1f5",
+    borderRadius: 10,
+    padding: "12px 14px"
+  };
+  if (href) {
+    return /*#__PURE__*/React.createElement("a", {
+      href: href,
+      title: "Voir les demandes entrantes en attente",
+      style: {
+        ...base,
+        textDecoration: "none",
+        display: "block",
+        cursor: "pointer",
+        borderColor: "#fed7aa",
+        transition: "box-shadow 120ms"
+      },
+      onMouseEnter: e => e.currentTarget.style.boxShadow = "0 2px 10px rgba(234,88,12,0.15)",
+      onMouseLeave: e => e.currentTarget.style.boxShadow = "none"
+    }, inner);
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: base
+  }, inner);
+};
+
+// ─────────────────────────────────────────────────────────────────
+// EDITOR : édition d'un doc + ses lignes
+// ─────────────────────────────────────────────────────────────────
+var CommercialDocEditor = ({
+  doc,
+  clients,
+  opps,
+  chain,
+  onClose,
+  onSaved,
+  onOpenDoc
+}) => {
+  var [d, setD] = React.useState(doc);
+  var [articles, setArticles] = React.useState([]);
+  var [tvaRates, setTvaRates] = React.useState([]);
+  var [paymentTerms, setPaymentTerms] = React.useState([]);
+  var [suppliers, setSuppliers] = React.useState([]);
+  var [saving, setSaving] = React.useState(false);
+  var [sendOpen, setSendOpen] = React.useState(false);
+  var [smartSearchOpen, setSmartSearchOpen] = React.useState(false);
+  var [acompteOpen, setAcompteOpen] = React.useState(false);
+  var [paymentOpen, setPaymentOpen] = React.useState(false);
+  var [avoirOpen, setAvoirOpen] = React.useState(false);
+  var reloadSuppliers = React.useCallback(async () => {
+    try {
+      setSuppliers((await window.api.suppliers.list({
+        active: true
+      })) || []);
+    } catch (e) {}
+  }, []);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        setArticles((await window.api.commercialArticles.list({
+          active: true
+        })) || []);
+      } catch (e) {}
+      try {
+        setTvaRates((await window.api.commercialRefs.tvaRates()) || []);
+      } catch (e) {}
+      try {
+        setPaymentTerms((await window.api.commercialRefs.paymentTerms()) || []);
+      } catch (e) {}
+      reloadSuppliers();
+    })();
+  }, [reloadSuppliers]);
+
+  // Avoirs liés à cette facture (déduits du solde dû). On les recharge à
+  // l'ouverture d'une facture pour afficher le crédit dans les totaux.
+  var [linkedAvoirs, setLinkedAvoirs] = React.useState([]);
+  React.useEffect(() => {
+    if (d.type !== "facture" || !d.id) {
+      setLinkedAvoirs([]);
+      return;
+    }
+    (async () => {
+      try {
+        var avs = await window.api.commercialDocs.list({
+          type: "avoir",
+          parent_doc_id: d.id
+        });
+        setLinkedAvoirs(avs || []);
+      } catch (e) {
+        setLinkedAvoirs([]);
+      }
+    })();
+  }, [d.id, d.type]);
+
+  // Si on ouvre un doc existant avec un client mais sans contact rempli,
+  // on récupère le contact principal pour pré-remplir contact_name + email
+  React.useEffect(() => {
+    if (!d.client_id) return;
+    if (d.contact_name && d.contact_email) return;
+    (async () => {
+      try {
+        var contacts = await window.api.contacts.list({
+          client_id: d.client_id
+        });
+        var principal = (contacts || []).find(ct => ct.is_principal) || (contacts || [])[0];
+        if (principal) {
+          var fullName = [principal.prenom, principal.nom].filter(Boolean).join(" ").trim();
+          setD(cur => ({
+            ...cur,
+            contact_name: cur.contact_name || fullName || null,
+            contact_email: cur.contact_email || principal.email || null
+          }));
+        }
+      } catch (e) {}
+    })();
+  }, [d.client_id]);
+  var setField = (k, v) => setD(cur => ({
+    ...cur,
+    [k]: v
+  }));
+  var pickClient = async clientId => {
+    var c = clients.find(x => x.id === clientId);
+    if (!c) {
+      setField("client_id", null);
+      return;
+    }
+    setD(cur => ({
+      ...cur,
+      client_id: c.id,
+      client_name: c.raison_sociale || c.name,
+      client_address: c.adresse || c.address || "",
+      client_cp: c.cp || c.code_postal || "",
+      client_city: c.ville || c.city || "",
+      client_siren: c.siren || "",
+      client_tva: c.tva || c.tva_intracom || ""
+    }));
+    // Récupère le contact principal du client → pré-remplit contact_name + contact_email
+    try {
+      var contacts = await window.api.contacts.list({
+        client_id: c.id
+      });
+      var principal = (contacts || []).find(ct => ct.is_principal) || (contacts || [])[0];
+      if (principal) {
+        var fullName = [principal.prenom, principal.nom].filter(Boolean).join(" ").trim();
+        setD(cur => ({
+          ...cur,
+          contact_name: fullName || cur.contact_name,
+          contact_email: principal.email || cur.contact_email
+        }));
+      }
+    } catch (e) {
+      // Fallback : si la fiche client a un contact_principal dans son data jsonb
+      if (c.contact_principal) {
+        var cp = c.contact_principal;
+        var _fullName = [cp.prenom, cp.nom].filter(Boolean).join(" ").trim();
+        setD(cur => ({
+          ...cur,
+          contact_name: _fullName || cur.contact_name,
+          contact_email: cp.email || cur.contact_email
+        }));
+      }
+    }
+  };
+
+  // Détermine la périodicité par défaut depuis la référence article.
+  // Patterns SKU qui désignent typiquement un service récurrent (abonnement) :
+  // MAINT, HEBE, HOST, HUB, ABO, SUBSC, TEL, M365, 365, EXCH, NAS, HOTLINE,
+  // SUPPORT, INFOG, SAAS. Tout le reste → one-shot par défaut.
+  var detectPeriodicity = ref => {
+    var r = String(ref || "").toUpperCase();
+    if (/MAINT|HEBE|HOST|HUB|ABO|SUBSC|TEL|M365|^365|EXCH|NAS|HOTLINE|SUPPORT|INFOG|SAAS/.test(r)) return "recurring";
+    return "oneshot";
+  };
+  var addLine = article => {
+    var line = article ? {
+      id: "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      article_id: article.id,
+      ref: article.ref,
+      designation: article.name,
+      description: article.description || "",
+      quantity: 1,
+      unit: article.unit || "u",
+      unit_price_ht: Number(article.price_ht) || 0,
+      discount_pct: 0,
+      tva_rate: Number(article.tva_rate) || 20,
+      periodicity: detectPeriodicity(article.ref || ""),
+      _new: true
+    } : {
+      id: "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      designation: "",
+      quantity: 1,
+      unit: "u",
+      unit_price_ht: 0,
+      discount_pct: 0,
+      tva_rate: 20,
+      periodicity: "oneshot",
+      _new: true
+    };
+    line.total_ht = line.quantity * line.unit_price_ht * (1 - line.discount_pct / 100);
+    line.total_tva = line.total_ht * line.tva_rate / 100;
+    line.total_ttc = line.total_ht + line.total_tva;
+    setD(cur => ({
+      ...cur,
+      lines: [...(cur.lines || []), line]
+    }));
+  };
+  var updateLineField = (idx, k, v) => {
+    setD(cur => {
+      var lines = [...(cur.lines || [])];
+      var l = {
+        ...lines[idx],
+        [k]: v
+      };
+      var qty = Number(l.quantity) || 0;
+      var pu = Number(l.unit_price_ht) || 0;
+      var disc = Number(l.discount_pct) || 0;
+      var tvaR = Number(l.tva_rate) != null ? Number(l.tva_rate) : 20;
+      l.total_ht = Math.round(qty * pu * (1 - disc / 100) * 100) / 100;
+      l.total_tva = Math.round(l.total_ht * tvaR / 100 * 100) / 100;
+      l.total_ttc = Math.round((l.total_ht + l.total_tva) * 100) / 100;
+      lines[idx] = l;
+      return {
+        ...cur,
+        lines
+      };
+    });
+  };
+  var removeLine = async idx => {
+    var line = d.lines[idx];
+    if (line && line.id && !String(line.id).startsWith("tmp_")) {
+      try {
+        await window.api.commercialDocs.removeLine(line.id);
+      } catch (e) {}
+    }
+    setD(cur => ({
+      ...cur,
+      lines: cur.lines.filter((_, i) => i !== idx)
+    }));
+  };
+
+  // Déplace une ligne d'un cran (delta = -1 monter / +1 descendre).
+  // Met aussi à jour line.position pour cohérence avec la BDD ; la sauvegarde
+  // effective survient au prochain Save (ou au Cascade).
+  var moveLine = (idx, delta) => {
+    setD(cur => {
+      var lines = [...(cur.lines || [])];
+      var j = idx + delta;
+      if (j < 0 || j >= lines.length) return cur;
+      [lines[idx], lines[j]] = [lines[j], lines[idx]];
+      lines.forEach((l, i) => {
+        l.position = i + 1;
+      });
+      return {
+        ...cur,
+        lines
+      };
+    });
+  };
+
+  // Duplique la ligne juste en dessous. Le nouvel id est temporaire
+  // (tmp_…), il sera créé en BDD au prochain Save.
+  var duplicateLine = idx => {
+    setD(cur => {
+      var lines = [...(cur.lines || [])];
+      var src = lines[idx];
+      if (!src) return cur;
+      var clone = {
+        ...src,
+        id: "tmp_" + Math.random().toString(36).slice(2, 10)
+      };
+      lines.splice(idx + 1, 0, clone);
+      lines.forEach((l, i) => {
+        l.position = i + 1;
+      });
+      return {
+        ...cur,
+        lines
+      };
+    });
+  };
+
+  // Totaux calculés à la volée
+  var totals = React.useMemo(() => {
+    var ht = 0,
+      tva = 0,
+      recurringHt = 0,
+      oneshotHt = 0;
+    (d.lines || []).forEach(l => {
+      if (l.is_text_only) return;
+      var lht = Number(l.total_ht) || 0;
+      ht += lht;
+      tva += Number(l.total_tva) || 0;
+      if ((l.periodicity || "oneshot") === "recurring") recurringHt += lht;else oneshotHt += lht;
+    });
+    return {
+      ht: Math.round(ht * 100) / 100,
+      tva: Math.round(tva * 100) / 100,
+      ttc: Math.round((ht + tva) * 100) / 100,
+      recurringHt: Math.round(recurringHt * 100) / 100,
+      oneshotHt: Math.round(oneshotHt * 100) / 100
+    };
+  }, [d.lines]);
+  // Index trié pour le rendu : abonnements d'abord, one-shot ensuite, en
+  // conservant l'ordre d'origine au sein de chaque groupe.
+  var sortedLineIndexes = React.useMemo(() => {
+    var recIdx = [],
+      oneIdx = [];
+    (d.lines || []).forEach((l, i) => {
+      if ((l.periodicity || "oneshot") === "recurring") recIdx.push(i);else oneIdx.push(i);
+    });
+    return {
+      recIdx,
+      oneIdx
+    };
+  }, [d.lines]);
+
+  // Synchronise la commande fournisseur (commande_achat) et le BL liés à
+  // cette commande client. Appelée après chaque sauvegarde de la commande
+  // pour garder les 3 docs alignés (lignes + totaux + titre + client).
+  // Les lignes downstream ne sont touchées QUE si le BL/CA est toujours en
+  // brouillon (sinon on respecte les modifications manuelles aval).
+  // Recopie les lignes et totaux d'un doc source vers une liste de docs cibles
+  // (commande client ↔ BL). Utilisé pour la synchro bidirectionnelle :
+  //   - depuis la commande → BL (via syncCommandeDownstream)
+  //   - depuis le BL → commande (via syncBLUpstream)
+  // Les docs aval figés (livre / paye / transforme / annule / refuse) sont
+  // sautés pour respecter les corrections manuelles.
+  var syncLinesTo = async (targets, lines, patch, options = {}) => {
+    for (var tgt of targets || []) {
+      if (!tgt) continue;
+      // Demande explicite : la dernière modification l'emporte sur l'autre
+      // pièce, même si l'aval est déjà figé (Livré / Payé / Transformé).
+      // L'utilisateur veut commande ↔ BL toujours strictement identiques.
+      var tgtPatch = {
+        total_ht: patch.total_ht,
+        total_tva: patch.total_tva,
+        total_ttc: patch.total_ttc
+      };
+      if (options.copyClient) {
+        tgtPatch.client_name = patch.client_name;
+        tgtPatch.client_address = patch.client_address;
+        tgtPatch.client_cp = patch.client_cp;
+        tgtPatch.client_city = patch.client_city;
+        tgtPatch.client_siren = patch.client_siren;
+        tgtPatch.contact_name = patch.contact_name;
+        tgtPatch.contact_email = patch.contact_email;
+      }
+      try {
+        await window.api.commercialDocs.update(tgt.id, tgtPatch);
+      } catch (e) {
+        console.warn(e);
+      }
+      try {
+        var fresh = await window.api.commercialDocs.getById(tgt.id);
+        var existingLines = fresh && fresh.lines || [];
+        for (var el of existingLines) {
+          try {
+            await window.api.commercialDocs.removeLine(el.id);
+          } catch (e) {}
+        }
+        for (var i = 0; i < lines.length; i++) {
+          var l = lines[i];
+          var normalized = {
+            article_id: l.article_id || null,
+            ref: l.ref || null,
+            designation: l.designation || "",
+            description: l.description || null,
+            quantity: Number(l.quantity) || 0,
+            unit: l.unit || "u",
+            unit_price_ht: Number(l.unit_price_ht) || 0,
+            discount_pct: Number(l.discount_pct) || 0,
+            tva_rate: Number(l.tva_rate) || 0,
+            total_ht: Number(l.total_ht) || 0,
+            total_tva: Number(l.total_tva) || 0,
+            total_ttc: Number(l.total_ttc) || 0,
+            is_text_only: !!l.is_text_only,
+            position: i,
+            manufacturer_ref: l.manufacturer_ref || null,
+            purchase_price_indicative: l.purchase_price_indicative == null ? null : Number(l.purchase_price_indicative),
+            supplier: l.supplier || null
+          };
+          try {
+            await window.api.commercialDocs.addLine(tgt.id, normalized);
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+      } catch (e) {
+        console.warn("[syncLinesTo]", e);
+      }
+    }
+  };
+
+  // Sync commande client → BL (sens descendant — comportement historique).
+  var syncCommandeDownstream = async (commande, lines, patch) => {
+    if (!chain) return;
+    await syncLinesTo([chain.bl].filter(Boolean), lines, patch, {
+      copyClient: true
+    });
+  };
+
+  // Sync BL → commande client (sens montant — nouveau).
+  // Recopie les lignes/totaux du BL vers sa commande parente pour que les
+  // modifications faites sur le BL (qté, prix…) se reflètent côté commande.
+  var syncBLUpstream = async (bl, lines, patch) => {
+    if (!chain || !chain.commande) return;
+    if (chain.commande.id === bl.id) return;
+    await syncLinesTo([chain.commande], lines, patch, {
+      copyClient: false
+    });
+  };
+  var save = async (options = {}) => {
+    setSaving(true);
+    try {
+      // Normalisation : pas de string vide pour les FKs (sinon erreur Supabase)
+      var cleanFK = v => v && String(v).trim() ? v : null;
+      var cleanDate = v => v && String(v).trim() ? v : null;
+      var numOrNull = v => {
+        var n = Number(v);
+        return isFinite(n) ? n : null;
+      };
+
+      // 1. Update du doc principal (hors lignes)
+      var patch = {
+        status: d.status,
+        title: d.title || null,
+        notes: d.notes || null,
+        internal_notes: d.internal_notes || null,
+        client_id: cleanFK(d.client_id),
+        client_name: d.client_name || null,
+        client_address: d.client_address || null,
+        client_cp: d.client_cp || null,
+        client_city: d.client_city || null,
+        client_siren: d.client_siren || null,
+        client_tva: d.client_tva || null,
+        contact_name: d.contact_name || null,
+        contact_email: d.contact_email || null,
+        project_id: cleanFK(d.project_id),
+        opportunity_id: cleanFK(d.opportunity_id),
+        doc_date: cleanDate(d.doc_date) || new Date().toISOString().slice(0, 10),
+        valid_until: cleanDate(d.valid_until),
+        payment_due: cleanDate(d.payment_due),
+        payment_terms_id: cleanFK(d.payment_terms_id),
+        owner: d.owner || null,
+        total_ht: numOrNull(totals.ht) || 0,
+        total_tva: numOrNull(totals.tva) || 0,
+        total_ttc: numOrNull(totals.ttc) || 0
+      };
+      await window.api.commercialDocs.update(d.id, patch);
+
+      // 2. Lignes : insère les nouvelles avec conversion Number + ré-hydrate les ids
+      var updatedLines = [];
+      for (var i = 0; i < (d.lines || []).length; i++) {
+        var line = d.lines[i];
+        // Totaux ligne recalculés ici aussi par sécurité (updateLine recalcule
+        // côté serveur via merge, mais on les inclut dans le patch pour qu'ils
+        // soient persistés même si la TVA ou la remise viennent de changer).
+        var lQty = Number(line.quantity) || 0;
+        var lPu = Number(line.unit_price_ht) || 0;
+        var lDisc = Number(line.discount_pct) || 0;
+        var lTva = Number(line.tva_rate) || 0;
+        var lTotalHt = Math.round(lQty * lPu * (1 - lDisc / 100) * 100) / 100;
+        var lTotalTva = Math.round(lTotalHt * lTva / 100 * 100) / 100;
+        var lTotalTtc = Math.round((lTotalHt + lTotalTva) * 100) / 100;
+        var normalizedLine = {
+          article_id: cleanFK(line.article_id),
+          ref: line.ref || null,
+          designation: line.designation || "",
+          description: line.description || null,
+          quantity: lQty,
+          unit: line.unit || "u",
+          unit_price_ht: lPu,
+          discount_pct: lDisc,
+          tva_rate: lTva,
+          total_ht: lTotalHt,
+          total_tva: lTotalTva,
+          total_ttc: lTotalTtc,
+          is_text_only: !!line.is_text_only,
+          position: i,
+          // Périodicité (abonnement récurrent / one-shot) — détermine le
+          // groupement et le sous-total sur le PDF + l'éditeur.
+          periodicity: line.periodicity || "oneshot",
+          // Champs internes (jamais sur PDF client)
+          manufacturer_ref: line.manufacturer_ref || null,
+          purchase_price_indicative: line.purchase_price_indicative == null ? null : Number(line.purchase_price_indicative),
+          supplier: line.supplier || null
+        };
+        if (line._new || String(line.id || "").startsWith("tmp_")) {
+          var created = await window.api.commercialDocs.addLine(d.id, normalizedLine);
+          if (created) updatedLines.push(created);
+        } else {
+          var updated = await window.api.commercialDocs.updateLine(line.id, normalizedLine);
+          if (updated) updatedLines.push(updated);else updatedLines.push(line);
+        }
+      }
+      // Met à jour le state local avec les vrais IDs (au cas où l'utilisateur ne ferme pas)
+      setD(cur => ({
+        ...cur,
+        lines: updatedLines
+      }));
+
+      // 3. Si on vient de modifier une commande client : on synchronise la
+      //    commande fournisseur (commande_achat) et le BL avec les mêmes
+      //    lignes et totaux. La cohérence chaîne est tenue automatiquement.
+      // Synchronisation bidirectionnelle commande client ↔ BL
+      // (la dernière modification l'emporte, voir syncLinesTo).
+      if (d.type === "commande") {
+        try {
+          await syncCommandeDownstream(d, updatedLines, patch);
+        } catch (e) {
+          console.warn("[commande → bl sync]", e);
+        }
+      } else if (d.type === "bl") {
+        try {
+          await syncBLUpstream(d, updatedLines, patch);
+        } catch (e) {
+          console.warn("[bl → commande sync]", e);
+        }
+      }
+      if (window.HubToast) window.HubToast.success("✓ Document enregistré");
+      onSaved && onSaved();
+      // Après enregistrement on ferme l'éditeur et on reste sur la page
+      // Gestion commerciale (l'utilisateur ne veut pas être renvoyé sur
+      // /crm ou la fiche opportunité, même s'il est arrivé par un returnTo).
+      if (!options.keepOpen) {
+        onClose && onClose();
+      }
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      throw e;
+    }
+    setSaving(false);
+  };
+
+  // ─── Portes de validation Sage : un doc ne peut passer à l'étape suivante
+  //     que si son statut est conforme. Évite que brouillon→commande→BL→facture
+  //     puisse se faire en chaîne sans aucune validation intermédiaire.
+  var TRANSITION_REQ = {
+    devis: {
+      next: "commande",
+      requires: "accepte",
+      reqLabel: "Accepté"
+    },
+    commande: {
+      next: "bl",
+      requires: "accepte",
+      reqLabel: "Accepté"
+    },
+    bl: {
+      next: "facture",
+      requires: "livre",
+      reqLabel: "Livré"
+    }
+  };
+  var canTransform = (() => {
+    var rule = TRANSITION_REQ[d.type];
+    if (!rule) return {
+      ok: false,
+      hard: true,
+      reason: "Aucune étape suivante (document final)"
+    };
+    if (d.status === "transforme") return {
+      ok: false,
+      hard: true,
+      reason: "Ce document a déjà été transformé"
+    };
+    if (d.status === "refuse" || d.status === "annule") return {
+      ok: false,
+      hard: true,
+      reason: "Document " + (d.status === "refuse" ? "refusé" : "annulé") + " — transformation impossible"
+    };
+    if (d.status !== rule.requires) {
+      // Bloqué doux : statut peut être mis à jour automatiquement pour passer
+      return {
+        ok: false,
+        hard: false,
+        reason: "Statut requis : « " + rule.reqLabel + " ». Actuellement : « " + d.status + " »",
+        needStatus: rule.requires,
+        needStatusLbl: rule.reqLabel,
+        nextType: rule.next
+      };
+    }
+    return {
+      ok: true,
+      nextType: rule.next
+    };
+  })();
+  var transformTo = async () => {
+    // Si bloqué dur (déjà transformé/refusé/annulé) → on s'arrête
+    if (!canTransform.ok && canTransform.hard) {
+      if (window.HubToast) window.HubToast.error("Transformation refusée — " + canTransform.reason);else alert("Transformation refusée : " + canTransform.reason);
+      return;
+    }
+    var next = canTransform.nextType;
+    var labels = {
+      commande: "bon de commande",
+      bl: "bon de livraison",
+      facture: "facture"
+    };
+    // Garde-fou : si le doc cible existe déjà dans la chaîne, on prévient
+    // l'utilisateur au lieu de re-cascader (sinon doublons + données écrasées).
+    var NEXT_LABEL_FR = {
+      commande: "commande client",
+      bl: "bon de livraison",
+      facture: "facture"
+    };
+    if (chain && next && chain[next]) {
+      var existingNext = chain[next];
+      var existingBl = chain.bl;
+      var message = d.type === "devis" && existingNext && existingBl && existingNext.id !== existingBl.id ? "La commande client " + existingNext.id + " et le BL " + existingBl.id + " ont déjà été créés à partir de ce devis.\n\nIls sont accessibles depuis le bandeau « Devis figé » en haut de la fenêtre, ou via la chaîne du workflow Sage.\n\nAucune nouvelle pièce ne sera créée." : "Le " + NEXT_LABEL_FR[next] + " " + existingNext.id + " a déjà été créé à partir de ce document.\n\nIl est accessible depuis la pastille violette « CRÉÉ » du workflow Sage ou via le bandeau en haut.\n\nAucune nouvelle pièce ne sera créée.";
+      if (window.HubModal) {
+        await window.HubModal.confirm({
+          title: "Transformation déjà effectuée",
+          message,
+          okLabel: "Ouvrir " + existingNext.id,
+          okStyle: "primary",
+          cancelLabel: "Fermer"
+        }).then(ok => {
+          if (ok && onOpenDoc) onOpenDoc(existingNext.id);
+        });
+      } else {
+        if (confirm(message + "\n\nOuvrir " + existingNext.id + " ?")) {
+          if (onOpenDoc) onOpenDoc(existingNext.id);
+        }
+      }
+      return;
+    }
+    // Cascade pour un devis : devis → commande client → BL en un seul clic.
+    // Tous les docs intermédiaires sont marqués Accepté.
+    if (d.type === "devis") {
+      var needAcceptFirst = !canTransform.ok && !canTransform.hard;
+      var steps = [needAcceptFirst ? {
+        ico: "📄",
+        txt: "Devis marqué Accepté"
+      } : null, {
+        ico: "📋",
+        txt: "Commande client créée et marquée Acceptée"
+      }, {
+        ico: "🚚",
+        txt: "Bon de livraison créé"
+      }].filter(Boolean);
+      var _ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Cascader la chaîne Sage ?",
+        message: (needAcceptFirst ? "Le devis est en « " + d.status + " ». Il sera d'abord passé en Accepté.\n\n" : "") + "Les documents aval seront générés en chaîne :\n\n" + steps.map(s => "  " + s.ico + "  " + s.txt).join("\n"),
+        okLabel: "Lancer la cascade",
+        okStyle: "primary",
+        cancelLabel: "Annuler"
+      }) : confirm(steps.map(s => "• " + s.txt).join("\n"));
+      if (!_ok) return;
+      try {
+        if (needAcceptFirst) setField("status", canTransform.needStatus);
+        await save({
+          keepOpen: true
+        });
+        if (d.status !== "accepte") await window.api.commercialDocs.update(d.id, {
+          status: "accepte"
+        });
+        // 1. Devis → Commande client (Acceptée)
+        var commande = await window.api.commercialDocs.transform(d.id, "commande");
+        if (!commande) throw new Error("Échec création commande");
+        await window.api.commercialDocs.update(commande.id, {
+          status: "accepte"
+        });
+        // 2. Commande client → BL
+        var bl = await window.api.commercialDocs.transform(commande.id, "bl");
+        var created = [commande.id, bl && bl.id].filter(Boolean);
+        if (window.HubToast) window.HubToast.success("✓ Cascade OK : " + created.join(" + "));
+        onSaved && onSaved();
+        onClose && onClose();
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur cascade : " + (e.message || e));
+      }
+      return;
+    }
+    var TYPE_LABEL = {
+      devis: "devis",
+      commande: "commande client",
+      bl: "BL",
+      facture: "facture"
+    };
+    var NEXT_LABEL = {
+      commande: "commande client",
+      bl: "bon de livraison",
+      facture: "facture"
+    };
+    var STATUS_PRETTY = window.HubConstants && window.HubConstants.COMMERCIAL_STATUS || {
+      brouillon: "Brouillon",
+      envoye: "Envoyé",
+      accepte: "Accepté",
+      livre: "Livré",
+      refuse: "Refusé",
+      paye: "Payé"
+    };
+    // Cas "blocage doux" : on propose d'updater le statut puis de transformer.
+    if (!canTransform.ok && !canTransform.hard) {
+      var reqLbl = canTransform.needStatusLbl;
+      var curLbl = STATUS_PRETTY[d.status] || d.status;
+      var _ok2 = window.HubModal ? await window.HubModal.confirm({
+        title: "Transformer ce " + TYPE_LABEL[d.type] + " ?",
+        message: "Statut actuel : « " + curLbl + " »\n" + "Statut requis pour la transformation : « " + reqLbl + " »\n\n" + "Cliquer « Lancer » :\n" + "  1. Bascule le statut sur « " + reqLbl + " »\n" + "  2. Crée le " + NEXT_LABEL[next] + "\n\n" + "Cliquer « Annuler » : aucun changement.",
+        okLabel: "Lancer la transformation",
+        okStyle: "primary",
+        cancelLabel: "Annuler"
+      }) : confirm("Statut requis « " + reqLbl + " ». Continuer ?");
+      if (!_ok2) return;
+      try {
+        setField("status", canTransform.needStatus);
+        await save({
+          keepOpen: true
+        });
+        var child = await window.api.commercialDocs.transform(d.id, next);
+        if (window.HubToast) window.HubToast.success("✓ Statut → " + reqLbl + " · " + child.id + " créé");
+        onSaved && onSaved();
+        onClose && onClose();
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      }
+      return;
+    }
+    // Cas nominal : statut OK
+    var ok = window.HubModal ? await window.HubModal.confirm({
+      title: "Transformer ce " + TYPE_LABEL[d.type] + " ?",
+      message: "Statut actuel : « " + (STATUS_PRETTY[d.status] || d.status) + " »\n\n" + "Effets de la transformation :\n" + "  • Un nouveau " + NEXT_LABEL[next] + " sera créé en brouillon\n" + "  • Les lignes seront héritées du " + TYPE_LABEL[d.type] + "\n" + "  • Les modifications en cours seront sauvegardées avant",
+      okLabel: "Lancer la transformation",
+      okStyle: "primary",
+      cancelLabel: "Annuler"
+    }) : confirm("Transformer en " + NEXT_LABEL[next] + " ?");
+    if (!ok) return;
+    try {
+      await save({
+        keepOpen: true
+      });
+      var _child = await window.api.commercialDocs.transform(d.id, next);
+      if (window.HubToast) window.HubToast.success("✓ " + _child.id + " créé · " + d.id + " figé en Transformé");
+      onSaved && onSaved();
+      onClose && onClose();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+  };
+  var fmtEUR = window.HubConstants && window.HubConstants.fmtEUR || (n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) + " €");
+
+  // Fermeture sécurisée : si le devis vient d'être créé depuis une
+  // opportunité (rattaché à une opp), on prévient avant de fermer pour
+  // éviter de laisser un devis vide / de croire qu'il faut le recréer.
+  var confirmClose = async () => {
+    var fromOpp = d.type === "devis" && (d.opportunity_id || d.data && d.data.opportunity_id);
+    if (fromOpp) {
+      var ok = window.HubModal ? await window.HubModal.confirm({
+        title: "Fermer le devis ?",
+        message: "Attention : le devis " + d.id + " a déjà été créé et enregistré. Il reste accessible dans « Devis en cours ». Souhaitez-vous vraiment fermer cette fenêtre ?",
+        okLabel: "Oui, fermer",
+        cancelLabel: "Continuer l'édition"
+      }) : confirm("Le devis " + d.id + " a déjà été créé. Fermer quand même ?");
+      if (!ok) return;
+    }
+    onClose();
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.modalOverlay,
+    onClick: confirmClose
+  }, /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.modalCard,
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("header", {
+    style: cdStyles.modalHead
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      fontWeight: 600,
+      letterSpacing: 0.4,
+      textTransform: "uppercase"
+    }
+  }, d.type), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 18,
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, d.id)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      try {
+        await save({
+          keepOpen: true
+        });
+        if (window.HubCommercialPdf) await window.HubCommercialPdf.preview(d.id);
+      } catch (e) {}
+    },
+    style: cdStyles.ghostBtn,
+    title: "G\xE9n\xE8re le PDF et l'ouvre"
+  }, "\uD83D\uDC41 Aper\xE7u PDF"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      try {
+        await save({
+          keepOpen: true
+        });
+        if (window.HubCommercialPdf) await window.HubCommercialPdf.download(d.id);
+        try {
+          await window.api.commercialSends.log({
+            doc_id: d.id,
+            doc_type: d.type,
+            channel: "download",
+            status: "sent",
+            provider: "browser"
+          });
+        } catch (e) {}
+      } catch (e) {}
+    },
+    style: cdStyles.ghostBtn
+  }, "\u21E9 T\xE9l\xE9charger PDF"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      try {
+        await save({
+          keepOpen: true
+        });
+        setSendOpen(true);
+      } catch (e) {}
+    },
+    style: cdStyles.ghostBtn
+  }, "\u2709 Envoyer"), (d.type === "commande" || d.type === "bl") && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAcompteOpen(true),
+    title: "Enregistrer un r\xE8glement d'acompte \u2192 cr\xE9e une facture d'acompte verrouill\xE9e",
+    style: {
+      ...cdStyles.ghostBtn,
+      borderColor: "#0ea5e9",
+      color: "#0369a1",
+      background: "#f0f9ff",
+      fontWeight: 600
+    }
+  }, "\uD83D\uDCB0 R\xE8glement (acompte)"), (d.type === "facture" || d.type === "facture_acompte") && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPaymentOpen(true),
+    title: "Enregistrer un r\xE8glement client (virement, ch\xE8que, CB...)",
+    style: {
+      ...cdStyles.ghostBtn,
+      borderColor: "#10b981",
+      color: "#047857",
+      background: "#ecfdf5",
+      fontWeight: 600
+    }
+  }, "\uD83D\uDCB3 Enregistrer un r\xE8glement"), d.type === "facture" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAvoirOpen(true),
+    title: "Cr\xE9er un avoir li\xE9 \xE0 cette facture (total ou partiel)",
+    style: {
+      ...cdStyles.ghostBtn,
+      borderColor: "#fecaca",
+      color: "#dc2626",
+      background: "#fef2f2",
+      fontWeight: 600
+    }
+  }, "\u21A9 Cr\xE9er un avoir"), (() => {
+    // Masque le bouton "Transformer en X" dans 3 cas :
+    //  - doc final (facture)
+    //  - doc déjà transformé
+    //  - le doc cible (commande / BL / facture) existe déjà dans la chaîne
+    var NEXT_TYPE = {
+      devis: "commande",
+      commande: "bl",
+      bl: "facture"
+    };
+    var nextType = NEXT_TYPE[d.type];
+    var targetExists = nextType && chain && chain[nextType] && chain[nextType].id !== d.id;
+    if (d.type === "facture" || d.status === "transforme" || targetExists) return null;
+    return true;
+  })() && (() => {
+    // 2 états visuels : Cliquable (vert sur vert) · Hard-block (gris, désactivé)
+    // Le soft-block (statut pas conforme) reste vert et cliquable :
+    // le clic propose alors de basculer le statut automatiquement.
+    var isHard = !canTransform.ok && canTransform.hard; // figé/annulé/refusé
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: transformTo,
+      disabled: isHard,
+      title: canTransform.ok ? "Transformer ce document à l'étape suivante" : isHard ? "Bloqué : " + canTransform.reason : "Cliquer pour basculer le statut sur « " + canTransform.needStatusLbl + " » et transformer",
+      style: {
+        ...cdStyles.ghostBtn,
+        opacity: isHard ? 0.45 : 1,
+        cursor: isHard ? "not-allowed" : "pointer",
+        borderColor: isHard ? "#e2e8f0" : "#10b981",
+        color: isHard ? "#94a3b8" : "#065f46",
+        background: isHard ? "#fff" : "#ecfdf5",
+        fontWeight: 600
+      }
+    }, isHard ? "🔒 " : "✓ ", "Transformer en ", {
+      devis: "commande",
+      commande: "BL",
+      bl: "facture"
+    }[d.type]);
+  })(), !(d.type === "devis" && (d.status === "accepte" || d.status === "transforme")) && /*#__PURE__*/React.createElement("button", {
+    onClick: save,
+    disabled: saving,
+    style: cdStyles.primaryBtn
+  }, saving ? "Enregistrement…" : "Enregistrer"), /*#__PURE__*/React.createElement("button", {
+    onClick: confirmClose,
+    style: cdStyles.closeBtn
+  }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.modalBody
+  }, /*#__PURE__*/React.createElement(WorkflowBar, {
+    doc: d,
+    canTransform: canTransform,
+    chain: chain,
+    onOpenDoc: onOpenDoc
+  }), (() => {
+    var isDevisFrozen = d.type === "devis" && (d.status === "accepte" || d.status === "transforme");
+    if (!isDevisFrozen) return null;
+    var cmd = chain && chain.commande;
+    var bl = chain && chain.bl;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "linear-gradient(135deg, #fef3c7, #fed7aa)",
+        border: "1px solid #fbbf24",
+        borderRadius: 10,
+        padding: "10px 14px",
+        marginBottom: 14,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 18
+      }
+    }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        color: "#78350f",
+        flex: 1,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("strong", null, "Devis fig\xE9"), " \u2014 statut \xAB ", d.status === "accepte" ? "Accepté" : "Transformé", " \xBB. Toute modification doit se faire sur :", cmd && /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: () => onOpenDoc && onOpenDoc(cmd.id),
+      title: "Ouvrir " + cmd.id,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "3px 9px",
+        border: "1px solid #a855f7",
+        background: "#a855f7",
+        color: "#fff",
+        borderRadius: 999,
+        fontSize: 11.5,
+        fontWeight: 700,
+        cursor: "pointer",
+        boxShadow: "0 1px 3px rgba(168,85,247,0.35)"
+      }
+    }, "\uD83D\uDCCB Commande ", cmd.id, " \u2192"), bl && /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: () => onOpenDoc && onOpenDoc(bl.id),
+      title: "Ouvrir " + bl.id,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "3px 9px",
+        border: "1px solid #ea580c",
+        background: "#ea580c",
+        color: "#fff",
+        borderRadius: 999,
+        fontSize: 11.5,
+        fontWeight: 700,
+        cursor: "pointer",
+        boxShadow: "0 1px 3px rgba(234,88,12,0.35)"
+      }
+    }, "\uD83D\uDE9A BL ", bl.id, " \u2192")));
+  })(), /*#__PURE__*/React.createElement("fieldset", {
+    disabled: d.type === "devis" && (d.status === "accepte" || d.status === "transforme"),
+    style: {
+      border: 0,
+      padding: 0,
+      margin: 0,
+      minWidth: 0,
+      opacity: d.type === "devis" && (d.status === "accepte" || d.status === "transforme") ? 0.65 : 1,
+      pointerEvents: d.type === "devis" && (d.status === "accepte" || d.status === "transforme") ? "none" : "auto",
+      transition: "opacity 150ms"
+    }
+  }, (d.type === "commande" || d.type === "bl" || d.type === "facture") && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#eef2ff",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      padding: "8px 14px",
+      marginBottom: 14,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      fontSize: 12,
+      color: "#3730a3"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, "En-t\xEAte fig\xE9"), " \u2014 les infos client, titre, dates, opportunit\xE9, statut et conditions de paiement sont h\xE9rit\xE9es des pi\xE8ces amont.", d.type === "facture" ? " La facture est elle aussi figée dans sa totalité." : " Seules les lignes (articles, qté, prix) sont modifiables ici.")), /*#__PURE__*/React.createElement("fieldset", {
+    disabled: d.type === "commande" || d.type === "bl" || d.type === "facture",
+    style: {
+      border: 0,
+      padding: 0,
+      margin: 0,
+      minWidth: 0,
+      opacity: d.type === "commande" || d.type === "bl" || d.type === "facture" ? 0.7 : 1,
+      pointerEvents: d.type === "commande" || d.type === "bl" || d.type === "facture" ? "none" : "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 16,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Client"), /*#__PURE__*/React.createElement("select", {
+    value: d.client_id || "",
+    onChange: e => pickClient(e.target.value),
+    style: cdStyles.input
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 S\xE9lectionner \u2014"), clients.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, c.raison_sociale || c.name))), /*#__PURE__*/React.createElement("a", {
+    href: "/nouveau-prospect?returnTo=" + encodeURIComponent(window.location.pathname + window.location.search),
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 6,
+      padding: "6px 10px",
+      background: "#eef2ff",
+      color: "#3730a3",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 11.5,
+      fontWeight: 600,
+      textDecoration: "none",
+      cursor: "pointer"
+    },
+    title: "Ouvrir la fiche de cr\xE9ation de prospect dans un nouvel onglet"
+  }, "+ Nouveau prospect"), d.client_address && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      padding: 8,
+      background: "#f8fafc",
+      borderRadius: 6,
+      fontSize: 11,
+      color: "#475569"
+    }
+  }, d.client_address, /*#__PURE__*/React.createElement("br", null), d.client_cp, " ", d.client_city, d.client_siren ? " · SIREN " + d.client_siren : "")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Titre du document"), /*#__PURE__*/React.createElement("input", {
+    value: d.title || "",
+    onChange: e => setField("title", e.target.value),
+    placeholder: "Ex : Devis migration AD AXA",
+    style: cdStyles.input
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Date document"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: d.doc_date || "",
+    onChange: e => setField("doc_date", e.target.value),
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, d.type === "devis" ? "Valide jusqu'au" : d.type === "facture" ? "Échéance paiement" : "Date prévue"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: (d.type === "devis" ? d.valid_until : d.payment_due) || "",
+    onChange: e => setField(d.type === "devis" ? "valid_until" : "payment_due", e.target.value),
+    style: cdStyles.input
+  }))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Rattacher \xE0 une opportunit\xE9 (\u2264 30 jours)"), /*#__PURE__*/React.createElement("select", {
+    value: d.opportunity_id || "",
+    onChange: e => {
+      var oppId = e.target.value || null;
+      setField("opportunity_id", oppId);
+      // Si on sélectionne une opp ET qu'aucun client n'est encore choisi,
+      // on récupère le client de l'opp
+      if (oppId && !d.client_id) {
+        var opp = opps.find(o => o.id === oppId);
+        if (opp && opp.client_id) {
+          var c = clients.find(c => c.id === opp.client_id);
+          if (c) pickClient(c.id);
+        }
+      }
+    },
+    style: cdStyles.input
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucune \u2014"), opps.map(o => {
+    var stages = {
+      qualif: "Prospect",
+      discovery: "Approche",
+      propo: "Négociation",
+      nego: "Conclusion"
+    };
+    var stageLbl = stages[o.stage] || o.stage;
+    return /*#__PURE__*/React.createElement("option", {
+      key: o.id,
+      value: o.id
+    }, o.name || o.id, " \xB7 ", o.client_name || "—", " (", stageLbl, ")");
+  })), opps.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 10.5,
+      color: "#94a3b8"
+    }
+  }, "Aucune opportunit\xE9 ouverte des 30 derniers jours") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 10.5,
+      color: "#94a3b8"
+    }
+  }, opps.length, " opp(s) r\xE9cente(s) du pipeline ouvert")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Statut"), (() => {
+    // Workflow Sage : statuts autorisés et transitions valides selon le type
+    var STATUS_FLOW = {
+      devis: ["brouillon", "envoye", "accepte", "refuse", "transforme", "annule"],
+      commande: ["brouillon", "envoye", "accepte", "refuse", "transforme", "annule"],
+      bl: ["brouillon", "envoye", "livre", "transforme", "annule"],
+      facture: ["brouillon", "envoye", "paye", "annule"]
+    };
+    var STATUS_LABEL = window.HubConstants && window.HubConstants.COMMERCIAL_STATUS || {
+      brouillon: "Brouillon",
+      envoye: "Envoyé",
+      accepte: "Accepté",
+      refuse: "Refusé",
+      transforme: "Transformé (figé)",
+      livre: "Livré",
+      paye: "Payé",
+      annule: "Annulé"
+    };
+    var NEXT_TYPE = {
+      devis: "commande",
+      commande: "bl",
+      bl: "facture"
+    };
+    var NEXT_NAME = {
+      commande: "commande",
+      bl: "BL",
+      facture: "facture"
+    };
+    var allowed = STATUS_FLOW[d.type] || [];
+    // Règle spéciale "Commande client" : reste modifiable tant qu'aucune
+    // facture n'a été émise dans la chaîne (au-delà du simple BL).
+    // Sinon : verrou dès que le doc enfant direct existe.
+    var factureExists = chain && chain.facture && chain.facture.id !== d.id;
+    var directChildExists = chain && NEXT_TYPE[d.type] && chain[NEXT_TYPE[d.type]] && chain[NEXT_TYPE[d.type]].id !== d.id;
+    var childExists = d.type === "commande" ? factureExists : directChildExists;
+    var childDoc = d.type === "commande" ? factureExists ? chain.facture : null : directChildExists ? chain[NEXT_TYPE[d.type]] : null;
+    var isTransformed = d.status === "transforme";
+    // Verrou supplémentaire pour commande client / BL :
+    // dès qu'au moins un article de la commande est passé au statut
+    // "commande" (ou plus avancé : partielle / recu / en_stock) côté
+    // fournisseur, on fige le doc → cohérence avec la commande
+    // fournisseur déjà émise dans Stock & Catalogue.
+    var ORDERED_PURCHASE_STATES = new Set(["commande", "partielle", "recu", "en_stock"]);
+    var hasOrderedLine = (d.type === "commande" || d.type === "bl") && (d.lines || []).some(l => l && ORDERED_PURCHASE_STATES.has(String(l.purchase_status || "").trim()));
+    var orderedLine = hasOrderedLine ? (d.lines || []).find(l => l && ORDERED_PURCHASE_STATES.has(String(l.purchase_status || "").trim())) : null;
+    // Verrouillage dur si un doc enfant pertinent existe OU
+    // si une ligne est passée en commande fournisseur.
+    var isLocked = childExists || isTransformed || hasOrderedLine;
+    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("select", {
+      value: d.status,
+      disabled: isLocked,
+      onChange: e => {
+        var next = e.target.value;
+        if (isLocked && next !== d.status) {
+          if (!confirm("⚠ Ce document a déjà été transformé en " + NEXT_NAME[NEXT_TYPE[d.type]] + (childDoc ? " (" + childDoc.id + ")" : "") + ".\n\nLe statut est verrouillé pour préserver la cohérence avec le document enfant.\n\nUtilise le bouton « 🔓 Débloquer » si tu veux vraiment forcer un changement de statut.")) return;
+        }
+        setField("status", next);
+      },
+      style: {
+        ...cdStyles.input,
+        background: isLocked ? "#fef3c7" : "#fff",
+        borderColor: isLocked ? "#f59e0b" : "#cbd5e1",
+        cursor: isLocked ? "not-allowed" : "pointer",
+        color: isLocked ? "#78350f" : "#0f172a",
+        fontWeight: isLocked ? 600 : 400
+      }
+    }, allowed.map(st => /*#__PURE__*/React.createElement("option", {
+      key: st,
+      value: st
+    }, STATUS_LABEL[st] || st))), isLocked && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 4,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#b45309",
+        fontWeight: 600
+      }
+    }, "\uD83D\uDD12 Verrouill\xE9 \u2014 ", childExists ? NEXT_NAME[NEXT_TYPE[d.type]] + " " + childDoc.id + " déjà créé(e)" : hasOrderedLine ? "article(s) commandé(s) chez le fournisseur" + (orderedLine && orderedLine.designation ? " — " + orderedLine.designation : "") : "doc transformé"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        var msg = childExists ? "Débloquer le statut du " + d.type + " ?\n\nLe document enfant " + childDoc.id + " (" + NEXT_NAME[NEXT_TYPE[d.type]] + ") reste actif. À toi de gérer la cohérence (annulation manuelle si besoin)." : "Débloquer le statut « Transformé » et le repasser à « Accepté » ?";
+        if (!confirm(msg)) return;
+        if (isTransformed && !childExists) setField("status", "accepte");
+      },
+      style: {
+        padding: "3px 8px",
+        fontSize: 10.5,
+        fontWeight: 600,
+        background: "transparent",
+        color: "#b45309",
+        border: "1px solid #fcd34d",
+        borderRadius: 5,
+        cursor: "pointer"
+      }
+    }, "\uD83D\uDD13 D\xE9bloquer")));
+  })()))), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: "0 0 8px",
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#0f172a",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, "Lignes", d.type === "facture_acompte" && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      padding: "2px 8px",
+      borderRadius: 4,
+      background: "#fef3c7",
+      color: "#92400e",
+      fontWeight: 700
+    }
+  }, "\uD83D\uDD12 Acompte verrouill\xE9")), /*#__PURE__*/React.createElement("fieldset", {
+    disabled: d.type === "facture_acompte",
+    style: {
+      border: "none",
+      margin: 0,
+      padding: 0,
+      minWidth: 0,
+      opacity: d.type === "facture_acompte" ? 0.85 : 1,
+      pointerEvents: d.type === "facture_acompte" ? "none" : "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, (d.lines || []).length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 18,
+      border: "1px dashed #cbd5e1",
+      borderRadius: 8,
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 12.5,
+      background: "#fafbfc"
+    }
+  }, "Aucune ligne pour le moment. Ajoute une ligne libre ou choisis dans le catalogue ci-dessous."), (() => {
+    var rendered = [];
+    var lines = d.lines || [];
+    var grpHeader = (label, color, bg, count, subtotal) => /*#__PURE__*/React.createElement("div", {
+      key: "hdr_" + label,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 12px",
+        background: bg,
+        border: "1px solid " + color + "44",
+        borderRadius: 8,
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 800,
+        color: color,
+        letterSpacing: 0.5,
+        textTransform: "uppercase"
+      }
+    }, label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        padding: "2px 7px",
+        borderRadius: 999,
+        background: "#fff",
+        color: color,
+        border: "1px solid " + color + "55",
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, count), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }), subtotal != null && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: color,
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, "Sous-total HT : ", fmtEUR(subtotal)));
+    var renderLine = (l, i) => /*#__PURE__*/React.createElement("div", {
+      key: l.id || i,
+      style: {
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 10,
+        padding: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 26,
+        height: 26,
+        borderRadius: 6,
+        background: "#eef2ff",
+        color: "#3730a3",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 11,
+        fontWeight: 700,
+        flexShrink: 0
+      }
+    }, i + 1), (() => {
+      var isRec = (l.periodicity || "oneshot") === "recurring";
+      return /*#__PURE__*/React.createElement("button", {
+        onClick: () => updateLineField(i, "periodicity", isRec ? "oneshot" : "recurring"),
+        title: isRec ? "Passer en prestation one-shot" : "Passer en abonnement récurrent",
+        style: {
+          padding: "4px 10px",
+          border: "1px solid " + (isRec ? "#3730a3" : "#fcd34d"),
+          background: isRec ? "#eef2ff" : "#fef3c7",
+          color: isRec ? "#3730a3" : "#92400e",
+          borderRadius: 999,
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+          cursor: "pointer",
+          flexShrink: 0
+        }
+      }, isRec ? "📦 Abonnement" : "🛠 One-shot");
+    })(), /*#__PURE__*/React.createElement("input", {
+      value: l.ref || "",
+      onChange: e => updateLineField(i, "ref", e.target.value),
+      placeholder: "N\xB0 Article",
+      title: "Num\xE9ro / r\xE9f\xE9rence article \u2014 appara\xEEt dans la colonne \xAB Article \xBB du PDF",
+      style: {
+        width: 140,
+        padding: "8px 10px",
+        border: "1px solid #e2e8f0",
+        borderRadius: 6,
+        fontSize: 12,
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600,
+        color: "#3730a3",
+        textTransform: "uppercase",
+        flexShrink: 0,
+        background: l.ref ? "#eef2ff" : "#fff"
+      }
+    }), /*#__PURE__*/React.createElement("input", {
+      value: l.designation || "",
+      onChange: e => updateLineField(i, "designation", e.target.value),
+      placeholder: "D\xE9signation de la ligne (ex : Astorya Suite \u2014 Licence utilisateur)",
+      readOnly: !!l.article_id,
+      title: l.article_id ? "Désignation héritée du catalogue (réf : " + (l.ref || "—") + "). Pour la modifier, change l'article dans Catalogue & paramètres." : "",
+      style: {
+        flex: 1,
+        padding: "8px 10px",
+        border: "1px solid " + (l.article_id ? "#e2e8f0" : "#e2e8f0"),
+        borderRadius: 6,
+        fontSize: 13,
+        fontFamily: "inherit",
+        fontWeight: 500,
+        color: l.article_id ? "#475569" : "#0f172a",
+        background: l.article_id ? "#fafbfc" : "#fff",
+        cursor: l.article_id ? "not-allowed" : "text"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 130,
+        textAlign: "right",
+        padding: "8px 12px",
+        background: "#f8fafc",
+        border: "1px solid #eef1f5",
+        borderRadius: 6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9.5,
+        fontWeight: 700,
+        color: "#94a3b8",
+        textTransform: "uppercase",
+        letterSpacing: 0.4
+      }
+    }, "Total HT"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0f172a",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, fmtEUR(l.total_ht))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => moveLine(i, -1),
+      disabled: i === 0,
+      title: "Monter cette ligne",
+      style: {
+        width: 32,
+        height: 15,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        color: i === 0 ? "#cbd5e1" : "#475569",
+        fontSize: 10,
+        cursor: i === 0 ? "not-allowed" : "pointer",
+        borderRadius: "6px 6px 0 0",
+        padding: 0,
+        lineHeight: 1,
+        fontWeight: 700
+      }
+    }, "\u25B2"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => moveLine(i, +1),
+      disabled: i === (d.lines || []).length - 1,
+      title: "Descendre cette ligne",
+      style: {
+        width: 32,
+        height: 15,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        borderTop: 0,
+        color: i === (d.lines || []).length - 1 ? "#cbd5e1" : "#475569",
+        fontSize: 10,
+        cursor: i === (d.lines || []).length - 1 ? "not-allowed" : "pointer",
+        borderRadius: "0 0 6px 6px",
+        padding: 0,
+        lineHeight: 1,
+        fontWeight: 700
+      }
+    }, "\u25BC")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => removeLine(i),
+      title: "Supprimer la ligne",
+      style: {
+        width: 32,
+        height: 32,
+        background: "#fff",
+        border: "1px solid #fecaca",
+        color: "#dc2626",
+        fontSize: 14,
+        cursor: "pointer",
+        borderRadius: 6
+      }
+    }, "\uD83D\uDDD1"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => duplicateLine(i),
+      title: "Dupliquer la ligne en dessous",
+      style: {
+        width: 32,
+        height: 32,
+        background: "#fff",
+        border: "1px solid #c7d2fe",
+        color: "#3730a3",
+        fontSize: 14,
+        cursor: "pointer",
+        borderRadius: 6
+      }
+    }, "\u2398"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 320px",
+        gap: 12,
+        alignItems: "stretch"
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "\uD83D\uDCDD Description (champ libre)"), /*#__PURE__*/React.createElement(RichDescriptionEditor, {
+      value: l.description || "",
+      onChange: html => updateLineField(i, "description", html),
+      placeholder: "Ex. caract\xE9ristiques techniques, conditions, r\xE9f\xE9rences produit\u2026"
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8,
+        alignContent: "start"
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "Qt\xE9"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.001",
+      value: l.quantity,
+      onChange: e => updateLineField(i, "quantity", e.target.value),
+      style: cdStyles.miniInput
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "Unit\xE9"), /*#__PURE__*/React.createElement("input", {
+      value: "u (unit\xE9)",
+      readOnly: true,
+      disabled: true,
+      title: "Unit\xE9 verrouill\xE9e \u2014 toutes les lignes sont compt\xE9es en unit\xE9s",
+      style: {
+        ...cdStyles.miniInput,
+        background: "#fafbfc",
+        color: "#475569",
+        cursor: "not-allowed"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        gridColumn: "1 / -1"
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: cdStyles.miniLbl
+    }, "Prix unitaire HT"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.01",
+      value: l.unit_price_ht,
+      onChange: e => updateLineField(i, "unit_price_ht", e.target.value),
+      style: {
+        ...cdStyles.miniInput,
+        paddingRight: 26
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        right: 8,
+        top: "50%",
+        transform: "translateY(-50%)",
+        fontSize: 11,
+        color: "#94a3b8",
+        pointerEvents: "none"
+      }
+    }, "\u20AC"))))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 220px 180px",
+        gap: 10,
+        marginTop: 8,
+        padding: "8px 10px",
+        background: "#fafbfc",
+        borderRadius: 6,
+        border: "1px dashed #e2e8f0"
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...cdStyles.miniLbl,
+        color: "#94a3b8"
+      }
+    }, "\uD83D\uDD12 R\xE9f\xE9rence constructeur ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 500,
+        fontStyle: "italic"
+      }
+    }, "(interne \u2014 non imprim\xE9e)")), /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: l.manufacturer_ref || "",
+      onChange: e => updateLineField(i, "manufacturer_ref", e.target.value),
+      placeholder: "ex. HP-EB840-G11-A26S0EA",
+      style: {
+        ...cdStyles.miniInput,
+        fontVariantNumeric: "tabular-nums",
+        fontSize: 11.5
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...cdStyles.miniLbl,
+        color: "#94a3b8"
+      }
+    }, "\uD83D\uDD12 Fournisseur ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 500,
+        fontStyle: "italic"
+      }
+    }, "(interne)")), window.HubSupplierCombo ? React.createElement(window.HubSupplierCombo, {
+      value: l.supplier || "",
+      suppliers: suppliers,
+      cellInput: {
+        ...cdStyles.miniInput,
+        fontSize: 12,
+        fontWeight: 600
+      },
+      onChange: v => updateLineField(i, "supplier", v || null),
+      onSuppliersChanged: reloadSuppliers,
+      placeholder: "— Choisir —"
+    }) : /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: l.supplier || "",
+      onChange: e => updateLineField(i, "supplier", e.target.value || null),
+      placeholder: "ex. INMAC, LDLC PRO\u2026",
+      style: cdStyles.miniInput
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...cdStyles.miniLbl,
+        color: "#94a3b8"
+      }
+    }, "\uD83D\uDD12 Prix d'achat indicatif ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 500,
+        fontStyle: "italic"
+      }
+    }, "(interne)")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.01",
+      value: l.purchase_price_indicative == null ? "" : l.purchase_price_indicative,
+      onChange: e => updateLineField(i, "purchase_price_indicative", e.target.value === "" ? null : Number(e.target.value)),
+      placeholder: "ex. 850.00",
+      style: {
+        ...cdStyles.miniInput,
+        paddingRight: 26,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        right: 8,
+        top: "50%",
+        transform: "translateY(-50%)",
+        fontSize: 11,
+        color: "#94a3b8",
+        pointerEvents: "none"
+      }
+    }, "\u20AC")))));
+    // Bloc Abonnements en haut + sous-total, puis bloc One-shot en bas.
+    var recIdx = sortedLineIndexes.recIdx;
+    var oneIdx = sortedLineIndexes.oneIdx;
+    if (recIdx.length > 0) {
+      rendered.push(grpHeader("📦 Abonnements (récurrents)", "#3730a3", "#eef2ff", recIdx.length, totals.recurringHt));
+      recIdx.forEach(idx => rendered.push(renderLine(lines[idx], idx)));
+      // Sous-total abonnements final visible juste avant les one-shot
+      rendered.push(/*#__PURE__*/React.createElement("div", {
+        key: "subtotal_recurring",
+        style: {
+          display: "flex",
+          justifyContent: "flex-end",
+          padding: "10px 14px",
+          background: "linear-gradient(180deg, #eef2ff, #fff)",
+          border: "1px solid #c7d2fe",
+          borderRadius: 8,
+          marginTop: 4
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 24,
+          alignItems: "center"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: "#3730a3",
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          fontWeight: 700
+        }
+      }, "Sous-total abonnements (", recIdx.length, " ligne", recIdx.length > 1 ? "s" : "", ")"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 16,
+          color: "#3730a3",
+          fontWeight: 800,
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, fmtEUR(totals.recurringHt), " ", /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          fontWeight: 500
+        }
+      }, "HT / p\xE9riode")))));
+    }
+    if (oneIdx.length > 0) {
+      rendered.push(grpHeader("🛠 Prestations one-shot", "#92400e", "#fef3c7", oneIdx.length, totals.oneshotHt));
+      oneIdx.forEach(idx => rendered.push(renderLine(lines[idx], idx)));
+    }
+    return rendered;
+  })(), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 8px",
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => addLine(null),
+    style: cdStyles.ghostBtn
+  }, "+ Ligne libre"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSmartSearchOpen(true),
+    style: {
+      ...cdStyles.ghostBtn,
+      color: "#3730a3",
+      borderColor: "#c7d2fe",
+      fontWeight: 600
+    },
+    title: "Recherche intelligente : catalogue + suggestion IA si rien trouv\xE9"
+  }, "\uD83D\uDD0D Rechercher un article\u2026"), /*#__PURE__*/React.createElement("select", {
+    onChange: e => {
+      if (e.target.value) {
+        addLine(articles.find(a => a.id === e.target.value));
+        e.target.value = "";
+      }
+    },
+    style: {
+      ...cdStyles.input,
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "+ Ajouter article du catalogue\u2026"), articles.map(a => /*#__PURE__*/React.createElement("option", {
+    key: a.id,
+    value: a.id
+  }, a.ref, " \u2014 ", a.name, " (", fmtEUR(a.price_ht), ")")))), smartSearchOpen && /*#__PURE__*/React.createElement(SmartArticleSearchModal, {
+    articles: articles,
+    onAdd: art => {
+      addLine(art);
+      setSmartSearchOpen(false);
+    },
+    onCreated: async () => {
+      setSmartSearchOpen(false);
+      try {
+        setArticles(await window.api.commercialArticles.list({
+          active: true
+        }));
+      } catch (e) {}
+    },
+    onClose: () => setSmartSearchOpen(false)
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f8fafc",
+      border: "1px solid #eef1f5",
+      borderRadius: 10,
+      padding: 14,
+      minWidth: 280
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12,
+      color: "#475569",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Total HT"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontVariantNumeric: "tabular-nums",
+      fontWeight: 600
+    }
+  }, fmtEUR(totals.ht))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12,
+      color: "#475569",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "TVA"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontVariantNumeric: "tabular-nums",
+      fontWeight: 600
+    }
+  }, fmtEUR(totals.tva))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: "1px solid #e2e8f0",
+      marginTop: 6,
+      paddingTop: 6,
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 14,
+      color: "#0f172a",
+      fontWeight: 700
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Total TTC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmtEUR(totals.ttc))), (() => {
+    var payments = d.data && Array.isArray(d.data.payments) ? d.data.payments : [];
+    var paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    // Avoirs liés à cette facture (montants négatifs → crédit client)
+    var avoirsTtc = (linkedAvoirs || []).reduce((s, a) => s + Math.abs(Number(a.total_ttc) || 0), 0);
+    if (paid <= 0 && avoirsTtc <= 0) return null;
+    var remaining = Math.round((totals.ttc - paid - avoirsTtc) * 100) / 100;
+    var solde = remaining <= 0.01;
+    return /*#__PURE__*/React.createElement(React.Fragment, null, avoirsTtc > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 12,
+        color: "#dc2626",
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Avoir(s) \xE9mis (", linkedAvoirs.length, ")"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600
+      }
+    }, "\u2212 ", fmtEUR(avoirsTtc))), paid > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 12,
+        color: "#047857",
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "D\xE9j\xE0 r\xE9gl\xE9 (", payments.length, ")"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600
+      }
+    }, "\u2212 ", fmtEUR(paid))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 6,
+        padding: "6px 10px",
+        borderRadius: 7,
+        background: solde ? "#d1fae5" : "#fed7aa",
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 13,
+        fontWeight: 800,
+        color: solde ? "#065f46" : "#9a3412"
+      }
+    }, /*#__PURE__*/React.createElement("span", null, solde ? "SOLDÉ ✓" : "Reste à payer"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, fmtEUR(Math.max(0, remaining)))));
+  })())), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      padding: 14,
+      background: "#fefce8",
+      border: "1.5px dashed #facc15",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#854d0e"
+    }
+  }, "Note interne \u2014 visible techniciens uniquement"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#a16207",
+      marginTop: 1
+    }
+  }, "Suit l'opportunit\xE9 jusqu'\xE0 la livraison (devis \u2192 commande \u2192 BL \u2192 facture). Jamais imprim\xE9e sur le PDF transmis au client.")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "2px 7px",
+      borderRadius: 4,
+      background: "#fff",
+      color: "#a16207",
+      fontWeight: 700,
+      border: "1px solid #fde68a"
+    }
+  }, "NON IMPRIM\xC9E")), /*#__PURE__*/React.createElement("textarea", {
+    value: d.data && d.data.internal_notes || "",
+    onChange: e => setD({
+      ...d,
+      data: {
+        ...(d.data || {}),
+        internal_notes: e.target.value
+      }
+    }),
+    placeholder: "Pr\xE9ciser le contexte technique : configurations sp\xE9cifiques, acc\xE8s admin, contraintes infra, points d'attention pour la pose, r\xE9f\xE9rences internes, contacts techniques du client, etc.",
+    rows: 5,
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      border: "1px solid #fde68a",
+      borderRadius: 8,
+      fontSize: 12,
+      fontFamily: "'Inter', system-ui, sans-serif",
+      color: "#0f172a",
+      background: "#fffef5",
+      lineHeight: 1.5,
+      boxSizing: "border-box",
+      resize: "vertical",
+      outline: "none"
+    },
+    spellCheck: false
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 6,
+      fontSize: 10.5,
+      color: "#a16207"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, (d.data && d.data.internal_notes || "").length, " caract\xE8res"), d.parent_doc_id && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontStyle: "italic"
+    }
+  }, "Note h\xE9rit\xE9e du document parent \u2014 modifiable")))), /*#__PURE__*/React.createElement(DocSendHistory, {
+    docId: d.id
+  }))), sendOpen && /*#__PURE__*/React.createElement(DocSendModal, {
+    doc: d,
+    onSave: save,
+    onClose: () => setSendOpen(false)
+  }), acompteOpen && /*#__PURE__*/React.createElement(AcompteModal, {
+    doc: d,
+    onClose: () => setAcompteOpen(false),
+    onCreated: facAc => {
+      setAcompteOpen(false);
+      if (window.HubToast) window.HubToast.success("✓ Facture d'acompte " + (facAc.ref || facAc.id) + " créée");
+      if (onOpenDoc) onOpenDoc(facAc.id);else if (onSaved) onSaved();
+    }
+  }), paymentOpen && /*#__PURE__*/React.createElement(PaymentModal, {
+    doc: d,
+    onClose: () => setPaymentOpen(false),
+    onSaved: updated => {
+      setPaymentOpen(false);
+      setD(updated);
+      if (window.HubToast) window.HubToast.success("✓ Règlement enregistré");
+    }
+  }), avoirOpen && /*#__PURE__*/React.createElement(AvoirModal, {
+    doc: d,
+    onClose: () => setAvoirOpen(false),
+    onCreated: av => {
+      setAvoirOpen(false);
+      if (window.HubToast) window.HubToast.success("✓ Avoir " + (av.ref || av.id) + " créé");
+      if (onOpenDoc) onOpenDoc(av.id);else if (onSaved) onSaved();
+    }
+  }));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// AvoirModal — crée un avoir lié à une facture (modèle Sage 50)
+// ─────────────────────────────────────────────────────────────────
+var AvoirModal = ({
+  doc,
+  onClose,
+  onCreated
+}) => {
+  var fmt = n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).replace(/[  ]/g, " ") + " €";
+  var baseHt = Number(doc.total_ht) || 0;
+  var baseTtc = Number(doc.total_ttc) || 0;
+  var rate = baseHt !== 0 ? (Number(doc.total_tva) || 0) / baseHt : 0.2;
+  var [mode, setMode] = React.useState("full"); // "full" | "partial"
+  var [amount, setAmount] = React.useState("");
+  var [motif, setMotif] = React.useState("");
+  var [busy, setBusy] = React.useState(false);
+  var avHt = mode === "full" ? baseHt : Number(amount) || 0;
+  var avTtc = Math.round(avHt * (1 + rate) * 100) / 100;
+  var submit = async () => {
+    setBusy(true);
+    try {
+      var opts = {
+        motif: motif.trim()
+      };
+      if (mode === "full") opts.full = true;else opts.amount_ht = Number(amount) || 0;
+      var av = await window.api.commercialDocs.createAvoir(doc.id, opts);
+      onCreated(av);
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 24,
+      width: "90%",
+      maxWidth: 480,
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\u21A9 Cr\xE9er un avoir"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 30,
+      height: 30,
+      border: "none",
+      background: "#f1f5f9",
+      borderRadius: 7,
+      fontSize: 17,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "0 0 16px"
+    }
+  }, "Avoir li\xE9 \xE0 la facture ", /*#__PURE__*/React.createElement("strong", null, doc.ref || doc.id), " \xB7 ", fmt(baseHt), " HT (", fmt(baseTtc), " TTC)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      padding: 2,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode("full"),
+    style: {
+      padding: "6px 14px",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 600,
+      background: mode === "full" ? "#dc2626" : "transparent",
+      color: mode === "full" ? "#fff" : "#64748b"
+    }
+  }, "Avoir total"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode("partial"),
+    style: {
+      padding: "6px 14px",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 600,
+      background: mode === "partial" ? "#dc2626" : "transparent",
+      color: mode === "partial" ? "#fff" : "#64748b"
+    }
+  }, "Avoir partiel")), mode === "partial" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Montant HT \xE0 cr\xE9diter"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: amount,
+    onChange: e => setAmount(e.target.value),
+    placeholder: "0.00",
+    style: {
+      ...cdStyles.input,
+      fontVariantNumeric: "tabular-nums"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Motif de l'avoir"), /*#__PURE__*/React.createElement("input", {
+    value: motif,
+    onChange: e => setMotif(e.target.value),
+    placeholder: "Ex : geste commercial, retour produit, erreur facturation\u2026",
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fef2f2",
+      border: "1px solid #fecaca",
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12.5,
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#475569"
+    }
+  }, "Montant avoir HT"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      color: "#dc2626",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, "\u2212 ", fmt(avHt))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 14,
+      color: "#dc2626"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700
+    }
+  }, "Cr\xE9dit TTC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 800,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, "\u2212 ", fmt(avTtc)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "8px 14px",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      color: "#475569",
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: submit,
+    disabled: busy || avHt <= 0,
+    style: {
+      padding: "8px 16px",
+      border: "none",
+      background: avHt > 0 ? "#dc2626" : "#cbd5e1",
+      color: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: busy || avHt <= 0 ? "not-allowed" : "pointer"
+    }
+  }, busy ? "⏳ Création…" : "↩ Créer l'avoir"))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// PaymentModal — enregistre un règlement client sur une facture
+// ─────────────────────────────────────────────────────────────────
+var PaymentModal = ({
+  doc,
+  onClose,
+  onSaved
+}) => {
+  var fmt = n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).replace(/[  ]/g, " ") + " €";
+  var ttc = Number(doc.total_ttc) || 0;
+  var existing = doc.data && Array.isArray(doc.data.payments) ? doc.data.payments : [];
+  var alreadyPaid = existing.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  var remaining = Math.round((ttc - alreadyPaid) * 100) / 100;
+  var today = new Date().toISOString().slice(0, 10);
+  var [amount, setAmount] = React.useState(remaining > 0 ? String(remaining) : "");
+  var [date, setDate] = React.useState(today);
+  var [mode, setMode] = React.useState("virement");
+  var [ref, setRef] = React.useState("");
+  var [busy, setBusy] = React.useState(false);
+  var MODES = [{
+    k: "virement",
+    label: "Virement"
+  }, {
+    k: "cheque",
+    label: "Chèque"
+  }, {
+    k: "cb",
+    label: "Carte bancaire"
+  }, {
+    k: "especes",
+    label: "Espèces"
+  }, {
+    k: "prelevement",
+    label: "Prélèvement"
+  }];
+  var save = async () => {
+    var amt = Number(amount) || 0;
+    if (amt <= 0) {
+      window.HubToast && window.HubToast.warn("Montant invalide");
+      return;
+    }
+    setBusy(true);
+    try {
+      var payment = {
+        id: "PAY_" + Date.now(),
+        amount: amt,
+        date,
+        mode,
+        ref: ref.trim(),
+        created_at: new Date().toISOString()
+      };
+      var payments = [...existing, payment];
+      var totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      // Statut : payé si soldé, sinon « partiel » (on garde le statut courant
+      // sinon, mais on marque payé quand le TTC est atteint).
+      var patch = {
+        data: {
+          ...(doc.data || {}),
+          payments
+        }
+      };
+      if (totalPaid >= ttc - 0.01) patch.status = "paye";
+      var updated = await window.api.commercialDocs.update(doc.id, patch);
+      onSaved(updated || {
+        ...doc,
+        ...patch
+      });
+    } catch (e) {
+      window.HubToast && window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 24,
+      width: "90%",
+      maxWidth: 460,
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCB3 Enregistrer un r\xE8glement"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 30,
+      height: 30,
+      border: "none",
+      background: "#f1f5f9",
+      borderRadius: 7,
+      fontSize: 17,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "0 0 14px"
+    }
+  }, doc.ref || doc.id, " \xB7 Total TTC ", /*#__PURE__*/React.createElement("strong", null, fmt(ttc)), alreadyPaid > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 D\xE9j\xE0 r\xE9gl\xE9 ", fmt(alreadyPaid), " \xB7 ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#ea580c",
+      fontWeight: 700
+    }
+  }, "Reste ", fmt(remaining)))), existing.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, existing.map((p, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "6px 10px",
+      fontSize: 11.5,
+      borderBottom: i < existing.length - 1 ? "1px solid #f1f5f9" : "none",
+      background: "#fafbfc"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, new Date(p.date).toLocaleDateString("fr-FR"), " \xB7 ", (MODES.find(m => m.k === p.mode) || {}).label || p.mode, p.ref ? " · " + p.ref : ""), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmt(p.amount))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Montant r\xE9gl\xE9 (TTC)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: amount,
+    onChange: e => setAmount(e.target.value),
+    style: {
+      ...cdStyles.input,
+      fontVariantNumeric: "tabular-nums"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Date du r\xE8glement"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value),
+    style: cdStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Mode de r\xE8glement"), /*#__PURE__*/React.createElement("select", {
+    value: mode,
+    onChange: e => setMode(e.target.value),
+    style: cdStyles.input
+  }, MODES.map(m => /*#__PURE__*/React.createElement("option", {
+    key: m.k,
+    value: m.k
+  }, m.label)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "R\xE9f\xE9rence (n\xB0 ch\xE8que, virement\u2026)"), /*#__PURE__*/React.createElement("input", {
+    value: ref,
+    onChange: e => setRef(e.target.value),
+    placeholder: "Optionnel",
+    style: cdStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "8px 14px",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      color: "#475569",
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: save,
+    disabled: busy,
+    style: {
+      padding: "8px 16px",
+      border: "none",
+      background: "#10b981",
+      color: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: busy ? "wait" : "pointer"
+    }
+  }, busy ? "⏳…" : "✓ Enregistrer le règlement"))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// AcompteModal — génère une facture d'acompte depuis un devis (modèle Sage)
+// ─────────────────────────────────────────────────────────────────
+var AcompteModal = ({
+  doc,
+  onClose,
+  onCreated
+}) => {
+  var [mode, setMode] = React.useState("pct"); // "pct" | "amount"
+  var [pct, setPct] = React.useState(40);
+  var [amount, setAmount] = React.useState("");
+  var [busy, setBusy] = React.useState(false);
+  // Règlement encaissé (par défaut oui — c'est le cas d'usage « le client a payé »)
+  var [regle, setRegle] = React.useState(true);
+  var [payDate, setPayDate] = React.useState(new Date().toISOString().slice(0, 10));
+  var [payMode, setPayMode] = React.useState("virement");
+  var [payRef, setPayRef] = React.useState("");
+  var fmt = n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).replace(/[  ]/g, " ") + " €";
+  var baseHt = Number(doc.total_ht) || 0;
+  var baseTtc = Number(doc.total_ttc) || 0;
+  var rate = baseHt > 0 ? (Number(doc.total_tva) || 0) / baseHt : 0.2;
+  var acHt = mode === "pct" ? Math.round(baseHt * (Number(pct) || 0) / 100 * 100) / 100 : Number(amount) || 0;
+  var acTtc = Math.round(acHt * (1 + rate) * 100) / 100;
+  var submit = async () => {
+    setBusy(true);
+    try {
+      var opts = mode === "pct" ? {
+        pct: Number(pct) || 0
+      } : {
+        amount_ht: Number(amount) || 0
+      };
+      if (regle) opts.payment = {
+        date: payDate,
+        mode: payMode,
+        ref: payRef.trim()
+      };
+      var facAc = await window.api.commercialDocs.createAcompte(doc.id, opts);
+      onCreated(facAc);
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+      setBusy(false);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.5)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 12,
+      padding: 24,
+      width: "90%",
+      maxWidth: 480,
+      boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 17,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "\uD83D\uDCB0 Facture d'acompte"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 30,
+      height: 30,
+      border: "none",
+      background: "#f1f5f9",
+      borderRadius: 7,
+      fontSize: 17,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#64748b",
+      margin: "0 0 16px"
+    }
+  }, "Devis ", /*#__PURE__*/React.createElement("strong", null, doc.ref || doc.id), " \xB7 Total ", fmt(baseHt), " HT (", fmt(baseTtc), " TTC)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      padding: 2,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode("pct"),
+    style: {
+      padding: "6px 14px",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 600,
+      background: mode === "pct" ? "#0ea5e9" : "transparent",
+      color: mode === "pct" ? "#fff" : "#64748b"
+    }
+  }, "Pourcentage"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode("amount"),
+    style: {
+      padding: "6px 14px",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 600,
+      background: mode === "amount" ? "#0ea5e9" : "transparent",
+      color: mode === "amount" ? "#fff" : "#64748b"
+    }
+  }, "Montant fixe HT")), mode === "pct" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Pourcentage d'acompte"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 6
+    }
+  }, [30, 40, 50].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setPct(v),
+    style: {
+      padding: "6px 12px",
+      border: "1px solid " + (pct === v ? "#0ea5e9" : "#e2e8f0"),
+      background: pct === v ? "#f0f9ff" : "#fff",
+      color: pct === v ? "#0369a1" : "#475569",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, v, " %")), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: pct,
+    onChange: e => setPct(e.target.value),
+    style: {
+      width: 70,
+      padding: "6px 10px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontVariantNumeric: "tabular-nums",
+      textAlign: "right"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      alignSelf: "center",
+      fontSize: 13,
+      color: "#475569"
+    }
+  }, "%"))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Montant HT de l'acompte"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: amount,
+    onChange: e => setAmount(e.target.value),
+    placeholder: "0.00",
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      fontSize: 13,
+      marginTop: 6,
+      boxSizing: "border-box",
+      fontVariantNumeric: "tabular-nums"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f0f9ff",
+      border: "1px solid #bae6fd",
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12.5,
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#475569"
+    }
+  }, "Acompte HT"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmt(acHt))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 14,
+      color: "#0369a1"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700
+    }
+  }, "Net \xE0 payer TTC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 800,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fmt(acTtc)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #d1fae5",
+      background: "#ecfdf5",
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#047857"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: regle,
+    onChange: e => setRegle(e.target.checked)
+  }), "\uD83D\uDCB3 R\xE8glement encaiss\xE9 (marque la facture d'acompte \xAB pay\xE9e \xBB + verrouill\xE9e)"), regle && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: payDate,
+    onChange: e => setPayDate(e.target.value),
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Mode"), /*#__PURE__*/React.createElement("select", {
+    value: payMode,
+    onChange: e => setPayMode(e.target.value),
+    style: cdStyles.input
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "virement"
+  }, "Virement"), /*#__PURE__*/React.createElement("option", {
+    value: "cheque"
+  }, "Ch\xE8que"), /*#__PURE__*/React.createElement("option", {
+    value: "cb"
+  }, "Carte bancaire"), /*#__PURE__*/React.createElement("option", {
+    value: "especes"
+  }, "Esp\xE8ces"), /*#__PURE__*/React.createElement("option", {
+    value: "prelevement"
+  }, "Pr\xE9l\xE8vement"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "R\xE9f\xE9rence (n\xB0 ch\xE8que, virement\u2026)"), /*#__PURE__*/React.createElement("input", {
+    value: payRef,
+    onChange: e => setPayRef(e.target.value),
+    placeholder: "Optionnel",
+    style: cdStyles.input
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "8px 14px",
+      border: "1px solid #e2e8f0",
+      background: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      color: "#475569",
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: submit,
+    disabled: busy || acHt <= 0,
+    style: {
+      padding: "8px 16px",
+      border: "none",
+      background: acHt > 0 ? "#0ea5e9" : "#cbd5e1",
+      color: "#fff",
+      borderRadius: 8,
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: busy || acHt <= 0 ? "not-allowed" : "pointer"
+    }
+  }, busy ? "⏳ Création…" : "💰 Créer la facture d'acompte"))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Historique des envois d'un doc (depuis commercial_doc_sends)
+// ─────────────────────────────────────────────────────────────────
+var DocSendHistory = ({
+  docId
+}) => {
+  var [list, setList] = React.useState([]);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        setList((await window.api.commercialSends.list({
+          doc_id: docId
+        })) || []);
+      } catch (e) {}
+    })();
+  }, [docId]);
+  if (list.length === 0) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      padding: 14,
+      background: "#f8fafc",
+      border: "1px solid #eef1f5",
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#475569",
+      marginBottom: 8
+    }
+  }, "\u2709 Historique des envois (", list.length, ")"), list.map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "6px 0",
+      fontSize: 12,
+      borderBottom: "1px solid #f1f5f9"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 12,
+      height: 12,
+      borderRadius: 999,
+      background: s.status === "sent" ? "#10b981" : s.status === "failed" ? "#dc2626" : "#94a3b8"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontVariantNumeric: "tabular-nums",
+      fontSize: 11,
+      color: "#64748b"
+    }
+  }, new Date(s.sent_at).toLocaleString("fr-FR")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      color: "#0f172a"
+    }
+  }, s.channel === "email" ? "✉ " + (s.recipient_email || "—") : s.channel === "download" ? "⇩ Téléchargement" : s.channel), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      padding: "1px 6px",
+      borderRadius: 4,
+      background: s.status === "sent" ? "#dcfce7" : "#f1f5f9",
+      color: s.status === "sent" ? "#065f46" : "#475569",
+      fontWeight: 600
+    }
+  }, s.status), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#94a3b8"
+    }
+  }, "par ", s.sent_by_name || "—"))));
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Modal "Envoyer le doc par email" — log dans commercial_doc_sends
+// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// SmartArticleSearchModal — recherche avancée d'article
+// 1) Filtre live dans le catalogue local (commercial_articles)
+// 2) Si aucun résultat → propose une recherche IA sur le web via
+//    window.HubAi (s'il est branché) ou fallback message
+// 3) L'utilisateur valide → ajoute la ligne, ou crée l'article en BDD
+// ─────────────────────────────────────────────────────────────────
+var SmartArticleSearchModal = ({
+  articles,
+  onAdd,
+  onCreated,
+  onClose
+}) => {
+  var [q, setQ] = React.useState("");
+  var [aiSuggestion, setAiSuggestion] = React.useState(null);
+  var [aiLoading, setAiLoading] = React.useState(false);
+  var [aiError, setAiError] = React.useState(null);
+  var [draft, setDraft] = React.useState(null);
+  var inputRef = React.useRef(null);
+  React.useEffect(() => {
+    setTimeout(() => inputRef.current && inputRef.current.focus(), 50);
+    var onKey = e => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Recherche locale avec scoring simple (tokens AND, désignation + ref)
+  var matches = React.useMemo(() => {
+    var term = q.trim().toLowerCase();
+    if (!term) return [];
+    var tokens = term.split(/\s+/).filter(Boolean);
+    var scored = (articles || []).map(a => {
+      var haystack = [a.ref || "", a.name || "", a.designation || "", a.category || "", a.description || ""].join(" ").toLowerCase();
+      var score = 0;
+      var allMatched = true;
+      for (var tok of tokens) {
+        if (haystack.includes(tok)) {
+          score += 1;
+          if (haystack.startsWith(tok)) score += 0.5;
+        } else allMatched = false;
+      }
+      return {
+        a,
+        score,
+        allMatched
+      };
+    }).filter(r => r.score > 0).sort((x, y) => y.allMatched - x.allMatched || y.score - x.score);
+    return scored.slice(0, 15);
+  }, [q, articles]);
+  var runAiSearch = async () => {
+    if (!q.trim()) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiSuggestion(null);
+    try {
+      var result = null;
+      if (window.HubAi && window.HubAi.suggestArticle) {
+        result = await window.HubAi.suggestArticle(q.trim());
+      } else if (window.api && window.api.ai && window.api.ai.searchArticle) {
+        result = await window.api.ai.searchArticle(q.trim());
+      } else {
+        throw new Error("Module IA non branché — créez l'article manuellement avec les champs ci-dessous.");
+      }
+      if (result && typeof result === "object") {
+        setAiSuggestion(result);
+        setDraft({
+          ref: result.ref || "ART-" + Date.now().toString(36).slice(-5).toUpperCase(),
+          designation: result.designation || result.name || q,
+          category: result.category || "LOGICIEL",
+          description: result.description || "",
+          unit_price_ht: result.price_ht || result.unit_price_ht || 0,
+          tva_rate: result.tva_rate || 20,
+          unit: result.unit || "u",
+          supplier: result.supplier || "",
+          source_url: result.source_url || result.url || ""
+        });
+      }
+    } catch (e) {
+      setAiError(e.message || "Erreur IA");
+      // Fallback : pré-remplit un draft manuel basé sur la requête
+      setDraft({
+        ref: "ART-" + Date.now().toString(36).slice(-5).toUpperCase(),
+        designation: q,
+        category: "LOGICIEL",
+        description: "",
+        unit_price_ht: 0,
+        tva_rate: 20,
+        unit: "u",
+        supplier: ""
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  var createArticle = async () => {
+    if (!draft || !draft.designation) return;
+    try {
+      var created = await window.api.commercialArticles.create({
+        ref: draft.ref,
+        name: draft.designation,
+        designation: draft.designation,
+        category: draft.category,
+        description: draft.description || null,
+        unit_price_ht: Number(draft.unit_price_ht) || 0,
+        price_ht: Number(draft.unit_price_ht) || 0,
+        tva_rate: Number(draft.tva_rate) || 20,
+        unit: draft.unit || "u",
+        supplier: draft.supplier || null,
+        active: true
+      });
+      if (window.HubToast) window.HubToast.success("✓ Article " + (created.ref || draft.ref) + " créé");
+      // Ajoute aussi la ligne directement
+      onAdd({
+        id: created.id,
+        ref: created.ref,
+        name: created.name,
+        designation: created.designation || created.name,
+        unit_price_ht: created.unit_price_ht || created.price_ht || 0,
+        price_ht: created.price_ht || 0,
+        tva_rate: created.tva_rate || 20,
+        unit: created.unit || "u"
+      });
+      onCreated && onCreated();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Création échouée : " + (e.message || e));
+    }
+  };
+  var fmtEUR = window.HubConstants && window.HubConstants.fmtEUR || (n => (Number(n) || 0).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) + " €");
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,23,42,0.55)",
+      zIndex: 10001,
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "center",
+      padding: "60px 20px",
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 14,
+      width: "100%",
+      maxWidth: 760,
+      boxShadow: "0 20px 60px rgba(15,23,42,0.4)",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      maxHeight: "calc(100vh - 100px)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 22px",
+      borderBottom: "1px solid #eef1f5",
+      background: "linear-gradient(180deg, #fafbfc 0%, #fff 100%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, "Recherche avanc\xE9e"), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: "2px 0 0",
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#0f172a"
+    }
+  }, "Trouver ou cr\xE9er un article")), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 32,
+      height: 32,
+      background: "#f1f5f9",
+      border: 0,
+      borderRadius: 8,
+      color: "#475569",
+      fontSize: 16,
+      cursor: "pointer"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 14,
+      top: "50%",
+      transform: "translateY(-50%)",
+      fontSize: 18,
+      color: "#94a3b8"
+    }
+  }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("input", {
+    ref: inputRef,
+    value: q,
+    onChange: e => {
+      setQ(e.target.value);
+      setAiSuggestion(null);
+      setAiError(null);
+      setDraft(null);
+    },
+    onKeyDown: e => {
+      if (e.key === "Enter" && matches.length === 0) runAiSearch();
+    },
+    placeholder: "Ex. licence office 365, \xE9cran 24 pouces, switch ubiquiti\u2026",
+    style: {
+      width: "100%",
+      padding: "12px 14px 12px 44px",
+      border: "2px solid #c7d2fe",
+      borderRadius: 10,
+      fontSize: 14,
+      outline: "none",
+      boxSizing: "border-box"
+    }
+  })), matches.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#065f46",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 8
+    }
+  }, "\u2713 ", matches.length, " article", matches.length > 1 ? "s" : "", " trouv\xE9", matches.length > 1 ? "s" : "", " dans le catalogue"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, matches.map(m => /*#__PURE__*/React.createElement("button", {
+    key: m.a.id,
+    onClick: () => onAdd(m.a),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "10px 12px",
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 8,
+      cursor: "pointer",
+      textAlign: "left",
+      transition: "all 100ms"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, m.a.designation || m.a.name || "(sans désignation)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      marginTop: 2
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: "#3730a3"
+    }
+  }, m.a.ref), m.a.category && /*#__PURE__*/React.createElement("span", null, " \xB7 ", m.a.category))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0f172a",
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    }
+  }, fmtEUR(m.a.unit_price_ht || m.a.price_ht)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "#3730a3",
+      marginLeft: 4
+    }
+  }, "+"))))), q.trim() && matches.length === 0 && !aiSuggestion && !aiLoading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      background: "#fef3c7",
+      border: "1px solid #fbbf24",
+      borderRadius: 10,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "#78350f",
+      marginBottom: 12
+    }
+  }, "Aucun article ne correspond \xE0 ", /*#__PURE__*/React.createElement("strong", null, "\xAB ", q, " \xBB"), " dans le catalogue."), /*#__PURE__*/React.createElement("button", {
+    onClick: runAiSearch,
+    style: {
+      padding: "10px 18px",
+      background: "#3730a3",
+      color: "#fff",
+      border: 0,
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "\uD83E\uDD16 Rechercher sur le web (IA) et cr\xE9er l'article")), aiLoading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22,
+      textAlign: "center",
+      color: "#475569"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 24,
+      marginBottom: 8
+    }
+  }, "\uD83E\uDD16"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13
+    }
+  }, "L'IA recherche \xAB ", q, " \xBB sur le web\u2026")), (aiSuggestion || draft && aiError) && draft && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 16,
+      background: "#eef2ff",
+      border: "1px solid #c7d2fe",
+      borderRadius: 10,
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#3730a3",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 10
+    }
+  }, aiError ? "⚠ Création manuelle" : "🤖 Proposition de l'IA"), aiError && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#9a3412",
+      marginBottom: 10,
+      fontStyle: "italic"
+    }
+  }, aiError), aiSuggestion && aiSuggestion.source_url && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#64748b",
+      marginBottom: 10
+    }
+  }, "Source : ", /*#__PURE__*/React.createElement("a", {
+    href: aiSuggestion.source_url,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      color: "#3730a3"
+    }
+  }, aiSuggestion.source_url)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "D\xE9signation"), /*#__PURE__*/React.createElement("input", {
+    value: draft.designation,
+    onChange: e => setDraft({
+      ...draft,
+      designation: e.target.value
+    }),
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 13,
+      marginTop: 4,
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("input", {
+    value: draft.ref,
+    onChange: e => setDraft({
+      ...draft,
+      ref: e.target.value
+    }),
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 13,
+      fontFamily: "inherit",
+      marginTop: 4,
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement("input", {
+    value: draft.category,
+    onChange: e => setDraft({
+      ...draft,
+      category: e.target.value
+    }),
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 13,
+      marginTop: 4,
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Prix HT (\u20AC)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    value: draft.unit_price_ht,
+    onChange: e => setDraft({
+      ...draft,
+      unit_price_ht: e.target.value
+    }),
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 13,
+      marginTop: 4,
+      boxSizing: "border-box",
+      fontVariantNumeric: "tabular-nums"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Fournisseur"), /*#__PURE__*/React.createElement("input", {
+    value: draft.supplier,
+    onChange: e => setDraft({
+      ...draft,
+      supplier: e.target.value
+    }),
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 13,
+      marginTop: 4,
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "#475569",
+      textTransform: "uppercase",
+      letterSpacing: 0.4
+    }
+  }, "Description"), /*#__PURE__*/React.createElement("textarea", {
+    value: draft.description,
+    onChange: e => setDraft({
+      ...draft,
+      description: e.target.value
+    }),
+    rows: 2,
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid #c7d2fe",
+      borderRadius: 6,
+      fontSize: 12.5,
+      marginTop: 4,
+      boxSizing: "border-box",
+      resize: "vertical"
+    }
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: createArticle,
+    style: {
+      marginTop: 14,
+      padding: "10px 20px",
+      background: "#3730a3",
+      color: "#fff",
+      border: 0,
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "\u2713 Cr\xE9er l'article et l'ajouter \xE0 la ligne")), !q.trim() && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24,
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 12.5
+    }
+  }, "\uD83D\uDCA1 Tape un mot-cl\xE9 pour rechercher dans le catalogue.", /*#__PURE__*/React.createElement("br", null), "Si rien n'est trouv\xE9, l'IA proposera de cr\xE9er l'article."))));
+};
+var DocSendModal = ({
+  doc,
+  onSave,
+  onClose
+}) => {
+  var [recipientEmail, setRecipientEmail] = React.useState(doc.contact_email || "");
+  var [recipientName, setRecipientName] = React.useState(doc.contact_name || doc.client_name || "");
+  var [cc, setCc] = React.useState("");
+  var TYPE_LABEL = {
+    devis: "Devis",
+    commande: "Bon de commande",
+    bl: "Bon de livraison",
+    facture: "Facture"
+  };
+  var typeLbl = TYPE_LABEL[doc.type] || doc.type;
+  var [subject, setSubject] = React.useState(typeLbl + " " + doc.id + (doc.title ? " — " + doc.title : ""));
+  var [body, setBody] = React.useState("Bonjour" + (recipientName ? " " + recipientName.split(" ")[0] : "") + ",\n\n" + "Veuillez trouver ci-joint le " + typeLbl.toLowerCase() + " " + doc.id + ".\n\n" + "N'hésitez pas à revenir vers moi pour toute question.\n\n" + "Cordialement,\n" + (doc.owner || "Romain Daviaud") + "\nAstorya");
+  var [sending, setSending] = React.useState(false);
+  var [aiLoading, setAiLoading] = React.useState(false);
+  var [aiInstructions, setAiInstructions] = React.useState("");
+  // Bibliothèque de documents commerciaux (liens SharePoint) à joindre.
+  var [docsLib, setDocsLib] = React.useState([]);
+  var [selDocs, setSelDocs] = React.useState({});
+  var [showAddDoc, setShowAddDoc] = React.useState(false);
+  var [newDoc, setNewDoc] = React.useState({
+    name: "",
+    url: "",
+    category: ""
+  });
+  React.useEffect(() => {
+    (async () => {
+      try {
+        var lib = (window.api.salesDocs ? await window.api.salesDocs.list() : []) || [];
+        setDocsLib(lib);
+        var pre = {};
+        lib.forEach(d => {
+          if (d.suggest !== false) pre[d.id] = true;
+        });
+        setSelDocs(pre);
+      } catch (e) {}
+    })();
+  }, []);
+  var attachedLinks = () => docsLib.filter(d => selDocs[d.id] && d.url).map(d => "• " + d.name + " : " + d.url);
+  var saveNewDoc = async () => {
+    if (!newDoc.name || !newDoc.url) {
+      alert("Nom et lien requis");
+      return;
+    }
+    try {
+      var saved = await window.api.salesDocs.save({
+        ...newDoc,
+        suggest: true
+      });
+      setDocsLib(l => [...l, saved]);
+      setSelDocs(s => ({
+        ...s,
+        [saved.id]: true
+      }));
+      setNewDoc({
+        name: "",
+        url: "",
+        category: ""
+      });
+      setShowAddDoc(false);
+    } catch (e) {
+      alert("Erreur : " + (e.message || e));
+    }
+  };
+  var send = async () => {
+    if (!recipientEmail) {
+      alert("Email destinataire requis");
+      return;
+    }
+    var emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRx.test(recipientEmail)) {
+      alert("Format email invalide : " + recipientEmail);
+      return;
+    }
+    if (cc) {
+      var ccList = cc.split(",").map(s => s.trim()).filter(Boolean);
+      var bad = ccList.find(e => !emailRx.test(e));
+      if (bad) {
+        alert("Email CC invalide : " + bad);
+        return;
+      }
+    }
+    if (!doc.client_name) {
+      if (!confirm("Le document n'a pas de client. Envoyer quand même ?")) return;
+    }
+    if ((doc.lines || []).length === 0) {
+      if (!confirm("Le document n'a aucune ligne. Envoyer quand même ?")) return;
+    }
+    setSending(true);
+    try {
+      // Le doc a déjà été sauvé via save({keepOpen:true}) avant l'ouverture de cette modal
+      var pdfBase64 = null;
+      try {
+        if (window.HubCommercialPdf) pdfBase64 = await window.HubCommercialPdf.toBase64(doc.id);
+      } catch (e) {
+        console.warn("PDF gen failed:", e);
+      }
+
+      // Téléchargement local du PDF (pour drag-drop manuel dans le mail)
+      if (pdfBase64) {
+        try {
+          var a = document.createElement("a");
+          a.href = "data:application/pdf;base64," + pdfBase64;
+          a.download = doc.id + ".pdf";
+          a.click();
+        } catch (e) {}
+      }
+
+      // Corps : message + documents joints (liens SharePoint) + note PDF.
+      var links = attachedLinks();
+      var bodyWithNote = body + (links.length ? "\n\nDocuments joints :\n" + links.join("\n") : "") + "\n\n[Le devis PDF a été téléchargé localement — glissez-le en pièce jointe.]";
+      // Ouvre l'OUTLOOK DESKTOP du poste via mailto: (application par défaut).
+      window.location.href = "mailto:" + recipientEmail + "?" + (cc ? "cc=" + encodeURIComponent(cc) + "&" : "") + "subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(bodyWithNote);
+
+      // Log permanent en BDD
+      await window.api.commercialSends.log({
+        doc_id: doc.id,
+        doc_type: doc.type,
+        channel: "email",
+        recipient_email: recipientEmail,
+        recipient_name: recipientName,
+        cc: cc || null,
+        subject,
+        body,
+        attachment_url: pdfBase64 ? doc.id + ".pdf" : null,
+        status: "sent",
+        provider: "outlook_desktop",
+        attachments: links
+      });
+
+      // Met à jour le statut du doc → "envoye"
+      if (doc.status === "brouillon") {
+        try {
+          await window.api.commercialDocs.update(doc.id, {
+            status: "envoye"
+          });
+        } catch (e) {}
+      }
+      if (window.HubToast) window.HubToast.success("✓ Envoi enregistré — PDF téléchargé pour pièce jointe");
+      onClose && onClose();
+    } catch (e) {
+      if (window.HubToast) window.HubToast.error("Erreur : " + (e.message || e));
+    }
+    setSending(false);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: cdStyles.modalOverlay,
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...cdStyles.modalCard,
+      maxWidth: 640
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("header", {
+    style: cdStyles.modalHead
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 15,
+      fontWeight: 700
+    }
+  }, "\u2709 Envoyer ", doc.id, " par email"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: cdStyles.closeBtn
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Destinataire (Nom)"), /*#__PURE__*/React.createElement("input", {
+    value: recipientName,
+    onChange: e => setRecipientName(e.target.value),
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Destinataire (Email) *"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: recipientEmail,
+    onChange: e => setRecipientEmail(e.target.value),
+    style: cdStyles.input
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Cc (copies)"), /*#__PURE__*/React.createElement("input", {
+    value: cc,
+    onChange: e => setCc(e.target.value),
+    placeholder: "email1@ex.com, email2@ex.com",
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: cdStyles.lbl
+  }, "Objet"), /*#__PURE__*/React.createElement("input", {
+    value: subject,
+    onChange: e => setSubject(e.target.value),
+    style: cdStyles.input
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...cdStyles.lbl,
+      marginBottom: 0
+    }
+  }, "Corps du message"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      if (!window.HubAI) {
+        alert("Assistant IA non chargé");
+        return;
+      }
+      setAiLoading(true);
+      try {
+        // Récupère tous les docs liés à la même opp pour donner du contexte
+        var relatedDocs = [doc];
+        if (doc.opportunity_id) {
+          try {
+            var all = await window.api.commercialDocs.list({
+              opportunity_id: doc.opportunity_id
+            });
+            relatedDocs = (all || []).filter(d => d.status !== "annule" && d.status !== "refuse");
+            if (relatedDocs.length === 0) relatedDocs = [doc];
+          } catch (e) {}
+        }
+        var newBody = await window.HubAI.generateSalesMail({
+          client_name: doc.client_name,
+          contact_name: recipientName,
+          contact_title: doc.contact_title,
+          docs: relatedDocs.map(d => ({
+            id: d.id,
+            type: d.type,
+            title: d.title,
+            total_ttc: d.total_ttc,
+            status: d.status
+          })),
+          custom_notes: aiInstructions
+        });
+        if (newBody && newBody.trim()) setBody(newBody.trim());
+        if (window.HubToast) window.HubToast.success("✓ Mail rédigé par Claude IA");
+      } catch (e) {
+        if (window.HubToast) window.HubToast.error("Erreur IA : " + (e.message || e));else alert("Erreur IA : " + (e.message || e));
+      }
+      setAiLoading(false);
+    },
+    disabled: aiLoading,
+    style: {
+      padding: "4px 10px",
+      fontSize: 11,
+      fontWeight: 600,
+      background: "#0f172a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 5,
+      cursor: aiLoading ? "wait" : "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    },
+    title: "G\xE9n\xE8re un mail commercial structur\xE9 avec Claude IA en analysant tous les devis li\xE9s \xE0 la m\xEAme opportunit\xE9"
+  }, "\uD83E\uDD16 ", aiLoading ? "Rédaction…" : "Rédiger avec IA")), /*#__PURE__*/React.createElement("input", {
+    value: aiInstructions,
+    onChange: e => setAiInstructions(e.target.value),
+    placeholder: "Instructions IA (optionnel) : ex. mettre l'accent sur la s\xE9curit\xE9, ton plus direct, mentionner l'urgence\u2026",
+    style: {
+      ...cdStyles.input,
+      fontSize: 11.5,
+      marginBottom: 6,
+      padding: "6px 10px",
+      background: "#fafbfc"
+    }
+  }), /*#__PURE__*/React.createElement("textarea", {
+    value: body,
+    onChange: e => setBody(e.target.value),
+    rows: 8,
+    style: {
+      ...cdStyles.input,
+      resize: "vertical",
+      fontFamily: "inherit"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12,
+      border: "1px solid #eef1f5",
+      borderRadius: 8,
+      padding: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...cdStyles.lbl,
+      marginBottom: 0
+    }
+  }, "\uD83D\uDCCE Documents commerciaux \xE0 joindre"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowAddDoc(v => !v),
+    style: {
+      padding: "3px 8px",
+      fontSize: 11,
+      fontWeight: 600,
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 5,
+      cursor: "pointer",
+      color: "#475569"
+    }
+  }, showAddDoc ? "Annuler" : "+ Ajouter")), docsLib.length === 0 && !showAddDoc && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#94a3b8"
+    }
+  }, "Aucun document dans la biblioth\xE8que. Cliquez \xAB + Ajouter \xBB (nom + lien SharePoint)."), docsLib.map(d => /*#__PURE__*/React.createElement("label", {
+    key: d.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "4px 0",
+      fontSize: 12.5,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: !!selDocs[d.id],
+    onChange: e => setSelDocs(s => ({
+      ...s,
+      [d.id]: e.target.checked
+    }))
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, d.name), d.category && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      background: "#eef2ff",
+      color: "#4f46e5",
+      padding: "1px 6px",
+      borderRadius: 4
+    }
+  }, d.category), d.url && /*#__PURE__*/React.createElement("a", {
+    href: d.url,
+    target: "_blank",
+    rel: "noopener",
+    style: {
+      fontSize: 10.5,
+      color: "#3730a3",
+      marginLeft: "auto"
+    }
+  }, "ouvrir"))), showAddDoc && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 8,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newDoc.name,
+    onChange: e => setNewDoc({
+      ...newDoc,
+      name: e.target.value
+    }),
+    placeholder: "Nom du document",
+    style: {
+      ...cdStyles.input,
+      flex: 1,
+      minWidth: 140
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: newDoc.category,
+    onChange: e => setNewDoc({
+      ...newDoc,
+      category: e.target.value
+    }),
+    placeholder: "Cat\xE9gorie",
+    style: {
+      ...cdStyles.input,
+      width: 110
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: newDoc.url,
+    onChange: e => setNewDoc({
+      ...newDoc,
+      url: e.target.value
+    }),
+    placeholder: "Lien SharePoint (https://\u2026)",
+    style: {
+      ...cdStyles.input,
+      flex: "1 1 100%"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: saveNewDoc,
+    style: cdStyles.primaryBtn
+  }, "Enregistrer dans la biblioth\xE8que"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 10,
+      background: "#fffbeb",
+      border: "1px solid #fde68a",
+      borderRadius: 7,
+      fontSize: 11.5,
+      color: "#92400e",
+      marginBottom: 14
+    }
+  }, "\u2139 **Outlook** (application du poste) s'ouvre avec destinataire, objet et corps pr\xE9-remplis (via ", /*#__PURE__*/React.createElement("code", null, "mailto:"), "). Le devis PDF est t\xE9l\xE9charg\xE9 localement \u2014 glissez-le en pi\xE8ce jointe. Les documents coch\xE9s sont ajout\xE9s au corps sous forme de **liens**. Chaque envoi est trac\xE9 en BDD."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: cdStyles.ghostBtn
+  }, "Annuler"), /*#__PURE__*/React.createElement("button", {
+    onClick: send,
+    disabled: sending,
+    style: cdStyles.primaryBtn
+  }, sending ? "Envoi…" : "✉ Ouvrir dans Outlook + Tracer")))));
+};
+var cdStyles = {
+  frame: {
+    display: "flex",
+    minHeight: "100vh",
+    background: "#fafbfc",
+    fontFamily: "'Inter', system-ui, sans-serif",
+    color: "#0f172a"
+  },
+  sidebar: {
+    width: 220,
+    padding: "20px 16px",
+    background: "#fff",
+    borderRight: "1px solid #eef1f5",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    flexShrink: 0
+  },
+  // Couleur exacte de la tuile Accueil "Devis & Factures" : bg orange clair + icône orange foncé
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: 9,
+    background: "#fef0e6",
+    color: "#f59e0b",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  newBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "9px 12px",
+    background: "#3730a3",
+    color: "#fff",
+    border: 0,
+    borderRadius: 8,
+    fontSize: 12.5,
+    fontWeight: 600,
+    cursor: "pointer",
+    margin: "14px 0 8px"
+  },
+  navLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: 12,
+    marginBottom: 4,
+    padding: "0 6px"
+  },
+  navItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "7px 10px",
+    borderRadius: 7,
+    fontSize: 12.5,
+    color: "#475569",
+    cursor: "pointer"
+  },
+  navItemActive: {
+    background: "#eef2ff",
+    color: "#3730a3",
+    fontWeight: 600
+  },
+  navCount: {
+    fontSize: 11,
+    color: "#94a3b8",
+    fontVariantNumeric: "tabular-nums"
+  },
+  main: {
+    flex: 1,
+    padding: "20px 28px",
+    overflow: "auto"
+  },
+  topbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+    gap: 12
+  },
+  h1: {
+    margin: 0,
+    fontSize: 22,
+    fontWeight: 700,
+    color: "#0f172a"
+  },
+  sub: {
+    margin: "3px 0 0",
+    fontSize: 12,
+    color: "#64748b"
+  },
+  searchInput: {
+    padding: "8px 12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
+    fontSize: 13,
+    width: 280,
+    fontFamily: "inherit"
+  },
+  primaryBtn: {
+    padding: "8px 14px",
+    background: "#3730a3",
+    color: "#fff",
+    border: 0,
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer"
+  },
+  ghostBtn: {
+    padding: "7px 12px",
+    background: "#fff",
+    color: "#475569",
+    border: "1px solid #e2e8f0",
+    borderRadius: 7,
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer"
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    color: "#475569",
+    fontSize: 18,
+    cursor: "pointer"
+  },
+  kpiRow: {
+    display: "flex",
+    gap: 10,
+    marginBottom: 16
+  },
+  empty: {
+    padding: 60,
+    background: "#fff",
+    border: "1px dashed #cbd5e1",
+    borderRadius: 12,
+    textAlign: "center"
+  },
+  docList: {
+    background: "#fff",
+    border: "1px solid #eef1f5",
+    borderRadius: 12,
+    overflow: "hidden"
+  },
+  tableHead: {
+    display: "flex",
+    alignItems: "center",
+    padding: "10px 14px",
+    gap: 10,
+    background: "#f8fafc",
+    borderBottom: "1px solid #eef1f5",
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: "#64748b",
+    textTransform: "none",
+    letterSpacing: 0.1
+  },
+  tableRow: {
+    display: "flex",
+    alignItems: "center",
+    padding: "12px 14px",
+    gap: 10,
+    borderBottom: "1px solid #f1f5f9",
+    cursor: "pointer",
+    transition: "background 0.1s"
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15,23,42,0.55)",
+    zIndex: 9999,
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    padding: "24px 16px",
+    overflowY: "auto"
+  },
+  modalCard: {
+    background: "#fff",
+    borderRadius: 12,
+    width: "100%",
+    maxWidth: 1500,
+    boxShadow: "0 20px 60px rgba(15,23,42,0.4)",
+    overflow: "hidden"
+  },
+  modalHead: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "14px 22px",
+    borderBottom: "1px solid #eef1f5",
+    background: "#fafbfc"
+  },
+  modalBody: {
+    padding: 22,
+    maxHeight: "calc(100vh - 140px)",
+    overflowY: "auto"
+  },
+  lbl: {
+    display: "block",
+    fontSize: 11,
+    fontWeight: 600,
+    color: "#475569",
+    marginBottom: 4
+  },
+  input: {
+    width: "100%",
+    padding: "8px 10px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 7,
+    fontSize: 13,
+    fontFamily: "inherit",
+    color: "#0f172a",
+    background: "#fff",
+    boxSizing: "border-box"
+  },
+  miniLbl: {
+    display: "block",
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 3
+  },
+  miniInput: {
+    width: "100%",
+    padding: "7px 9px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 6,
+    fontSize: 12.5,
+    fontFamily: "inherit",
+    color: "#0f172a",
+    background: "#fff",
+    boxSizing: "border-box"
+  }
+};

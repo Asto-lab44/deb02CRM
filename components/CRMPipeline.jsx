@@ -1082,7 +1082,7 @@ const CRMAccountsList = () => {
     <section id="comptes-section" style={{ background: "#fff", borderTop: "1px solid #eef1f5", padding: "20px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Comptes & contacts</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Comptes & tel</h2>
           <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>
             {merged.length} compte{merged.length > 1 ? "s" : ""}
             {isTest && (() => {
@@ -1553,7 +1553,7 @@ const CRMActionsList = () => {
               </div>
               <span style={{ fontSize: 10.5, padding: "2px 7px", background: "#eef2ff", color: "#3730a3", borderRadius: 4, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{a.tag}</span>
               <button onClick={async () => { if (!a.id) return; try { await window.api.actions.complete(a.id); load(); } catch (e) {} }}
-                      style={{ padding: "5px 9px", background: "#10b981", color: "#fff", border: 0, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>✓ Traiter</button>
+                      style={{ padding: "5px 9px", background: "#10b981", color: "#fff", border: 0, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>✓ Fait</button>
             </div>
           );
         })}

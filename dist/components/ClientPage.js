@@ -2547,7 +2547,16 @@ var ClientPage = () => {
         color: a.tagColor,
         borderColor: a.tagColor + "40"
       }
-    }, a.tag), a.overdue && /*#__PURE__*/React.createElement("span", {
+    }, a.tag), a.state === "en_cours" && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        background: "#fef3c7",
+        color: "#92400e",
+        padding: "1px 7px",
+        borderRadius: 999
+      }
+    }, "\u23F3 En cours"), a.overdue && /*#__PURE__*/React.createElement("span", {
       style: cliStyles.overdueChip
     }, "\u23F0 En retard")), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2640,6 +2649,21 @@ var ClientPage = () => {
       },
       style: cliStyles.menuItem
     }, done ? "↺ Marquer à faire" : "✓ Marquer terminée"), /*#__PURE__*/React.createElement("button", {
+      onClick: async () => {
+        if (a.id && window.api && window.api.actions) {
+          try {
+            await window.api.actions.update(a.id, {
+              state: a.state === "en_cours" ? null : "en_cours"
+            });
+            if (window.HubToast) window.HubToast.info(a.state === "en_cours" ? "Action remise à faire" : "⏳ Action en cours de traitement");
+            reloadAllForClient();
+          } catch (e) {}
+        }
+        setActionMenuKey(null);
+      },
+      style: cliStyles.menuItem,
+      disabled: !a.id
+    }, a.state === "en_cours" ? "↺ Retirer « en cours »" : "⏳ En cours de traitement"), /*#__PURE__*/React.createElement("button", {
       onClick: async () => {
         var newTitle = window.HubModal ? await window.HubModal.prompt({
           title: "Renommer l'action",

@@ -1553,6 +1553,7 @@ const ClientPage = () => {
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
                             <span style={{ ...cliStyles.prioPill, background: p.bg, color: p.color }}>{p.label}</span>
                             {a.tag && <span style={{ ...cliStyles.linkRef, color: a.tagColor, borderColor: a.tagColor + "40" }}>{a.tag}</span>}
+                            {a.state === "en_cours" && <span style={{ fontSize: 10, fontWeight: 700, background: "#fef3c7", color: "#92400e", padding: "1px 7px", borderRadius: 999 }}>⏳ En cours</span>}
                             {a.overdue && <span style={cliStyles.overdueChip}>⏰ En retard</span>}
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", lineHeight: 1.35 }}>{a.title}</div>
@@ -1606,6 +1607,20 @@ const ClientPage = () => {
                               >
                                 {done ? "↺ Marquer à faire" : "✓ Marquer terminée"}
                               </button>
+                              <button
+                                onClick={async () => {
+                                  if (a.id && window.api && window.api.actions) {
+                                    try {
+                                      await window.api.actions.update(a.id, { state: a.state === "en_cours" ? null : "en_cours" });
+                                      if (window.HubToast) window.HubToast.info(a.state === "en_cours" ? "Action remise à faire" : "⏳ Action en cours de traitement");
+                                      reloadAllForClient();
+                                    } catch (e) {}
+                                  }
+                                  setActionMenuKey(null);
+                                }}
+                                style={cliStyles.menuItem}
+                                disabled={!a.id}
+                              >{a.state === "en_cours" ? "↺ Retirer « en cours »" : "⏳ En cours de traitement"}</button>
                               <button
                                 onClick={async () => {
                                   const newTitle = window.HubModal

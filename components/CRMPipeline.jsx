@@ -1082,7 +1082,7 @@ const CRMAccountsList = () => {
     <section id="comptes-section" style={{ background: "#fff", borderTop: "1px solid #eef1f5", padding: "20px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Comptes & contacts</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Raisons sociales & contacts</h2>
           <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>
             {merged.length} raison{merged.length > 1 ? "s" : ""} sociale{merged.length > 1 ? "s" : ""}
             {isTest && (() => {

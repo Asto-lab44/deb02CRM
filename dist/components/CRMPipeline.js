@@ -2455,7 +2455,7 @@ var CRMAccountsList = () => {
       color: "#0f172a",
       margin: 0
     }
-  }, "Comptes & contacts"), /*#__PURE__*/React.createElement("div", {
+  }, "Raisons sociales & contacts"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "#64748b",

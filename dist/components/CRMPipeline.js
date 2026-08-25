@@ -2461,7 +2461,7 @@ var CRMAccountsList = () => {
       color: "#64748b",
       marginTop: 2
     }
-  }, merged.length, " compte", merged.length > 1 ? "s" : "", isTest && (() => {
+  }, merged.length, " raison", merged.length > 1 ? "s" : "", " sociale", merged.length > 1 ? "s" : "", isTest && (() => {
     var nbEmail = merged.filter(c => c.email || c.contact_principal && c.contact_principal.email).length;
     var nbSite = merged.filter(c => c.web || c.site_web).length;
     var nbPappers = merged.filter(c => c.pappers).length;

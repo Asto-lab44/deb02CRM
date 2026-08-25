@@ -1084,7 +1084,7 @@ const CRMAccountsList = () => {
         <div>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0 }}>Comptes & contacts</h2>
           <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>
-            {merged.length} compte{merged.length > 1 ? "s" : ""}
+            {merged.length} raison{merged.length > 1 ? "s" : ""} sociale{merged.length > 1 ? "s" : ""}
             {isTest && (() => {
               const nbEmail = merged.filter((c) => c.email || (c.contact_principal && c.contact_principal.email)).length;
               const nbSite = merged.filter((c) => c.web || c.site_web).length;

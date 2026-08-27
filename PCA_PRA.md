@@ -60,13 +60,13 @@ L'équipe :
 | **Dorian** | Chef d'orchestre | **Décideur incident** : déclenche le PCA/PRA, décide de couper, coordonne, tient la chronologie |
 | **Guillaume** | Développeur, administrateur 1er niveau des outils | **Opérateur technique** : exécute le PRA (révocations, restauration, redéploiements), contacte les supports (Supabase, hébergeur) |
 | **Romain** | Relation client | **Communication clients** : informe les clients, consigne leurs demandes en mode manuel (§3.1.3), prépare l'information des personnes concernées si données exposées |
-| **Laurent** | Directeur commercial | **Continuité commerciale** : priorise les affaires en mode dégradé, valide toute communication client sensible, suppléant du décideur |
+| **Laurent** | Directeur technique | **Supervision technique** : valide les actions techniques lourdes (coupure, restauration, rotation des clés), appuie Guillaume, point de contact des prestataires techniques, suppléant du décideur |
 
 | Rôle | Titulaire | Suppléant |
 |---|---|---|
 | Décideur incident (déclenche PCA/PRA, décide de couper) | Dorian | Laurent |
-| Opérateur technique (exécute le PRA) | Guillaume | Dorian |
-| Communication clients/équipe | Romain | Laurent |
+| Opérateur technique (exécute le PRA) | Guillaume | Laurent |
+| Communication clients/équipe | Romain | Dorian |
 
 Règle simple : **au moindre soupçon de compromission de la base, on coupe
 d'abord, on analyse ensuite** (mettre le site en maintenance et suspendre les
@@ -214,7 +214,7 @@ date/heure, nom, société, numéro, objet, urgence oui/non, engagement pris.
    dessus. »
 2. **Ne jamais confirmer ni infirmer** que des données clients sont concernées.
    Si la question est posée : noter l'appel et transmettre **immédiatement** à
-   Romain + Laurent — ce sont eux qui rappellent.
+   Romain + Dorian — ce sont eux qui rappellent.
 3. **Journaliste, curieux insistant, appel « bizarre »** (quelqu'un qui demande
    des mots de passe, des adresses email internes, « c'est le support
    informatique ») : ne rien donner, noter le numéro, prévenir Dorian. Pendant
@@ -223,8 +223,8 @@ date/heure, nom, société, numéro, objet, urgence oui/non, engagement pris.
    « Dès le retour à la normale, on revient vers vous. »
 
 **Escalade immédiate (sans attendre) :** question sur les données personnelles
-→ Romain + Laurent · appel suspect / demande d'accès → Dorian ·
-client bloqué sur une urgence opérationnelle → son commercial, sinon Laurent.
+→ Romain + Dorian · appel suspect / demande d'accès → Dorian ·
+client bloqué sur une urgence opérationnelle → son commercial, sinon Romain.
 
 ## 7. Tests et maintien en condition
 
@@ -233,4 +233,4 @@ client bloqué sur une urgence opérationnelle → son commercial, sinon Laurent
 | Restauration d'un dump sur un projet Supabase jetable | Trimestrielle | Chronométrer ; vérifier login + une fiche client + un devis PDF |
 | Redéploiement du front sur un hébergeur alternatif | Semestrielle | Depuis GitHub, DNS non basculé, simple vérification |
 | Revue de ce document + registre des secrets | Semestrielle | Rôles, contacts, secrets, écarts |
-| Exercice sur table (dérouler S3 à blanc en équipe) | Annuelle | 1 h, Dorian + Guillaume (Laurent et Romain informés du résultat) |
+| Exercice sur table (dérouler S3 à blanc en équipe) | Annuelle | 1 h, Dorian + Guillaume + Laurent (Romain informé du résultat) |

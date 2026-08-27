@@ -59,14 +59,14 @@ L'équipe :
 |---|---|---|
 | **Dorian** | Chef d'orchestre | **Décideur incident** : déclenche le PCA/PRA, décide de couper, coordonne, tient la chronologie |
 | **Guillaume** | Développeur, administrateur 1er niveau des outils | **Opérateur technique** : exécute le PRA (révocations, restauration, redéploiements), contacte les supports (Supabase, hébergeur) |
-| **Relation client** *(vous — nom à compléter)* | Relation client | **Communication clients** : informe les clients, consigne leurs demandes en mode manuel (§3.1.3), prépare l'information des personnes concernées si données exposées |
+| **Romain** | Relation client | **Communication clients** : informe les clients, consigne leurs demandes en mode manuel (§3.1.3), prépare l'information des personnes concernées si données exposées |
 | **Laurent** | Directeur commercial | **Continuité commerciale** : priorise les affaires en mode dégradé, valide toute communication client sensible, suppléant du décideur |
 
 | Rôle | Titulaire | Suppléant |
 |---|---|---|
 | Décideur incident (déclenche PCA/PRA, décide de couper) | Dorian | Laurent |
 | Opérateur technique (exécute le PRA) | Guillaume | Dorian |
-| Communication clients/équipe | Relation client | Laurent |
+| Communication clients/équipe | Romain | Laurent |
 
 Règle simple : **au moindre soupçon de compromission de la base, on coupe
 d'abord, on analyse ensuite** (mettre le site en maintenance et suspendre les
@@ -187,6 +187,45 @@ identifiants SMTP, tokens de déploiement, mots de passe des comptes
 | CNIL | Violation de données | cnil.fr, téléservice notification |
 | Prestataire réseau / architecte | Serveur local (deb02local) | ____ |
 
+### 6.4 Texte type pour le standard (à imprimer et garder près du poste)
+
+À utiliser dès que le PCA est déclenché, pour **tout appel entrant** concernant
+un dysfonctionnement, un email non reçu, un devis introuvable, etc.
+
+> « Bonjour, oui — nous rencontrons actuellement un **incident technique sur
+> notre outil de gestion interne**. Nos équipes sont dessus et vos
+> interlocuteurs habituels restent joignables.
+>
+> Je note votre demande pour qu'elle soit traitée en priorité dès le retour à
+> la normale : puis-je prendre **votre nom, votre société, votre numéro et
+> l'objet de votre appel** ?
+>
+> [Si urgent] Je transmets immédiatement à votre interlocuteur, qui vous
+> rappelle dans la journée. »
+
+**À noter pour chaque appel** (sur la main courante partagée du PCA, §3.1.3) :
+date/heure, nom, société, numéro, objet, urgence oui/non, engagement pris.
+
+**Les 4 règles du standard pendant un incident :**
+
+1. **Ne jamais prononcer** : « piratage », « attaque », « fuite de données »,
+   « hack » — même si l'appelant emploie ces mots. Réponse unique : « C'est un
+   incident technique, je n'ai pas plus de détail, nos équipes travaillent
+   dessus. »
+2. **Ne jamais confirmer ni infirmer** que des données clients sont concernées.
+   Si la question est posée : noter l'appel et transmettre **immédiatement** à
+   Romain + Laurent — ce sont eux qui rappellent.
+3. **Journaliste, curieux insistant, appel « bizarre »** (quelqu'un qui demande
+   des mots de passe, des adresses email internes, « c'est le support
+   informatique ») : ne rien donner, noter le numéro, prévenir Dorian. Pendant
+   un incident, les tentatives d'ingénierie sociale sont fréquentes.
+4. **Ne pas promettre de délai** de rétablissement. Seule formule autorisée :
+   « Dès le retour à la normale, on revient vers vous. »
+
+**Escalade immédiate (sans attendre) :** question sur les données personnelles
+→ Romain + Laurent · appel suspect / demande d'accès → Dorian ·
+client bloqué sur une urgence opérationnelle → son commercial, sinon Laurent.
+
 ## 7. Tests et maintien en condition
 
 | Exercice | Fréquence | Contenu |
@@ -194,4 +233,4 @@ identifiants SMTP, tokens de déploiement, mots de passe des comptes
 | Restauration d'un dump sur un projet Supabase jetable | Trimestrielle | Chronométrer ; vérifier login + une fiche client + un devis PDF |
 | Redéploiement du front sur un hébergeur alternatif | Semestrielle | Depuis GitHub, DNS non basculé, simple vérification |
 | Revue de ce document + registre des secrets | Semestrielle | Rôles, contacts, secrets, écarts |
-| Exercice sur table (dérouler S3 à blanc en équipe) | Annuelle | 1 h, Dorian + Guillaume (Laurent et relation client informés du résultat) |
+| Exercice sur table (dérouler S3 à blanc en équipe) | Annuelle | 1 h, Dorian + Guillaume (Laurent et Romain informés du résultat) |

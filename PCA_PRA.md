@@ -53,11 +53,20 @@ devis ou une facture perdus ne se redéploient pas.
 
 ### 3.2 Rôles et décision
 
-| Rôle | Titulaire (à compléter) | Suppléant |
+L'équipe :
+
+| Qui | Fonction | Rôle en incident |
 |---|---|---|
-| Décideur incident (déclenche PCA/PRA, décide de couper) | ____ | ____ |
-| Opérateur technique (exécute le PRA) | ____ | ____ |
-| Communication clients/équipe | ____ | ____ |
+| **Dorian** | Chef d'orchestre | **Décideur incident** : déclenche le PCA/PRA, décide de couper, coordonne, tient la chronologie |
+| **Guillaume** | Développeur, administrateur 1er niveau des outils | **Opérateur technique** : exécute le PRA (révocations, restauration, redéploiements), contacte les supports (Supabase, hébergeur) |
+| **Relation client** *(vous — nom à compléter)* | Relation client | **Communication clients** : informe les clients, consigne leurs demandes en mode manuel (§3.1.3), prépare l'information des personnes concernées si données exposées |
+| **Laurent** | Directeur commercial | **Continuité commerciale** : priorise les affaires en mode dégradé, valide toute communication client sensible, suppléant du décideur |
+
+| Rôle | Titulaire | Suppléant |
+|---|---|---|
+| Décideur incident (déclenche PCA/PRA, décide de couper) | Dorian | Laurent |
+| Opérateur technique (exécute le PRA) | Guillaume | Dorian |
+| Communication clients/équipe | Relation client | Laurent |
 
 Règle simple : **au moindre soupçon de compromission de la base, on coupe
 d'abord, on analyse ensuite** (mettre le site en maintenance et suspendre les
@@ -185,4 +194,4 @@ identifiants SMTP, tokens de déploiement, mots de passe des comptes
 | Restauration d'un dump sur un projet Supabase jetable | Trimestrielle | Chronométrer ; vérifier login + une fiche client + un devis PDF |
 | Redéploiement du front sur un hébergeur alternatif | Semestrielle | Depuis GitHub, DNS non basculé, simple vérification |
 | Revue de ce document + registre des secrets | Semestrielle | Rôles, contacts, secrets, écarts |
-| Exercice sur table (dérouler S3 à blanc en équipe) | Annuelle | 1 h, décideur + opérateur |
+| Exercice sur table (dérouler S3 à blanc en équipe) | Annuelle | 1 h, Dorian + Guillaume (Laurent et relation client informés du résultat) |

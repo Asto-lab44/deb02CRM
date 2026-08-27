@@ -41,7 +41,9 @@ devis ou une facture perdus ne se redéploient pas.
 1. **Front indisponible, Supabase intact** (défacement, panne hébergeur) :
    basculer le DNS vers un second hébergeur statique où le dépôt est déployé
    (n'importe lequel : Vercel, OVH, Netlify — le front est portable par
-   conception). En attendant : page de maintenance statique.
+   conception). En attendant : page de maintenance statique — modèle prêt à
+   l'emploi : `maintenance.html` à la racine du dépôt (autonome, sans aucune
+   dépendance ; instructions de mise en service en commentaire dans le fichier).
 2. **Fonctions API indisponibles** (Pappers, envoi d'email) : le CRM reste
    utilisable — consultation, saisie, opportunités. On perd l'enrichissement
    Pappers et l'envoi d'emails depuis le Hub ; envoyer les emails depuis la

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <!-- Recharge automatiquement toutes les 5 minutes : dès que le Hub est
+       rétabli et que cette page est retirée, l'utilisateur retrouve l'app
+       sans avoir à penser à rafraîchir. -->
+  <meta http-equiv="refresh" content="300" />
+  <title>Hub Astorya — Maintenance en cours</title>
+  <!--
+    PAGE DE MAINTENANCE — PCA §3.1 (voir PCA_PRA.md)
+
+    Page volontairement autonome : aucun script, aucune police externe,
+    aucun appel réseau. Elle doit s'afficher même si Supabase, les CDN
+    ou les fonctions API sont hors service.
+
+    Mise en service (au choix, selon l'hébergeur) :
+    - Vercel  : renommer temporairement index.html, déployer cette page à sa
+                place (ou règle de rewrite /(.*) -> /maintenance.html).
+    - OVH/Nginx : servir ce fichier en réponse par défaut (error_page 503).
+    - Le wording est aligné sur la fiche standard : « incident technique »,
+      jamais « piratage » ni détail — ne pas modifier le message sans
+      validation de Romain ou Laurent.
+  -->
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --ink: #f1f5f9;
+      --soft: #94a3b8;
+      --accent: #6366f1;
+      --line: #334155;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: var(--bg);
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+    }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+    .card {
+      max-width: 480px; width: 100%;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 40px 36px;
+      text-align: center;
+    }
+    .brand {
+      font-size: 13px; font-weight: 800; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--accent);
+      margin: 0 0 22px;
+    }
+    .pict {
+      width: 56px; height: 56px; margin: 0 auto 20px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    h1 {
+      font-size: 22px; font-weight: 700; margin: 0 0 12px;
+      line-height: 1.3;
+    }
+    p { font-size: 14.5px; line-height: 1.65; color: var(--soft); margin: 0 0 10px; }
+    p strong { color: var(--ink); font-weight: 600; }
+    .sep { height: 1px; background: var(--line); border: 0; margin: 22px 0; }
+    .foot { font-size: 12px; color: var(--soft); margin: 0; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <p class="brand">Hub Astorya</p>
+    <div class="pict" aria-hidden="true">🛠️</div>
+    <h1>Maintenance en cours</h1>
+    <p>Nous rencontrons actuellement un <strong>incident technique sur notre
+       outil de gestion interne</strong>. Nos équipes travaillent à son
+       rétablissement.</p>
+    <p><strong>Vos interlocuteurs habituels restent joignables</strong> par
+       téléphone et par email : votre demande sera prise en compte et traitée
+       en priorité dès le retour à la normale.</p>
+    <hr class="sep" />
+    <p class="foot">Cette page se met à jour automatiquement.
+       Merci de votre patience.</p>
+  </main>
+</body>
+</html>

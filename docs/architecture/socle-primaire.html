@@ -85,10 +85,12 @@
   .mx-tag .b{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-soft)}
   .mx-tag .l{flex:1;height:1px;background:var(--line)}
   .mx-wrap{overflow-x:auto}
-  .mx table{width:100%;border-collapse:collapse;font-size:11px;min-width:860px}
-  .mx th,.mx td{padding:7px 7px;text-align:center;border-bottom:1px solid var(--line)}
-  .mx thead th{font-family:"Bricolage Grotesque";font-weight:700;font-size:10.5px;border-bottom:2px solid var(--ink);color:var(--ink);vertical-align:bottom;line-height:1.15}
-  .mx tbody td:first-child,.mx thead th:first-child{text-align:left;font-weight:600;color:var(--ink);white-space:nowrap}
+  .mx table{width:100%;border-collapse:collapse;font-size:10px;min-width:820px;table-layout:fixed}
+  .mx th,.mx td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--line);overflow:hidden}
+  .mx th:first-child,.mx td:first-child{width:190px}
+  .mx thead th{font-family:"Bricolage Grotesque";font-weight:700;font-size:9.5px;border-bottom:2px solid var(--ink);color:var(--ink);vertical-align:bottom;line-height:1.12}
+  .mx tbody td:first-child{font-size:10.5px}
+  .mx tbody td:first-child,.mx thead th:first-child{text-align:left;font-weight:600;color:var(--ink);white-space:normal;line-height:1.2}
   .mx tr.socle td{background:color-mix(in srgb,var(--brand) 9%,transparent)}
   .mx tr.socle td:first-child{color:var(--brand)}
   .mx .yes{color:var(--brand);font-weight:800}
@@ -186,16 +188,18 @@
         <th>Architectes</th>
         <th>Centres<br>de formation</th>
         <th>Sociétés<br>comptables</th>
+        <th>Appels<br>d'offres</th>
+        <th>Public · syndicats<br>· fédérations</th>
       </tr></thead>
       <tbody>
-        <tr class="socle"><td>Socle primaire (5 blocs + sécurité)</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-        <tr><td>Support technique + 3CX</td><td class="op">○</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="no">—</td><td class="no">—</td><td class="op">○</td><td class="op">○</td></tr>
-        <tr><td>Projets &amp; Livrables</td><td class="rec">●</td><td class="no">—</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="op">○</td></tr>
-        <tr><td>Commande fournisseur &amp; Stock</td><td class="no">—</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="no">—</td><td class="op">○</td><td class="no">—</td><td class="no">—</td></tr>
-        <tr><td>Contrats &amp; abonnements + SEPA</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="rec">●</td></tr>
-        <tr><td>Intelligence concurrentielle</td><td class="op">○</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="op">○</td><td class="op">○</td></tr>
-        <tr><td>Marketing &amp; Campagnes</td><td class="op">○</td><td class="op">○</td><td class="op">○</td><td class="no">—</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td></tr>
-        <tr><td>RH &amp; Paie</td><td class="op">○</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td></tr>
+        <tr class="socle"><td>Socle primaire (5 blocs + sécurité)</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Support technique + 3CX</td><td class="op">○</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="no">—</td><td class="no">—</td><td class="op">○</td><td class="op">○</td><td class="op">○</td><td class="op">○</td></tr>
+        <tr><td>Projets &amp; Livrables</td><td class="rec">●</td><td class="no">—</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td></tr>
+        <tr><td>Commande fournisseur &amp; Stock</td><td class="no">—</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="no">—</td><td class="op">○</td><td class="no">—</td><td class="no">—</td><td class="op">○</td><td class="no">—</td></tr>
+        <tr><td>Contrats &amp; abonnements + SEPA</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td></tr>
+        <tr><td>Intelligence concurrentielle</td><td class="op">○</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="op">○</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td></tr>
+        <tr><td>Marketing &amp; Campagnes</td><td class="op">○</td><td class="op">○</td><td class="op">○</td><td class="no">—</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="op">○</td><td class="op">○</td><td class="rec">●</td></tr>
+        <tr><td>RH &amp; Paie</td><td class="op">○</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="op">○</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td><td class="rec">●</td></tr>
       </tbody>
     </table></div>
     <div class="mx-leg">
@@ -204,6 +208,7 @@
       <i><b class="op" style="color:var(--ink-faint)">○</b> Optionnel, selon besoin</i>
       <i><b class="no" style="color:var(--ink-faint)">—</b> Rarement utile</i>
     </div>
+    <p class="env-note" style="margin-top:9px">Appels d'offres &amp; adhésions : le suivi des candidatures et des adhérents (cotisations, prélèvement SEPA) s'appuie sur le <b>pipeline CRM</b> et les <b>contrats</b> du socle.</p>
   </div>
 
   <div class="legend">

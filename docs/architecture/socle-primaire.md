@@ -91,16 +91,16 @@ protège tous les autres blocs (défense en profondeur). 10 domaines obligatoire
 Le **socle primaire** (les 5 blocs + sécurité) est toujours inclus (✓). Les
 modules métier s'activent selon l'archétype d'entreprise.
 
-| Bloc / module | Services & conseil | Négoce & distribution | IT & infogérance | Industrie & atelier | Agence & communication | Architectes | Centres de formation | Sociétés comptables |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Socle primaire (5 blocs + sécurité)** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Support technique + 3CX | ○ | ○ | ● | ○ | — | — | ○ | ○ |
-| Projets & Livrables | ● | — | ● | ● | ● | ● | ● | ○ |
-| Commande fournisseur & Stock | — | ● | ● | ● | — | ○ | — | — |
-| Contrats & abonnements + SEPA | ● | ○ | ● | ○ | ● | ○ | ● | ● |
-| Intelligence concurrentielle | ○ | ○ | ● | ○ | ● | ○ | ○ | ○ |
-| Marketing & Campagnes | ○ | ○ | ○ | — | ● | ○ | ● | ○ |
-| RH & Paie | ○ | ● | ● | ● | ○ | ● | ● | ● |
+| Bloc / module | Services & conseil | Négoce & distribution | IT & infogérance | Industrie & atelier | Agence & communication | Architectes | Centres de formation | Sociétés comptables | Appels d'offres | Public · syndicats · fédérations |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Socle primaire (5 blocs + sécurité)** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Support technique + 3CX | ○ | ○ | ● | ○ | — | — | ○ | ○ | ○ | ○ |
+| Projets & Livrables | ● | — | ● | ● | ● | ● | ● | ○ | ● | ○ |
+| Commande fournisseur & Stock | — | ● | ● | ● | — | ○ | — | — | ○ | — |
+| Contrats & abonnements + SEPA | ● | ○ | ● | ○ | ● | ○ | ● | ● | ○ | ● |
+| Intelligence concurrentielle | ○ | ○ | ● | ○ | ● | ○ | ○ | ○ | ● | ○ |
+| Marketing & Campagnes | ○ | ○ | ○ | — | ● | ○ | ● | ○ | ○ | ● |
+| RH & Paie | ○ | ● | ● | ● | ○ | ● | ● | ● | ● | ● |
 
 **Légende :** ✓ Socle, toujours inclus · ● Activé recommandé · ○ Optionnel selon besoin · — Rarement utile.
 

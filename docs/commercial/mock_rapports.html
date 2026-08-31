@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#e9edf3;font-family:'Inter',system-ui,sans-serif;color:#0f172a;padding:22px}
+  .win{max-width:1320px;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.22);border:1px solid #d5dbe4;background:#fff}
+  .chrome{height:38px;background:#f1f4f8;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;padding:0 14px}
+  .dot{width:11px;height:11px;border-radius:999px}
+  .url{margin-left:14px;flex:1;max-width:440px;height:22px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:#64748b}
+  .frame{display:flex;background:#fafbfc;min-height:640px}
+  .sb{width:248px;background:#fff;border-right:1px solid #eef1f5;display:flex;flex-direction:column;padding:16px 12px;gap:14px;flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:10px;padding:2px 4px}
+  .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#4f46e5,#4338ca 50%,#312e81);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px}
+  .brand b{font-size:14px;letter-spacing:-.3px}.brand small{display:block;font-size:10.5px;color:#94a3b8;font-weight:500}
+  .search{position:relative}
+  .search input{width:100%;padding:8px 12px 8px 30px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;background:#fafbfc;font-family:inherit;color:#475569}
+  .search .si{position:absolute;left:10px;top:9px;color:#94a3b8;font-size:13px}.search .kb{position:absolute;right:8px;top:7px;font-size:10px;padding:1px 5px;border-radius:4px;background:#fff;border:1px solid #e2e8f0;color:#94a3b8}
+  .nl{font-size:10.5px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;padding:0 6px 6px}
+  .ni{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:12.5px;color:#475569}
+  .ni .b{width:14px;color:#94a3b8;text-align:center}.ni.act{background:#e0e7ff;color:#3730a3;font-weight:600}
+  .ni .c{margin-left:auto;font-size:10.5px;padding:1px 6px;border-radius:999px;background:#eef1f5;color:#475569}
+  .user{display:flex;align-items:center;gap:9px;padding:8px 6px;border-top:1px solid #eef1f5;margin-top:auto}
+  .av{width:30px;height:30px;border-radius:999px;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .top{height:48px;padding:0 24px;border-bottom:1px solid #eef1f5;background:#fff;display:flex;align-items:center;justify-content:space-between}
+  .chip{font-size:11px;padding:2px 8px;border-radius:999px;background:#eef1f5;color:#475569}
+  .ib{width:30px;height:30px;border:1px solid #e2e8f0;background:#fff;border-radius:8px;color:#475569;display:inline-flex;align-items:center;justify-content:center}
+  .phead{padding:16px 24px 8px;display:flex;align-items:flex-end;justify-content:space-between}
+  .h1{font-size:20px;font-weight:700;letter-spacing:-.5px}
+  .h1s{font-size:12.5px;color:#64748b;margin-top:3px}
+  .filt{padding:6px 11px;border:1px solid #e2e8f0;background:#fff;border-radius:7px;font-size:12px;color:#475569}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:6px 24px 4px}
+  .kpi{background:#fff;border:1px solid #eef1f5;border-radius:12px;padding:13px 15px}
+  .kpik{font-size:10.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+  .kpiv{font-size:23px;font-weight:800;letter-spacing:-.6px;margin-top:5px}
+  .kpid{font-size:11px;font-weight:600;margin-top:3px}
+  .up{color:#0e7a55}.down{color:#dc2626}
+  .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;padding:10px 24px 24px}
+  .panel{background:#fff;border:1px solid #eef1f5;border-radius:12px;padding:16px}
+  .pt{font-size:13px;font-weight:700;letter-spacing:-.2px}
+  .pts{font-size:11.5px;color:#64748b;margin-top:2px;margin-bottom:14px}
+  /* bar chart */
+  .chart{display:flex;align-items:flex-end;gap:10px;height:190px;padding-top:6px;border-bottom:1px solid #eef1f5}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .bar i{width:70%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#6366f1,#4338ca);display:block}
+  .bar b{font-size:9.5px;color:#94a3b8;font-weight:600}
+  .xlabels{display:flex;gap:10px;margin-top:7px}
+  .xlabels span{flex:1;text-align:center;font-size:10px;color:#94a3b8;font-weight:600}
+  /* repartition rows */
+  .rep{display:flex;flex-direction:column;gap:12px;margin-top:2px}
+  .reprow{}
+  .repline{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+  .repline b{font-weight:600}
+  .repline .v{color:#64748b;font-weight:600}
+  .track{height:8px;border-radius:999px;background:#eef1f5;overflow:hidden}
+  .track i{display:block;height:100%;border-radius:999px}
+  .toptbl{width:100%;border-collapse:collapse;margin-top:4px}
+  .toptbl td{font-size:12px;color:#334155;padding:7px 0;border-bottom:1px solid #f4f6fa}
+  .toptbl td.n{text-align:right;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums}
+</style></head>
+<body>
+<div class="win">
+  <div class="chrome"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+    <div class="url">🔒 hub.astorya.fr/rapports</div></div>
+  <div class="frame">
+    <aside class="sb">
+      <div class="brand"><div class="logo">H</div><div><b>Hub Astorya</b><small>ERP · CRM</small></div></div>
+      <div class="search"><span class="si">⌕</span><input value="Rechercher client, opp, ticket…" readonly><span class="kb">⌘K</span></div>
+      <div><div class="nl">Principal</div>
+        <div class="ni"><span class="b">◧</span>Accueil</div>
+        <div class="ni"><span class="b">◔</span>CRM<span class="c">34</span></div>
+        <div class="ni"><span class="b">✎</span>Support technique<span class="c">12</span></div>
+        <div class="ni"><span class="b">▤</span>Projets &amp; Livrables</div></div>
+      <div><div class="nl">Gestion</div>
+        <div class="ni"><span class="b">▦</span>Devis &amp; Factures</div>
+        <div class="ni"><span class="b">€</span>Comptabilité</div>
+        <div class="ni"><span class="b">◈</span>Trésorerie</div></div>
+      <div><div class="nl">Pilotage</div>
+        <div class="ni act"><span class="b">▥</span>Rapports &amp; BI</div>
+        <div class="ni"><span class="b">⚙</span>Administration</div></div>
+      <div class="user"><div class="av">AS</div><div><div style="font-size:12.5px;font-weight:600">Compte démo</div><div style="font-size:10.5px;color:#94a3b8">Direction</div></div></div>
+    </aside>
+    <div class="main">
+      <div class="top"><span class="chip">Pilotage · Rapports &amp; BI</span><div style="display:flex;gap:8px"><span class="ib">⭳</span><span class="ib">⚙</span></div></div>
+      <div class="phead">
+        <div><div class="h1">Tableau de bord de direction</div><div class="h1s">Indicateurs consolidés · KPI &amp; SLA par service</div></div>
+        <span class="filt">Période : Exercice en cours ▾</span>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="kpik">CA du mois</div><div class="kpiv">86,4 k€</div><div class="kpid up">▲ 12 % vs N-1</div></div>
+        <div class="kpi"><div class="kpik">Marge brute</div><div class="kpiv">41 %</div><div class="kpid up">▲ 2 pts</div></div>
+        <div class="kpi"><div class="kpik">DSO</div><div class="kpiv">34 j</div><div class="kpid up">▼ 5 j</div></div>
+        <div class="kpi"><div class="kpik">Trésorerie</div><div class="kpiv">142 k€</div><div class="kpid up">▲ 8 k€</div></div>
+        <div class="kpi"><div class="kpik">SLA support</div><div class="kpiv">98 %</div><div class="kpid up">▲ 1 pt</div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <div class="pt">Chiffre d'affaires par mois</div><div class="pts">12 derniers mois · en k€</div>
+          <div class="chart">
+            <div class="bar"><i style="height:48%"></i></div>
+            <div class="bar"><i style="height:56%"></i></div>
+            <div class="bar"><i style="height:52%"></i></div>
+            <div class="bar"><i style="height:64%"></i></div>
+            <div class="bar"><i style="height:60%"></i></div>
+            <div class="bar"><i style="height:72%"></i></div>
+            <div class="bar"><i style="height:68%"></i></div>
+            <div class="bar"><i style="height:80%"></i></div>
+            <div class="bar"><i style="height:74%"></i></div>
+            <div class="bar"><i style="height:88%"></i></div>
+            <div class="bar"><i style="height:82%"></i></div>
+            <div class="bar"><i style="height:96%"></i></div>
+          </div>
+          <div class="xlabels"><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span><span>J</span><span>F</span><span>M</span></div>
+        </div>
+        <div class="panel">
+          <div class="pt">Répartition du CA</div><div class="pts">par type de prestation</div>
+          <div class="rep">
+            <div class="reprow"><div class="repline"><b>Infogérance &amp; contrats</b><span class="v">38 %</span></div><div class="track"><i style="width:38%;background:#4338ca"></i></div></div>
+            <div class="reprow"><div class="repline"><b>Téléphonie 3CX</b><span class="v">24 %</span></div><div class="track"><i style="width:24%;background:#6366f1"></i></div></div>
+            <div class="reprow"><div class="repline"><b>Matériel &amp; déploiement</b><span class="v">21 %</span></div><div class="track"><i style="width:21%;background:#818cf8"></i></div></div>
+            <div class="reprow"><div class="repline"><b>Hébergement &amp; web</b><span class="v">17 %</span></div><div class="track"><i style="width:17%;background:#a5b4fc"></i></div></div>
+          </div>
+          <div class="pt" style="margin-top:18px">Top clients (CA annuel)</div>
+          <table class="toptbl">
+            <tr><td>Clinique du Parc</td><td class="n">48,2 k€</td></tr>
+            <tr><td>Groupe Méridien</td><td class="n">39,5 k€</td></tr>
+            <tr><td>Transports Valto</td><td class="n">31,0 k€</td></tr>
+            <tr><td>Cabinet Novéa</td><td class="n">22,8 k€</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

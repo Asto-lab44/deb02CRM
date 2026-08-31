@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#e9edf3;font-family:'Inter',system-ui,sans-serif;color:#0f172a;padding:22px}
+  /* browser chrome */
+  .win{max-width:1320px;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.22);border:1px solid #d5dbe4;background:#fff}
+  .chrome{height:38px;background:#f1f4f8;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;padding:0 14px}
+  .dot{width:11px;height:11px;border-radius:999px}
+  .url{margin-left:14px;flex:1;max-width:420px;height:22px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:#64748b}
+  /* app frame */
+  .frame{display:flex;background:#fafbfc;min-height:900px}
+  .sb{width:248px;background:#fff;border-right:1px solid #eef1f5;display:flex;flex-direction:column;padding:16px 12px;gap:14px;flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:10px;padding:2px 4px}
+  .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#4f46e5,#4338ca 50%,#312e81);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px}
+  .brand b{font-size:14px;letter-spacing:-.3px}
+  .brand small{display:block;font-size:10.5px;color:#94a3b8;font-weight:500}
+  .search{position:relative}
+  .search input{width:100%;padding:8px 12px 8px 30px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;background:#fafbfc;font-family:inherit;color:#475569}
+  .search .si{position:absolute;left:10px;top:9px;color:#94a3b8;font-size:13px}
+  .search .kb{position:absolute;right:8px;top:7px;font-size:10px;padding:1px 5px;border-radius:4px;background:#fff;border:1px solid #e2e8f0;color:#94a3b8}
+  .nl{font-size:10.5px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;padding:0 6px 6px}
+  .ni{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:12.5px;color:#475569}
+  .ni .b{width:14px;color:#94a3b8;text-align:center}
+  .ni.act{background:#eef2ff;color:#3730a3;font-weight:600}
+  .ni .c{margin-left:auto;font-size:10.5px;padding:1px 6px;border-radius:999px;background:#eef1f5;color:#475569}
+  .user{display:flex;align-items:center;gap:9px;padding:8px 6px;border-top:1px solid #eef1f5;margin-top:auto}
+  .av{width:30px;height:30px;border-radius:999px;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .top{height:48px;padding:0 28px;border-bottom:1px solid #eef1f5;background:#fff;display:flex;align-items:center;justify-content:space-between}
+  .chip{font-size:11px;padding:2px 8px;border-radius:999px;background:#eef1f5;color:#475569}
+  .ib{width:30px;height:30px;border:1px solid #e2e8f0;background:#fff;border-radius:8px;color:#475569;display:inline-flex;align-items:center;justify-content:center;position:relative}
+  .nd{position:absolute;top:6px;right:7px;width:6px;height:6px;background:#dc2626;border-radius:999px;border:1.5px solid #fff}
+  .hero{margin:18px 28px 14px;padding:22px 28px;border-radius:16px;background:linear-gradient(135deg,#0f172a,#1e1b4b 60%,#4338ca);color:#fff;position:relative;overflow:hidden}
+  .g1{position:absolute;top:-80px;right:-40px;width:280px;height:280px;border-radius:999px;background:radial-gradient(circle,rgba(168,85,247,.35),transparent 65%)}
+  .g2{position:absolute;bottom:-60px;left:200px;width:240px;height:240px;border-radius:999px;background:radial-gradient(circle,rgba(79,70,229,.4),transparent 65%)}
+  .hi{position:relative;z-index:1;display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+  .hkick{font-size:12.5px;color:rgba(255,255,255,.65);margin-bottom:4px;font-weight:500}
+  .hh1{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.05}
+  .hsub{font-size:13px;color:rgba(255,255,255,.75);margin-top:8px;max-width:52ch;line-height:1.5}
+  .pulse{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;min-width:360px}
+  .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .live{display:flex;align-items:center;gap:5px}
+  .lvd{width:7px;height:7px;border-radius:999px;background:#34d399}
+  .pg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .pv{font-size:22px;font-weight:700;letter-spacing:-.5px;line-height:1}
+  .pk{font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-top:4px}
+  .qa{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;align-items:center;position:relative;z-index:1}
+  .qb{padding:7px 14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;font-size:12.5px;font-weight:500}
+  .qbp{background:#fff;color:#0f172a;border-color:#fff;font-weight:600}
+  .sec{padding:8px 28px 14px}
+  .sh{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+  .h2{font-size:18px;font-weight:700;letter-spacing:-.4px}
+  .h2s{font-size:12px;color:#64748b;margin-top:3px}
+  .vb{padding:5px 10px;border:1px solid #e2e8f0;background:#fff;border-radius:6px;font-size:11.5px;color:#64748b;font-weight:500}
+  .vba{background:#0f172a;color:#fff;border-color:#0f172a}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .tile{padding:16px;background:#fff;border:1px solid #eef1f5;border-radius:14px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px;min-height:172px}
+  .tg{position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:999px;opacity:.5}
+  .th{display:flex;align-items:flex-start;gap:12px;position:relative;z-index:1}
+  .ti{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .tt{font-size:15.5px;font-weight:700;letter-spacing:-.3px}
+  .ts{font-size:12px;color:#64748b;margin-top:3px;line-height:1.4}
+  .tb{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.3px;margin-left:auto;white-space:nowrap}
+  .tstats{display:flex;padding:10px 0;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;position:relative;z-index:1}
+  .tstat{flex:1}
+  .tsv{font-size:14px;font-weight:700;letter-spacing:-.3px}
+  .tsk{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-top:1px}
+  .tsd{width:1px;background:#eef1f5;margin:0 10px}
+  .tf{display:flex;justify-content:space-between;align-items:center;margin-top:auto;position:relative;z-index:1;font-size:12px;color:#94a3b8;font-weight:500}
+  .bottom{padding:0 28px 28px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .bp{padding:18px;background:#fff;border:1px solid #eef1f5;border-radius:12px}
+  .bph{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+  .h3{font-size:14px;font-weight:700;letter-spacing:-.2px}
+  .cnt{font-size:11px;padding:1px 7px;border-radius:999px;background:#eef1f5;color:#475569;font-weight:600}
+  .todo{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12.5px;color:#334155}
+  .todo:last-child{border-bottom:none}
+  .cx{width:15px;height:15px;border:1.5px solid #cbd5e1;border-radius:4px;flex-shrink:0}
+  .cc{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:700;letter-spacing:.3px;margin-left:auto}
+  .ago{font-size:11px;color:#94a3b8;margin-left:8px}
+  .arow{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:12.5px;color:#334155}
+  .arow:last-child{border-bottom:none}
+  .adot{width:8px;height:8px;border-radius:999px;margin-top:5px;flex-shrink:0}
+</style></head>
+<body>
+<div class="win">
+  <div class="chrome">
+    <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+    <div class="url">🔒 hub.astorya.fr/accueil</div>
+  </div>
+  <div class="frame">
+    <!-- SIDEBAR -->
+    <aside class="sb">
+      <div class="brand"><div class="logo">H</div><div><b>Hub Astorya</b><small>ERP · CRM</small></div></div>
+      <div class="search"><span class="si">⌕</span><input value="Rechercher client, opp, ticket…" readonly><span class="kb">⌘K</span></div>
+      <div>
+        <div class="nl">Principal</div>
+        <div class="ni act"><span class="b">◧</span>Accueil</div>
+        <div class="ni"><span class="b">◔</span>CRM<span class="c">34</span></div>
+        <div class="ni"><span class="b">◍</span>Intelligence concurrentielle<span class="c">250</span></div>
+        <div class="ni"><span class="b">✎</span>Support technique<span class="c">12</span></div>
+        <div class="ni"><span class="b">▤</span>Projets &amp; Livrables</div>
+      </div>
+      <div>
+        <div class="nl">Gestion</div>
+        <div class="ni"><span class="b">▦</span>Devis &amp; Factures</div>
+        <div class="ni"><span class="b">€</span>Comptabilité</div>
+        <div class="ni"><span class="b">▭</span>Contrats &amp; abonnements</div>
+        <div class="ni"><span class="b">◈</span>Trésorerie</div>
+      </div>
+      <div>
+        <div class="nl">Pilotage</div>
+        <div class="ni"><span class="b">▥</span>Rapports &amp; BI</div>
+        <div class="ni"><span class="b">⚙</span>Administration</div>
+      </div>
+      <div class="user"><div class="av">AS</div><div><div style="font-size:12.5px;font-weight:600">Compte démo</div><div style="font-size:10.5px;color:#94a3b8">Direction</div></div></div>
+    </aside>
+    <!-- MAIN -->
+    <div class="main">
+      <div class="top">
+        <div style="display:flex;align-items:center;gap:10px"><span class="chip">Lundi 31 mars · 14:20</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ib">⌕</span><span class="ib">◱<span class="nd"></span></span><span class="ib">⚙</span>
+        </div>
+      </div>
+      <!-- HERO -->
+      <div class="hero"><div class="g1"></div><div class="g2"></div>
+        <div class="hi">
+          <div>
+            <div class="hkick">Bonjour — voici votre tableau de bord</div>
+            <div class="hh1">Bon après-midi<span style="color:#a78bfa">.</span></div>
+            <div class="hsub">Tout le pilotage de l'entreprise en un écran : commercial, production, finances et équipe.</div>
+          </div>
+          <div class="pulse">
+            <div class="ph"><span>Pouls de l'activité</span><span class="live"><span class="lvd"></span>3 en ligne</span></div>
+            <div class="pg">
+              <div><div class="pv">128</div><div class="pk">Clients actifs</div></div>
+              <div><div class="pv">34</div><div class="pk">Opportunités</div></div>
+              <div><div class="pv">9</div><div class="pk">Signées ce mois</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="qa">
+          <span class="qb qbp">+ Nouveau client</span>
+          <span class="qb">+ Opportunité</span>
+          <span class="qb">+ Devis</span>
+          <span class="qb">+ Ticket</span>
+        </div>
+      </div>
+      <!-- MODULES -->
+      <div class="sec">
+        <div class="sh">
+          <div><div class="h2">Modules</div><div class="h2s">Accès rapide à tous les espaces métier</div></div>
+          <div style="display:flex;gap:6px"><span class="vb vba">Grille</span><span class="vb">Liste</span></div>
+        </div>
+        <div class="tiles">
+          <!-- CRM -->
+          <div class="tile"><div class="tg" style="background:#eef2ff"></div>
+            <div class="th"><div class="ti" style="background:#eef2ff;color:#4f46e5">▤</div><div><div class="tt">CRM</div><div class="ts">Pipeline, comptes, opportunités</div></div></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">34</div><div class="tsk">Opportunités</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">218 k€</div><div class="tsk">Pipeline</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#4f46e5;font-size:16px">→</span></div>
+          </div>
+          <!-- Intel -->
+          <div class="tile"><div class="tg" style="background:#e0f4fc"></div>
+            <div class="th"><div class="ti" style="background:#e0f4fc;color:#0ea5e9">◍</div><div><div class="tt">Intelligence concurrentielle</div><div class="ts">Prospection · données séparées</div></div><span class="tb" style="background:#e0f4fc;color:#0369a1">PROSPECTION</span></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">250</div><div class="tsk">Prospects</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">180</div><div class="tsk">E-mails trouvés</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#0ea5e9;font-size:16px">→</span></div>
+          </div>
+          <!-- Support -->
+          <div class="tile"><div class="tg" style="background:#cffafe"></div>
+            <div class="th"><div class="ti" style="background:#cffafe;color:#0891b2">✎</div><div><div class="tt">Support technique</div><div class="ts">Tickets, SLA, file d'attente</div></div></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">12</div><div class="tsk">Tickets ouverts</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">98 %</div><div class="tsk">SLA tenu</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#0891b2;font-size:16px">→</span></div>
+          </div>
+          <!-- Projets -->
+          <div class="tile"><div class="tg" style="background:#f3e8ff"></div>
+            <div class="th"><div class="ti" style="background:#f3e8ff;color:#7c3aed">▦</div><div><div class="tt">Projets &amp; Livrables</div><div class="ts">Roadmap, jalons, ressources</div></div></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">7</div><div class="tsk">Projets actifs</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">3</div><div class="tsk">Jalons cette semaine</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#7c3aed;font-size:16px">→</span></div>
+          </div>
+          <!-- Devis & Factures -->
+          <div class="tile"><div class="tg" style="background:#fef0e6"></div>
+            <div class="th"><div class="ti" style="background:#fef0e6;color:#f59e0b">▧</div><div><div class="tt">Devis &amp; Factures</div><div class="ts">Devis · Commandes · BL · Factures</div></div><span class="tb" style="background:#fef0e6;color:#b45309">SAGE-LIKE</span></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">22</div><div class="tsk">Devis en cours</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">41</div><div class="tsk">Factures du mois</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#f59e0b;font-size:16px">→</span></div>
+          </div>
+          <!-- Comptabilité -->
+          <div class="tile"><div class="tg" style="background:#e8f8f1"></div>
+            <div class="th"><div class="ti" style="background:#e8f8f1;color:#10b981">€</div><div><div class="tt">Comptabilité</div><div class="ts">Écritures, journaux, clôtures</div></div></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">1 240</div><div class="tsk">Écritures</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">18</div><div class="tsk">À lettrer</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#10b981;font-size:16px">→</span></div>
+          </div>
+          <!-- Contrats -->
+          <div class="tile"><div class="tg" style="background:#eef2ff"></div>
+            <div class="th"><div class="ti" style="background:#eef2ff;color:#4f46e5">▭</div><div><div class="tt">Contrats &amp; abonnements</div><div class="ts">Récurrent · SEPA</div></div><span class="tb" style="background:#eef2ff;color:#3730a3">RÉCURRENT</span></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">86</div><div class="tsk">Contrats actifs</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">74</div><div class="tsk">Mandats SEPA</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#4f46e5;font-size:16px">→</span></div>
+          </div>
+          <!-- Trésorerie -->
+          <div class="tile"><div class="tg" style="background:#d1fae5"></div>
+            <div class="th"><div class="ti" style="background:#d1fae5;color:#0e7a55">◈</div><div><div class="tt">Trésorerie</div><div class="ts">Cash flow, banques, échéances</div></div></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">142 k€</div><div class="tsk">Solde</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">34 j</div><div class="tsk">DSO</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#0e7a55;font-size:16px">→</span></div>
+          </div>
+          <!-- Rapports -->
+          <div class="tile"><div class="tg" style="background:#e0e7ff"></div>
+            <div class="th"><div class="ti" style="background:#e0e7ff;color:#3730a3">▥</div><div><div class="tt">Rapports &amp; BI</div><div class="ts">Tableaux de bord, exports</div></div></div>
+            <div class="tstats"><div class="tstat"><div class="tsv">8</div><div class="tsk">Tableaux</div></div><div class="tsd"></div><div class="tstat"><div class="tsv">CA · Marge · DSO</div><div class="tsk">Indicateurs</div></div></div>
+            <div class="tf"><span>Ouvrir</span><span style="color:#3730a3;font-size:16px">→</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- BOTTOM -->
+      <div class="bottom">
+        <div class="bp">
+          <div class="bph"><div><div class="h3">Actions à mener <span class="cnt">6</span></div></div><span class="vb">Tout voir</span></div>
+          <div class="todo"><span class="cx"></span>Relancer le devis D-2041 — Groupe Méridien<span class="cc" style="background:#eef2ff;color:#4f46e5">CRM</span></div>
+          <div class="todo"><span class="cx"></span>E-mail de présentation — Atelier Lumen<span class="cc" style="background:#e0f4fc;color:#0369a1">PROSPECT</span></div>
+          <div class="todo"><span class="cx"></span>Clôturer le ticket #318 — Cabinet Novéa<span class="cc" style="background:#cffafe;color:#0891b2">SUPPORT</span></div>
+          <div class="todo"><span class="cx"></span>Prélèvement SEPA du mois à générer<span class="cc" style="background:#e8f8f1;color:#0e7a55">FINANCE</span></div>
+          <div class="todo"><span class="cx"></span>Valider les éléments de paie<span class="cc" style="background:#f3e8ff;color:#7c3aed">RH</span></div>
+          <div class="todo"><span class="cx"></span>Rapprochement bancaire — semaine 13<span class="cc" style="background:#e8f8f1;color:#0e7a55">FINANCE</span></div>
+        </div>
+        <div class="bp">
+          <div class="bph"><div><div class="h3">Activité de l'équipe</div></div><span class="chip">temps réel</span></div>
+          <div class="arow"><span class="adot" style="background:#4f46e5"></span><div>Opportunité <b>Transports Valto</b> passée en Négociation<span class="ago"> · il y a 6 min</span></div></div>
+          <div class="arow"><span class="adot" style="background:#10b981"></span><div>Facture <b>F-2025-0416</b> encaissée — 3 480 €<span class="ago"> · il y a 22 min</span></div></div>
+          <div class="arow"><span class="adot" style="background:#0891b2"></span><div>Ticket #322 résolu — SLA respecté<span class="ago"> · il y a 40 min</span></div></div>
+          <div class="arow"><span class="adot" style="background:#0ea5e9"></span><div>12 e-mails prospects trouvés (recherche auto)<span class="ago"> · il y a 1 h</span></div></div>
+          <div class="arow"><span class="adot" style="background:#7c3aed"></span><div>Jalon <b>Projet Delta</b> livré<span class="ago"> · il y a 2 h</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

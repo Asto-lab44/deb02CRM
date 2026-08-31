@@ -86,6 +86,28 @@ protège tous les autres blocs (défense en profondeur). 10 domaines obligatoire
 
 ---
 
+## 7. Matrice de déploiement *(quoi activer selon l'entreprise)*
+
+Le **socle primaire** (les 5 blocs + sécurité) est toujours inclus (✓). Les
+modules métier s'activent selon l'archétype d'entreprise.
+
+| Bloc / module | Services & conseil | Négoce & distribution | IT & infogérance | Industrie & atelier | Agence & communication |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Socle primaire (5 blocs + sécurité)** | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Support technique + 3CX | ○ | ○ | ● | ○ | — |
+| Projets & Livrables | ● | — | ● | ● | ● |
+| Commande fournisseur & Stock | — | ● | ● | ● | — |
+| Contrats & abonnements + SEPA | ● | ○ | ● | ○ | ● |
+| Intelligence concurrentielle | ○ | ○ | ● | ○ | ● |
+| Marketing & Campagnes | ○ | ○ | ○ | — | ● |
+| RH & Paie | ○ | ● | ● | ● | ○ |
+
+**Légende :** ✓ Socle, toujours inclus · ● Activé recommandé · ○ Optionnel selon besoin · — Rarement utile.
+
+*Les archétypes sont indicatifs : chaque déploiement se paramètre au cas par cas.*
+
+---
+
 ## Schéma
 
 Représentation : la **Sécurité & Conformité** englobe le **socle primaire**

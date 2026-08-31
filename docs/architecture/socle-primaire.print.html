@@ -1,0 +1,169 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8">
+<style>html{background:#fff}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 landscape;margin:10mm}body{background:#fff}.wrap{max-width:none;padding:0}.env{break-inside:avoid}.core{grid-template-columns:repeat(4,1fr)}h1{font-size:32px}</style>
+<title>Socle primaire — Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --ground:#f6f7fc;--panel:#fff;--panel-2:#fafbff;--ink:#12141f;--ink-soft:#484d63;--ink-faint:#787e97;
+    --line:#e6e8f4;--brand:#4f46e5;--teal:#0f766e;--teal-ink:#0b5c55;
+    --c-fond:#4f46e5;--c-tiers:#0891b2;--c-fin:#0f9d6e;--c-pilot:#7c3aed;--c-opt:#a16207;
+    --shadow:0 1px 2px rgba(18,20,31,.04),0 10px 26px rgba(18,20,31,.07);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8b84ff;--teal:#2dd4bf;--teal-ink:#5eead4;
+    --c-fond:#8b84ff;--c-tiers:#38bdf8;--c-fin:#34d399;--c-pilot:#a78bfa;--c-opt:#fbbf24;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8b84ff;--teal:#2dd4bf;--teal-ink:#5eead4;
+    --c-fond:#8b84ff;--c-tiers:#38bdf8;--c-fin:#34d399;--c-pilot:#a78bfa;--c-opt:#fbbf24;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 26px 40px}
+  h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;text-wrap:balance}
+  .mono{font-family:"IBM Plex Mono",monospace}
+
+  .lh{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0 12px;border-bottom:1px solid var(--line)}
+  .lh-b{display:flex;align-items:center;gap:11px}
+  .lh-m{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#4f46e5,#4338ca 55%,#312e81);font-family:"Bricolage Grotesque";font-weight:800;font-size:18px}
+  .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:15px;line-height:1.1}
+  .lh-t{font-size:10.5px;color:var(--ink-faint)}
+  .lh-r{font-size:10px;color:var(--ink-soft);text-align:right;line-height:1.55}
+
+  header.hd{padding:26px 0 8px}
+  .kick{font-family:"IBM Plex Mono";font-size:11.5px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:800;letter-spacing:-1.1px;line-height:1.04}
+  h1 em{font-style:normal;color:var(--brand)}
+  .lede{margin:12px 0 0;max-width:74ch;font-size:14.5px;color:var(--ink-soft)}
+
+  /* Security envelope */
+  .env{margin-top:24px;border:2px solid color-mix(in srgb,var(--teal) 55%,var(--line));border-radius:22px;
+    background:color-mix(in srgb,var(--teal) 6%,var(--panel));padding:16px 18px 20px;position:relative;box-shadow:var(--shadow)}
+  .env-tag{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;font-family:"IBM Plex Mono";
+    font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;padding:6px 13px;border-radius:999px;
+    box-shadow:0 6px 16px color-mix(in srgb,var(--teal) 45%,transparent);margin-bottom:12px}
+  .sec-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+  .sec-chip{font-size:11.5px;font-weight:600;color:var(--teal-ink);background:color-mix(in srgb,var(--teal) 12%,var(--panel));
+    border:1px solid color-mix(in srgb,var(--teal) 30%,var(--line));border-radius:8px;padding:5px 10px}
+  .sec-chip b{font-family:"IBM Plex Mono";font-weight:600;color:var(--teal);margin-right:5px}
+  .env-note{font-size:11.5px;color:var(--ink-faint);margin:0 0 14px;font-style:italic}
+
+  /* Core socle */
+  .core-tag{display:flex;align-items:center;gap:9px;margin:2px 0 10px}
+  .core-tag .b{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--brand)}
+  .core-tag .l{flex:1;height:1px;background:var(--line)}
+  .core{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .blk{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px 15px 14px;box-shadow:var(--shadow);border-top:3px solid var(--cc)}
+  .blk h3{font-size:14px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;gap:7px}
+  .blk h3 .d{width:8px;height:8px;border-radius:50%;background:var(--cc);flex:none}
+  .blk ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+  .blk li{position:relative;padding-left:15px;font-size:11.6px;color:var(--ink-soft);line-height:1.35}
+  .blk li::before{content:"";position:absolute;left:1px;top:6px;width:6px;height:6px;border-radius:2px;background:color-mix(in srgb,var(--cc) 80%,transparent);transform:rotate(45deg)}
+
+  /* Optional modules crown */
+  .opt{margin-top:22px}
+  .opt-tag{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .opt-tag .b{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--c-opt)}
+  .opt-tag .l{flex:1;height:1px;background:var(--line)}
+  .opt-grid{display:flex;flex-wrap:wrap;gap:9px}
+  .opt-chip{display:flex;flex-direction:column;gap:2px;background:var(--panel);border:1px dashed color-mix(in srgb,var(--c-opt) 45%,var(--line));
+    border-radius:11px;padding:10px 13px;min-width:180px;flex:1 1 200px}
+  .opt-chip b{font-size:12.5px;font-weight:700;color:var(--ink)}
+  .opt-chip span{font-size:10.8px;color:var(--ink-faint)}
+
+  .legend{margin-top:20px;display:flex;flex-wrap:wrap;gap:16px;font-size:11.5px;color:var(--ink-soft)}
+  .legend i{display:inline-flex;align-items:center;gap:7px;font-style:normal}
+  .legend .sw{width:13px;height:13px;border-radius:4px}
+
+  footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <div class="lh">
+    <div class="lh-b"><div class="lh-m">H</div><div><div class="lh-co">ASTORYA S.G.I.</div><div class="lh-t">Informatique &amp; Téléphonie d'entreprise · Nantes</div></div></div>
+    <div class="lh-r mono">Hub Astorya — Architecture<br>Socle primaire</div>
+  </div>
+
+  <header class="hd">
+    <div class="kick">Architecture · Référentiel de déploiement</div>
+    <h1>Le <em>socle primaire</em> du Hub</h1>
+    <p class="lede">Le noyau présent dans <b>toute</b> installation, quelle que soit l'entreprise. La sécurité englobe le socle (Fondations · Tiers · Finance · Pilotage) ; les modules métier se greffent en couronne, activés selon l'activité.</p>
+  </header>
+
+  <!-- SECURITY ENVELOPE -->
+  <div class="env">
+    <div class="env-tag">🛡️ Sécurité &amp; Conformité — couche englobante (toujours active)</div>
+    <div class="sec-chips">
+      <span class="sec-chip"><b>01</b>Authentification &amp; SSO / MFA</span>
+      <span class="sec-chip"><b>02</b>Gestion des accès (RBAC)</span>
+      <span class="sec-chip"><b>03</b>Chiffrement TLS / au repos</span>
+      <span class="sec-chip"><b>04</b>Durcissement web (CSP/HSTS)</span>
+      <span class="sec-chip"><b>05</b>Protection des données (RLS)</span>
+      <span class="sec-chip"><b>06</b>Sauvegarde &amp; versioning (ANSSI 3-2-1)</span>
+      <span class="sec-chip"><b>07</b>Continuité (PRA/PCA · RTO/RPO)</span>
+      <span class="sec-chip"><b>08</b>Journalisation &amp; traçabilité</span>
+      <span class="sec-chip"><b>09</b>Tests &amp; supervision (CVE)</span>
+      <span class="sec-chip"><b>10</b>RGPD &amp; souveraineté France</span>
+    </div>
+    <p class="env-note">Défense en profondeur : chaque couche protège la suivante — la donnée reste chiffrée, cloisonnée, sauvegardée et hébergée en France.</p>
+
+    <div class="core-tag"><span class="b">Socle primaire — noyau fonctionnel</span><span class="l"></span></div>
+    <div class="core">
+      <div class="blk" style="--cc:var(--c-fond)"><h3><span class="d"></span>Fondations &amp; Hub</h3><ul>
+        <li>Base de données · mode dégradé</li>
+        <li>Accueil / tableau de bord (KPI live)</li>
+        <li>Navigation &amp; recherche globale</li>
+        <li>Présence &amp; activité temps réel</li>
+        <li>Notifications · import Excel</li></ul></div>
+      <div class="blk" style="--cc:var(--c-tiers)"><h3><span class="d"></span>Référentiel Tiers</h3><ul>
+        <li>Comptes &amp; contacts (fiche 360°)</li>
+        <li>Fournisseurs (annuaire)</li>
+        <li>Veille légale (SIREN · Pappers/BODACC)</li>
+        <li>E-mail &amp; téléphonie (Outlook)</li></ul></div>
+      <div class="blk" style="--cc:var(--c-fin)"><h3><span class="d"></span>Chaîne financière</h3><ul>
+        <li>Devis &amp; Factures (PDF, TVA)</li>
+        <li>Catalogue articles/prestations</li>
+        <li>Comptabilité · export FEC</li>
+        <li>Trésorerie &amp; relances</li></ul></div>
+      <div class="blk" style="--cc:var(--c-pilot)"><h3><span class="d"></span>Pilotage &amp; Admin</h3><ul>
+        <li>Rapports &amp; BI (KPI/SLA)</li>
+        <li>Administration · SSO O365</li>
+        <li>Espace documentaire (SharePoint)</li></ul></div>
+    </div>
+  </div>
+
+  <!-- OPTIONAL MODULES -->
+  <div class="opt">
+    <div class="opt-tag"><span class="b">Modules métier — couronne, activés selon l'activité</span><span class="l"></span></div>
+    <div class="opt-grid">
+      <div class="opt-chip"><b>Support technique + 3CX</b><span>si hotline / support</span></div>
+      <div class="opt-chip"><b>Projets &amp; Livrables</b><span>si mode projet</span></div>
+      <div class="opt-chip"><b>Commande fournisseur &amp; Stock</b><span>si inventaire / matériel</span></div>
+      <div class="opt-chip"><b>Contrats &amp; abonnements + SEPA</b><span>si revenus récurrents</span></div>
+      <div class="opt-chip"><b>Intelligence concurrentielle</b><span>si prospection / conquête</span></div>
+      <div class="opt-chip"><b>Marketing &amp; Campagnes</b><span>si acquisition marketing</span></div>
+      <div class="opt-chip"><b>RH &amp; Paie</b><span>si paie internalisée</span></div>
+      <div class="opt-chip"><b>Modules verticaux</b><span>métier spécifique (ex. hébergement web)</span></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <i><span class="sw" style="background:var(--teal)"></span>Sécurité (englobe tout · obligatoire)</i>
+    <i><span class="sw" style="background:var(--brand)"></span>Socle primaire (obligatoire)</i>
+    <i><span class="sw" style="background:var(--c-opt)"></span>Modules métier (optionnels)</i>
+  </div>
+
+  <footer>
+    <div><b>S.A.R.L. ASTORYA S.G.I.</b> — 9 rue du Petit Châtelier, 44300 Nantes · SIRET 523 625 804 00027</div>
+    <div class="mono">Document d'architecture · Hub Astorya</div>
+  </footer>
+</div>
+
+</body></html>

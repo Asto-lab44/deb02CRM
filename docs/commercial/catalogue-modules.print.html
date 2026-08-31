@@ -122,7 +122,8 @@
 
   /* ---------- Cover (always dark, product cockpit) ---------- */
   .cover{position:relative;overflow:hidden;border-radius:22px;margin:18px 0 6px;
-    background:radial-gradient(120% 140% at 85% -10%, #4338ca 0%, #1e1b4b 42%, #0b0e1e 100%);
+    background-color:#141330;
+    background-image:radial-gradient(120% 140% at 85% -10%, #4338ca 0%, #1e1b4b 42%, #0b0e1e 100%);
     color:#fff;padding:42px 44px 36px;box-shadow:var(--shadow-lg);isolation:isolate}
   .cover::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
     background:radial-gradient(420px 420px at 92% 8%, rgba(139,92,246,.45), transparent 62%),
@@ -179,8 +180,8 @@
     color:var(--ink-faint);flex:none;padding-top:1px}
 
   /* ---------- Offer / ownership ---------- */
-  .offer{background:color-mix(in srgb,var(--cc) 6%,var(--panel));
-    border:1px solid color-mix(in srgb,var(--cc) 26%,var(--line));border-radius:18px;padding:26px;box-shadow:var(--shadow)}
+  .offer{background:color-mix(in srgb,var(--cc) 11%,var(--panel));
+    border:1px solid color-mix(in srgb,var(--cc) 32%,var(--line));border-radius:18px;padding:26px;box-shadow:var(--shadow)}
   .pills{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px}
   .pill{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;color:var(--cc);
     background:color-mix(in srgb,var(--cc) 13%,transparent);border-radius:999px;padding:6px 13px}

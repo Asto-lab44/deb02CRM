@@ -74,8 +74,8 @@
     --ground:#f6f7fc; --panel:#ffffff; --panel-2:#fafbff; --panel-3:#f2f3fb;
     --ink:#12141f; --ink-soft:#484d63; --ink-faint:#787e97;
     --line:#e6e8f4; --line-soft:#eef0f9;
-    --brand:#4f46e5; --brand-deep:#312e81; --violet:#8b5cf6;
-    --c-offre:#4f46e5; --c-commercial:#4f46e5; --c-production:#0891b2;
+    --brand:#1e3a8a; --brand-deep:#0f1b45; --violet:#8b5cf6;
+    --c-offre:#1e3a8a; --c-commercial:#1e3a8a; --c-production:#0891b2;
     --c-finance:#0f9d6e; --c-rh:#7c3aed; --c-pilotage:#475569; --c-securite:#0f766e;
     --shadow:0 1px 2px rgba(18,20,31,.04),0 10px 30px rgba(18,20,31,.06);
     --shadow-lg:0 2px 4px rgba(18,20,31,.05),0 24px 60px rgba(18,20,31,.12);
@@ -84,8 +84,8 @@
     --ground:#0a0c14; --panel:#141726; --panel-2:#11131f; --panel-3:#1b1f30;
     --ink:#eef0f8; --ink-soft:#b2b7cb; --ink-faint:#7f869d;
     --line:#252939; --line-soft:#1d2030;
-    --brand:#8b84ff; --brand-deep:#c7c2ff; --violet:#a78bfa;
-    --c-offre:#8b84ff; --c-commercial:#8b84ff; --c-production:#38bdf8;
+    --brand:#8ea6f2; --brand-deep:#c7d2fe; --violet:#a78bfa;
+    --c-offre:#8ea6f2; --c-commercial:#8ea6f2; --c-production:#38bdf8;
     --c-finance:#34d399; --c-rh:#a78bfa; --c-pilotage:#94a3b8; --c-securite:#2dd4bf;
     --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 32px rgba(0,0,0,.4);
     --shadow-lg:0 2px 6px rgba(0,0,0,.4),0 28px 64px rgba(0,0,0,.55);
@@ -94,8 +94,8 @@
     --ground:#0a0c14; --panel:#141726; --panel-2:#11131f; --panel-3:#1b1f30;
     --ink:#eef0f8; --ink-soft:#b2b7cb; --ink-faint:#7f869d;
     --line:#252939; --line-soft:#1d2030;
-    --brand:#8b84ff; --brand-deep:#c7c2ff; --violet:#a78bfa;
-    --c-offre:#8b84ff; --c-commercial:#8b84ff; --c-production:#38bdf8;
+    --brand:#8ea6f2; --brand-deep:#c7d2fe; --violet:#a78bfa;
+    --c-offre:#8ea6f2; --c-commercial:#8ea6f2; --c-production:#38bdf8;
     --c-finance:#34d399; --c-rh:#a78bfa; --c-pilotage:#94a3b8; --c-securite:#2dd4bf;
     --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 32px rgba(0,0,0,.4);
     --shadow-lg:0 2px 6px rgba(0,0,0,.4),0 28px 64px rgba(0,0,0,.55);
@@ -114,7 +114,7 @@
     padding:22px 0 16px;border-bottom:1px solid var(--line)}
   .lh-brand{display:flex;align-items:center;gap:12px}
   .lh-mark{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;color:#fff;
-    background:linear-gradient(135deg,#4f46e5,#4338ca 55%,#312e81);font-family:"Bricolage Grotesque";font-weight:800;font-size:20px;
+    background:linear-gradient(135deg,#1e3a8a,#172554 55%,#0f1b45);font-family:"Bricolage Grotesque";font-weight:800;font-size:20px;
     box-shadow:0 4px 12px rgba(67,56,202,.35)}
   .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:16px;letter-spacing:.2px;line-height:1.1}
   .lh-tag{font-size:11.5px;color:var(--ink-faint);margin-top:2px}
@@ -123,7 +123,7 @@
   /* ---------- Cover (always dark, product cockpit) ---------- */
   .cover{position:relative;overflow:hidden;border-radius:22px;margin:18px 0 6px;
     background-color:#141330;
-    background-image:radial-gradient(120% 140% at 85% -10%, #4338ca 0%, #1e1b4b 42%, #0b0e1e 100%);
+    background-image:radial-gradient(120% 140% at 85% -10%, #172554 0%, #0e1a3f 42%, #070d20 100%);
     color:#fff;padding:42px 44px 36px;box-shadow:var(--shadow-lg);isolation:isolate}
   .cover::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
     background:radial-gradient(420px 420px at 92% 8%, rgba(139,92,246,.45), transparent 62%),
@@ -132,7 +132,7 @@
   .cv-kick{font-family:"IBM Plex Mono";font-size:11.5px;font-weight:600;letter-spacing:2px;
     text-transform:uppercase;color:rgba(199,194,255,.9);margin-bottom:16px}
   .cover h1{font-size:clamp(34px,5.4vw,60px);font-weight:800;line-height:1.02;letter-spacing:-1.6px;max-width:17ch}
-  .cover h1 em{font-style:normal;background:linear-gradient(90deg,#c4b5fd,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .cover h1 em{font-style:normal;background:linear-gradient(90deg,#93c5fd,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}
   .cv-lede{margin:20px 0 0;max-width:62ch;font-size:clamp(14.5px,1.6vw,17px);color:rgba(255,255,255,.82);line-height:1.55}
   .cv-stats{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
   .cv-stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:13px;

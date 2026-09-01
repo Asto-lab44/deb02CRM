@@ -7,17 +7,17 @@
 <style>
   :root{
     --ground:#f6f7fc;--panel:#fff;--ink:#12141f;--ink-soft:#484d63;--ink-faint:#787e97;
-    --line:#e6e8f4;--brand:#4f46e5;--gold:#a16207;--teal:#0f766e;
+    --line:#e6e8f4;--brand:#1e3a8a;--gold:#a16207;--teal:#0f766e;
     --shadow:0 1px 2px rgba(18,20,31,.04),0 10px 26px rgba(18,20,31,.07);
   }
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
     --ground:#0a0c14;--panel:#141726;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
-    --line:#252939;--brand:#8b84ff;--gold:#fbbf24;--teal:#2dd4bf;
+    --line:#252939;--brand:#8ea6f2;--gold:#fbbf24;--teal:#2dd4bf;
     --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
   }}
   :root[data-theme="dark"]{
     --ground:#0a0c14;--panel:#141726;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
-    --line:#252939;--brand:#8b84ff;--gold:#fbbf24;--teal:#2dd4bf;
+    --line:#252939;--brand:#8ea6f2;--gold:#fbbf24;--teal:#2dd4bf;
     --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
   }
   *{box-sizing:border-box}
@@ -31,19 +31,19 @@
     padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:16px}
   .lh-b{display:flex;align-items:center;gap:11px}
   .lh-m{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;
-    background:linear-gradient(135deg,#4f46e5,#4338ca 55%,#312e81);font-family:"Bricolage Grotesque";font-weight:800;font-size:18px}
+    background:linear-gradient(135deg,#1e3a8a,#172554 55%,#0f1b45);font-family:"Bricolage Grotesque";font-weight:800;font-size:18px}
   .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:15px;line-height:1.1}
   .lh-t{font-size:10.5px;color:var(--ink-faint)}
   .lh-r{font-size:10px;color:var(--ink-soft);text-align:right;line-height:1.55}
 
   .hero{position:relative;overflow:hidden;border-radius:18px;color:#fff;padding:30px 30px 28px;
     background-color:#151238;
-    background-image:radial-gradient(120% 150% at 88% -20%,#4338ca,#1e1b4b 46%,#0b0e1e 100%);box-shadow:var(--shadow)}
+    background-image:radial-gradient(120% 150% at 88% -20%,#172554,#0e1a3f 46%,#070d20 100%);box-shadow:var(--shadow)}
   .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(320px 320px at 92% 6%,rgba(139,92,246,.45),transparent 62%)}
   .hero>*{position:relative}
-  .hk{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#c7c2ff;margin-bottom:12px}
+  .hk{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#c7d2fe;margin-bottom:12px}
   .hero h1{font-size:33px;font-weight:800;letter-spacing:-1.1px;line-height:1.04;max-width:16ch}
-  .hero h1 em{font-style:normal;background:linear-gradient(90deg,#c4b5fd,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero h1 em{font-style:normal;background:linear-gradient(90deg,#93c5fd,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}
   .hero p{margin:14px 0 0;font-size:13.5px;color:rgba(255,255,255,.85);max-width:64ch;line-height:1.55}
 
   .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
@@ -78,7 +78,7 @@
   .foot .co{font-size:11px;color:var(--ink-faint);line-height:1.55}
   .foot .co b{color:var(--ink)}
   .cta{font-family:"Bricolage Grotesque";font-weight:700;font-size:14px;color:#fff;
-    background:linear-gradient(135deg,#4f46e5,#4338ca);border-radius:11px;padding:11px 20px;box-shadow:0 8px 20px rgba(67,56,202,.32)}
+    background:linear-gradient(135deg,#1e3a8a,#172554);border-radius:11px;padding:11px 20px;box-shadow:0 8px 20px rgba(67,56,202,.32)}
 </style>
 
 <div class="page">

@@ -1,0 +1,197 @@
+<title>Infrastructure Ops — Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --ground:#f6f7fc;--panel:#fff;--panel-2:#fafbff;--ink:#12141f;--ink-soft:#484d63;--ink-faint:#787e97;
+    --line:#e6e8f4;--brand:#1e3a8a;--teal:#0f766e;--amber:#a16207;--slate:#475569;--cyan:#0891b2;--violet:#7c3aed;--rose:#be123c;
+    --shadow:0 1px 2px rgba(18,20,31,.04),0 10px 26px rgba(18,20,31,.07);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--slate:#94a3b8;--cyan:#38bdf8;--violet:#a78bfa;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--slate:#94a3b8;--cyan:#38bdf8;--violet:#a78bfa;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 26px 40px}
+  h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;text-wrap:balance}
+  .mono{font-family:"IBM Plex Mono",monospace}
+
+  .lh{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0 12px;border-bottom:1px solid var(--line)}
+  .lh-b{display:flex;align-items:center;gap:11px}
+  .lh-m{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#1e3a8a,#172554 55%,#0f1b45);font-family:"Bricolage Grotesque";font-weight:800;font-size:18px}
+  .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:15px;line-height:1.1}
+  .lh-t{font-size:10.5px;color:var(--ink-faint)}
+  .lh-r{font-size:10px;color:var(--ink-soft);text-align:right;line-height:1.55}
+
+  header.hd{padding:22px 0 6px}
+  .kick{font-family:"IBM Plex Mono";font-size:11.5px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+  h1{font-size:clamp(25px,3.8vw,36px);font-weight:800;letter-spacing:-1px;line-height:1.05}
+  .lede{margin:9px 0 0;max-width:84ch;font-size:13.5px;color:var(--ink-soft)}
+  .h2{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.4px;color:var(--ink-faint);margin:22px 0 12px;display:flex;align-items:center;gap:9px}
+  .h2::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* Boxes */
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 15px;box-shadow:var(--shadow);border-left:4px solid var(--cc)}
+  .box .t{display:flex;align-items:center;gap:8px}
+  .box .t b{font-size:13.5px;font-weight:700;letter-spacing:-.2px}
+  .box .t .rg{margin-left:auto;font-family:"IBM Plex Mono";font-size:9px;font-weight:600;color:var(--cc);background:color-mix(in srgb,var(--cc) 12%,transparent);padding:2px 7px;border-radius:999px;white-space:nowrap}
+  .box .s{font-size:11px;color:var(--ink-faint);margin-top:2px}
+  .subnodes{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .sn{font-size:10.8px;font-weight:600;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:5px 9px}
+
+  /* Arrow connectors */
+  .arw{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0}
+  .arw svg{width:15px;height:24px;color:var(--brand)}
+  .arw .l{font-family:"IBM Plex Mono";font-size:10px;font-weight:600;color:var(--ink-soft);background:var(--panel);border:1px dashed color-mix(in srgb,var(--brand) 40%,var(--line));border-radius:999px;padding:3px 11px;text-align:center}
+  .arw .l b{color:var(--brand)}
+  .lane{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:5px 0}
+  .lane .l{font-family:"IBM Plex Mono";font-size:10px;font-weight:600;color:var(--ink-soft);background:var(--panel);border:1px dashed var(--line);border-radius:999px;padding:4px 12px}
+  .lane .l b{color:var(--brand)} .lane .l .ar{color:var(--brand);font-weight:800}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .stack{display:flex;flex-direction:column;gap:0}
+
+  /* Zones */
+  .zones{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .zn{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px;border-top:3px solid var(--cc)}
+  .zn b{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .zn b::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cc)}
+  .zn span{display:block;font-size:10.5px;color:var(--ink-faint);margin-top:5px;line-height:1.4}
+
+  /* Ports table */
+  .ports{width:100%;border-collapse:collapse;font-size:11.5px}
+  .ports th,.ports td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  .ports thead th{font-family:"Bricolage Grotesque";font-size:11.5px;font-weight:700;border-bottom:2px solid var(--ink);color:var(--ink)}
+  .ports td.p{font-family:"IBM Plex Mono";font-weight:600;color:var(--brand);white-space:nowrap}
+  .ports td.d{color:var(--ink-soft)}
+  .ports .io{font-family:"IBM Plex Mono";font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:5px;white-space:nowrap}
+  .io.out{color:var(--brand);background:color-mix(in srgb,var(--brand) 12%,transparent)}
+  .io.in{color:var(--rose);background:color-mix(in srgb,var(--rose) 12%,transparent)}
+  .io.int{color:var(--slate);background:color-mix(in srgb,var(--slate) 14%,transparent)}
+
+  footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <div class="lh">
+    <div class="lh-b"><div class="lh-m">H</div><div><div class="lh-co">ASTORYA S.G.I.</div><div class="lh-t">Informatique &amp; Téléphonie d'entreprise · Nantes</div></div></div>
+    <div class="lh-r mono">Hub Astorya — Architecture<br>Infrastructure · vue Ops</div>
+  </div>
+
+  <header class="hd">
+    <div class="kick">Diagramme réseau · Flux orientés · Ports &amp; zones</div>
+    <h1>Infrastructure du Hub — vue Ops</h1>
+    <p class="lede">Chemin d'une requête, de l'utilisateur jusqu'aux données, avec flèches orientées, protocoles et ports. TLS terminé à l'edge ; secrets côté serveur ; données en UE/France.</p>
+  </header>
+
+  <div class="h2">Chemin d'une requête (flux orienté)</div>
+  <div class="stack">
+
+    <div class="box" style="--cc:var(--cyan)">
+      <div class="t"><b>① Utilisateur — navigateur</b><span class="rg">Internet public</span></div>
+      <div class="s">Poste Astorya · SPA React (UMD)</div>
+    </div>
+
+    <div class="arw"><svg viewBox="0 0 15 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7.5 0v18"/><path d="M2 13l5.5 6 5.5-6"/></svg><span class="l">résolution DNS · <b>UDP/TCP 53</b> · hub.astorya.fr</span></div>
+
+    <div class="box" style="--cc:var(--slate)">
+      <div class="t"><b>② DNS</b><span class="rg">Registrar / zone</span></div>
+      <div class="s">Enregistrement A/CNAME → edge Vercel · (DNSSEC recommandé)</div>
+    </div>
+
+    <div class="arw"><svg viewBox="0 0 15 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7.5 0v18"/><path d="M2 13l5.5 6 5.5-6"/></svg><span class="l"><b>TCP 443 · HTTPS/TLS 1.2+</b> · (80 → 443 redirigé)</span></div>
+
+    <div class="box" style="--cc:var(--brand)">
+      <div class="t"><b>③ Edge Vercel — WAF / terminaison TLS / CDN</b><span class="rg">Edge global · région CDG (FR)</span></div>
+      <div class="s">Certificat SSL · en-têtes sécurité (HSTS, CSP, X-Frame DENY, COOP, Permissions-Policy) · cache CDN · anti-DDoS edge</div>
+      <div class="row2" style="margin-top:9px">
+        <div class="box" style="--cc:var(--brand);box-shadow:none;padding:10px 12px">
+          <div class="t"><b>Front statique</b></div><div class="s">HTML + React UMD + dist/ · servi/caché à l'edge</div>
+        </div>
+        <div class="box" style="--cc:var(--brand);box-shadow:none;padding:10px 12px">
+          <div class="t"><b>Fonctions serverless <span class="mono">/api/*</span></b></div><div class="s">find-email · send-email · calendar-event · pappers-proxy · 3cx-webhook</div>
+          <div class="subnodes"><span class="sn">🔑 Secrets = variables d'env serveur</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lane">
+      <span class="l"><span class="ar">⇅</span> client → <b>443 HTTPS</b> (REST) · <b>443 wss</b> (Realtime) · clé anon + RLS</span>
+      <span class="l"><span class="ar">⇅</span> serverless → <b>443 HTTPS</b> · service_role · (admin PG <b>5432/6543</b>)</span>
+    </div>
+
+    <div class="row3">
+      <div class="box" style="--cc:var(--teal)">
+        <div class="t"><b>④ Supabase</b><span class="rg">PostgreSQL · UE</span></div>
+        <div class="s">Postgres · Auth JWT · RLS · Realtime</div>
+        <div class="subnodes"><span class="sn">PITR</span><span class="sn">Backup hors-ligne 3-2-1</span></div>
+      </div>
+      <div class="box" style="--cc:var(--amber)">
+        <div class="t"><b>⑤ Services externes</b><span class="rg">HTTPS 443</span></div>
+        <div class="s">via serverless (secrets) ou navigateur (CSP)</div>
+        <div class="subnodes"><span class="sn">Pappers</span><span class="sn">gouv</span><span class="sn">BODACC</span><span class="sn">Dropcontact</span><span class="sn">Brave</span><span class="sn">SendGrid</span><span class="sn">G. Calendar</span><span class="sn">IA</span></div>
+      </div>
+      <div class="box" style="--cc:var(--slate)">
+        <div class="t"><b>⑥ CDN assets</b><span class="rg">HTTPS 443 · RO</span></div>
+        <div class="s">Allowlist CSP</div>
+        <div class="subnodes"><span class="sn">unpkg</span><span class="sn">jsDelivr</span><span class="sn">cdnjs</span><span class="sn">Fonts</span></div>
+      </div>
+    </div>
+
+    <div class="lane">
+      <span class="l" style="border-color:color-mix(in srgb,var(--rose) 40%,var(--line))"><span class="ar" style="color:var(--rose)">▲</span> entrant : <b style="color:var(--rose)">3CX → /api/3cx-webhook</b> · HTTPS 443 + secret partagé</span>
+      <span class="l"><span class="ar">◆</span> Téléphonie 3CX (LAN/SIP) : <b>SIP 5060/5061</b> · RTP 10000+</span>
+    </div>
+  </div>
+
+  <div class="h2">Chaîne de livraison (CI/CD)</div>
+  <div class="lane" style="justify-content:flex-start">
+    <span class="l"><b>Claude Code / dev</b></span>
+    <span class="l"><span class="ar">→</span> git push · <b>HTTPS 443</b> (ou SSH 22)</span>
+    <span class="l"><b>GitHub</b> Asto-lab44/deb02CRM</span>
+    <span class="l"><span class="ar">→</span> webhook · <b>443</b></span>
+    <span class="l"><b>Vercel Build &amp; Deploy</b></span>
+    <span class="l"><span class="ar">→</span> publie edge</span>
+    <span class="l"><b>hub.astorya.fr</b></span>
+  </div>
+
+  <div class="h2">Zones réseau &amp; régions</div>
+  <div class="zones">
+    <div class="zn" style="--cc:var(--cyan)"><b>Internet public</b><span>Postes utilisateurs, navigateur, DNS. Aucun accès direct à la donnée.</span></div>
+    <div class="zn" style="--cc:var(--brand)"><b>Edge / DMZ</b><span>Vercel : WAF, terminaison TLS, CDN, fonctions /api. Région CDG (France).</span></div>
+    <div class="zn" style="--cc:var(--teal)"><b>Données</b><span>Supabase managé (Postgres), région UE. Accès filtré par RLS + clés.</span></div>
+    <div class="zn" style="--cc:var(--amber)"><b>Partenaires</b><span>API tierces en HTTPS sortant, appelées surtout depuis le serverless.</span></div>
+    <div class="zn" style="--cc:var(--slate)"><b>Réseau interne</b><span>PBX 3CX &amp; téléphonie (LAN/SIP). Souveraineté : cible serveur OVH dédié (France).</span></div>
+  </div>
+
+  <div class="h2">Ports &amp; protocoles</div>
+  <table class="ports">
+    <thead><tr><th>Flux</th><th>Sens</th><th>Port · protocole</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td>Navigateur → Edge</td><td><span class="io out">SORTANT</span></td><td class="p">443 · HTTPS/TLS</td><td class="d">TLS 1.2+ ; 80→443 redirigé ; HSTS preload</td></tr>
+      <tr><td>Résolution de nom</td><td><span class="io out">SORTANT</span></td><td class="p">53 · DNS</td><td class="d">A/CNAME → edge ; DNSSEC recommandé</td></tr>
+      <tr><td>Navigateur → Supabase</td><td><span class="io out">SORTANT</span></td><td class="p">443 · HTTPS + wss</td><td class="d">REST/PostgREST + Realtime ; clé anon + RLS</td></tr>
+      <tr><td>Navigateur → CDN</td><td><span class="io out">SORTANT</span></td><td class="p">443 · HTTPS</td><td class="d">libs &amp; polices (lecture seule, allowlist CSP)</td></tr>
+      <tr><td>Serverless → Supabase</td><td><span class="io out">SORTANT</span></td><td class="p">443 · HTTPS</td><td class="d">service_role ; migrations/admin : PG 5432 / pooler 6543</td></tr>
+      <tr><td>Serverless → API tierces</td><td><span class="io out">SORTANT</span></td><td class="p">443 · HTTPS</td><td class="d">Pappers, gouv, BODACC, Dropcontact, Brave, SendGrid, Google, IA</td></tr>
+      <tr><td>3CX → Edge (webhook)</td><td><span class="io in">ENTRANT</span></td><td class="p">443 · HTTPS</td><td class="d">/api/3cx-webhook + en-tête secret partagé</td></tr>
+      <tr><td>Téléphonie 3CX</td><td><span class="io int">INTERNE</span></td><td class="p">5060/5061 · SIP · RTP 10000+</td><td class="d">LAN/opérateur (hors périmètre web)</td></tr>
+      <tr><td>Git push / CI</td><td><span class="io out">SORTANT</span></td><td class="p">443 · HTTPS (ou 22 SSH)</td><td class="d">Claude/dev → GitHub → webhook → Vercel</td></tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <div><b>S.A.R.L. ASTORYA S.G.I.</b> — 9 rue du Petit Châtelier, 44300 Nantes · SIRET 523 625 804 00027</div>
+    <div class="mono">Document d'architecture · vue Ops · Hub Astorya</div>
+  </footer>
+</div>

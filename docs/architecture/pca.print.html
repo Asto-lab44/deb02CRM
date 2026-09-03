@@ -1,0 +1,191 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8">
+<style>html{background:#fff}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:11mm}body{background:#fff}.page{max-width:none;padding:0}table,.callout,.annex{break-inside:avoid}h2{break-after:avoid}</style>
+<title>PCA — Hub Astorya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --ground:#f6f7fc;--panel:#fff;--panel-2:#fafbff;--ink:#12141f;--ink-soft:#41465a;--ink-faint:#787e97;
+    --line:#e6e8f4;--brand:#1e3a8a;--teal:#0f766e;--amber:#a16207;--rose:#be123c;
+    --shadow:0 1px 2px rgba(18,20,31,.04),0 8px 22px rgba(18,20,31,.06);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b7bccd;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b7bccd;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .page{max-width:860px;margin:0 auto;padding:0 30px 44px}
+  h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;text-wrap:balance}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  p{margin:8px 0}
+
+  .lh{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0 12px;border-bottom:2px solid var(--ink)}
+  .lh-b{display:flex;align-items:center;gap:11px}
+  .lh-m{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#1e3a8a,#172554 55%,#0f1b45);font-family:"Bricolage Grotesque";font-weight:800;font-size:19px}
+  .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:15px;line-height:1.1}
+  .lh-t{font-size:10.5px;color:var(--ink-faint)}
+  .lh-r{font-size:10px;color:var(--ink-soft);text-align:right;line-height:1.55}
+
+  .cover{padding:30px 0 6px}
+  .kick{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--brand);margin-bottom:8px}
+  h1{font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-1.1px;line-height:1.03}
+  .sub{margin-top:10px;font-size:14px;color:var(--ink-soft);max-width:72ch}
+  .callout{background:color-mix(in srgb,var(--teal) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--teal) 28%,var(--line));border-radius:12px;padding:13px 16px;margin:16px 0;font-size:12.5px;color:var(--ink-soft)}
+  .callout b{color:var(--teal)}
+
+  h2{font-size:18px;font-weight:800;letter-spacing:-.4px;margin:30px 0 8px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:baseline}
+  h2 .n{font-family:"IBM Plex Mono";font-size:13px;color:var(--brand);font-weight:700}
+  ul,ol{margin:8px 0;padding-left:20px}
+  li{font-size:13px;color:var(--ink-soft);margin:3px 0}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{font-family:"Bricolage Grotesque";font-weight:700;font-size:11.5px;border-bottom:2px solid var(--ink);color:var(--ink)}
+  td.c,th.c{text-align:center;white-space:nowrap}
+  .lvl b{font-weight:700}
+  .vert{color:#0e7a55} .orange{color:#b45309} .rouge{color:var(--rose)}
+  .pri{font-family:"IBM Plex Mono";font-weight:700;color:var(--brand);text-align:center}
+
+  /* fillable annex tables */
+  .fill td{height:30px}
+  .fill tbody td{border-bottom:1px solid color-mix(in srgb,var(--ink-faint) 30%,var(--line))}
+  .annex{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 16px 12px;box-shadow:var(--shadow);margin:8px 0 4px}
+
+  footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer b{color:var(--ink)}
+</style>
+
+<div class="page">
+  <div class="lh">
+    <div class="lh-b"><div class="lh-m">H</div><div><div class="lh-co">ASTORYA S.G.I.</div><div class="lh-t">Informatique &amp; Téléphonie d'entreprise · Nantes</div></div></div>
+    <div class="lh-r mono">Hub Astorya<br>Plan de Continuité d'Activité</div>
+  </div>
+
+  <div class="cover">
+    <div class="kick">Document d'exploitation · Confidentiel</div>
+    <h1>Plan de Continuité d'Activité (PCA)</h1>
+    <p class="sub">Comment l'entreprise continue de fonctionner pendant une indisponibilité du Hub, et jusqu'au retour à la normale : seuils, priorités, modes dégradés, organisation et communication.</p>
+    <div class="callout"><b>Articulation PRA / PCA.</b> Le <b>PRA</b> décrit comment <i>restaurer la technique</i> (RTO/RPO, sauvegardes, procédures). Le <b>PCA</b> décrit comment <i>l'activité se poursuit</i> pendant l'incident : modes dégradés, priorités, organisation, communication.</p>
+  </div>
+
+  <h2><span class="n">1</span> Seuils de déclenchement</h2>
+  <table>
+    <thead><tr><th class="c">Niveau</th><th>Situation</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td class="c lvl"><b class="vert">Vert</b></td><td>Ralentissement, incident mineur &lt; 30 min</td><td>Suivi, pas d'activation.</td></tr>
+      <tr><td class="c lvl"><b class="orange">Orange</b></td><td>Indisponibilité 30 min – 4 h d'un service vital</td><td>Activation partielle (mode dégradé du service concerné).</td></tr>
+      <tr><td class="c lvl"><b class="rouge">Rouge</b></td><td>Indisponibilité &gt; 4 h, corruption ou compromission</td><td>Activation complète PCA + PRA, cellule de crise.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">2</span> Activités critiques &amp; priorités de reprise</h2>
+  <table>
+    <thead><tr><th class="c">Priorité</th><th>Activités</th><th>Justification</th></tr></thead>
+    <tbody>
+      <tr><td class="pri">P1</td><td>Authentification/accès · <b>Facturation &amp; encaissement</b> · <b>Support client (hotline)</b> · accès données clients/contrats</td><td>Impact direct chiffre d'affaires &amp; engagement client.</td></tr>
+      <tr><td class="pri">P2</td><td>CRM/pipeline · Devis · Comptabilité</td><td>Continuité commerciale et légale.</td></tr>
+      <tr><td class="pri">P3</td><td>Prospection · Marketing · BI/Rapports</td><td>Non bloquant à court terme.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">3</span> Modes de fonctionnement dégradé</h2>
+  <p style="font-size:12.5px;color:var(--ink-soft)">Continuer <b>sans le Hub</b> ; les saisies seront <b>réconciliées</b> au retour à la normale (§6).</p>
+  <table>
+    <thead><tr><th>Domaine</th><th>Mode dégradé pendant l'incident</th></tr></thead>
+    <tbody>
+      <tr><td><b>Accès / Auth</b></td><td>Procédure d'accès de secours ; à défaut, travail hors-ligne sur gabarits locaux.</td></tr>
+      <tr><td><b>Facturation</b></td><td>Factures sur <b>gabarit local</b> (modèle type Sage / tableur) ; numérotation réservée ; régularisation dans le Hub ensuite.</td></tr>
+      <tr><td><b>Support / Hotline</b></td><td>Renvoi d'appel opérateur + <b>registre papier/tableur</b> des tickets ; rappel des clients prioritaires.</td></tr>
+      <tr><td><b>Contrats</b></td><td>Génération depuis <b>gabarits PDF locaux</b> (hébergement, téléphonie, maintenance…).</td></tr>
+      <tr><td><b>Comptabilité</b></td><td>Conservation des pièces ; <b>saisie différée</b> dès rétablissement ; échéances TVA sécurisées.</td></tr>
+      <tr><td><b>Trésorerie / SEPA</b></td><td>Reporter la génération SEPA ; prévenir la banque si échéance critique.</td></tr>
+      <tr><td><b>E-mail</b></td><td>Envoi via <b>Outlook (poste)</b> en direct (mailto opérant).</td></tr>
+      <tr><td><b>Données de référence</b></td><td>Utiliser la <b>dernière copie exportée</b> (Excel) en consultation.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">4</span> Organisation pendant la crise</h2>
+  <ul>
+    <li><b>Cellule de crise</b> : Responsable PCA (gérant), référent technique, communication.</li>
+    <li><b>Cadence</b> : point de situation toutes les <b>30 min</b> (rouge) / <b>2 h</b> (orange).</li>
+    <li><b>Main courante</b> : chaque décision/action <b>horodatée et consignée</b> (annexe E).</li>
+    <li><b>Décision de bascule</b> : prise par le Responsable PCA sur avis du référent technique.</li>
+  </ul>
+
+  <h2><span class="n">5</span> Communication</h2>
+  <table>
+    <thead><tr><th>Cible</th><th>Message</th><th>Canal</th></tr></thead>
+    <tbody>
+      <tr><td>Équipe interne</td><td>Nature, consignes, mode dégradé applicable</td><td>Canal interne défini</td></tr>
+      <tr><td>Clients impactés</td><td>Fait, impact, délai estimé, point de contact</td><td>E-mail / téléphone</td></tr>
+      <tr><td>Fournisseurs</td><td>Ticket support (Vercel/Supabase/OVH/registrar/3CX)</td><td>Portail support</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">6</span> Retour à la normale (réconciliation)</h2>
+  <ol>
+    <li>Confirmer le <b>rétablissement technique</b> (via PRA) et l'intégrité des données.</li>
+    <li><b>Ressaisir / importer</b> dans le Hub les opérations du mode dégradé (factures, tickets, contrats), dans l'ordre <b>P1 → P2 → P3</b>.</li>
+    <li><b>Contrôler la cohérence</b> (numérotation factures, doublons, séquences comptables).</li>
+    <li>Générer les <b>SEPA</b> reportés ; régulariser les échéances.</li>
+    <li><b>Clôturer</b> la main courante ; réaliser un <b>post-mortem</b>.</li>
+  </ol>
+
+  <h2><span class="n">C</span> Annexe — Fiche contacts <span style="font-family:'IBM Plex Sans';font-size:12px;font-weight:500;color:var(--ink-faint)">(à compléter)</span></h2>
+  <div class="annex"><table class="fill">
+    <thead><tr><th>Rôle / Fournisseur</th><th>Nom</th><th>Téléphone</th><th>E-mail / Portail</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Responsable PCA/PRA</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Référent technique</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Suppléant technique</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Communication</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Hébergeur — Vercel</td><td></td><td></td><td></td><td>plan / support</td></tr>
+      <tr><td>Base — Supabase</td><td></td><td></td><td></td><td>projet cqdgecllzyqimfuovrpp</td></tr>
+      <tr><td>Serveur — OVH (cible)</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Registrar DNS</td><td></td><td></td><td></td><td>domaine astorya.fr</td></tr>
+      <tr><td>E-mail — SendGrid</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Téléphonie — 3CX / opérateur</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Banque (SEPA)</td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="n">D</span> Annexe — Journal des tests <span style="font-family:'IBM Plex Sans';font-size:12px;font-weight:500;color:var(--ink-faint)">(à tenir à jour)</span></h2>
+  <div class="annex"><table class="fill">
+    <thead><tr><th>Date</th><th>Test</th><th>Périmètre</th><th>Résultat</th><th>Temps réel / RTO</th><th>Écarts / actions</th></tr></thead>
+    <tbody>
+      <tr><td></td><td>Restauration BDD</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td>Redéploiement app</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td>Rotation secrets</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td>Exercice complet (S8)</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="n">E</span> Annexe — Main courante d'incident <span style="font-family:'IBM Plex Sans';font-size:12px;font-weight:500;color:var(--ink-faint)">(modèle)</span></h2>
+  <div class="annex"><table class="fill">
+    <thead><tr><th style="width:130px">Horodatage</th><th style="width:120px">Auteur</th><th>Constat / Décision / Action</th><th style="width:90px">Statut</th></tr></thead>
+    <tbody>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table></div>
+
+  <footer>
+    <div><b>S.A.R.L. ASTORYA S.G.I.</b> — 9 rue du Petit Châtelier, 44300 Nantes · SIRET 523 625 804 00027</div>
+    <div class="mono">PCA · Confidentiel · v1.0 · complément du PRA</div>
+  </footer>
+</div>
+
+</body></html>

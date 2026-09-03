@@ -1,0 +1,153 @@
+<title>Migration OVH — Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --ground:#f6f7fc;--panel:#fff;--panel-2:#fafbff;--ink:#12141f;--ink-soft:#41465a;--ink-faint:#787e97;
+    --line:#e6e8f4;--brand:#1e3a8a;--teal:#0f766e;--amber:#a16207;--slate:#475569;--rose:#be123c;
+    --shadow:0 1px 2px rgba(18,20,31,.04),0 10px 26px rgba(18,20,31,.07);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b7bccd;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--slate:#94a3b8;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b7bccd;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--slate:#94a3b8;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 26px 40px}
+  h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;text-wrap:balance}
+  .mono{font-family:"IBM Plex Mono",monospace}
+
+  .lh{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0 12px;border-bottom:1px solid var(--line)}
+  .lh-b{display:flex;align-items:center;gap:11px}
+  .lh-m{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#1e3a8a,#172554 55%,#0f1b45);font-family:"Bricolage Grotesque";font-weight:800;font-size:18px}
+  .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:15px;line-height:1.1}
+  .lh-t{font-size:10.5px;color:var(--ink-faint)}
+  .lh-r{font-size:10px;color:var(--ink-soft);text-align:right;line-height:1.55}
+
+  header.hd{padding:24px 0 6px}
+  .kick{font-family:"IBM Plex Mono";font-size:11.5px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+  h1{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-1px;line-height:1.05}
+  .lede{margin:10px 0 0;max-width:84ch;font-size:13.5px;color:var(--ink-soft)}
+
+  .cols{display:grid;grid-template-columns:1fr 44px 1fr;gap:12px;align-items:stretch;margin-top:20px}
+  .side{display:flex;flex-direction:column}
+  .cap{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .cap b{font-family:"Bricolage Grotesque";font-size:15px;font-weight:800;letter-spacing:-.2px;text-transform:none}
+  .cap.before{color:var(--ink-faint)} .cap.after{color:var(--brand)}
+  .panelbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow);flex:1;display:flex;flex-direction:column;gap:9px}
+  .panelbox.after{border-color:color-mix(in srgb,var(--brand) 30%,var(--line));background:color-mix(in srgb,var(--brand) 4%,var(--panel))}
+  .comp{border:1px solid var(--line);border-left:4px solid var(--cc);border-radius:11px;padding:10px 12px;background:var(--panel-2)}
+  .comp b{font-size:13px;font-weight:700}
+  .comp span{display:block;font-size:11px;color:var(--ink-faint);margin-top:1px}
+  .comp .tag{float:right;font-family:"IBM Plex Mono";font-size:9px;font-weight:600;color:var(--cc);background:color-mix(in srgb,var(--cc) 12%,transparent);padding:2px 7px;border-radius:999px}
+  .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--brand)}
+  .mid svg{width:26px;height:26px}
+  .mid .lbl{writing-mode:vertical-rl;transform:rotate(180deg);font-family:"IBM Plex Mono";font-size:9px;color:var(--ink-faint);margin-top:8px;letter-spacing:1px;text-transform:uppercase}
+
+  .h2{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.4px;color:var(--ink-faint);margin:26px 0 12px;display:flex;align-items:center;gap:9px}
+  .h2::after{content:"";flex:1;height:1px;background:var(--line)}
+  .server{background:color-mix(in srgb,var(--brand) 6%,var(--panel));border:2px solid color-mix(in srgb,var(--brand) 30%,var(--line));border-radius:16px;padding:16px 18px}
+  .server .st{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+  .server .st b{font-size:14.5px;font-weight:800}
+  .server .st .rg{margin-left:auto;font-family:"IBM Plex Mono";font-size:9.5px;font-weight:600;color:var(--brand);background:color-mix(in srgb,var(--brand) 12%,transparent);padding:2px 8px;border-radius:999px}
+  .server .ss{font-size:11.5px;color:var(--ink-faint);margin-bottom:12px}
+  .stack{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+  .svc{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--cc);border-radius:11px;padding:10px 11px}
+  .svc b{font-size:12px;font-weight:700}
+  .svc span{display:block;font-size:10px;color:var(--ink-faint);margin-top:2px;line-height:1.35}
+
+  .steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .step{flex:1 1 150px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 12px;min-width:150px}
+  .step .n{font-family:"IBM Plex Mono";font-size:10px;font-weight:700;color:var(--brand)}
+  .step b{display:block;font-size:12px;font-weight:700;margin-top:2px}
+  .step span{font-size:10.5px;color:var(--ink-faint)}
+
+  .callout{margin-top:16px;background:color-mix(in srgb,var(--rose) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--rose) 28%,var(--line));border-radius:13px;padding:12px 16px;font-size:12px;color:var(--ink-soft)}
+  .callout b{color:var(--rose)}
+  footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <div class="lh">
+    <div class="lh-b"><div class="lh-m">H</div><div><div class="lh-co">ASTORYA S.G.I.</div><div class="lh-t">Informatique &amp; Téléphonie d'entreprise · Nantes</div></div></div>
+    <div class="lh-r mono">Hub Astorya — Architecture<br>Migration &amp; souveraineté OVH</div>
+  </div>
+
+  <header class="hd">
+    <div class="kick">Cible PRA · Souveraineté · Avant / Après</div>
+    <h1>Migration vers un serveur dédié OVH (France)</h1>
+    <p class="lede">Consolidation de Vercel, GitHub et Supabase managé sur <b>un serveur dédié OVH</b> auto-hébergé — données et exploitation 100 % en France. Coût fixe, propriété totale.</p>
+  </header>
+
+  <div class="cols">
+    <div class="side">
+      <div class="cap before">◷ Avant — <b>Services managés</b></div>
+      <div class="panelbox">
+        <div class="comp" style="--cc:var(--brand)"><span class="tag">edge</span><b>Vercel</b><span>front + serverless /api + TLS + CDN</span></div>
+        <div class="comp" style="--cc:var(--teal)"><span class="tag">data</span><b>Supabase managé</b><span>Postgres · Auth · RLS · Realtime · PITR</span></div>
+        <div class="comp" style="--cc:var(--slate)"><span class="tag">git</span><b>GitHub</b><span>source + CI/CD (webhook → Vercel)</span></div>
+        <div class="comp" style="--cc:var(--amber)"><span class="tag">tiers</span><b>Services externes</b><span>Pappers · Dropcontact · Brave · SendGrid · G. Calendar · 3CX · IA</span></div>
+      </div>
+    </div>
+
+    <div class="mid">
+      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 13h20"/><path d="M15 6l7 7-7 7"/></svg>
+      <span class="lbl">Migration</span>
+    </div>
+
+    <div class="side">
+      <div class="cap after">✦ Après — <b>Serveur OVH (France)</b></div>
+      <div class="panelbox after">
+        <div class="comp" style="--cc:var(--brand)"><span class="tag">edge</span><b>Caddy</b><span>reverse proxy + TLS Let's Encrypt + en-têtes sécurité</span></div>
+        <div class="comp" style="--cc:var(--brand)"><span class="tag">api</span><b>hub-api (Node)</b><span>fonctions /api via server.mjs · front statique servi par Caddy</span></div>
+        <div class="comp" style="--cc:var(--teal)"><span class="tag">data</span><b>Supabase self-hosted</b><span>Docker officiel · Postgres · Auth · RLS · Realtime · Storage</span></div>
+        <div class="comp" style="--cc:var(--slate)"><span class="tag">git</span><b>Forgejo</b><span>Git + interface + CI (hook → docker compose up)</span></div>
+        <div class="comp" style="--cc:var(--amber)"><span class="tag">tiers</span><b>Services externes</b><span>inchangés (HTTPS sortant depuis le serveur)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="h2">Le serveur unique — pile Docker</div>
+  <div class="server">
+    <div class="st"><b>OVH Rise-1 — Debian 12 + Docker</b><span class="rg">GRA / RBX / SBG · France</span></div>
+    <div class="ss">Xeon E-2386G · 6c/12t · 32 Go DDR4 ECC · 2×512 Go NVMe (RAID logiciel) · ≈ 55–65 €/mo HT</div>
+    <div class="stack">
+      <div class="svc" style="--cc:var(--brand)"><b>Caddy</b><span>:80/:443 · TLS auto · proxy</span></div>
+      <div class="svc" style="--cc:var(--brand)"><b>hub-api</b><span>Node · /api/*</span></div>
+      <div class="svc" style="--cc:var(--teal)"><b>Supabase</b><span>Kong · Postgres · Auth · Realtime</span></div>
+      <div class="svc" style="--cc:var(--slate)"><b>Forgejo</b><span>Git + CI</span></div>
+    </div>
+    <div style="margin-top:9px" class="stack">
+      <div class="svc" style="--cc:var(--amber)"><b>Statique</b><span>dist/ + *.html (Caddy)</span></div>
+      <div class="svc" style="--cc:var(--rose)"><b>backup.sh</b><span>pg_dump 3-2-1 + WAL</span></div>
+      <div class="svc" style="--cc:var(--rose)"><b>Hors-site</b><span>OVH Backup Storage / rsync</span></div>
+      <div class="svc" style="--cc:var(--slate)"><b>DNS</b><span>hub / supabase / git .astorya.fr</span></div>
+    </div>
+  </div>
+
+  <div class="h2">Plan de bascule</div>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><b>Provisionner</b><span>Rise-1, Debian, Docker, clone du dépôt</span></div>
+    <div class="step"><span class="n">2</span><b>Supabase self-hosted</b><span>up + import (pg_dump/restore) + RLS</span></div>
+    <div class="step"><span class="n">3</span><b>Overlay Hub</b><span>Caddy + hub-api + Forgejo (compose up)</span></div>
+    <div class="step"><span class="n">4</span><b>DNS</b><span>TTL court → A vers OVH → TLS auto</span></div>
+    <div class="step"><span class="n">5</span><b>Vérifier</b><span>connexion, facturation, contrats, e-mail</span></div>
+    <div class="step"><span class="n">6</span><b>Sauvegarde</b><span>cron backup.sh + réplication hors-site</span></div>
+    <div class="step"><span class="n">7</span><b>Observation</b><span>ancienne infra en secours → rollback DNS possible</span></div>
+  </div>
+
+  <div class="callout"><b>Point de vigilance :</b> un serveur unique est un <b>point de défaillance unique</b> et l'exploitation (mises à jour, sécurité, sauvegardes) passe à votre charge. Pour un vrai PRA : <b>sauvegarde hors-site + hors-ligne</b> obligatoire, et idéalement un <b>2ᵉ serveur</b> (réplica PostgreSQL + bascule). Le PITR managé est remplacé par l'archivage WAL à configurer.</div>
+
+  <footer>
+    <div><b>S.A.R.L. ASTORYA S.G.I.</b> — 9 rue du Petit Châtelier, 44300 Nantes · SIRET 523 625 804 00027</div>
+    <div class="mono">Migration OVH · réf. deploy/ovh/ · Hub Astorya</div>
+  </footer>
+</div>

@@ -1,0 +1,43 @@
+# Caddy — reverse proxy + TLS automatique (Let's Encrypt)
+# Remplace la terminaison TLS + edge de Vercel. Renseigner un e-mail valide.
+{
+	email admin@astorya.fr
+}
+
+# --- Application Hub : statique servi directement + /api vers hub-api ---
+hub.astorya.fr {
+	encode gzip zstd
+
+	# En-têtes de sécurité (équivalents à vercel.json)
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+	}
+
+	# Fonctions serverless → adaptateur Node
+	handle /api/* {
+		reverse_proxy hub-api:3000
+	}
+
+	# Reste = fichiers statiques du dépôt (dist/ + *.html)
+	handle {
+		root * /srv/hub
+		try_files {path} {path}.html /index.html
+		file_server
+	}
+}
+
+# --- Supabase self-hosted (gateway Kong du compose officiel) ---
+supabase.astorya.fr {
+	reverse_proxy supabase-kong:8000
+}
+
+# --- Forgejo (Git) ---
+git.astorya.fr {
+	reverse_proxy forgejo:3000
+}

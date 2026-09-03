@@ -146,6 +146,7 @@ Chaque test est **daté et consigné** (résultat, écarts, actions correctives)
 ## 10. Annexes
 
 - **A.** Inventaire des composants & régions → `infrastructure.md` / `infrastructure-ops.html`.
+- **A bis.** Cible de reprise OVH (S8) → schéma `migration-ovh.html` + stack `deploy/ovh/` (docker-compose, Caddyfile, backup.sh, README de migration).
 - **B.** Liste des variables d'environnement (secrets) → `infrastructure.md`.
 - **C.** Fiche contacts (RPCA, référent, fournisseurs) — *à compléter et tenir à jour*.
 - **D.** Journal des tests PRA — *à tenir à jour*.

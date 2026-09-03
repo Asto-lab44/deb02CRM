@@ -24,3 +24,5 @@ Thumbs.db
 
 # NB : dist/ est VOLONTAIREMENT versionné (servi tel quel, aucun build côté
 # hébergeur). Ne pas l'ajouter ici.
+!.env.example
+!deploy/ovh/.env.example

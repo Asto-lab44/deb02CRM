@@ -1,0 +1,97 @@
+# ============================================================================
+# Hub Astorya — stack de reprise / souveraineté sur serveur dédié OVH (France)
+# Remplace Vercel (edge + serverless) et GitHub (source + CI) par des services
+# auto-hébergés. La base de données Supabase est déployée séparément via le
+# compose officiel Supabase (voir README §3), sur le même réseau Docker.
+#
+#   Caddy      → reverse proxy + TLS auto (Let's Encrypt)  [remplace l'edge Vercel]
+#   hub-api    → hôte des fonctions /api/*                  [remplace le serverless Vercel]
+#   static     → servi directement par Caddy depuis le dépôt
+#   forgejo    → Git + interface + CI                        [remplace GitHub]
+#   (supabase) → compose officiel, réseau externe "supabase_default"
+#
+# ⚠️ Squelette de référence à adapter. Ne pas committer de secrets : cf. .env
+# ============================================================================
+name: hub-astorya
+
+networks:
+  hub:
+    driver: bridge
+  supabase_default:        # réseau du compose Supabase officiel (déjà démarré)
+    external: true
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${HUB_REPO_PATH:-../..}:/srv/hub:ro   # dépôt : sert dist/ + *.html en statique
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [hub, supabase_default]
+    depends_on: [hub-api, forgejo]
+
+  hub-api:
+    # Adaptateur qui monte les fonctions Vercel /api/*.js sur un petit serveur Node.
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "deploy/ovh/server.mjs"]
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # Secrets injectés depuis .env (jamais en clair dans ce fichier)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      PAPPERS_API_TOKEN: ${PAPPERS_API_TOKEN}
+      DROPCONTACT_API_KEY: ${DROPCONTACT_API_KEY}
+      BRAVE_API_KEY: ${BRAVE_API_KEY}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      GOOGLE_SA_EMAIL: ${GOOGLE_SA_EMAIL}
+      GOOGLE_SA_PRIVATE_KEY: ${GOOGLE_SA_PRIVATE_KEY}
+      GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID}
+      CX_WEBHOOK_SECRET: ${CX_WEBHOOK_SECRET}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
+    volumes:
+      - ${HUB_REPO_PATH:-../..}:/app:ro
+    networks: [hub, supabase_default]
+
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:9
+    restart: unless-stopped
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      FORGEJO__server__DOMAIN: ${GIT_DOMAIN:-git.astorya.fr}
+      FORGEJO__server__ROOT_URL: https://${GIT_DOMAIN:-git.astorya.fr}/
+      FORGEJO__database__DB_TYPE: sqlite3
+    volumes:
+      - forgejo_data:/data
+    networks: [hub]
+
+  backup:
+    # Sauvegarde logique quotidienne + purge (copie à répliquer hors-site : cf. backup.sh)
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c", "chmod +x /backup.sh; crond -f -l 8"]
+    environment:
+      PGHOST: ${PGHOST:-supabase-db}
+      PGUSER: ${PGUSER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${PGDATABASE:-postgres}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - hub_backups:/backups
+    networks: [supabase_default]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  forgejo_data:
+  hub_backups:

@@ -38,6 +38,12 @@ secrets et clés de service en **variables d'environnement serveur** (jamais exp
 | 3CX | webhook appel entrant → `/api/3cx-webhook` |
 | IA — Anthropic / OpenAI | autorisés en CSP (`connect-src`) |
 
+## Cible de souveraineté / reprise (OVH, France)
+
+Consolidation possible de Vercel + GitHub + Supabase managé sur **un serveur dédié OVH**
+(auto-hébergé, France) — voir le schéma `migration-ovh.html` et la stack `deploy/ovh/`
+(docker-compose : Caddy + hub-api + Supabase self-hosted + Forgejo + sauvegarde 3-2-1).
+
 ## Chaîne logicielle (CI/CD)
 **Claude Code (web)** → commit/push → **GitHub** (`Asto-lab44/deb02CRM`, branches `claude/*` & `main`) → webhook → **Vercel Build & Deploy** → **`hub.astorya.fr`**.
 

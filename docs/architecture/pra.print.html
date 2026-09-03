@@ -1,0 +1,211 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8">
+<style>html{background:#fff}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:11mm}body{background:#fff}.page{max-width:none;padding:0}table,.sc,.callout,.meta{break-inside:avoid}h2{break-after:avoid}</style>
+<title>PRA — Hub Astorya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --ground:#f6f7fc;--panel:#fff;--panel-2:#fafbff;--ink:#12141f;--ink-soft:#41465a;--ink-faint:#787e97;
+    --line:#e6e8f4;--brand:#1e3a8a;--teal:#0f766e;--amber:#a16207;--rose:#be123c;
+    --shadow:0 1px 2px rgba(18,20,31,.04),0 8px 22px rgba(18,20,31,.06);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b7bccd;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b7bccd;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--rose:#fb7185;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .page{max-width:860px;margin:0 auto;padding:0 30px 44px}
+  h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;text-wrap:balance}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  p{margin:8px 0}
+
+  .lh{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0 12px;border-bottom:2px solid var(--ink)}
+  .lh-b{display:flex;align-items:center;gap:11px}
+  .lh-m{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#1e3a8a,#172554 55%,#0f1b45);font-family:"Bricolage Grotesque";font-weight:800;font-size:19px}
+  .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:15px;line-height:1.1}
+  .lh-t{font-size:10.5px;color:var(--ink-faint)}
+  .lh-r{font-size:10px;color:var(--ink-soft);text-align:right;line-height:1.55}
+
+  .cover{padding:30px 0 6px}
+  .kick{font-family:"IBM Plex Mono";font-size:11px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--brand);margin-bottom:8px}
+  h1{font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-1.1px;line-height:1.03}
+  .sub{margin-top:10px;font-size:14px;color:var(--ink-soft);max-width:70ch}
+  .meta{margin-top:18px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 20px;
+    background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 18px;box-shadow:var(--shadow);font-size:12px}
+  .meta div{display:flex;gap:8px}
+  .meta b{color:var(--ink-faint);font-weight:600;min-width:120px;font-family:"IBM Plex Mono";font-size:10.5px;text-transform:uppercase;letter-spacing:.4px}
+
+  h2{font-size:18px;font-weight:800;letter-spacing:-.4px;margin:30px 0 8px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:baseline}
+  h2 .n{font-family:"IBM Plex Mono";font-size:13px;color:var(--brand);font-weight:700}
+  h3{font-size:14px;font-weight:700;margin:16px 0 4px;color:var(--ink)}
+  ul,ol{margin:8px 0;padding-left:20px}
+  li{font-size:13px;color:var(--ink-soft);margin:3px 0}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{font-family:"Bricolage Grotesque";font-weight:700;font-size:11.5px;border-bottom:2px solid var(--ink);color:var(--ink)}
+  td.c,th.c{text-align:center;white-space:nowrap}
+  .mono-c{font-family:"IBM Plex Mono";font-weight:600;color:var(--brand);white-space:nowrap}
+
+  .sc{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--cc,var(--brand));border-radius:12px;padding:13px 16px;margin:10px 0;box-shadow:var(--shadow)}
+  .sc h3{margin:0 0 5px;display:flex;align-items:center;gap:8px}
+  .sc h3 .rt{margin-left:auto;font-family:"IBM Plex Mono";font-size:10px;font-weight:700;color:var(--cc,var(--brand));background:color-mix(in srgb,var(--cc,var(--brand)) 12%,transparent);padding:2px 8px;border-radius:999px}
+  .sc p{margin:3px 0;font-size:12.5px;color:var(--ink-soft)}
+  .sc b.lbl{color:var(--ink)}
+
+  .callout{background:color-mix(in srgb,var(--teal) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--teal) 28%,var(--line));border-radius:12px;padding:13px 16px;margin:14px 0;font-size:12.5px;color:var(--ink-soft)}
+  .callout b{color:var(--teal)}
+
+  footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer b{color:var(--ink)}
+</style>
+
+<div class="page">
+  <div class="lh">
+    <div class="lh-b"><div class="lh-m">H</div><div><div class="lh-co">ASTORYA S.G.I.</div><div class="lh-t">Informatique &amp; Téléphonie d'entreprise · Nantes</div></div></div>
+    <div class="lh-r mono">Hub Astorya<br>Plan de Reprise d'Activité</div>
+  </div>
+
+  <div class="cover">
+    <div class="kick">Document d'exploitation · Confidentiel</div>
+    <h1>Plan de Reprise d'Activité (PRA)</h1>
+    <p class="sub">Sauvegarde, continuité et reprise du Hub Astorya (ERP/CRM) : application, base de données, code, secrets et services — objectifs RTO/RPO, scénarios de sinistre et procédures.</p>
+    <div class="meta">
+      <div><b>Éditeur</b><span>S.A.R.L. ASTORYA S.G.I. · SIRET 523 625 804 00027</span></div>
+      <div><b>Périmètre</b><span>Hub Astorya — app, BDD, services</span></div>
+      <div><b>Version</b><span>1.0 — 03/09/2026</span></div>
+      <div><b>Responsable</b><span>Gérant (R. Daviaud)</span></div>
+      <div><b>Diffusion</b><span>Interne / confidentiel</span></div>
+      <div><b>Révision</b><span>Annuelle ou post-incident</span></div>
+    </div>
+  </div>
+
+  <h2><span class="n">1</span> Objet &amp; périmètre</h2>
+  <p>Ce plan décrit les mesures de <b>sauvegarde</b>, de <b>continuité</b> et de <b>reprise</b> du Hub Astorya en cas d'incident majeur (indisponibilité, corruption, compromission, sinistre). Il couvre l'application (front statique + fonctions serverless, Vercel), la base de données (Supabase/PostgreSQL), le code source (GitHub) et la chaîne de déploiement, les secrets &amp; configurations, les services tiers (Pappers, Dropcontact, Brave, SendGrid, Google Calendar, 3CX, IA) et la téléphonie 3CX.</p>
+  <p style="font-size:12px;color:var(--ink-faint)"><b>Hors périmètre :</b> postes de travail individuels, réseau local du client, opérateurs télécom.</p>
+
+  <h2><span class="n">2</span> Définitions</h2>
+  <table>
+    <thead><tr><th>Terme</th><th>Définition</th></tr></thead>
+    <tbody>
+      <tr><td class="mono-c">RTO</td><td>Durée maximale d'interruption admissible avant reprise.</td></tr>
+      <tr><td class="mono-c">RPO</td><td>Perte de données maximale admissible (fenêtre de sauvegarde).</td></tr>
+      <tr><td class="mono-c">Sinistre</td><td>Événement rendant un service indisponible au-delà du seuil toléré.</td></tr>
+      <tr><td class="mono-c">Bascule</td><td>Reprise du service sur une infrastructure/copie de secours.</td></tr>
+      <tr><td class="mono-c">Règle 3-2-1</td><td>3 copies des données, sur 2 supports, dont 1 hors-ligne/hors-site.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">3</span> Rôles &amp; cellule de crise</h2>
+  <table>
+    <thead><tr><th>Rôle</th><th>Responsable</th><th>Missions</th></tr></thead>
+    <tbody>
+      <tr><td><b>Responsable PRA</b></td><td>Gérant — R. Daviaud</td><td>Déclenche le plan, décide de la bascule, communique.</td></tr>
+      <tr><td><b>Référent technique</b></td><td><i>à désigner</i></td><td>Restaurations, redéploiements, rotation des secrets.</td></tr>
+      <tr><td><b>Suppléant</b></td><td><i>à désigner</i></td><td>Continuité si le référent est indisponible.</td></tr>
+      <tr><td><b>Communication</b></td><td>Gérant</td><td>Informe clients &amp; équipe.</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:var(--ink-faint)"><b>Contacts fournisseurs</b> (à compléter) : Vercel, Supabase (projet <span class="mono">cqdgecllzyqimfuovrpp</span>), registrar DNS, OVH (serveur cible), opérateur 3CX, SendGrid.</p>
+
+  <h2><span class="n">4</span> Objectifs de reprise (RTO / RPO)</h2>
+  <table>
+    <thead><tr><th>Composant</th><th class="c">Criticité</th><th class="c">RTO</th><th class="c">RPO</th><th>Moyen de reprise</th></tr></thead>
+    <tbody>
+      <tr><td>Application (front + <span class="mono">/api</span>)</td><td class="c">Vitale</td><td class="c mono-c">≤ 1 h</td><td class="c mono-c">0</td><td>Redéploiement Git → Vercel (stateless)</td></tr>
+      <tr><td>Base de données (Supabase)</td><td class="c">Vitale</td><td class="c mono-c">≤ 4 h</td><td class="c mono-c">≤ 5 min</td><td>PITR ; copie froide ≤ 24 h</td></tr>
+      <tr><td>Secrets &amp; configuration</td><td class="c">Vitale</td><td class="c mono-c">≤ 1 h</td><td class="c mono-c">0</td><td>Coffre-fort + variables d'env</td></tr>
+      <tr><td>DNS / domaine</td><td class="c">Vitale</td><td class="c mono-c">≤ 2 h</td><td class="c mono-c">0</td><td>Modification zone (registrar)</td></tr>
+      <tr><td>Envoi d'e-mails (SendGrid)</td><td class="c">Importante</td><td class="c mono-c">≤ 2 h</td><td class="c mono-c">0</td><td>Clé de secours ; dégradé Outlook</td></tr>
+      <tr><td>Téléphonie 3CX</td><td class="c">Importante</td><td class="c mono-c">≤ 4 h</td><td class="c mono-c">n/a</td><td>Renvoi opérateur ; hotline dégradée</td></tr>
+      <tr><td>Enrichissement (Pappers, Dropcontact, Brave)</td><td class="c">Secondaire</td><td class="c mono-c">≤ 48 h</td><td class="c mono-c">n/a</td><td>Mode dégradé, non bloquant</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><b>Objectifs globaux :</b> RTO ≤ 4 h · RPO ≤ 1 h pour le socle vital.</div>
+
+  <h2><span class="n">5</span> Dispositif de sauvegarde</h2>
+  <ul>
+    <li><b>Base de données :</b> sauvegardes automatiques Supabase avec <b>restauration point-in-time (PITR)</b> ; <b>export logique</b> régulier (<span class="mono">pg_dump</span>) stocké <b>hors-ligne / hors-site</b> (règle 3-2-1, conforme ANSSI).</li>
+    <li><b>Code source :</b> <b>GitHub</b> = source de vérité (historique complet, branches protégées) ; front pré-compilé (<span class="mono">dist/</span>) versionné → reconstruction sans dépendance externe.</li>
+    <li><b>Secrets :</b> gestionnaire de mots de passe / coffre-fort + variables d'environnement Vercel ; liste des variables maintenue.</li>
+    <li><b>Documents comptables :</b> exports <b>FEC</b> et pièces archivés (conformité DGFiP).</li>
+    <li><b>Infrastructure :</b> <span class="mono">vercel.json</span>, scripts, mappings — versionnés dans Git.</li>
+  </ul>
+
+  <h2><span class="n">6</span> Scénarios de sinistre &amp; procédures</h2>
+
+  <div class="sc" style="--cc:var(--brand)"><h3>S1 — Indisponibilité de l'hébergeur edge (Vercel)<span class="rt">RTO ≤ 1 h</span></h3>
+    <p><b class="lbl">Impact :</b> application inaccessible.</p>
+    <p><b class="lbl">Reprise :</b> vérifier l'état Vercel → si panne prolongée, redéployer le dépôt Git sur une instance de secours (nouveau projet Vercel ou serveur OVH) → repointer le DNS.</p></div>
+
+  <div class="sc" style="--cc:var(--teal)"><h3>S2 — Indisponibilité / corruption de la base (Supabase)<span class="rt">RTO ≤ 4 h · RPO ≤ 5 min</span></h3>
+    <p><b class="lbl">Reprise :</b> PITR vers l'instant précédant l'incident → si projet perdu, recréer un projet Supabase et restaurer l'export logique → mettre à jour <span class="mono">SUPABASE_URL</span>/clés.</p></div>
+
+  <div class="sc" style="--cc:var(--rose)"><h3>S3 — Rançongiciel / compromission de données<span class="rt">RTO ≤ 8 h · RPO ≤ 24 h</span></h3>
+    <p><b class="lbl">Reprise :</b> isoler (révoquer clés &amp; sessions, couper les accès) → restaurer depuis la <b>copie hors-ligne</b> (non chiffrable par l'attaquant) → rotation complète des secrets → analyse post-incident.</p>
+    <p style="color:var(--rose)"><b>La copie hors-ligne 3-2-1 est la garantie clé.</b></p></div>
+
+  <div class="sc" style="--cc:var(--brand)"><h3>S4 — Perte / fuite de secrets<span class="rt">RTO ≤ 1 h</span></h3>
+    <p><b class="lbl">Reprise :</b> rotation immédiate des clés (Supabase service_role, Pappers, Dropcontact, Brave, SendGrid, Google SA, secret 3CX) → mise à jour des variables d'env → redéploiement.</p></div>
+
+  <div class="sc" style="--cc:var(--brand)"><h3>S5 — Panne DNS / domaine<span class="rt">RTO ≤ 2 h</span></h3>
+    <p><b class="lbl">Reprise :</b> vérifier la zone chez le registrar → recréer les A/CNAME vers l'edge → propagation (TTL). Prévoir un <b>TTL court</b> avant toute opération planifiée.</p></div>
+
+  <div class="sc" style="--cc:var(--amber)"><h3>S6 — Indisponibilité de GitHub<span class="rt">RTO ≤ 4 h</span></h3>
+    <p><b class="lbl">Impact :</b> déploiements bloqués (service en ligne non impacté).</p>
+    <p><b class="lbl">Reprise :</b> utiliser un miroir / clone local à jour ; déployer manuellement si besoin.</p></div>
+
+  <div class="sc" style="--cc:var(--amber)"><h3>S7 — Panne de téléphonie (3CX)<span class="rt">RTO ≤ 4 h</span></h3>
+    <p><b class="lbl">Reprise :</b> renvoi d'appel opérateur ; hotline en mode dégradé (e-mail/ticket) ; le webhook <span class="mono">/api/3cx-webhook</span> reprend au rétablissement.</p></div>
+
+  <div class="sc" style="--cc:var(--rose)"><h3>S8 — Sinistre majeur → bascule serveur OVH dédié (cible)<span class="rt">RTO ≤ 8 h · RPO ≤ 1 h</span></h3>
+    <p><b class="lbl">Reprise :</b> déployer le dépôt sur le serveur OVH (France) → restaurer la base (PITR/export) → injecter les secrets → repointer le DNS → valider.</p></div>
+
+  <h2><span class="n">7</span> Procédure générale (synthèse)</h2>
+  <ol>
+    <li><b>Qualifier</b> l'incident (composant, gravité) et <b>déclencher</b> le PRA.</li>
+    <li><b>Isoler</b> si compromission (révocation clés/sessions).</li>
+    <li><b>Restaurer</b> la donnée (PITR ou export hors-ligne) sur l'infra saine.</li>
+    <li><b>Redéployer</b> l'application depuis Git.</li>
+    <li><b>Réinjecter</b> les secrets (rotation si nécessaire).</li>
+    <li><b>Repointer le DNS</b> vers l'infra de reprise.</li>
+    <li><b>Vérifier</b> les flux critiques (connexion, facturation, contrats, e-mail).</li>
+    <li><b>Communiquer</b> aux utilisateurs ; <b>documenter</b> (post-mortem).</li>
+  </ol>
+
+  <h2><span class="n">8</span> Tests du plan</h2>
+  <table>
+    <thead><tr><th>Test</th><th class="c">Fréquence</th><th>Objet</th></tr></thead>
+    <tbody>
+      <tr><td>Restauration BDD (sandbox)</td><td class="c">Trimestrielle</td><td>Vérifier PITR + export ; mesurer le temps réel.</td></tr>
+      <tr><td>Redéploiement application</td><td class="c">Semestrielle</td><td>Reconstruire depuis Git sur instance neuve.</td></tr>
+      <tr><td>Rotation de secrets</td><td class="c">Semestrielle</td><td>Vérifier la procédure, sans interruption.</td></tr>
+      <tr><td>Exercice PRA complet</td><td class="c">Annuelle</td><td>Scénario S8 (bascule OVH) de bout en bout.</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:var(--ink-faint)">Chaque test est <b>daté et consigné</b> (résultat, écarts, actions correctives).</p>
+
+  <h2><span class="n">9</span> Communication de crise &amp; annexes</h2>
+  <p><b>Interne :</b> information immédiate de l'équipe. <b>Clients :</b> message factuel (nature, impact, délai) + point de rétablissement. <b>Fournisseurs :</b> ouverture de ticket support si nécessaire.</p>
+  <ul>
+    <li><b>A.</b> Inventaire composants &amp; régions → <span class="mono">infrastructure(-ops).html</span>.</li>
+    <li><b>B.</b> Liste des variables d'environnement → <span class="mono">infrastructure.md</span>.</li>
+    <li><b>C.</b> Fiche contacts (RPCA, référent, fournisseurs) — <i>à compléter</i>.</li>
+    <li><b>D.</b> Journal des tests PRA — <i>à tenir à jour</i>.</li>
+  </ul>
+
+  <footer>
+    <div><b>S.A.R.L. ASTORYA S.G.I.</b> — 9 rue du Petit Châtelier, 44300 Nantes · SIRET 523 625 804 00027</div>
+    <div class="mono">PRA · Confidentiel · v1.0</div>
+  </footer>
+</div>
+
+</body></html>

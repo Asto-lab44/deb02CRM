@@ -1,0 +1,208 @@
+<title>Infrastructure du Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --ground:#f6f7fc;--panel:#fff;--panel-2:#fafbff;--ink:#12141f;--ink-soft:#484d63;--ink-faint:#787e97;
+    --line:#e6e8f4;--brand:#1e3a8a;--teal:#0f766e;--amber:#a16207;--slate:#475569;--cyan:#0891b2;--violet:#7c3aed;
+    --shadow:0 1px 2px rgba(18,20,31,.04),0 10px 26px rgba(18,20,31,.07);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--slate:#94a3b8;--cyan:#38bdf8;--violet:#a78bfa;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0a0c14;--panel:#141726;--panel-2:#11131f;--ink:#eef0f8;--ink-soft:#b2b7cb;--ink-faint:#7f869d;
+    --line:#252939;--brand:#8ea6f2;--teal:#2dd4bf;--amber:#fbbf24;--slate:#94a3b8;--cyan:#38bdf8;--violet:#a78bfa;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 26px 40px}
+  h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;text-wrap:balance}
+  .mono{font-family:"IBM Plex Mono",monospace}
+
+  .lh{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0 12px;border-bottom:1px solid var(--line)}
+  .lh-b{display:flex;align-items:center;gap:11px}
+  .lh-m{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#1e3a8a,#172554 55%,#0f1b45);font-family:"Bricolage Grotesque";font-weight:800;font-size:18px}
+  .lh-co{font-family:"Bricolage Grotesque";font-weight:800;font-size:15px;line-height:1.1}
+  .lh-t{font-size:10.5px;color:var(--ink-faint)}
+  .lh-r{font-size:10px;color:var(--ink-soft);text-align:right;line-height:1.55}
+
+  header.hd{padding:24px 0 6px}
+  .kick{font-family:"IBM Plex Mono";font-size:11.5px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+  h1{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-1px;line-height:1.05}
+  .lede{margin:10px 0 0;max-width:82ch;font-size:14px;color:var(--ink-soft)}
+
+  /* Zones */
+  .zone{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);border-top:3px solid var(--cc)}
+  .zh{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+  .zh .d{width:9px;height:9px;border-radius:50%;background:var(--cc);flex:none}
+  .zh h3{font-size:14.5px;font-weight:700;letter-spacing:-.2px}
+  .zh .tag{margin-left:auto;font-family:"IBM Plex Mono";font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--cc);background:color-mix(in srgb,var(--cc) 12%,transparent);padding:2px 7px;border-radius:999px}
+  .zsub{font-size:11px;color:var(--ink-faint);margin:0 0 10px}
+  .nodes{display:flex;flex-wrap:wrap;gap:7px}
+  .node{font-size:11.5px;font-weight:600;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:7px 11px;display:flex;flex-direction:column;gap:1px;min-width:0}
+  .node span{font-size:9.5px;color:var(--ink-faint);font-weight:500}
+  .node.cc{border-color:color-mix(in srgb,var(--cc) 35%,var(--line));background:color-mix(in srgb,var(--cc) 7%,var(--panel))}
+
+  /* Flow band between tiers */
+  .flow{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;padding:9px 0}
+  .pipe{display:flex;align-items:center;gap:8px;font-family:"IBM Plex Mono";font-size:10.5px;font-weight:600;color:var(--ink-soft);
+    background:var(--panel);border:1px dashed var(--line);border-radius:999px;padding:5px 13px}
+  .pipe .ar{color:var(--brand);font-weight:800}
+  .pipe b{color:var(--brand)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .split3{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+
+  /* CI/CD lane */
+  .cicd{margin-top:16px;background:color-mix(in srgb,var(--slate) 6%,var(--panel));border:1px solid color-mix(in srgb,var(--slate) 26%,var(--line));border-radius:16px;padding:14px 16px}
+  .cicd .zh .d{background:var(--slate)} .cicd .zh .tag{color:var(--slate);background:color-mix(in srgb,var(--slate) 12%,transparent)}
+  .pipeline{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .step{flex:1 1 150px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 13px;min-width:150px}
+  .step b{font-size:12.5px;font-weight:700;display:block}
+  .step span{font-size:10.5px;color:var(--ink-faint)}
+  .arrow{display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono";font-size:10px;color:var(--slate);font-weight:700;flex:0 0 auto;padding:0 2px;text-align:center;line-height:1.2}
+
+  .legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+  .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+  .lg .k{font-family:"IBM Plex Mono";font-weight:600;color:var(--ink)}
+  .sw{width:12px;height:12px;border-radius:3px;flex:none}
+
+  .secnote{margin-top:14px;background:color-mix(in srgb,var(--teal) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--teal) 28%,var(--line));border-radius:14px;padding:13px 16px;font-size:12px;color:var(--ink-soft)}
+  .secnote b{color:var(--teal)}
+  .stack{display:flex;flex-direction:column;gap:0}
+  footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <div class="lh">
+    <div class="lh-b"><div class="lh-m">H</div><div><div class="lh-co">ASTORYA S.G.I.</div><div class="lh-t">Informatique &amp; Téléphonie d'entreprise · Nantes</div></div></div>
+    <div class="lh-r mono">Hub Astorya — Architecture<br>Infrastructure &amp; réseau</div>
+  </div>
+
+  <header class="hd">
+    <div class="kick">Architecture technique · Flux &amp; services</div>
+    <h1>Infrastructure du Hub &amp; interactions</h1>
+    <p class="lede">Vue d'ensemble : postes utilisateurs, hébergement Edge (Vercel), base de données (Supabase), services externes, CDN, et la chaîne logicielle (Claude Code → GitHub → déploiement). Tous les échanges transitent en HTTPS/TLS ; les secrets restent côté serveur.</p>
+  </header>
+
+  <div class="stack">
+    <!-- TIER 1 — POSTES -->
+    <div class="zone" style="--cc:var(--cyan)">
+      <div class="zh"><span class="d"></span><h3>Postes utilisateurs</h3><span class="tag">Client</span></div>
+      <div class="zsub">Collaborateurs Astorya — poste de travail</div>
+      <div class="nodes">
+        <div class="node cc" style="--cc:var(--cyan)">Navigateur web<span>React 18 (UMD) · SPA statique</span></div>
+        <div class="node">Outlook (poste)<span>envoi e-mail pré-rempli · mailto</span></div>
+        <div class="node">Téléphone 3CX<span>appels · clic-pour-appeler</span></div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <span class="pipe"><span class="ar">▼</span> <b>HTTPS / TLS 1.2+</b> · en-têtes HSTS · CSP · X-Frame DENY</span>
+    </div>
+
+    <!-- TIER 2 — EDGE VERCEL -->
+    <div class="zone" style="--cc:var(--brand)">
+      <div class="zh"><span class="d"></span><h3>Hébergement Edge — Vercel</h3><span class="tag">hub.astorya.fr</span></div>
+      <div class="zsub">Front statique + fonctions serverless · cible de continuité : serveur dédié OVH (France)</div>
+      <div class="split">
+        <div>
+          <div class="node cc" style="--cc:var(--brand);width:100%">Front statique<span>HTML + React UMD + dist/ pré-compilé · aucun build serveur</span></div>
+        </div>
+        <div>
+          <div class="node cc" style="--cc:var(--brand);width:100%">Fonctions serverless <code style="font-family:inherit">/api/*</code><span>find-email · send-email · calendar-event · pappers-proxy · 3cx-webhook</span></div>
+        </div>
+      </div>
+      <div style="margin-top:8px" class="nodes">
+        <div class="node">🔑 Secrets<span>Variables d'environnement Vercel (jamais dans le navigateur)</span></div>
+        <div class="node">🛡️ En-têtes sécurité<span>vercel.json · HSTS/CSP/COOP/Permissions-Policy</span></div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <span class="pipe"><span class="ar">⇅</span> client : <b>clé anon + RLS</b> · Realtime <b>wss</b></span>
+      <span class="pipe"><span class="ar">⇅</span> serverless : <b>service_role</b> (serveur uniquement)</span>
+      <span class="pipe"><span class="ar">◀</span> assets : <b>lecture CDN</b></span>
+    </div>
+
+    <!-- TIER 3 — DATA + CDN -->
+    <div class="split3">
+      <div class="zone" style="--cc:var(--teal)">
+        <div class="zh"><span class="d"></span><h3>Base de données — Supabase</h3><span class="tag">PostgreSQL</span></div>
+        <div class="zsub">Projet <span class="mono">cqdgecllzyqimfuovrpp.supabase.co</span></div>
+        <div class="nodes">
+          <div class="node cc" style="--cc:var(--teal)">PostgreSQL<span>tables métier · soft-delete</span></div>
+          <div class="node cc" style="--cc:var(--teal)">Auth (JWT)<span>sessions · SSO O365 possible</span></div>
+          <div class="node cc" style="--cc:var(--teal)">RLS<span>sécurité au niveau ligne</span></div>
+          <div class="node cc" style="--cc:var(--teal)">Realtime<span>wss · présence live</span></div>
+          <div class="node">Sauvegardes<span>PITR + copie hors-ligne (ANSSI 3-2-1)</span></div>
+        </div>
+      </div>
+      <div class="zone" style="--cc:var(--slate)">
+        <div class="zh"><span class="d"></span><h3>CDN &amp; assets</h3><span class="tag">Lecture seule</span></div>
+        <div class="zsub">Allowlist CSP — bibliothèques &amp; polices</div>
+        <div class="nodes">
+          <div class="node">unpkg · jsDelivr · cdnjs<span>React, pdfMake, supabase-js</span></div>
+          <div class="node">Google Fonts<span>googleapis · gstatic</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <span class="pipe"><span class="ar">▼</span> appels sortants <b>HTTPS</b> — via serverless (secrets) ou navigateur (allowlist CSP)</span>
+    </div>
+
+    <!-- TIER 4 — SERVICES EXTERNES -->
+    <div class="zone" style="--cc:var(--amber)">
+      <div class="zh"><span class="d"></span><h3>Services externes &amp; API</h3><span class="tag">Intégrations</span></div>
+      <div class="zsub">Données légales, enrichissement, e-mail, agenda, téléphonie, IA</div>
+      <div class="nodes">
+        <div class="node cc" style="--cc:var(--amber)">Pappers<span>données légales · via /api + proxy</span></div>
+        <div class="node cc" style="--cc:var(--amber)">Annuaire officiel<span>recherche-entreprises.api.gouv.fr</span></div>
+        <div class="node cc" style="--cc:var(--amber)">BODACC<span>procédures collectives (opendatasoft)</span></div>
+        <div class="node cc" style="--cc:var(--amber)">Dropcontact<span>e-mails B2B · /api</span></div>
+        <div class="node cc" style="--cc:var(--amber)">Brave Search<span>recherche web · /api</span></div>
+        <div class="node cc" style="--cc:var(--amber)">SendGrid<span>envoi e-mail transactionnel</span></div>
+        <div class="node cc" style="--cc:var(--amber)">Google Calendar<span>service account · (Outlook/Graph en option)</span></div>
+        <div class="node cc" style="--cc:var(--amber)">3CX<span>webhook appel entrant → /api</span></div>
+        <div class="node cc" style="--cc:var(--violet)">IA — Anthropic / OpenAI<span>autorisés en CSP (connect-src)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CI/CD -->
+  <div class="cicd">
+    <div class="zh"><span class="d"></span><h3>Chaîne logicielle &amp; déploiement (CI/CD)</h3><span class="tag">Git → Deploy</span></div>
+    <div class="pipeline">
+      <div class="step"><b>Claude Code (web)</b><span>génère &amp; modifie le code, commits</span></div>
+      <div class="arrow">— commit / push →</div>
+      <div class="step"><b>GitHub</b><span>Asto-lab44/deb02CRM · branches claude/* &amp; main</span></div>
+      <div class="arrow">— webhook →</div>
+      <div class="step"><b>Vercel Build &amp; Deploy</b><span>déploiement auto à chaque push</span></div>
+      <div class="arrow">— sert →</div>
+      <div class="step"><b>hub.astorya.fr</b><span>mise en ligne (Edge)</span></div>
+    </div>
+  </div>
+
+  <div class="secnote"><b>Sécurité des flux :</b> tout en HTTPS/TLS ; secrets &amp; clés de service en variables d'environnement serveur (jamais exposés au navigateur) ; base protégée par RLS ; en-têtes durcis (HSTS, CSP, COOP) ; sauvegardes automatiques + copie hors-ligne ; hébergement &amp; données gérés en France.</div>
+
+  <div class="legend">
+    <span class="lg"><span class="sw" style="background:var(--cyan)"></span><span class="k">Client</span> navigateur / poste</span>
+    <span class="lg"><span class="sw" style="background:var(--brand)"></span><span class="k">Edge</span> Vercel (front + /api)</span>
+    <span class="lg"><span class="sw" style="background:var(--teal)"></span><span class="k">Données</span> Supabase</span>
+    <span class="lg"><span class="sw" style="background:var(--amber)"></span><span class="k">Services</span> externes</span>
+    <span class="lg"><span class="sw" style="background:var(--slate)"></span><span class="k">CI/CD</span> Git → Deploy</span>
+    <span class="lg"><span class="sw" style="background:var(--violet)"></span><span class="k">IA</span> Anthropic / OpenAI</span>
+  </div>
+
+  <footer>
+    <div><b>S.A.R.L. ASTORYA S.G.I.</b> — 9 rue du Petit Châtelier, 44300 Nantes · SIRET 523 625 804 00027</div>
+    <div class="mono">Document d'architecture · Hub Astorya</div>
+  </footer>
+</div>
